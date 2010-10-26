@@ -21,6 +21,7 @@ from _gfrd import (
     CuboidalRegion,
     CylindricalSurface,
     PlanarSurface,
+    Surface,
     _random_vector,
     Sphere,
     NetworkRulesWrapper,
@@ -736,6 +737,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
         min_shell = single.pid_particle_pair[1].radius * \
                     self.SINGLE_SHELL_FACTOR
 
+        # Burst intruders.
         intruders, closest, closest_distance = \
             self.get_intruders(singlepos, min_shell,
                                ignore=[single.domain_id, ])
@@ -747,7 +749,25 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
         if intruders:
             burst = self.burst_non_multis(intruders)
+        else:
+            burst = None
 
+        # Check closest surface.
+        # Only relevant when in the "world" or other 3D region.
+        if isinstance(single.surface, CuboidalRegion):
+            interaction_surface, closest_surface, surface_distance = \
+                get_closest_surface_within_radius(self.world, 
+                                                  singlepos, min_shell,
+                                                  ignore=[single.surface.id])
+            if interaction_surface:
+                obj = self.form_interaction(single, interaction_surface, burst)
+                if obj:
+                    return
+        else:
+            # Surfaces are not allowed to touch or overlap.
+            closest_surface = None
+
+        if burst:
             obj = self.form_pair_or_multi(single, burst)
 
             if obj:
@@ -777,6 +797,9 @@ class EGFRDSimulator(ParticleSimulatorBase):
                                FORMAT_DOUBLE % s.dt, closest,
                                FORMAT_DOUBLE % closest_distance))
         else:
+            if closest_surface and surface_distance < closest_distance:
+                closest = closest_surface
+                closest_distance = surface_distance
             self.update_single(single, closest, closest_distance)
             
         if __debug__:
@@ -1133,6 +1156,11 @@ class EGFRDSimulator(ParticleSimulatorBase):
         if obj:
             return obj
 
+    def form_interaction(self, single, surface, burst):
+        if __debug__:
+           log.debug('trying to form Interaction(%s, %s)' %
+                     (single.pid_particle_pair, surface))
+        raise NotImplementedError
 
     def form_pair(self, single1, pos1, single2, burst):
         if __debug__:
@@ -1141,6 +1169,14 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
         assert single1.is_reset()
         assert single2.is_reset()
+
+        # Try forming a Pair only if singles are on same surface.
+        if single1.surface != single2.surface:
+            if __debug__:
+                log.debug('Pair(%s, %s) not formed: not on same surface.' %
+                          (single1.pid_particle_pair[0],
+                           single2.pid_particle_pair[0]))
+            return None
 
         # 1. Determine min shell size.
         radius1 = single1.pid_particle_pair[1].radius
@@ -1258,7 +1294,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
             assert shell_size < closest_shell_distance
 
         else:
-            assert isinstance(closest, (Pair, Multi, None.__class__))
+            assert isinstance(closest, (Pair, Multi, Surface, None.__class__))
 
             shell_size = closest_shell_distance / SAFETY
 
