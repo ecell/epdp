@@ -293,5 +293,89 @@ class CylindricalSurfaceTestCase(EGFRDSimulatorTestCaseBase):
         vtk_logger.cleanup()
 
 
+class CylindricalSurfaceInteractionTestCase(EGFRDSimulatorTestCaseBase):
+    """Events between the "world" and a cylindrical surface.
+
+    """
+    def setUp(self):
+        self.create_model()
+        self.add_cylindrical_surface()
+
+        # Only species B is on the cylindrical surface.
+        self.B["structure"] = "d"
+        self.add_species() 
+        self.create_simulator() 
+        # Don't add particles yet.
+        # Don't add all reactions.
+
+    def test_simulation_does_not_come_to_a_halt(self):
+        # Place a particle on the cylindrical surface.
+        L = self.L
+        place_particle(self.s.world, self.B, [L / 2, L / 2, L / 2])
+
+        # Place a particle very close to the cylindrical surface.
+        offset = self.radius
+        place_particle(self.s.world, self.A,
+                       [L / 2, L / 2 + 2 * offset, L / 2 + 2.1 * offset])
+
+        vtk_logger = vtklogger.VTKLogger(self.s, 'vtk_temp_data')
+        for i in range(3):
+            self.s.step()
+            vtk_logger.log()
+        vtk_logger.stop()
+        vtk_logger.cleanup()
+
+        self.failIf(self.s.t < 1.e-10)
+
+    def test_no_pair_between_species_on_different_surfaces(self):
+        myrandom.seed(0)
+        # Place a particle on the cylindrical surface.
+        L = self.L
+        place_particle(self.s.world, self.B, [L / 2, L / 2, L / 2])
+
+        # Place a particle very close to the cylindrical surface.
+        offset = self.radius
+        place_particle(self.s.world, self.A,
+                       [L / 2, L / 2, L / 2 + 2.1 * offset])
+
+        vtk_logger = vtklogger.VTKLogger(self.s, 'vtk_temp_data')
+
+        # After 24 steps multi particle tries a move that would result 
+        # in overlap with surface.
+        self.s.bd_dt_factor = 5
+        for i in range(25):
+            self.s.step()
+            vtk_logger.log()
+            self.s.check()
+        vtk_logger.stop()
+        vtk_logger.cleanup()
+        self.failIf(numpy.array(self.s.pair_steps.values()).sum() > 0)
+
+    def test_no_overlap_interaction_and_cylindrical_single(self):
+        myrandom.seed(2)
+        # Place a particle on the cylindrical surface.
+        L = self.L
+        place_particle(self.s.world, self.B, [L / 2, L / 2, L / 2])
+
+        # Place a particle very close to the cylindrical surface.
+        offset = self.radius
+        place_particle(self.s.world, self.A,
+                       [L / 2, L / 2 + 3 * offset, L / 2 + 2.1 * offset])
+
+        vtk_logger = vtklogger.VTKLogger(self.s, 'vtk_temp_data')
+        for i in range(10):
+            self.s.step()
+            vtk_logger.log()
+            self.s.check()
+        vtk_logger.stop()
+        vtk_logger.cleanup()
+
+    def test_longer_run(self):
+        self.add_particles(20)
+
+        for i in range(100):
+            self.s.step()
+
+
 if __name__ == "__main__":
     unittest.main()
