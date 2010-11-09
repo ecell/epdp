@@ -21,8 +21,7 @@ class Single(object):
     specified.
 
     """
-    def __init__(self, domain_id, pid_particle_pair, shell_id, reactiontypes, 
-                 surface):
+    def __init__(self, domain_id, pid_particle_pair, reactiontypes, surface):
         self.multiplicity = 1
         self.num_shells = 1
 
@@ -36,12 +35,6 @@ class Single(object):
         self.event_type = None
 
         self.surface = surface
-
-        # Create shell.
-        shell = self.create_new_shell(pid_particle_pair[1].position,
-                                      pid_particle_pair[1].radius, domain_id)
-
-        self.shell_list = [(shell_id, shell), ]
 
         self.event_id = None
 
@@ -73,6 +66,12 @@ class Single(object):
     shell_id_shell_pair = property(get_shell_id_shell_pair, 
                                    set_shell_id_shell_pair)
 
+    def get_mobility_radius(self):
+        return self.get_shell_size() - self.pid_particle_pair[1].radius
+
+    def get_shell_size(self):
+        return self.shell_list[0][1].shape.radius
+
     def initialize(self, t):
         '''
         Reset the Single.
@@ -100,21 +99,11 @@ class Single(object):
             dt = (1.0 / self.k_tot) * math.log(1.0 / myrandom.uniform())
         return dt, EventType.SINGLE_REACTION
 
-    def draw_interaction_time(self):
-        """Todo.
-        
-        Note: we are not calling single.drawEventType() just yet, but 
-        postpone it to the very last minute (when this event is executed 
-        in fire_single). So IV_EVENT can still be an iv escape or an iv 
-        interaction.
+    def draw_escape_time_tuple(self):
+        """Return an (escape time, event type)-tuple.
 
-        """
-        pass
-
-    def draw_escape_or_interaction_time_tuple(self):
-        """Return an (escape or interaction time, event type)-tuple.
-
-        Handles also all interaction events.
+        In case of an interaction single, does not handle escapes in 
+        the interaction coordinate.
         
         """
         if self.getD() == 0:
@@ -124,13 +113,6 @@ class Single(object):
 
         event_type = EventType.SINGLE_ESCAPE
         return dt, event_type
-
-    def determine_next_event(self):
-        """Return an (event time, event type)-tuple.
-
-        """
-        return min(self.draw_escape_or_interaction_time_tuple(),
-                   self.draw_reaction_time_tuple())
 
     def updatek_tot(self):
         self.k_tot = 0
@@ -175,14 +157,21 @@ class NonInteractionSingle(Single):
     """
     def __init__(self, domain_id, pid_particle_pair, shell_id, reactiontypes, 
                  surface):
-        Single.__init__(self, domain_id, pid_particle_pair, shell_id,
-                        reactiontypes, surface)
+        Single.__init__(self, domain_id, pid_particle_pair, reactiontypes,
+                        surface)
 
-    def get_mobility_radius(self):
-        return self.get_shell_size() - self.pid_particle_pair[1].radius
+        # Create shell.
+        shell = self.create_new_shell(pid_particle_pair[1].position,
+                                      pid_particle_pair[1].radius, domain_id)
 
-    def get_shell_size(self):
-        return self.shell_list[0][1].shape.radius
+        self.shell_list = [(shell_id, shell), ]
+
+    def determine_next_event(self):
+        """Return an (event time, event type)-tuple.
+
+        """
+        return min(self.draw_escape_time_tuple(),
+                   self.draw_reaction_time_tuple())
 
     def draw_new_position(self, dt, event_type):
         if event_type == EventType.SINGLE_ESCAPE:
