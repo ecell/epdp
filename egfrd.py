@@ -56,6 +56,25 @@ def create_default_single(domain_id, pid_particle_pair, shell_id, rt, surface):
         return PlanarSurfaceSingle(domain_id, pid_particle_pair, 
                                    shell_id, rt, surface)
 
+def create_default_interaction(domain_id, pid_particle_pair, shell_id,
+                               reaction_types, interaction_type, surface,
+                               projected_point, particle_distance, 
+                               orientation_vector, dr, dz_left, dz_right):
+    if isinstance(surface, CylindricalSurface):
+        return CylindricalSurfaceInteraction(domain_id, pid_particle_pair,
+                                             shell_id, reaction_types,
+                                             interaction_type, surface, 
+                                             projected_point, particle_distance,
+                                             orientation_vector,
+                                             dr, dz_left, dz_right)
+    elif isinstance(surface, PlanarSurface):
+        return PlanarSurfaceInteraction(domain_id, pid_particle_pair,
+                                        shell_id, reaction_types,
+                                        interaction_type, surface,
+                                        projected_point, particle_distance, 
+                                        orientation_vector,
+                                        dr, dz_left, dz_right)
+
 def create_default_pair(domain_id, com, single1, single2, shell_id, 
                         r0, shell_size, rt, surface):
     if isinstance(surface, CuboidalRegion):
@@ -326,6 +345,40 @@ class EGFRDSimulator(ParticleSimulatorBase):
             # Used in __str__.
             single.world = self.world
         return single
+
+    def create_interaction(self, single, surface, projected_point, 
+                           particle_distance, orientation_vector,
+                           dr, dz_left, dz_right):
+        assert single.dt == 0.0 and single.get_mobility_radius() == 0.0
+
+        pid_particle_pair = single.pid_particle_pair
+        species_id = pid_particle_pair[1].sid
+
+        reaction_types = self.network_rules.query_reaction_rule(species_id)
+        #interaction_type = self.query_interaction_rule(species_id, surface)
+        # TODO.
+        interaction_type = None
+
+        domain_id = self.domain_id_generator()
+        shell_id = self.shell_id_generator()
+
+        interaction = \
+            create_default_interaction(domain_id, pid_particle_pair, shell_id,
+                                       reaction_types, interaction_type,
+                                       surface, projected_point,
+                                       particle_distance, orientation_vector,
+                                       dr, dz_left, dz_right)
+        interaction.initialize(self.t)
+
+        self.move_shell(interaction.shell_id_shell_pair)
+        self.domains[domain_id] = interaction
+
+        if __debug__:
+            # Used in __str__.
+            interaction.world = self.world
+
+        assert isinstance(interaction, InteractionSingle)
+        return interaction
 
     def create_pair(self, single1, single2, com, r0, shell_size):
         assert single1.dt == 0.0
@@ -1157,10 +1210,223 @@ class EGFRDSimulator(ParticleSimulatorBase):
             return obj
 
     def form_interaction(self, single, surface, burst):
+        # Try to form an interaction.
+
+        particle = single.pid_particle_pair[1]
+        # Cyclic transpose needed when calling surface.projected_point!
+        pos_transposed = self.world.cyclic_transpose(particle.position, 
+                                                     surface.shape.position) 
+        projected_point, projection_distance = \
+                surface.projected_point(pos_transposed)
+
+        particle_distance = abs(projection_distance)
+
+        # For interaction with a planar surface, decide orientation. 
+        orientation_vector = cmp(projection_distance, 0) * surface.shape.unit_z 
+
         if __debug__:
-           log.debug('trying to form Interaction(%s, %s)' %
-                     (single.pid_particle_pair, surface))
-        raise NotImplementedError
+           log.debug('trying to form Interaction(%s, %s)' % (particle, surface))
+
+        # For an interaction with a PlanarSurface (membrane):
+        # * dr is the radius of the cylinder.
+        # * dz_left determines how much the cylinder is sticking out on the 
+        # other side of the surface, measured from the projected point.
+        # * dz_right is the distance between the particle position and 
+        # the edge of the cylinder in the z direction.
+        #
+        # For interaction with a CylindricalSurface (dna):
+        # * dr is the distance between the particle position and the 
+        # edge of the cylinder in the r direction.
+        # * dz_left is the distance from the projected point to the left edge 
+        # of the cylinder.
+        # * dz_right is the distance from the projected point to the right edge 
+        # of the cylinder.
+
+        # Initialize dr, dz_left, dz_right to maximum allowed values.
+        # And decide minimal dr, dz_left, dz_right.
+        if isinstance(surface, PlanarSurface):
+            dr = self.get_max_shell_size()
+            # Leave enough for the particle itself to the left.
+            dz_left = particle.radius
+            # Make sure the cylinder stays within 1 cell.
+            dz_right = self.get_max_shell_size() * 2 - \
+                      (particle_distance + dz_left)
+
+            min_dr = particle.radius * self.SINGLE_SHELL_FACTOR
+            min_dz_left = dz_left
+            min_dz_right = particle.radius * self.SINGLE_SHELL_FACTOR
+
+        elif isinstance(surface, CylindricalSurface):
+            # Make sure the cylinder stays within 1 cell.
+            dr = self.get_max_shell_size() - particle_distance
+            dz_left = self.get_max_shell_size()
+            dz_right = self.get_max_shell_size()
+
+            min_dr = particle.radius * self.SINGLE_SHELL_FACTOR
+            min_dz_left = particle.radius * self.SINGLE_SHELL_FACTOR
+            min_dz_right = particle.radius * self.SINGLE_SHELL_FACTOR
+
+        # Miedema's algorithm.
+        dr, dz_left, dz_right = \
+            self.determine_optimal_cylinder(single, surface,
+                                            projected_point,
+                                            particle_distance,
+                                            orientation_vector,
+                                            dr, dz_left, dz_right,
+                                            burst)
+        dr /= SAFETY
+        dz_left /= SAFETY
+        dz_right /= SAFETY
+
+        # Decide if interaction domain is possible.
+        if dr < min_dr or dz_left < min_dz_left or dz_right < min_dz_right:
+            if __debug__:
+                log.debug('        *Interaction not possible:\n'
+                          '            %s +\n'
+                          '            %s.\n'
+                          '            dr = %.3g. min_dr = %.3g.\n'
+                          '            dz_left = %.3g. min_dz_left = %.3g.\n'
+                          '            dz_right = %.3g. min_dz_right = %.3g.' %
+                          (single, surface, dr, min_dr, dz_left, min_dz_left, 
+                           dz_right, min_dz_right))
+            return None
+
+        interaction = self.create_interaction(single, surface,
+                                              projected_point, 
+                                              particle_distance,
+                                              orientation_vector, 
+                                              dr, dz_left, dz_right)
+
+        # Below here similar as in fire_pair after creating a pair.
+        interaction.dt, interaction.event_type, = \
+            interaction.determine_next_event()
+        assert interaction.dt >= 0
+
+        self.last_time = self.t
+
+        self.remove_domain(single)
+        # single event will be removed by the scheduler.
+
+        if __debug__:
+            log.debug('        *create_interaction\n'
+                      '            dr = %s. dz_left = %s. dz_right = %s.\n' %
+                      (FORMAT_DOUBLE % dr, FORMAT_DOUBLE % dz_left,
+                       FORMAT_DOUBLE % dz_right))
+
+        assert self.check_obj(interaction)
+        self.add_single_event(interaction)
+
+        return interaction
+
+    def determine_optimal_cylinder(self, single, surface, projected_point, 
+                                   particle_distance, orientation_vector,
+                                   dr, dz_left, dz_right, burst):
+        # Find optimal cylinder around particle and surface, such that 
+        # it is not interfering with other shells.
+        # Todo. Finding all spheres and cylinders in the matrixspace 
+        # should be sufficient, but domain information is now used for 
+        # get_shell_size is overridden for cylindrical singles and 
+        # pairs.
+        all_neighbors = \
+            self.get_neighbors_within_radius_no_sort(projected_point, 
+                                                     self.get_max_shell_size(),
+                                                     ignore=[single.domain_id])
+
+        for domain in all_neighbors:
+            if isinstance(domain, Multi):
+                for shell in domain.shell_list:
+                    shell_position = shell.shape.position
+                    shell_size = shell.shape.radius
+                    dr, dz_left, dz_right = \
+                        self.miedema_algorithm(shell_position, shell_size,
+                                               projected_point, 
+                                               orientation_vector, dr, 
+                                               dz_left, dz_right, 
+                                               surface, particle_distance)
+            else:
+                # Get shell size, which normally is the radius of the 
+                # shell, but in case of a cylinder around the same 
+                # CylindricalSurface it should be the half_length of 
+                # the cylinder.
+                shell_position = domain.shell.shape.position
+                shell_size = domain.get_shell_size()
+
+                # Make bursted singles look bigger, like in form_pair, 
+                # because the size of their shell is only 
+                # particle.radius (not yet multiplied by 
+                # SINGLE_SHELL_FACTOR)
+                # (and no we can not do that immediately after they are 
+                # bursted, singles might start overlapping).
+                if domain.dt == 0.0 and domain.getD() > 0:
+                    # This is one of the bursted singles.
+                    # Or a particle that just escaped it's multi.
+                    shell_size *= self.SINGLE_SHELL_FACTOR
+
+                dr, dz_left, dz_right = \
+                    self.miedema_algorithm(shell_position, shell_size, 
+                                           projected_point, 
+                                           orientation_vector, dr, 
+                                           dz_left, dz_right, surface,
+                                           particle_distance)
+
+
+        return dr, dz_left, dz_right
+
+    def miedema_algorithm(self, shell_position, shell_size, projected_point,
+                          orientation_vector, dr, dz_left, dz_right,
+                          surface, particle_distance):
+        # Find optimal cylinder around particle and surface, such that 
+        # it does not interfere with the shell at position 
+        # shell_position and with size (radius or half_length) 
+        # shell_size.
+
+        shell_vector = shell_position - projected_point
+
+        # Calculate zi and ri for this shell.
+        zi = numpy.dot(shell_vector, orientation_vector)
+        z_vector = zi * numpy.array(orientation_vector)
+        r_vector = numpy.array(shell_vector) - numpy.array(z_vector)
+        ri = numpy.linalg.norm(r_vector)
+
+        # Calculate dr_i for this shell.
+        dr_i = ri - shell_size
+        if isinstance(surface, CylindricalSurface):
+            # Run Miedema's algorithm in the r direction 
+            # relative to the particle's position, not to 
+            # projected point (r=0).
+            dr_i -= particle_distance
+
+        # Calculate dz_left_i or dz_right_i (both will usually 
+        # be positive values).
+        if zi < 0:
+            # Calculate dz_left_i for this shell.
+            dz_left_i = - zi - shell_size
+
+            # Miedema's algorithm left side.
+            if dz_left_i < dz_left and dr_i < dr:
+                if dz_left_i > dr_i:
+                    dz_left = dz_left_i
+                else:
+                    dr = dr_i
+        else:
+            # Calculate dz_right_i for this shell.
+            dz_right_i = zi - shell_size
+
+            if isinstance(surface, PlanarSurface):
+                # On the particle side (right side), run 
+                # Miedema's algorithm in the z direction 
+                # relative to the particle's position, not the 
+                # projected point (z=0).
+                dz_right_i -= particle_distance
+
+            # Miedema's algorithm right side.
+            if dz_right_i < dz_right and dr_i < dr:
+                if dz_right_i > dr_i:
+                    dz_right = dz_right_i
+                else:
+                    dr = dr_i
+
+        return dr, dz_left, dz_right
 
     def form_pair(self, single1, pos1, single2, burst):
         if __debug__:

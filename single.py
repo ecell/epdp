@@ -9,6 +9,9 @@ __all__ = [
     'PlanarSurfaceSingle',
     'SphericalSingle',
     'Single',
+    'InteractionSingle',
+    'CylindricalSurfaceInteraction',
+    'PlanarSurfaceInteraction',
     ]
 
 class Single(object):
@@ -313,4 +316,159 @@ class CylindricalSurfaceSingle(NonInteractionSingle):
     def __str__(self):
         return 'CylindricalSurface' + Single.__str__(self)
 
+
+class InteractionSingle(Single):
+    """Interactions singles are used when a particle is close to a 
+    surface.
+
+    There are 2 types of InteractionSingles:
+        * PlanarSurfaceInteraction.
+        * CylindricalSurfaceInteraction.
+
+    """
+    def __init__(self, domain_id, pid_particle_pair, shell_id, shell,  
+                 reactiontypes, interaction_type, surface):
+
+        Single.__init__(self, domain_id, pid_particle_pair, reactiontypes,
+                        surface)
+        self.interaction_type = interaction_type
+        self.shell_list = [(shell_id, shell), ]
+
+    def determine_next_event(self):
+        """Return an (event time, event type)-tuple.
+
+        """
+        return min(self.draw_escape_time_tuple(),
+                   self.draw_iv_interaction_or_escape_time_tuple(),
+                   self.draw_reaction_time_tuple())
+
+    def draw_iv_interaction_or_escape_time_tuple(self):
+        """Return an (interaction/escape time, event type)-tuple.
+ 
+        Note: we are not calling single.draw_iv_event_type() just yet, but 
+        postpone it to the very last minute (when this event is executed 
+        in fire_single). So IV_EVENT can still be an iv escape or an iv 
+        interaction.
+
+        """
+        dt = draw_time_wrapper(self.iv_greens_function())
+
+        return dt, EventType.IV_EVENT
+
+    def draw_iv_event_type(self):
+        gf = self.iv_greens_function()
+        event_kind = draw_event_type_wrapper(gf, self.dt)
+        if event_kind == PairEventKind.IV_REACTION:
+            return EventType.IV_REACTION
+        elif event_kind == PairEventKind.IV_ESCAPE:
+            return EventType.IV_ESCAPE
+        raise NotImplemented()
+
+
+class PlanarSurfaceInteraction(InteractionSingle):
+    pass
+
+
+class CylindricalSurfaceInteraction(InteractionSingle):
+    """1 Particle close to a CylindricalSurface, inside a cylindrical shell 
+    that surrounds the surface.
+
+        * Particle coordinates inside shell: r, theta, z.
+        * Domains: composite r-theta, cartesian z.
+        * Initial position: r = r, theta = 0, z = z.
+        * Selected randomly when drawing displacement vector: none.
+
+    """
+    def __init__(self, domain_id, pid_particle_pair, shell_id, reactiontypes,
+                 interaction_type, surface, projected_point, particle_distance,
+                 orientation_vector, dr, dz_left, dz_right):
+
+        self.particle_distance = particle_distance
+        self.dz_left = dz_left
+
+        # Only needed for this type of Interaction.
+        self.unit_r = normalize(pid_particle_pair[1].position - projected_point)
+
+        shell = self.create_shell(domain_id, projected_point,
+                                  particle_distance, orientation_vector,
+                                  dr, dz_left, dz_right)
+
+        InteractionSingle.__init__(self, domain_id, pid_particle_pair,
+                                   shell_id, shell, reactiontypes,
+                                   interaction_type, surface)
+
+    def create_shell(self, domain_id, projected_point, particle_distance,
+                     orientation_vector, dr, dz_left, dz_right):
+
+        # Compute origin, radius and half_length of cylinder.
+        # This stuff is complicated.
+        half_length = (dz_left + dz_right) / 2
+        shiftZ = half_length - dz_left
+        origin = projected_point + shiftZ * orientation_vector
+        radius = dr + particle_distance
+
+        # Return shell.
+        return CylindricalShell(domain_id, Cylinder(origin, radius, 
+                                                    orientation_vector, 
+                                                    half_length))
+
+    def greens_function(self):
+        z0 = self.dz_left - self.shell.shape.half_length
+
+        # Free diffusion in z direction.
+        return GreensFunction1DAbsAbs(self.getD(), self.getv(), z0,
+                                      -self.get_mobility_radius(),
+                                      self.get_mobility_radius())
+
+    def iv_greens_function(self):
+        # Interaction possible in r direction.
+        # Todo.
+        #k = self.interaction_type.k
+        k = 0
+        r0 = self.particle_distance
+        sigma = self.surface.shape.radius + self.pid_particle_pair[1].radius
+        a_r = self.shell.shape.radius - self.pid_particle_pair[1].radius
+        # Todo 2D.
+        return GreensFunction3DRadAbs(self.getD(), k, r0, sigma, a_r)
+
+    def draw_new_position(self, dt, event_type):
+        # 1) Draw z.
+        if event_type == EventType.SINGLE_ESCAPE:
+            # Moving this checks to the Green's functions is not a good 
+            # idea, because then you'd draw an unused random number.  
+            # The same yields for the draw_new_com and draw_new_iv.  
+            z = self.get_mobility_radius()
+        else:
+            gf = self.greens_function()
+            z = draw_r_wrapper(gf, dt, self.get_mobility_radius())
+
+        # Orientation matters, so use shell.shape.unit_z instead of 
+        # surface.shape.unit_z.
+        z_vector = z * self.shell.shape.unit_z
+
+        # 2) Draw r and theta.
+        sigma = self.surface.shape.radius + self.pid_particle_pair[1].radius
+        a_r = self.shell.shape.radius - self.pid_particle_pair[1].radius
+        iv_gf = self.iv_greens_function()
+        if event_type == EventType.IV_ESCAPE:
+            r = a_r
+        elif event_type == EventType.IV_INTERACTION:
+            r = sigma
+        else:
+            r = draw_r_wrapper(iv_gf, dt, a_r, sigma)
+        theta = draw_theta_wrapper(iv_gf, r, dt)
+
+        r_vector = r * rotate_vector(self.unit_r, self.shell.shape.unit_z,
+                                     theta)
+
+        # Add displacement to shape.position, not to particle.position.  
+        return self.shell.shape.position + z_vector + r_vector
+
+    def get_shell_size(self):
+        # Heads up. The cylinder's *half_length*, not radius, 
+        # determines the size in case of a cylindrical surface.
+        return self.shell_list[0][1].shape.half_length
+
+    def __str__(self):
+        return 'CylindricalSurfaceInteraction' + Single.__str__(self)
 
