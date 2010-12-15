@@ -23,6 +23,7 @@ from _gfrd import (
     PlanarSurface,
     Surface,
     _random_vector,
+    Cylinder,
     Sphere,
     NetworkRulesWrapper,
     )
@@ -1891,15 +1892,39 @@ rejected moves = %d
             if not isinstance(obj, Multi):
                 ignores = [obj.surface.id]
             else:
-                ignores = []
+                # Ignore all surfaces, multi shells can overlap with 
+                # surfaces.
+                ignores = [s.id for s in self.world.structures]
             closest, distance = self.get_closest_obj(shell.shape.position,
                                                      ignore=[obj.domain_id],
                                                      ignores=ignores)
-            if(type(obj) is CylindricalSurfaceSingle or
-               type(obj) is CylindricalSurfacePair):
+            if(type(shell.shape) is Cylinder and
+               closest and type(closest.shell.shape) is Sphere):
+                # Note: this case is special.
+                # Note: only checking if cylinder doesn't overlap with 
+                # closest sphere, like we do here, is not really 
+                # sufficient (but checking all spheres is too much 
+                # work).
                 shell_size = shell.shape.half_length
+                # Reverse overlap calculation: from closest sphere to 
+                # cylinder is easier than the other way around, because 
+                # the distance calculation from a point to a cylinder 
+                # is already implemented.
+                sphere = closest.shell.shape
+                diff = self.world.distance(shell.shape, sphere.position) - \
+                       sphere.radius
             else:
-                shell_size = shell.shape.radius
+                if(type(obj) is CylindricalSurfaceSingle or
+                   type(obj) is CylindricalSurfacePair or
+                   type(obj) is CylindricalSurfaceInteraction):
+                    # On CylindricalSurface, use half_lenghts.
+                    # (assume all nearby other cylinders are on the 
+                    # same surface)
+                    shell_size = shell.shape.half_length
+                else:
+                    # Normally compare radii.
+                    shell_size = shell.shape.radius
+                diff = distance - shell_size
 
             assert shell_size <= self.get_user_max_shell_size(), \
                 '%s shell size larger than user-set max shell size' % \
@@ -1909,11 +1934,11 @@ rejected moves = %d
                 '%s shell size larger than simulator cell size / 2' % \
                 str(shell_id)
 
-            assert distance - shell_size >= 0.0, \
+            assert diff >= 0.0, \
                 '%s overlaps with %s. (shell: %s, dist: %s, diff: %s.' % \
                 (str(obj), str(closest), FORMAT_DOUBLE % shell_size,
                  FORMAT_DOUBLE % distance,
-                 FORMAT_DOUBLE % (distance - shell_size))
+                 FORMAT_DOUBLE % diff)
 
         return True
 
