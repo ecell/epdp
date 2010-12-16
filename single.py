@@ -160,7 +160,8 @@ class Single(object):
         name = self.world.model.get_species_type_by_id(sid)["name"]
         if name[0] != '(':
             name = '(' + name + ')'
-        return 'Single[%s: %s, ST%s]' % (self.domain_id, pid, name)
+        return 'Single[%s: %s, ST%s, %s]' % (self.domain_id, pid, name,
+                                             self.pid_particle_pair[1].position)
 
 
 class NonInteractionSingle(Single):
