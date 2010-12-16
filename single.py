@@ -366,7 +366,103 @@ class InteractionSingle(Single):
 
 
 class PlanarSurfaceInteraction(InteractionSingle):
-    pass
+    """1 Particle close to a PlanarSurface, inside a cylindrical shell 
+    placed on top of the surface.
+
+        * Particle coordinates inside shell: r, theta, z.
+        * Coordinates: radial r, cartesian z.
+        * Initial position: r = 0, z = z.
+        * Selected randomly when drawing displacement vector: theta.
+
+    """
+    def __init__(self, domain_id, pid_particle_pair, shell_id, reactiontypes,
+                 surface, interaction_type, origin, orientation, half_length, 
+                 particle_offset, projected_point, size_of_domain):
+        InteractionSingle.__init__(self, domain_id, pid_particle_pair, 
+                                   shell_id, reactiontypes, surface, 
+                                   interaction_type, origin, orientation,
+                                   half_length, particle_offset,
+                                   projected_point, size_of_domain)
+
+        # Compute from dr, dz_left and dz_right the length of the new 
+        # domain (only that part of the cylinder where the particle can 
+        # diffuse to) and the radius and half_length of the new 
+        # cylinder.
+
+        # a
+        # sigma
+        sigma = self.surface.shape.Lz + self.pid_particle_pair[1].radius
+        # r0
+        if isinstance(surface, PlanarSurface):
+            # Heads up: length of domain (the part of the cylinder 
+            # where the particle can get) is a bit different from the 
+            # length of the cylinder because of dz_left.
+            # Assume surface.Lz == 0
+            length_of_domain = particle_distance + dz_right
+            radius = dr
+            half_length = (particle_distance + dz_left + dz_right) / 2
+
+        # TODO. This is not correct anymore.
+        if isinstance(surface, PlanarSurface):
+            # Compute new particle offset relative to origin of the 
+            # domain in the z-direction (z=0).
+            # The surface boundary is at z=-length_of_domain / 2, the 
+            # other end in the middles*at* the surface boundary. (z=L) 
+            # is at the end of the cylinder.
+            # (min_radius correction in the constructor).
+            particle_offset = [0, particle_distance - length_of_domain.Lz]
+
+    def greens_function_r(self):
+        # Todo. 2D gf Abs Sym.
+        #gf = FirstPassageGreensFunction2D(self.getD())
+        return FirstPassageGreensFunction(self.getD(),
+                                          self.get_mobility_radius())
+
+    def greens_function_z(self):
+        # Todo. 1D gf Rad Abs should be sigma to a.
+        #gf = FirstPassageGreensFunction1DRad(self.D_tot, self.rt.k)
+
+        return FirstPassagePairGreensFunction(self.getD(),
+                                              self.interaction_type.k, self.r0,
+                                              self.sigma, self.sigma)
+        gf.seta(a)
+        return gf
+
+        # TODO.
+
+        # Cartesian domain of half_length L. Correction with getMinRadius().
+        #zDomain = CartesianDomain(particle_offset[1] - self.getMinRadius(), 
+        #                           size_of_domain - 2 * self.getMinRadius(), 
+        #                           gfz)
+
+    def createNewShell(self, position, radius, domain_id):
+        orientation = self.orientation
+        half_length = self.half_length
+        return CylindricalShell(position, radius, orientation, half_length,
+                                domain_id)
+
+    def draw_new_positions(self, dt, eventType):
+        gf_r = self.greens_function_r()
+        a = self.get_mobility_radius()
+        r = draw_displacement_wrapper(gf_r, dt, eventType, a)
+        x, y = randomVector2D(r)
+
+        # Todo. Cartesian coordinate will return absolute position.
+        gf_z = self.greens_function_z()
+        # Heads up. size_of_domain is different from the half_length of 
+        # the cylinder, because the domain ends where the surface 
+        # starts, while the cylinder is continuing into the surface.
+        a = 1 #TODO 
+        r0 = self.particle_offset
+        sigma = self.sigma
+        z = draw_displacement_wrapper(gf_z, dt, eventType, a, r0, sigma)
+
+        # Add displacement vector to self.particle.pos, not self.pos.
+        return self.particle.pos + x * self.interactionSurface.unitX + \
+               y * self.interactionSurface.unitY + z * self.shellList[0].unitZ
+
+    def __str__(self):
+        return 'PlanarSurfaceInteraction' + Single.__str__(self)
 
 
 class CylindricalSurfaceInteraction(InteractionSingle):
