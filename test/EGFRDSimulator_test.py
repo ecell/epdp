@@ -293,6 +293,30 @@ class CylindricalSurfaceTestCase(EGFRDSimulatorTestCaseBase):
         vtk_logger.cleanup()
 
 
+class PlanarSurfaceInteractionTestCase(EGFRDSimulatorTestCaseBase):
+    """Events between the "world" and a planar surface.
+
+    """
+    def setUp(self):
+        self.create_model()
+        self.add_planar_surface()
+
+        # Only species B is on the planar surface.
+        self.B["structure"] = "m1"
+        self.add_species() 
+        self.create_simulator() 
+        self.add_particles(10)
+        # Don't add all reactions.
+
+    def test_interaction_single_is_formed(self):
+        # Place a particle very close to the planar surface.
+        z_position = float(self.A['radius']) * (1 + 1e-8)
+        place_particle(self.s.world, self.A, [0.0,0.0, z_position])
+
+        for i in range(100):
+            self.s.step()
+
+
 class CylindricalSurfaceInteractionTestCase(EGFRDSimulatorTestCaseBase):
     """Events between the "world" and a cylindrical surface.
 
