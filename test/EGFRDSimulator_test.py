@@ -15,7 +15,8 @@ import model
 import gfrdbase
 import myrandom
 
-log.setLevel(logging.WARNING)
+#log.setLevel(logging.WARNING)
+log.setLevel(logging.DEBUG)
 
 
 class EGFRDSimulatorTestCase(unittest.TestCase):
@@ -402,4 +403,10 @@ class CylindricalSurfaceInteractionTestCase(EGFRDSimulatorTestCaseBase):
 
 
 if __name__ == "__main__":
-    unittest.main()
+    suite = unittest.TestLoader().loadTestsFromTestCase(CylindricalSurfaceInteractionTestCase)
+    unittest.TextTestRunner(verbosity=2).run(suite)
+
+    # Todo: taking huge bd steps.
+
+    #unittest.main()
+

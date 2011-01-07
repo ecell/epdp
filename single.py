@@ -568,3 +568,22 @@ class CylindricalSurfaceInteraction(InteractionSingle):
     def __str__(self):
         return 'CylindricalSurfaceInteraction' + Single.__str__(self)
 
+class DummySingle(object):
+    def __init__(self):
+        self.multiplicity = 1
+        self.half_length = 0.0
+        self.shellList = [Sphere(NOWHERE, 0.0)]
+
+    def getMinSize(self):
+        return 0.0
+
+    def getD(self):
+        return 0.0
+
+    def getPos(self):
+        return NOWHERE
+    pos = property(getPos)
+
+    def __str__(self):
+        return 'DummySingle()'
+
