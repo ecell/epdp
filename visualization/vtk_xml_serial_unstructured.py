@@ -230,7 +230,9 @@ class VTK_XML_Serial_Unstructured:
                 # Problem with adding real time can be that 
                 # TimestepValues is not updated in Proxy group="misc" 
                 # in .pvsm file after a reload.
-                time = str(time)
+                # Note: use repr(time), since str(time) truncates floating 
+                # points. Alternatively: http://labix.org/python-nicefloat.
+                time = repr(time)
                 data_set.setAttribute("timestep", time)
             data_set.setAttribute("group", "")
             data_set.setAttribute("part", type) # Use Extractblock.
