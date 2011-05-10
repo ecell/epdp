@@ -136,10 +136,26 @@ def singlerun(T, which_sim):
     return distance, s.t # return variables of interest: distance and time
         # s.t gives the current time, time that has passed in the simulator.
 
+# go
 if __name__ == '__main__':
     run(sys.argv[1], float(sys.argv[2]), int(sys.argv[3]), sys.argv[4])
 
 
+# Some debugging attempts:
+"""
+def print_vars():
+    print "############"
+    for name in dir():
+        myvalue = eval(name)
+        print name, "is", type(name), "and is equal to ", myvalue
+
+print_vars()
+singlerun(float(sys.argv[2]), sys.argv[4])
+print_vars()
+singlerun(float(sys.argv[2]), sys.argv[4])
+print_vars()
+singlerun(float(sys.argv[2]), sys.argv[4])
+"""
 
 
 
