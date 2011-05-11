@@ -11,6 +11,8 @@ LOGLEVEL=ERROR PYTHONPATH=../.. python -O run.py 1 1 100 10
 from egfrd import *
 from bd import *
 import sys
+import gfrdbase
+import model
 
 def run(outfilename, D_factor, N_B, N_X, N):
     print outfilename
@@ -58,6 +60,7 @@ def singlerun(T_list, D_factor, N_B, N_X):
     # V = 1.66e-21 m^3
     # L = 1.18e-7
 
+    # ### Define constants
     DX_factor = 1
 
     V = 1e-18 # m^3
@@ -65,13 +68,6 @@ def singlerun(T_list, D_factor, N_B, N_X):
 
     matrix_size = min(max(3, int((9 * (N_X+N_B)) ** (1.0/3.0))), 60)
     print 'matrix_size=', matrix_size
-
-    w = World(L, matrix_size)
-    s = EGFRDSimulator(w)
-    #s.set_user_max_shell_size(1e-6)
-    #s = BDSimulator(w)
-
-    box1 = CuboidalRegion([0,0,0],[L,L,L])
 
     radius = 2.5e-9
     sigma = radius * 2
@@ -82,22 +78,44 @@ def singlerun(T_list, D_factor, N_B, N_X):
     tau = sigma**2 / D_tot
 
     #kf = 1000 * sigma * D_tot
-
     # 1e9 [1 / (M s)] -> 1e9 / 1000 / N_A [m^3 / s]
     kf = 0.092e-18
 
-    m = ParticleModel()
-
-    A = m.new_species_type('A', D, radius)
-    B = m.new_species_type('B', D, radius)
-    C = m.new_species_type('C', D, radius)
-
     DX = D * DX_factor
 
-    X = m.new_species_type('X', DX, radius)
+    # ### Define model
+    
+    # Create model class
+    m = model.ParticleModel(L)
 
+    # Particle species classes
+    A = model.Species('A', D, radius)
+    m.add_species_type(A)
+    B = model.Species('B', D, radius)
+    m.add_species_type(B)
+    C = model.Species('C', D, radius)
+    m.add_species_type(C)
+    X = model.Species('X', DX, radius)
+    m.add_species_type(X)
+    
+    # Reaction rules
+    r1 = model.create_binding_reaction_rule(A, B, C, kf)
+    m.network_rules.add_reaction_rule(r1)
+
+    r2 = model.create_unbinding_reaction_rule(C, A, B, 1e3)
+    m.network_rules.add_reaction_rule(r2)
+
+    # ### Set up simulator
+
+    w = gfrdbase.create_world(L, matrix_size)
+    nrw = gfrdbase.create_network_rules_wrapper(m)
+    s = EGFRDSimulator(w, myrandom.rng, nrw)
+
+    # ### Place particles 
+
+    # Throw in some X particles and stirr
     if N_X != 0:
-        s.throw_in_particles(X, N_X, box1)
+        gfrdbase.throw_in_particles(w, X, N_X)
 
         end_time = tau * 1
         while 1:
@@ -109,18 +127,27 @@ def singlerun(T_list, D_factor, N_B, N_X):
 
 
     s.reset()
-
-    r1 = create_binding_reaction_rule(A, B, C, kf)
-    m.network_rules.add_reaction_rule(r1)
-
-    r2 = create_unbinding_reaction_rule(C, A, B, 1e3)
-    m.network_rules.add_reaction_rule(r2)
-
-    s.set_model(m)
+    # Removed introduction of network rules here.
+    # s.set_model(m) # IF presence of network rules results in data
+                     # that is not cleaned in reset, this might give 
+                     # problems. Originally, s.set_model(m) would 
+                     # have introduced these rules here.
 
     A_pos = [0,0,0]
     B_pos = [(float(A['radius']) + float(B['radius']))+1e-23,0,0]
 
+    # Clear an area at position A_pos and place particle A there
+    """
+    What happens here:
+        - find particles at position A_pos within species A radius
+        - delete those
+        - add a number of X particles _randomly to the box_, the 
+          number being equal to # removed particles.
+        - if a particle is accidently placed within the "cleared"
+          area, repeat the process (in very crowded box, this 
+          leads to infinite loop)
+        - 
+    """
     while 1:
         pp = s.get_particles_within_radius(A_pos, float(A['radius']))
         if not pp:
@@ -131,6 +158,7 @@ def singlerun(T_list, D_factor, N_B, N_X):
 
     s.place_particle(A, A_pos)
 
+    # Idem for a particle B:
     while 1:
         pp = s.get_particles_within_radius(B_pos, float(B['radius']))
         if not pp:
@@ -141,6 +169,7 @@ def singlerun(T_list, D_factor, N_B, N_X):
 
     s.place_particle(B, B_pos)
 
+    # Place rest of B at random positions
     if N_B > 1:
         s.throw_in_particles(B, N_B-1, box1)
 
@@ -150,12 +179,30 @@ def singlerun(T_list, D_factor, N_B, N_X):
 
     s.step()
 
-    next_stop = T_list[0]
+    next_stop = T_list[0] # In this case T_list[0] equals infinity
 
     i_T = 0
 
+    #TODO (following correct?-:)
+    """
+    What happens here: 
+    - If there was a reaction
+        - And there are no C-particles, set t_last to current simulation
+          time
+        - And there are C particles, calculate dt between previous??? and 
+          this reaction. 
+
+    OR:
+    
+        - If the last C particle has just reacted away, record the time
+        - If there are still C particles, record the time relative to this  
+          occurence 
+
+    T-list in principle contains a list with scheduled "stops"
+
+    """
     while 1:
-        if s.last_reaction:
+        if s.last_reaction: # aka if there was a reaction
             print s.last_reaction
             if len(s.world.get_particle_ids(C.id)) == 0:  #A,B
                 print 'set t_last', s.t
