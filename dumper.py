@@ -66,7 +66,14 @@ def dump_species_names(sim):
     return ' '.join(get_species_names(sim))
 
 def _get_species_type_by_name(sim, name):
-    #Helper.
+    """ Return the type of a species with a certain name
+
+    Arguments:
+        - sim
+            an EGFRDSimulator
+        - name
+            species name
+    """ #TODO: Added by wehrens@AMOLF.nl; Please revise.
     for species_type in sim.world.model.species_types:
         if species_type['name'] == name:
             return species_type
@@ -74,7 +81,21 @@ def _get_species_type_by_name(sim, name):
     raise RuntimeError('SpeciesType %s does not exist.' % (name))
 
 def _get_particles_by_sid(sim, sid):
-    # Helper.
+    """ Return a generator (using "yield") to loop over (pid, particle).
+    
+    Arguments:
+        - sim
+            an EGFRDSimulator
+        - sid
+            ID of a species
+
+    E.g.:
+    
+    myparticles = _get_particles_by_sid(sim, sid)
+
+    for mypid, myparticle in myparticles:
+        print str(str(mypid), str(myparticle))
+    """ #TODO: Added by wehrens@AMOLF.nl; Please revise.
     for pid in sim.world.get_particle_ids(sid):
         particle = sim.world.get_particle(pid)[1]
         yield (pid, particle)
@@ -121,7 +142,16 @@ def dump_particles(sim, identifier=None):
     return '\n'.join((str(x) for x in get_particles(sim, identifier)))
 
 def _get_number_of_particles_by_sid(sim, sid):
-    # Helper.
+    """ 
+    Returns the number of particles of a certain species.
+
+    Arguments:
+        - sim
+            an EGFRDSimulator.
+        - sid
+            ID of a species    
+
+    """ #TODO: Added by wehrens@AMOLF.nl; Please revise.
     if isinstance(sim, EGFRDSimulator):
         return len(sim.world.get_particle_ids(sid))
     else:
@@ -174,7 +204,10 @@ def dump_number_of_particles(sim, identifier=None):
 def get_domains(egfrdsim):
     """Return an iterator over the protective domains in the simulator.
 
-    """
+    Arguments:
+        - egfrdsim
+            an EGFRDSimulator
+    """ #TODO: Added by wehrens@AMOLF.nl; Please revise.
     for did, domain in egfrdsim.domains.iteritems():
         shell_list = domain.shell_list
         pid_particle_pair_list = []
@@ -244,10 +277,10 @@ def get_reaction_rules(model_or_simulator):
     return reaction_rules_1, reaction_rules_2, repulsive_rules
 
 def _dump_reaction_rule(model, reaction_rule):
-    # Helper. Return ReactionRule as string.
+    """Helper. Return ReactionRule as string.
 
-    #ReactionRule.__str__ would be good, but we are actually getting a 
-    #ReactionRuleInfo or ReactionRuleCache object.
+    ReactionRule.__str__ would be good, but we are actually getting a 
+    ReactionRuleInfo or ReactionRuleCache object."""
     buf = ('k=%.3g' % reaction_rule.k + ': ').ljust(15)
     for index, sid in enumerate(reaction_rule.reactants):
         if index != 0:

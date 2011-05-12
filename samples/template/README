@@ -3,31 +3,4 @@
 General lay-out of a simulation
 =====================================
 
-    # ### Import correct modules
-import sys
-from egfrd import *
-from bd import *
-import model
-import gfrdbase
-import myrandom
 
-    # ### Define model
-
-    m = model.ParticleModel(1e-3)
-
-    A = model.Species('A', 0.0, sigma/2)
-    m.add_species_type(A)
-
-    r1 = model.create_binding_reaction_rule(A, B, C, kf)
-    m.network_rules.add_reaction_rule(r1)
-
-    # ### Set up simulator
-
-
-    w = gfrdbase.create_world(m, 3)
-    nrw = gfrdbase.create_network_rules_wrapper(m)
-    s = EGFRDSimulator(w, myrandom.rng, nrw)
-
-    # ### Place particles 
-
-    # ### Run simulation

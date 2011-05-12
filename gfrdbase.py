@@ -81,13 +81,13 @@ class NoSpace(Exception):
     pass
 
 def get_closest_surface(world, pos, ignore):
-    # Return
-    #   - closest surface
-    #   - distance to closest surface
-    #
-    # We can not use matrix_space, it would miss a surface if the 
-    # origin of the surface would not be in the same or neighboring 
-    # cells as pos.
+    """Return
+      - closest surface
+      - distance to closest surface
+    
+    We can not use matrix_space, it would miss a surface if the 
+    origin of the surface would not be in the same or neighboring 
+    cells as pos."""
 
     surfaces_and_distances_to_surfaces = []
 
@@ -104,10 +104,10 @@ def get_closest_surface(world, pos, ignore):
         return None, numpy.inf
 
 def get_closest_surface_within_radius(world, pos, radius, ignore):
-    # Return:
-    #   - surface within radius or None
-    #   - closest surface (regardless of radius)
-    #   - distance to closest surface
+    """Return:
+      - surface within radius or None
+      - closest surface (regardless of radius)
+      - distance to closest surface"""
 
     surface, distance = get_closest_surface(world, pos, ignore) 
     if distance < radius:

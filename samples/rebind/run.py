@@ -1,11 +1,14 @@
 #!/usr/bin/env python
 
-'''
+#TODO
+"""
+See README for a description
+
 # D_factor N_B N_X N
 
 LOGLEVEL=ERROR PYTHONPATH=../.. python -O run.py 1 1 100 10
 
-'''
+"""
 
 
 from egfrd import *
@@ -107,7 +110,7 @@ def singlerun(T_list, D_factor, N_B, N_X):
 
     # ### Set up simulator
 
-    w = gfrdbase.create_world(L, matrix_size)
+    w = gfrdbase.create_world(m, matrix_size)
     nrw = gfrdbase.create_network_rules_wrapper(m)
     s = EGFRDSimulator(w, myrandom.rng, nrw)
 
@@ -183,25 +186,20 @@ def singlerun(T_list, D_factor, N_B, N_X):
 
     i_T = 0
 
-    #TODO (following correct?-:)
-    """
-    What happens here: 
-    - If there was a reaction
-        - And there are no C-particles, set t_last to current simulation
-          time
-        - And there are C particles, calculate dt between previous??? and 
-          this reaction. 
-
-    OR:
-    
-        - If the last C particle has just reacted away, record the time
-        - If there are still C particles, record the time relative to this  
-          occurence 
-
-    T-list in principle contains a list with scheduled "stops"
-
-    """
+    #  ### Start simulating
     while 1:
+        """
+        What happens in this if-statement: 
+        Create a list of the times particles were in bound state.
+
+        If there was a reaction:
+            - Binding: Indicated by the fact that there are no C-particles.
+              In this case: record the current time (s.t) to t_last.
+            - Unbinding: Indicated because this is the only other case when
+              a reaction has taken place. 
+              In this case: record the time binding lasted, i.e. dt between
+              current time (s.t) and last reaction time (t_last).
+        """
         if s.last_reaction: # aka if there was a reaction
             print s.last_reaction
             if len(s.world.get_particle_ids(C.id)) == 0:  #A,B
