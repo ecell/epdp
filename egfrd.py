@@ -126,10 +126,10 @@ class EGFRDSimulator(ParticleSimulatorBase):
         return self.containers[0].cell_size
 
     def get_next_time(self):
-    """ 
-    Returns the time it will be when the next egfrd timestep
-    is completed.
-    """ #TODO: Added by wehrens@AMOLF.nl; Please revise.
+        """ 
+        Returns the time it will be when the next egfrd timestep
+        is completed.        
+        """ #TODO: Added by wehrens@AMOLF.nl; Please revise.
         if self.scheduler.size == 0:
             return self.t
 
@@ -146,13 +146,13 @@ class EGFRDSimulator(ParticleSimulatorBase):
                    self.user_max_shell_size)
 
     def reset(self):
-    """
-    This function resets the "records" of the simulator. This means
-    the simulator time is reset, the step counter is reset, events
-    are reset, etc.
-    Can be for example usefull when users want to "stirr" the 
-    simulation before starting the "real experiment".
-    """ #TODO: Added by wehrens@AMOLF.nl; Please revise.
+        """
+        This function resets the "records" of the simulator. This means
+        the simulator time is reset, the step counter is reset, events
+        are reset, etc.
+        Can be for example usefull when users want to "stirr" the 
+        simulation before starting the "real experiment".
+        """ #TODO: Added by wehrens@AMOLF.nl; Please revise.
         self.t = 0.0
         self.dt = 0.0
         self.step_counter = 0
