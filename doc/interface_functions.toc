@@ -1,33 +1,34 @@
-\contentsline {section}{\numberline {1}Introduction}{1}
-\contentsline {section}{\numberline {2}Functions}{1}
-\contentsline {subsection}{\numberline {2.1}Functions from \texttt {model.py}}{1}
-\contentsline {subsubsection}{\numberline {2.1.1}Core functions:}{1}
-\contentsline {subsubsection}{\numberline {2.1.2}Creating regions}{2}
-\contentsline {subsubsection}{\numberline {2.1.3}Adding reaction rules to the model}{4}
-\contentsline {subsection}{\numberline {2.2}Functions from \texttt {gfrdbase.py}}{7}
-\contentsline {subsubsection}{\numberline {2.2.1}Core functions}{7}
+\contentsline {section}{\numberline {1}Introduction}{2}
+\contentsline {section}{\numberline {2}Functions}{2}
+\contentsline {subsection}{\numberline {2.1}Functions from \texttt {model.py}}{2}
+\contentsline {subsubsection}{\numberline {2.1.1}Core functions:}{2}
+\contentsline {subsubsection}{\numberline {2.1.2}Creating regions}{3}
+\contentsline {subsubsection}{\numberline {2.1.3}Adding reaction rules to the model}{5}
+\contentsline {subsection}{\numberline {2.2}Functions from \texttt {gfrdbase.py}}{8}
+\contentsline {subsubsection}{\numberline {2.2.1}Core functions}{8}
 \contentsline {subsubsection}{\numberline {2.2.2}Handling objects}{8}
-\contentsline {subsubsection}{\numberline {2.2.3}Adding particles}{8}
+\contentsline {subsubsection}{\numberline {2.2.3}Adding particles}{9}
 \contentsline {subsection}{\numberline {2.3}Functions from \texttt {egfrd.py}}{9}
 \contentsline {subsubsection}{\numberline {2.3.1}Core functions}{9}
 \contentsline {subsubsection}{\numberline {2.3.2}Simulator time (manipulation) functions}{10}
-\contentsline {subsubsection}{\numberline {2.3.3}Get data}{10}
-\contentsline {subsubsection}{\numberline {2.3.4}Additional functions}{10}
+\contentsline {subsubsection}{\numberline {2.3.3}Get data}{11}
+\contentsline {subsubsection}{\numberline {2.3.4}Additional functions}{11}
 \contentsline {subsection}{\numberline {2.4}Functions from \texttt {dumper.py}}{11}
 \contentsline {subsubsection}{\numberline {2.4.1}Getting information on species/particles}{11}
-\contentsline {subsubsection}{\numberline {2.4.2}Get information on domains}{13}
-\contentsline {subsection}{\numberline {2.5}Functions from \texttt {utils.py}}{14}
+\contentsline {subsubsection}{\numberline {2.4.2}Get information on domains}{14}
+\contentsline {subsubsection}{\numberline {2.4.3}Get information on reaction rules}{14}
+\contentsline {subsection}{\numberline {2.5}Functions from \texttt {utils.py}}{15}
 \contentsline {subsubsection}{\numberline {2.5.1}Mathematical comparisons}{15}
-\contentsline {subsubsection}{\numberline {2.5.2}Conversions}{15}
-\contentsline {subsubsection}{\numberline {2.5.3}Some convenient functoins}{19}
-\contentsline {subsection}{\numberline {2.6}Notes on other files}{20}
-\contentsline {subsubsection}{\numberline {2.6.1}\texttt {bd.py}: Brownian Dynamic Simulator}{20}
-\contentsline {subsubsection}{\numberline {2.6.2}\texttt {gillespie.py}: Gillespie Simulator}{20}
-\contentsline {subsubsection}{\numberline {2.6.3}\texttt {legacy.py}: Old redundant functions}{20}
-\contentsline {subsubsection}{\numberline {2.6.4}\texttt {multi.py}, \texttt {pair.py}, \texttt {single.py}}{20}
+\contentsline {subsubsection}{\numberline {2.5.2}Conversions}{16}
+\contentsline {subsubsection}{\numberline {2.5.3}Some convenient functoins}{20}
+\contentsline {subsection}{\numberline {2.6}Notes on other files}{21}
+\contentsline {subsubsection}{\numberline {2.6.1}\texttt {bd.py}: Brownian Dynamic Simulator}{21}
+\contentsline {subsubsection}{\numberline {2.6.2}\texttt {gillespie.py}: Gillespie Simulator}{21}
+\contentsline {subsubsection}{\numberline {2.6.3}\texttt {legacy.py}: Old redundant functions}{21}
+\contentsline {subsubsection}{\numberline {2.6.4}\texttt {multi.py}, \texttt {pair.py}, \texttt {single.py}}{21}
 \contentsline {subsubsection}{\numberline {2.6.5}\texttt {myrandom.py}}{21}
 \contentsline {subsubsection}{\numberline {2.6.6}\texttt {make\_cjy\_table.py.py}, \texttt {make\_sjy\_table.py.py}}{21}
 \contentsline {subsection}{\numberline {2.7}Function from module \texttt {logger.py}}{21}
-\contentsline {subsubsection}{\numberline {2.7.1}HDF5 logger}{21}
-\contentsline {subsubsection}{\numberline {2.7.2}"Normal" logger}{21}
-\contentsline {section}{\numberline {3}Todo}{21}
+\contentsline {subsubsection}{\numberline {2.7.1}HDF5 logger}{22}
+\contentsline {subsubsection}{\numberline {2.7.2}"Normal" logger}{22}
+\contentsline {section}{\numberline {3}Todo}{22}

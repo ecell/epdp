@@ -1,4 +1,4 @@
-This is pdfTeXk, Version 3.141592-1.40.3 (Web2C 7.5.6) (format=pdflatex 2010.5.19)  13 MAY 2011 12:08
+This is pdfTeXk, Version 3.141592-1.40.3 (Web2C 7.5.6) (format=pdflatex 2010.5.19)  13 MAY 2011 14:04
 entering extended mode
  %&-line parsing enabled.
 **interface_functions.tex
@@ -66,10 +66,18 @@ LaTeX Font Info:    External font `cmex10' loaded for size
 (Font)              <8> on input line 10.
 LaTeX Font Info:    External font `cmex10' loaded for size
 (Font)              <6> on input line 10.
- (./interface_functions.toc)
+ (./interface_functions.toc
+LaTeX Font Info:    External font `cmex10' loaded for size
+(Font)              <7> on input line 3.
+LaTeX Font Info:    External font `cmex10' loaded for size
+(Font)              <5> on input line 3.
+)
 \tf@toc=\write3
 \openout3 = `interface_functions.toc'.
 
+ [1
+
+{/var/lib/texmf/fonts/map/pdftex/updmap/pdftex.map}]
 LaTeX Font Info:    Font shape `OT1/cmtt/bx/n' in size <12> not available
 (Font)              Font shape `OT1/cmtt/m/n' tried instead on input line 21.
 
@@ -90,9 +98,7 @@ Overfull \hbox (22.4968pt too wide) in paragraph at lines 46--46
  0, 0] and[] 
  []
 
-[1
 
-{/var/lib/texmf/fonts/map/pdftex/updmap/pdftex.map}]
 Overfull \hbox (17.24684pt too wide) in paragraph at lines 76--76
 []            \OT1/cmtt/m/n/10 the radius for this Species in/on this Region or
  Surface.[] 
@@ -104,7 +110,7 @@ Overfull \hbox (17.24684pt too wide) in paragraph at lines 76--76
 an exist.[] 
  []
 
-
+[2]
 Overfull \hbox (22.4968pt too wide) in paragraph at lines 76--76
 []            \OT1/cmtt/m/n/10 Optional. If you do not specify a Structure the 
 Species is[] 
@@ -122,7 +128,7 @@ Overfull \hbox (11.99689pt too wide) in paragraph at lines 76--76
 urfaces,[] 
  []
 
-[2]
+
 Overfull \hbox (17.24684pt too wide) in paragraph at lines 164--164
 []        \OT1/cmtt/m/n/10 the vector [x, y, z] from the corner closest to [0, 
 0, 0], to[] 
@@ -134,7 +140,7 @@ Overfull \hbox (22.4968pt too wide) in paragraph at lines 164--164
 n, length)[] 
  []
 
-
+[3]
 Overfull \hbox (1.49698pt too wide) in paragraph at lines 164--164
 []        \OT1/cmtt/m/n/10 the point [x, y, z] on the axis of the cylinder clos
 est to[] 
@@ -170,7 +176,7 @@ Overfull \hbox (27.74675pt too wide) in paragraph at lines 164--164
 g the plane[] 
  []
 
-[3]
+
 Overfull \hbox (27.74675pt too wide) in paragraph at lines 164--164
 []        \OT1/cmtt/m/n/10 the length of the plane along the unit vector unit_x
 . Should be[] 
@@ -182,7 +188,7 @@ Overfull \hbox (27.74675pt too wide) in paragraph at lines 164--164
 . Should be[] 
  []
 
-
+[4]
 Overfull \hbox (11.99689pt too wide) in paragraph at lines 180--180
 []        \OT1/cmtt/m/n/10 """Add a Structure (Region or Surface) to the Partic
 leModel.[] 
@@ -206,7 +212,7 @@ Overfull \hbox (1.49698pt too wide) in paragraph at lines 198--198
 r each[] 
  []
 
-[4]
+
 Overfull \hbox (32.9967pt too wide) in paragraph at lines 222--222
 []            \OT1/cmtt/m/n/10 reaction rate. Units: per second. (Rough order o
 f magnitude:[] 
@@ -218,7 +224,7 @@ Overfull \hbox (32.9967pt too wide) in paragraph at lines 222--222
 all reaction[] 
  []
 
-
+[5]
 Overfull \hbox (32.9967pt too wide) in paragraph at lines 241--241
 []            \OT1/cmtt/m/n/10 reaction rate. Units: per second. (Rough order o
 f magnitude:[] 
@@ -254,7 +260,7 @@ Overfull \hbox (17.24684pt too wide) in paragraph at lines 269--269
 nation of[] 
  []
 
-[5]
+
 Overfull \hbox (1.49698pt too wide) in paragraph at lines 269--269
 []    \OT1/cmtt/m/n/10 reactants for which no bimolecular reaction rule is spec
 ified.[] 
@@ -272,7 +278,7 @@ Overfull \hbox (11.99689pt too wide) in paragraph at lines 302--302
 ct, ka):[] 
  []
 
-
+[6]
 Overfull \hbox (27.74675pt too wide) in paragraph at lines 302--302
 []            \OT1/cmtt/m/n/10 intrinsic reaction rate. Units: meters^3 per sec
 ond. (Rough[] 
@@ -320,7 +326,7 @@ Overfull \hbox (27.74675pt too wide) in paragraph at lines 332--332
 gh order of[] 
  []
 
-[6]
+
 Overfull \hbox (27.74675pt too wide) in paragraph at lines 332--332
 []    \OT1/cmtt/m/n/10 overall reaction rate (koff) for this reaction rule to a
 n intrinsic[] 
@@ -332,7 +338,7 @@ Overfull \hbox (11.99689pt too wide) in paragraph at lines 332--332
 , kD) or[] 
  []
 
-
+[7]
 Overfull \hbox (1.49698pt too wide) in paragraph at lines 378--378
 []    \OT1/cmtt/m/n/10 The world object keeps track of the positions of the par
 ticles[] 
@@ -404,7 +410,7 @@ Overfull \hbox (17.24684pt too wide) in paragraph at lines 378--378
 arger. If[] 
  []
 
-[7]
+
 Overfull \hbox (17.24684pt too wide) in paragraph at lines 378--378
 []    \OT1/cmtt/m/n/10 you have more particles, you want a larger matrix_size, 
 such that[] 
@@ -416,7 +422,7 @@ Overfull \hbox (1.49698pt too wide) in paragraph at lines 378--378
 ber of[] 
  []
 
-
+[8]
 Overfull \hbox (1.49698pt too wide) in paragraph at lines 400--400
 []\OT1/cmtt/m/n/10 def get_closest_surface_within_radius(world, pos, radius, ig
 nore):[] 
@@ -440,7 +446,7 @@ Overfull \hbox (22.4968pt too wide) in paragraph at lines 437--437
 osition in[] 
  []
 
-[8]
+
 Overfull \hbox (38.24666pt too wide) in paragraph at lines 437--437
 []            \OT1/cmtt/m/n/10 a position vector [x, y, z]. Units: [meters, met
 ers, meters].[] 
@@ -452,7 +458,7 @@ Overfull \hbox (6.74693pt too wide) in paragraph at lines 437--437
  method[] 
  []
 
-
+[9]
 Overfull \hbox (11.99689pt too wide) in paragraph at lines 462--462
 []    \OT1/cmtt/m/n/10 def __init__(self, world, rng=myrandom.rng, network_rule
 s=None):[] 
@@ -500,7 +506,7 @@ Overfull \hbox (27.74675pt too wide) in paragraph at lines 493--493
  simulator:[] 
  []
 
-[9]
+
 Overfull \hbox (22.4968pt too wide) in paragraph at lines 493--493
 []        \OT1/cmtt/m/n/10 This method is called stop because it is usually cal
 led at the[] 
@@ -530,7 +536,7 @@ Overfull \hbox (41.35085pt too wide) in paragraph at lines 494--495
 cmtt/m/n/10 EGFRDSimulator.get[]next[]time\OT1/cmr/m/n/10 .) 
  []
 
-
+[10]
 Overfull \hbox (41.35085pt too wide) in paragraph at lines 505--506
 \OT1/cmr/m/n/10 (Function be-longs to EGFRD-Sim-u-la-tor class, call with \OT1/
 cmtt/m/n/10 EGFRDSimulator.get[]next[]time\OT1/cmr/m/n/10 .) 
@@ -554,13 +560,13 @@ Overfull \hbox (41.35085pt too wide) in paragraph at lines 518--519
 cmtt/m/n/10 EGFRDSimulator.get[]next[]time\OT1/cmr/m/n/10 .) 
  []
 
-[10] [11]
+[11]
 Overfull \hbox (32.9967pt too wide) in paragraph at lines 626--626
 []    \OT1/cmtt/m/n/10 """ Return a generator (using "yield") to loop over (pid
 , particle).[] 
  []
 
-
+[12]
 Overfull \hbox (17.24684pt too wide) in paragraph at lines 641--641
 []            \OT1/cmtt/m/n/10 a Species or the name of a Species. If none is s
 pecified,[] 
@@ -578,13 +584,13 @@ Overfull \hbox (17.24684pt too wide) in paragraph at lines 656--656
 pecified,[] 
  []
 
-[12]
+
 Overfull \hbox (27.74675pt too wide) in paragraph at lines 656--656
 []            \OT1/cmtt/m/n/10 all (particle identifier, particle)-pairs will b
 e returned.[] 
  []
 
-
+[13]
 Overfull \hbox (27.74675pt too wide) in paragraph at lines 685--685
 []            \OT1/cmtt/m/n/10 (Species name, number of particles)-pairs will b
 e returned.[] 
@@ -608,7 +614,7 @@ Overfull \hbox (27.74675pt too wide) in paragraph at lines 713--713
  simulator.[] 
  []
 
-[13]
+
 Overfull \hbox (11.99689pt too wide) in paragraph at lines 742--742
 []    \OT1/cmtt/m/n/10 """Return three lists with all the reaction rules define
 d in the[] 
@@ -620,7 +626,7 @@ Overfull \hbox (6.74693pt too wide) in paragraph at lines 742--742
 on rate[] 
  []
 
-
+[14]
 Overfull \hbox (17.24684pt too wide) in paragraph at lines 750--750
 []    \OT1/cmtt/m/n/10 ReactionRule.__str__ would be good, but we are actually 
 getting a[] 
@@ -632,7 +638,7 @@ Overfull \hbox (1.49698pt too wide) in paragraph at lines 762--762
  rules[] 
  []
 
-[14]
+
 Overfull \hbox (17.24684pt too wide) in paragraph at lines 801--801
 []    \OT1/cmtt/m/n/10 """Return True if a and b are equal, subject to given to
 lerances.[] 
@@ -650,7 +656,7 @@ Overfull \hbox (27.74675pt too wide) in paragraph at lines 801--801
 tolerances.[] 
  []
 
-
+[15]
 Overfull \hbox (11.99689pt too wide) in paragraph at lines 801--801
 []    \OT1/cmtt/m/n/10 """Return True if a is less than b, subject to given tol
 erances.[] 
@@ -680,13 +686,13 @@ Overfull \hbox (32.9967pt too wide) in paragraph at lines 841--841
 r second' to[] 
  []
 
-[15]
+
 Overfull \hbox (11.99689pt too wide) in paragraph at lines 841--841
 []    \OT1/cmtt/m/n/10 """Convert a concentration from units 'micromolar' to un
 its 'per[] 
  []
 
-
+[16]
 Overfull \hbox (17.24684pt too wide) in paragraph at lines 996--996
 []    \OT1/cmtt/m/n/10 """Calculate the 'pseudo-'reaction rate (kD) caused by d
 iffusion.[] 
@@ -728,13 +734,13 @@ Overfull \hbox (32.9967pt too wide) in paragraph at lines 996--996
 annihilation[] 
  []
 
-[16]
+
 Overfull \hbox (6.74693pt too wide) in paragraph at lines 996--996
 []            \OT1/cmtt/m/n/10 the overall reaction rate for the reaction rule.
  Units:[] 
  []
 
-
+[17]
 Overfull \hbox (32.9967pt too wide) in paragraph at lines 996--996
 []    \OT1/cmtt/m/n/10 """Convert an overall reaction rate (koff) for an unbind
 ing reaction[] 
@@ -770,13 +776,13 @@ Overfull \hbox (11.99689pt too wide) in paragraph at lines 996--996
 on rule.[] 
  []
 
-[17]
+
 Overfull \hbox (32.9967pt too wide) in paragraph at lines 996--996
 []    \OT1/cmtt/m/n/10 """Convert an overall reaction rate (koff) for an unbind
 ing reaction[] 
  []
 
-
+[18]
 Overfull \hbox (17.24684pt too wide) in paragraph at lines 996--996
 []    \OT1/cmtt/m/n/10 Similar to the function k_d(), but expects an intrinsic 
 rate (ka)[] 
@@ -800,7 +806,7 @@ Overfull \hbox (32.9967pt too wide) in paragraph at lines 996--996
 ing reaction[] 
  []
 
-[18]
+
 Overfull \hbox (32.9967pt too wide) in paragraph at lines 996--996
 []    \OT1/cmtt/m/n/10 """Convert an intrinsic reaction rate (kd) for an unbind
 ing reaction[] 
@@ -812,22 +818,22 @@ Overfull \hbox (1.49698pt too wide) in paragraph at lines 996--996
 c rate[] 
  []
 
-[19]
+[19] [20]
 LaTeX Font Info:    Font shape `OT1/cmtt/bx/n' in size <10> not available
 (Font)              Font shape `OT1/cmtt/m/n' tried instead on input line 1056.
 
- [20]
+ [21]
 Overfull \hbox (11.99689pt too wide) in paragraph at lines 1099--1099
 []    \OT1/cmtt/m/n/10 def __init__(self, logname='log', directory='data', comm
 ent=''):[] 
  []
 
-[21] (./interface_functions.aux) ) 
+[22] (./interface_functions.aux) ) 
 Here is how much of TeX's memory you used:
- 506 strings out of 95086
- 7733 string characters out of 1183255
- 66134 words of memory out of 1500000
- 3729 multiletter control sequences out of 10000+50000
+ 508 strings out of 95086
+ 7761 string characters out of 1183255
+ 67134 words of memory out of 1500000
+ 3731 multiletter control sequences out of 10000+50000
  8578 words of font info for 31 fonts, out of 1200000 for 2000
  28 hyphenation exceptions out of 8191
  23i,6n,20p,323b,243s stack positions out of 5000i,500n,6000p,200000b,5000s
@@ -838,9 +844,9 @@ e/fonts/type1/bluesky/cm/cmr12.pfb></usr/share/texmf-texlive/fonts/type1/bluesk
 y/cm/cmr17.pfb></usr/share/texmf-texlive/fonts/type1/bluesky/cm/cmti10.pfb></us
 r/share/texmf-texlive/fonts/type1/bluesky/cm/cmtt10.pfb></usr/share/texmf-texli
 ve/fonts/type1/bluesky/cm/cmtt12.pfb>
-Output written on interface_functions.pdf (21 pages, 92315 bytes).
+Output written on interface_functions.pdf (22 pages, 94420 bytes).
 PDF statistics:
- 102 PDF objects out of 1000 (max. 8388607)
+ 105 PDF objects out of 1000 (max. 8388607)
  0 named destinations out of 1000 (max. 131072)
  1 words of extra memory for PDF output out of 10000 (max. 10000000)
 
