@@ -150,27 +150,51 @@ def singlerun(T_list, D_factor, N_B, N_X):
           area, repeat the process (in very crowded box, this 
           leads to infinite loop)
         - 
+
+    Perhaps it would be more easy to just place all the particles at
+    the beginning, but give A and B initially a diffusion constant of
+    0, then stirr, and then set the diffusion constant to their
+    desired values..
+    
     """
+    print "Started clearing.."
     while 1:
-        pp = s.get_particles_within_radius(A_pos, float(A['radius']))
-        if not pp:
+        #TODO this code doesn't function properly, because you want to clear 
+        # particles within a certain radius.. Now you can be removing particles 
+        # that after bursting are not in the area anymore, but whose bursted 
+        # domains were.
+
+        # After bursting you should just check whether something is within the radius.
+
+        #pp = s.get_particles_within_radius(A_pos, float(A['radius']))
+        dd = s.clear_volume(A_pos, float(A['radius'])) # returns a list of 
+                                                       # domains ID's that
+                                                       # where bursted within
+                                                       # volume
+        if not dd:
             break
-        for p in pp:
-            s.remove_particle(p)
+        for d in dd:
+            for p in d.particle_id_pair:
+                s.remove_particle(p)
         s.throw_in_particles(X, len(pp), box1)
 
-    s.place_particle(A, A_pos)
+    place_particle(w, A, A_pos)
 
     # Idem for a particle B:
     while 1:
-        pp = s.get_particles_within_radius(B_pos, float(B['radius']))
-        if not pp:
+        dd = s.clear_volume(B_pos, float(B['radius'])) # returns a list of 
+                                                       # domains ID's that
+                                                       # where bursted within
+                                                       # volume
+        if not dd:
             break
-        for p in pp:
-            s.remove_particle(p)
-        s.throw_in_particles(X, len(pp), box1)    
+        for d in dd:
+            for p in d.particle_id_pair:
+                s.remove_particle(p)
+        s.throw_in_particles(X, len(pp), box1)
 
-    s.place_particle(B, B_pos)
+    place_particle(w, B, B_pos) 
+    print "Finished clearing.."
 
     # Place rest of B at random positions
     if N_B > 1:
@@ -215,8 +239,14 @@ def singlerun(T_list, D_factor, N_B, N_X):
             s.stop(next_stop)
             if len(s.world.get_particle_ids(C.id)) != 0:  #A,B
                 r_list.append(0)
-            else:
-                r_list.append(s.distance_between_particles(A.id, B.id))
+            else: # C = 0, i.e. there are particles A and B
+                # r_list.append(s.distance_between_particles(A.id, B.id))
+                # If there's only 1 B-particle
+                particlesA = w.get_particle_ids(A.id)
+                particlesB = w.get_particle_ids(B.id)
+                positionA = particlesA[1].position()
+                positionB = particlesB[1].position()
+                r_list.append(w.distance(positionA, positionB))
 
             i_T += 1
             next_stop = T_list[i_T]
