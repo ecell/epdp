@@ -378,7 +378,7 @@ def create_world(m, matrix_size=10):
 \end{verbatim}
 
 
-\subsubsection{Handling objects}
+\subsubsection{Handling objects (surfaces, cylinders, etc)}
 
 \begin{verbatim}
 def get_closest_surface(world, pos, ignore):
@@ -434,6 +434,68 @@ def place_particle(world, sid, position):
     model.ParticleModel.add_species_type.
 
     """
+\end{verbatim}
+
+\subsubsection{Obtaining information about particles and species}
+
+\begin{verbatim}
+\begin{verbatim}
+
+    def get_species(self):
+        """
+        Return an iterator over the Species in the simulator. 
+        To be exact, it returns an iterator that returns 
+        all SpeciesInfo instances defined in the simulator.
+        
+        Arguments: 
+            - sim an EGFRDSimulator. 
+
+        More on output:
+            - SpeciesInfo is defined in the C++ code, and has
+              the following attributes that might be of interest
+              to the user:
+                   * SpeciesInfo.id
+                   * SpeciesInfo.radius
+                   * SpeciesInfo.structure_id
+                   * SpeciesInfo.D
+                   * SpeciesInfo.v
+                
+        Example:
+
+            for species in s.get_species():
+                print str(species.radius)
+
+        Note:
+            Dumper.py also holds a copy of this function.        
+
+        """
+
+    def get_first_pid(self, sid):
+        """
+        Returns the first particle ID of a certain species.
+
+        Arguments:
+            - sid: a(n) (eGFRD) simulator.
+        """
+
+    def get_position(self, object):
+        """
+        Function that returns particle position. Can take multiple
+        sort of arguments as input. 
+
+        Arguments:
+            - object: can be:
+                * pid_particle_pair tuple 
+                  (of which pid_particle_pair[0] is _gfrd.ParticleID).
+                * An instance of _gfrd.ParticleID.
+
+                * An instance of _gfrd.Particle.
+                * An instance of _gfrd.SpeciesID.
+                    In the two latter cases, the function returns the 
+                    first ID of the position of the first particle of 
+                    the given species.
+        """ 
+ 
 \end{verbatim}
 
 \subsection{Functions from \texttt{egfrd.py}}
@@ -518,7 +580,9 @@ class EGFRDSimulator(ParticleSimulatorBase):
 (Function belongs to EGFRDSimulator class, call with \texttt{EGFRDSimulator.get\_next\_time}.)
 
 \subsubsection{Get data}
+
 \begin{verbatim}
+
     def print_report(self, out=None):
         """Print various statistics about the simulation.
         
@@ -526,7 +590,30 @@ class EGFRDSimulator(ParticleSimulatorBase):
             - None
 
         """
+
 \end{verbatim}
+
+\subsubsection{Get position and distance data}
+\begin{verbatim}
+def get_closest_surface(world, pos, ignore):
+    """Return
+      - closest surface
+      - distance to closest surface
+    
+    We can not use matrix_space, it would miss a surface if the 
+    origin of the surface would not be in the same or neighboring 
+    cells as pos."""
+
+def get_closest_surface_within_radius(world, pos, radius, ignore):
+    """Return:
+      - surface within radius or None
+      - closest surface (regardless of radius)
+      - distance to closest surface"""
+
+
+\end{verbatim}
+
+
 
 \subsubsection{Additional functions}
 The class \texttt{EGFRDSimulator} contains several functions which might be usefull to eGFRD users in very specific cases. Because of their specific nature, they don't contain docstrings. 
@@ -1103,5 +1190,42 @@ class Logger(object):
 \section{Todo}
 
 - \texttt{sid = identifier.id} gives the sid, but what exactly is identifier?
+- Updating following text (On C++ data structures)..
+
+\section{On C++ data structures}
+
+\subsection{SpeciesInfo}
+
+The information on species can be found in object created in the C++ code. Some Python functions return the SpeciesInfo object, which has the following attributes\footnote{Data extracted from Doxygen files.}:
+
+\begin{verbatim}
+Public Types
+typedef Tid_ 	identifier_type
+typedef TD_ 	D_type
+typedef TD_ 	v_type
+typedef Tlen_ 	length_type
+typedef Tstructure_id_ 	structure_id_type
+
+Public Member Functions
+identifier_type const & 	id () const
+length_type const & 	radius () const
+length_type & 	radius ()
+structure_id_type const & 	structure_id () const
+structure_id_type & 	structure_id ()
+D_type const & 	D () const
+D_type & 	D ()
+v_type const & 	v () const
+v_type & 	v ()
+bool 	operator== (SpeciesInfo const &rhs) const
+bool 	operator!= (SpeciesInfo const &rhs) const
+ 	SpeciesInfo (identifier_type const &id, D_type const &D=0., length_type const &r=0., structure_id_type const &s="", v_type const &v=0.)
+
+template<typename Tid_, typename TD_, typename Tlen_, typename Tstructure_id_>
+struct SpeciesInfo< Tid_, TD_, Tlen_, Tstructure_id_ >
+\end{verbatim}
+
+\subsection{Particle}
+
+The particle information is held by a class in the C++ code. A single particle is 
 
 \end{document}
