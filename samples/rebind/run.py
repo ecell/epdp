@@ -4,9 +4,9 @@
 """
 See README for a description
 
-# D_factor N_B N_X N
+# [N_B] [N_X] [N]
 
-LOGLEVEL=ERROR PYTHONPATH=../.. python -O run.py 1 1 100 10
+LOGLEVEL=ERROR PYTHONPATH=../.. python -O run.py 1 100 10
 
 """
 
@@ -17,16 +17,23 @@ import sys
 import gfrdbase
 import model
 
-def run(outfilename, D_factor, N_B, N_X, N):
+def run(outfilename, N_B, N_X, T_list, N):
     """ 
     Function that loops over single runs of binding/rebinding
     simulations. (Plus some overhead code.)
 
     Arguments:
-        - 
+        - outfilename:  This string can be found back in the
+                        output filename.
+        - T_list:       List of times at which distance between 
+                        particles is evaluated and logged.
+        - N_B:          Number of instances ("molecules") of 
+                        particle B.
+        - N_X:          Number of instances ("molecules") of 
+                        particle X.
 
-    """ #TODO
-    global DX_factor, V, L, matrix_size   
+    """ 
+    global DX_factor, V, L, matrix_size, D, radius, DX, kf, tau   
 
     print "Printing output to: " + outfilename
 
@@ -50,12 +57,15 @@ def run(outfilename, D_factor, N_B, N_X, N):
     matrix_size = min(max(3, int((9 * (N_X+N_B)) ** (1.0/3.0))), 60)
     print 'matrix_size=', matrix_size
 
-    # This is the list with steps 
-    T_list = [tau * .1, INF]
+    # Overrides the T_list input
+    T_list = [tau*0.1, tau, tau*10, tau * 100, tau * 1000, INF]
+    T_list = range(0, int(tau*100000), 100)
+    T_list.append(INF)
 
     # Clear the distance output file
-    outfile_r = open(outfilename + '_r_-'+j+'.dat', 'a')
-    outfile_r.close()
+    for j in T_list:
+        outfile_r = open(outfilename + '_r_-'+str(j)+'.dat', 'a')
+        outfile_r.close()
 
     # Open the time output file
     outfile_t = open(outfilename + '_t.dat', 'w')
@@ -64,7 +74,8 @@ def run(outfilename, D_factor, N_B, N_X, N):
     for i in range(N):
 
         # Perform a single simulation run
-        r_list, t_list = singlerun(T_list, D_factor, N_B, N_X)
+        print "###### Run " + str(i) + "."
+        r_list, t_list = singlerun(T_list, N_B, N_X)
 
         # Write away time data
         for t in t_list:
@@ -75,12 +86,13 @@ def run(outfilename, D_factor, N_B, N_X, N):
         # with a list of distances corresponding to measure-
         # ments at times from T_list.)
         for j in range(len(r_list)):
-            outfile_r = open(outfilename + '_r_-'+j+'.dat', 'a')
-            outfile_r.write('%g\n' % r_list[j])
+            outfile_r = open(outfilename + '_r_-' + str(T_list[j]) +'.dat', 'a')
+            outfile_r.write(str(r_list[j]) + '\n')
             outfile_r.close()
 
         # Print to screen.
-        print i, r_list, t_list
+        print "* Output: t_list=" + str(t_list)
+        print "* Output: r_list=" + str(r_list)
 
         # Make sure script writes data NOW
         outfile_t.flush()
@@ -88,15 +100,19 @@ def run(outfilename, D_factor, N_B, N_X, N):
     # Close time output file
     outfile_t.close()
 
-def singlerun(T_list, D_factor, N_B, N_X):
+def singlerun(T_list, N_B, N_X):
     """ 
     Function that performs one simulation run of binding/
     rebinding. 
 
     Arguments:
-        -
-
-    """ #TODO
+        - T_list:       List of times at which distance between 
+                        particles is evaluated and logged.
+        - N_B:          Number of instances ("molecules") of 
+                        particle B.
+        - N_X:          Number of instances ("molecules") of 
+                        particle X.
+    """ 
 
     ################# Define the model:
     
@@ -159,20 +175,21 @@ def singlerun(T_list, D_factor, N_B, N_X):
           leads to infinite loop)
         - 
 
+    """#TODO 
+    """This code doesn't function properly, because you want to clear 
+    particles within a certain radius.. Now you can be removing particles 
+    that after bursting are not in the area anymore, but whose bursted 
+    domains were.
+
+    After bursting you should just check whether something is within the radius.
+
     Perhaps it would be more easy to just place all the particles at
     the beginning, but give A and B initially a diffusion constant of
     0, then stirr, and then set the diffusion constant to their
-    desired values..
-    
-    """
-    print "Started clearing.."
-    while 1:
-        #TODO this code doesn't function properly, because you want to clear 
-        # particles within a certain radius.. Now you can be removing particles 
-        # that after bursting are not in the area anymore, but whose bursted 
-        # domains were.
+    desired values.."""
 
-        # After bursting you should just check whether something is within the radius.
+    while 1:
+
 
         #pp = s.get_particles_within_radius(A_pos, float(A['radius']))
         dd = s.clear_volume(A_pos, float(A['radius'])) # returns a list of 
@@ -184,7 +201,7 @@ def singlerun(T_list, D_factor, N_B, N_X):
         for d in dd:
             for p in d.particle_id_pair:
                 s.remove_particle(p)
-                print "Removing particle.."
+                print "* Removing particle to make space for A.."
         s.throw_in_particles(X, len(pp), box1)
 
     place_particle(w, A, A_pos)
@@ -200,23 +217,23 @@ def singlerun(T_list, D_factor, N_B, N_X):
         for d in dd:
             for p in d.particle_id_pair:
                 s.remove_particle(p)
-                print "Removing particle.."
+                print "* Removing particle to make space for B.."
         s.throw_in_particles(X, len(pp), box1)
 
     place_particle(w, B, B_pos) 
-    print "Finished placing particles A & B.."
 
     # Place rest of B at random positions
     if N_B > 1:
-        s.throw_in_particles(B, N_B-1, box1)
+        gfrdbase.throw_in_particles(w, B, N_B-1)
 
+    # Create some vars and perform first simulation step
     r_list = []
     t_list = []
     t_last = 0
 
     s.step()
 
-    next_stop = T_list[0] # In this case T_list[0] equals infinity
+    next_stop = T_list[0] 
 
     i_T = 0
 
@@ -235,42 +252,50 @@ def singlerun(T_list, D_factor, N_B, N_X):
               current time (s.t) and last reaction time (t_last).
         """
         if s.last_reaction: # aka if there was a reaction
-            print s.last_reaction
+            print "* Reaction detected at: " + str(s.last_reaction)
             if len(s.world.get_particle_ids(C.id)) == 0:  #A,B
-                print 'set t_last', s.t
+                print '    - set t_last', str(s.t)
                 t_last = s.t  # set t_last
             else:    # C
-                print 'reaction: ', s.t - t_last
+                print '    - reaction: ', str(s.t - t_last)
                 t_list.append(s.t - t_last)
 
         """ If it's time to log, then log distance between particles. """
         next_time = s.get_next_time()
         if next_time > next_stop:
-            print 'stop', i_T, next_stop
+            print '* Measuring distances at ', str(i_T), str(next_stop)
             s.stop(next_stop)
+            print '* stopped'
+            # If there is a particle C, the distance is "0".
             if len(s.world.get_particle_ids(C.id)) != 0:  #A,B
                 r_list.append(0)
             # If particles are manifested as A and B, log distance
             # inbetween.
             else: # C = 0, i.e. there are particles A and B
-                # r_list.append(s.distance_between_particles(A.id, B.id))
-                # If there's only 1 B-particle
-                particlesA = w.get_particle_ids(A.id)
-                particlesB = w.get_particle_ids(B.id)
-                positionA = particlesA[1].position()
-                positionB = particlesB[1].position()
 
-                particle = self.sim.world.get_particle(particle_id)[1]
-
-                r_list.append(w.distance(positionA, positionB))
+                # Calculate distances:
+                A_pos = s.get_position(A.id)
+                distance_list = []
+                # If there are >1 B particles, we want to log all   
+                # distances seperately, hence the loop:
+                for particle_id in w.get_particle_ids(B.id):
+                    B_pos = s.get_position(particle_id)
+                    distance = w.distance(A_pos, B_pos)
+                    distance_list.append(distance)
+                    print "* Measured distance = " + str(distance)
+                # Write list to distances table
+                r_list.append(distance_list)
 
             i_T += 1
             next_stop = T_list[i_T]
+            print "* Done, returning to simulation loop."
         
         """ If there are no measuring moments on the list any more,
         stop """
-        if next_stop == INF and len(t_list) != 0:
-            print 'break', s.t
+        if (next_stop == INF):            
+            print '* Break at ', str(s.t)
+            if (len(t_list) == 0):
+                t_list.append(float('nan'))            
             break
 
         s.step()
@@ -282,10 +307,12 @@ if __name__ == '__main__':
 
     import os
 
+    T_list = eval(sys.argv[3])
+
     outfilename = 'data/rebind_' + '_'.join(sys.argv[1:4]) +\
         '_' #+ os.environ['SGE_TASK_ID']
     run(outfilename, float(sys.argv[1]), 
-        int(sys.argv[2]), int(sys.argv[3]), int(sys.argv[4]))
+        int(sys.argv[2]), T_list, int(sys.argv[4]))
 
 
 

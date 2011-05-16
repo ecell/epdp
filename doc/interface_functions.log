@@ -1,4 +1,4 @@
-This is pdfTeXk, Version 3.141592-1.40.3 (Web2C 7.5.6) (format=pdflatex 2010.5.19)  16 MAY 2011 16:26
+This is pdfTeXk, Version 3.141592-1.40.3 (Web2C 7.5.6) (format=pdflatex 2010.5.19)  16 MAY 2011 17:18
 entering extended mode
  %&-line parsing enabled.
 **interface_functions.tex
@@ -217,13 +217,13 @@ Overfull \hbox (32.9967pt too wide) in paragraph at lines 222--222
 f magnitude:[] 
  []
 
-
+[5]
 Overfull \hbox (32.9967pt too wide) in paragraph at lines 222--222
 []    \OT1/cmtt/m/n/10 There is no distinction between an intrinsic and an over
 all reaction[] 
  []
 
-[5]
+
 Overfull \hbox (32.9967pt too wide) in paragraph at lines 241--241
 []            \OT1/cmtt/m/n/10 reaction rate. Units: per second. (Rough order o
 f magnitude:[] 
@@ -325,13 +325,13 @@ Overfull \hbox (27.74675pt too wide) in paragraph at lines 332--332
 gh order of[] 
  []
 
-
+[7]
 Overfull \hbox (27.74675pt too wide) in paragraph at lines 332--332
 []    \OT1/cmtt/m/n/10 overall reaction rate (koff) for this reaction rule to a
 n intrinsic[] 
  []
 
-[7]
+
 Overfull \hbox (11.99689pt too wide) in paragraph at lines 332--332
 []    \OT1/cmtt/m/n/10 reaction rate (kd) with the function utils.k_d(koff, kon
 , kD) or[] 
@@ -458,395 +458,419 @@ Overfull \hbox (6.74693pt too wide) in paragraph at lines 437--437
  []
 
 [9]
-Overfull \hbox (11.99689pt too wide) in paragraph at lines 505--505
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 499--499
+[]        \OT1/cmtt/m/n/10 Function that returns particle position. Can take mu
+ltiple[] 
+ []
+
+[10]
+Overfull \hbox (22.4968pt too wide) in paragraph at lines 499--499
+[]                  \OT1/cmtt/m/n/10 (of which pid_particle_pair[0] is _gfrd.Pa
+rticleID).[] 
+ []
+
+
+Overfull \hbox (17.24684pt too wide) in paragraph at lines 499--499
+[]                    \OT1/cmtt/m/n/10 In the two latter cases, the function re
+turns the[] 
+ []
+
+
+Overfull \hbox (17.24684pt too wide) in paragraph at lines 499--499
+[]                    \OT1/cmtt/m/n/10 first ID of the position of the first pa
+rticle of[] 
+ []
+
+
+Overfull \hbox (11.99689pt too wide) in paragraph at lines 524--524
 []    \OT1/cmtt/m/n/10 def __init__(self, world, rng=myrandom.rng, network_rule
 s=None):[] 
  []
 
-[10]
-Overfull \hbox (17.24684pt too wide) in paragraph at lines 505--505
+
+Overfull \hbox (17.24684pt too wide) in paragraph at lines 524--524
 []                \OT1/cmtt/m/n/10 a random number generator. By default myrand
 om.rng is[] 
  []
 
 
-Overfull \hbox (27.74675pt too wide) in paragraph at lines 505--505
+Overfull \hbox (27.74675pt too wide) in paragraph at lines 524--524
 []                \OT1/cmtt/m/n/10 used, which uses Mersenne Twister from the G
 SL library.[] 
  []
 
 
-Overfull \hbox (53.99652pt too wide) in paragraph at lines 505--505
+Overfull \hbox (53.99652pt too wide) in paragraph at lines 524--524
 []                \OT1/cmtt/m/n/10 you don't need to use this, for backward com
 patibility only.[] 
  []
 
 
-Overfull \hbox (41.35085pt too wide) in paragraph at lines 513--514
+Overfull \hbox (41.35085pt too wide) in paragraph at lines 532--533
 \OT1/cmr/m/n/10 (Function be-longs to EGFRD-Sim-u-la-tor class, call with \OT1/
 cmtt/m/n/10 EGFRDSimulator.get[]next[]time\OT1/cmr/m/n/10 .) 
  []
 
 
-Overfull \hbox (17.24684pt too wide) in paragraph at lines 536--536
+Overfull \hbox (17.24684pt too wide) in paragraph at lines 555--555
 []        \OT1/cmtt/m/n/10 asynchronously. This method bursts all protective do
 mains and[] 
  []
 
 
-Overfull \hbox (27.74675pt too wide) in paragraph at lines 536--536
+Overfull \hbox (27.74675pt too wide) in paragraph at lines 555--555
 []                \OT1/cmtt/m/n/10 the time at which to synchronize the particl
 es. Usually[] 
  []
 
-
-Overfull \hbox (27.74675pt too wide) in paragraph at lines 536--536
+[11]
+Overfull \hbox (27.74675pt too wide) in paragraph at lines 555--555
 []                \OT1/cmtt/m/n/10 you will want to use the current time of the
  simulator:[] 
  []
 
 
-Overfull \hbox (22.4968pt too wide) in paragraph at lines 536--536
+Overfull \hbox (22.4968pt too wide) in paragraph at lines 555--555
 []        \OT1/cmtt/m/n/10 This method is called stop because it is usually cal
 led at the[] 
  []
 
 
-Overfull \hbox (17.24684pt too wide) in paragraph at lines 536--536
+Overfull \hbox (17.24684pt too wide) in paragraph at lines 555--555
 []        \OT1/cmtt/m/n/10 end of a simulation. It is possible to call this met
 hod at an[] 
  []
 
 
-Overfull \hbox (22.4968pt too wide) in paragraph at lines 536--536
+Overfull \hbox (22.4968pt too wide) in paragraph at lines 555--555
 []        \OT1/cmtt/m/n/10 earlier time. For example the Logger module does thi
 s, because[] 
  []
 
 
-Overfull \hbox (6.74693pt too wide) in paragraph at lines 536--536
+Overfull \hbox (6.74693pt too wide) in paragraph at lines 555--555
 []        \OT1/cmtt/m/n/10 it needs to know the positions of the particles at e
 ach log[] 
  []
 
 
-Overfull \hbox (41.35085pt too wide) in paragraph at lines 537--538
+Overfull \hbox (41.35085pt too wide) in paragraph at lines 556--557
 \OT1/cmr/m/n/10 (Function be-longs to EGFRD-Sim-u-la-tor class, call with \OT1/
 cmtt/m/n/10 EGFRDSimulator.get[]next[]time\OT1/cmr/m/n/10 .) 
  []
 
 
-Overfull \hbox (41.35085pt too wide) in paragraph at lines 548--549
+Overfull \hbox (41.35085pt too wide) in paragraph at lines 567--568
 \OT1/cmr/m/n/10 (Function be-longs to EGFRD-Sim-u-la-tor class, call with \OT1/
 cmtt/m/n/10 EGFRDSimulator.get[]next[]time\OT1/cmr/m/n/10 .) 
  []
 
-[11]
-Overfull \hbox (6.74693pt too wide) in paragraph at lines 560--560
+
+Overfull \hbox (6.74693pt too wide) in paragraph at lines 579--579
 []    \OT1/cmtt/m/n/10 This function resets the "records" of the simulator. Thi
 s means[] 
  []
 
 
-Overfull \hbox (1.49698pt too wide) in paragraph at lines 560--560
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 579--579
 []    \OT1/cmtt/m/n/10 the simulator time is reset, the step counter is reset, 
 events[] 
  []
 
 
-Overfull \hbox (41.35085pt too wide) in paragraph at lines 561--562
+Overfull \hbox (41.35085pt too wide) in paragraph at lines 580--581
 \OT1/cmr/m/n/10 (Function be-longs to EGFRD-Sim-u-la-tor class, call with \OT1/
 cmtt/m/n/10 EGFRDSimulator.get[]next[]time\OT1/cmr/m/n/10 .) 
  []
 
-
-Overfull \hbox (1.49698pt too wide) in paragraph at lines 605--605
+[12]
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 614--614
 []\OT1/cmtt/m/n/10 def get_closest_surface_within_radius(world, pos, radius, ig
 nore):[] 
  []
 
-[12] [13]
-Overfull \hbox (32.9967pt too wide) in paragraph at lines 704--704
+[13]
+Overfull \hbox (32.9967pt too wide) in paragraph at lines 713--713
 []    \OT1/cmtt/m/n/10 """ Return a generator (using "yield") to loop over (pid
 , particle).[] 
  []
 
-
-Overfull \hbox (17.24684pt too wide) in paragraph at lines 719--719
-[]            \OT1/cmtt/m/n/10 a Species or the name of a Species. If none is s
-pecified,[] 
- []
-
-
-Overfull \hbox (27.74675pt too wide) in paragraph at lines 719--719
-[]            \OT1/cmtt/m/n/10 all (particle identifier, particle)-pairs will b
-e returned.[] 
- []
-
 [14]
-Overfull \hbox (17.24684pt too wide) in paragraph at lines 734--734
+Overfull \hbox (17.24684pt too wide) in paragraph at lines 728--728
 []            \OT1/cmtt/m/n/10 a Species or the name of a Species. If none is s
 pecified,[] 
  []
 
 
-Overfull \hbox (27.74675pt too wide) in paragraph at lines 734--734
+Overfull \hbox (27.74675pt too wide) in paragraph at lines 728--728
 []            \OT1/cmtt/m/n/10 all (particle identifier, particle)-pairs will b
 e returned.[] 
  []
 
 
-Overfull \hbox (27.74675pt too wide) in paragraph at lines 763--763
+Overfull \hbox (17.24684pt too wide) in paragraph at lines 743--743
+[]            \OT1/cmtt/m/n/10 a Species or the name of a Species. If none is s
+pecified,[] 
+ []
+
+
+Overfull \hbox (27.74675pt too wide) in paragraph at lines 743--743
+[]            \OT1/cmtt/m/n/10 all (particle identifier, particle)-pairs will b
+e returned.[] 
+ []
+
+
+Overfull \hbox (27.74675pt too wide) in paragraph at lines 772--772
 []            \OT1/cmtt/m/n/10 (Species name, number of particles)-pairs will b
 e returned.[] 
  []
 
 
-Overfull \hbox (22.4968pt too wide) in paragraph at lines 779--779
+Overfull \hbox (22.4968pt too wide) in paragraph at lines 788--788
 []    \OT1/cmtt/m/n/10 """Return a string containing the number of particles of
  a certain[] 
  []
 
-
-Overfull \hbox (22.4968pt too wide) in paragraph at lines 779--779
+[15]
+Overfull \hbox (22.4968pt too wide) in paragraph at lines 788--788
 []            \OT1/cmtt/m/n/10 a string of (Species name, number of particles)-
 pairs will[] 
  []
 
-[15]
-Overfull \hbox (27.74675pt too wide) in paragraph at lines 791--791
+
+Overfull \hbox (27.74675pt too wide) in paragraph at lines 800--800
 []    \OT1/cmtt/m/n/10 """Return an iterator over the protective domains in the
  simulator.[] 
  []
 
 
-Overfull \hbox (11.99689pt too wide) in paragraph at lines 820--820
+Overfull \hbox (11.99689pt too wide) in paragraph at lines 829--829
 []    \OT1/cmtt/m/n/10 """Return three lists with all the reaction rules define
 d in the[] 
  []
 
 
-Overfull \hbox (6.74693pt too wide) in paragraph at lines 820--820
+Overfull \hbox (6.74693pt too wide) in paragraph at lines 829--829
 []        \OT1/cmtt/m/n/10 - reaction rules between two reactants with a reacti
 on rate[] 
  []
 
-
-Overfull \hbox (17.24684pt too wide) in paragraph at lines 828--828
+[16]
+Overfull \hbox (17.24684pt too wide) in paragraph at lines 837--837
 []    \OT1/cmtt/m/n/10 ReactionRule.__str__ would be good, but we are actually 
 getting a[] 
  []
 
 
-Overfull \hbox (1.49698pt too wide) in paragraph at lines 840--840
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 849--849
 []    \OT1/cmtt/m/n/10 """Return a formatted string containing all the reaction
  rules[] 
  []
 
-[16]
-Overfull \hbox (17.24684pt too wide) in paragraph at lines 879--879
+
+Overfull \hbox (17.24684pt too wide) in paragraph at lines 888--888
 []    \OT1/cmtt/m/n/10 """Return True if a and b are equal, subject to given to
 lerances.[] 
  []
 
 
-Overfull \hbox (6.74693pt too wide) in paragraph at lines 879--879
+Overfull \hbox (6.74693pt too wide) in paragraph at lines 888--888
 []    \OT1/cmtt/m/n/10 relative tolerance multipied by this typical value, and 
 will be[] 
  []
 
 
-Overfull \hbox (27.74675pt too wide) in paragraph at lines 879--879
+Overfull \hbox (27.74675pt too wide) in paragraph at lines 888--888
 []    \OT1/cmtt/m/n/10 """Return True if a is greater than b, subject to given 
 tolerances.[] 
  []
 
 
-Overfull \hbox (11.99689pt too wide) in paragraph at lines 879--879
+Overfull \hbox (11.99689pt too wide) in paragraph at lines 888--888
 []    \OT1/cmtt/m/n/10 """Return True if a is less than b, subject to given tol
 erances.[] 
  []
 
 
-Overfull \hbox (11.99689pt too wide) in paragraph at lines 879--879
+Overfull \hbox (11.99689pt too wide) in paragraph at lines 888--888
 []    \OT1/cmtt/m/n/10 """Return True if a is greater or equal than b, subject 
 to given[] 
  []
 
 
-Overfull \hbox (22.4968pt too wide) in paragraph at lines 879--879
+Overfull \hbox (22.4968pt too wide) in paragraph at lines 888--888
 []    \OT1/cmtt/m/n/10 """Return True if a is less than or equal than b, subjec
 t to given[] 
  []
 
-
-Overfull \hbox (6.74693pt too wide) in paragraph at lines 919--919
+[17]
+Overfull \hbox (6.74693pt too wide) in paragraph at lines 928--928
 []    \OT1/cmtt/m/n/10 """Convert a reaction rate from units 'per molar per sec
 ond' to[] 
  []
 
-[17]
-Overfull \hbox (32.9967pt too wide) in paragraph at lines 919--919
+
+Overfull \hbox (32.9967pt too wide) in paragraph at lines 928--928
 []    \OT1/cmtt/m/n/10 """Convert a reaction rate from units 'per micromolar pe
 r second' to[] 
  []
 
 
-Overfull \hbox (11.99689pt too wide) in paragraph at lines 919--919
+Overfull \hbox (11.99689pt too wide) in paragraph at lines 928--928
 []    \OT1/cmtt/m/n/10 """Convert a concentration from units 'micromolar' to un
 its 'per[] 
  []
 
 
-Overfull \hbox (17.24684pt too wide) in paragraph at lines 1074--1074
+Overfull \hbox (17.24684pt too wide) in paragraph at lines 1083--1083
 []    \OT1/cmtt/m/n/10 """Calculate the 'pseudo-'reaction rate (kD) caused by d
 iffusion.[] 
  []
 
 
-Overfull \hbox (22.4968pt too wide) in paragraph at lines 1074--1074
+Overfull \hbox (22.4968pt too wide) in paragraph at lines 1083--1083
 []    \OT1/cmtt/m/n/10 kD is equal to 1 divided by the time it takes for two pa
 rticles to[] 
  []
 
 
-Overfull \hbox (6.74693pt too wide) in paragraph at lines 1074--1074
+Overfull \hbox (6.74693pt too wide) in paragraph at lines 1083--1083
 []    \OT1/cmtt/m/n/10 meet each other by diffusion. It is needed when converti
 ng from[] 
  []
 
 
-Overfull \hbox (6.74693pt too wide) in paragraph at lines 1074--1074
+Overfull \hbox (6.74693pt too wide) in paragraph at lines 1083--1083
 []    \OT1/cmtt/m/n/10 an intrinsic reaction rate to an overall reaction rates 
 or vice[] 
  []
 
-
-Overfull \hbox (6.74693pt too wide) in paragraph at lines 1074--1074
+[18]
+Overfull \hbox (6.74693pt too wide) in paragraph at lines 1083--1083
 []            \OT1/cmtt/m/n/10 the diffusion constant of particle A plus the di
 ffusion[] 
  []
 
 
-Overfull \hbox (6.74693pt too wide) in paragraph at lines 1074--1074
+Overfull \hbox (6.74693pt too wide) in paragraph at lines 1083--1083
 []            \OT1/cmtt/m/n/10 the radius of particle A plus the radius of part
 icle B.[] 
  []
 
-[18]
-Overfull \hbox (32.9967pt too wide) in paragraph at lines 1074--1074
+
+Overfull \hbox (32.9967pt too wide) in paragraph at lines 1083--1083
 []    \OT1/cmtt/m/n/10 """Convert an overall reaction rate (kon) for a binding/
 annihilation[] 
  []
 
 
-Overfull \hbox (6.74693pt too wide) in paragraph at lines 1074--1074
+Overfull \hbox (6.74693pt too wide) in paragraph at lines 1083--1083
 []            \OT1/cmtt/m/n/10 the overall reaction rate for the reaction rule.
  Units:[] 
  []
 
 
-Overfull \hbox (32.9967pt too wide) in paragraph at lines 1074--1074
+Overfull \hbox (32.9967pt too wide) in paragraph at lines 1083--1083
 []    \OT1/cmtt/m/n/10 """Convert an overall reaction rate (koff) for an unbind
 ing reaction[] 
  []
 
-
-Overfull \hbox (11.99689pt too wide) in paragraph at lines 1074--1074
+[19]
+Overfull \hbox (11.99689pt too wide) in paragraph at lines 1083--1083
 []    \OT1/cmtt/m/n/10 This one is a bit tricky. We consider reaction rules wit
 h only 1[] 
  []
 
 
-Overfull \hbox (11.99689pt too wide) in paragraph at lines 1074--1074
+Overfull \hbox (11.99689pt too wide) in paragraph at lines 1083--1083
 []    \OT1/cmtt/m/n/10 reactant. In case there is only 1 product also, no conve
 rsion in[] 
  []
 
 
-Overfull \hbox (11.99689pt too wide) in paragraph at lines 1074--1074
+Overfull \hbox (11.99689pt too wide) in paragraph at lines 1083--1083
 []    \OT1/cmtt/m/n/10 necessary. But when the reaction rule has 2 products, we
  need to[] 
  []
 
-[19]
-Overfull \hbox (22.4968pt too wide) in paragraph at lines 1074--1074
+
+Overfull \hbox (22.4968pt too wide) in paragraph at lines 1083--1083
 []            \OT1/cmtt/m/n/10 the overall reaction rate for the unbinding reac
 tion rule.[] 
  []
 
 
-Overfull \hbox (11.99689pt too wide) in paragraph at lines 1074--1074
+Overfull \hbox (11.99689pt too wide) in paragraph at lines 1083--1083
 []            \OT1/cmtt/m/n/10 the overall reaction rate for the reverse reacti
 on rule.[] 
  []
 
 
-Overfull \hbox (32.9967pt too wide) in paragraph at lines 1074--1074
+Overfull \hbox (32.9967pt too wide) in paragraph at lines 1083--1083
 []    \OT1/cmtt/m/n/10 """Convert an overall reaction rate (koff) for an unbind
 ing reaction[] 
  []
 
 
-Overfull \hbox (17.24684pt too wide) in paragraph at lines 1074--1074
+Overfull \hbox (17.24684pt too wide) in paragraph at lines 1083--1083
 []    \OT1/cmtt/m/n/10 Similar to the function k_d(), but expects an intrinsic 
 rate (ka)[] 
  []
 
 
-Overfull \hbox (22.4968pt too wide) in paragraph at lines 1074--1074
+Overfull \hbox (22.4968pt too wide) in paragraph at lines 1083--1083
 []    \OT1/cmtt/m/n/10 instead of an overall rate (kon) for the reversed reacti
 on rule as[] 
  []
 
-
-Overfull \hbox (38.24666pt too wide) in paragraph at lines 1074--1074
+[20]
+Overfull \hbox (38.24666pt too wide) in paragraph at lines 1083--1083
 []    \OT1/cmtt/m/n/10 """Convert an intrinsic reaction rate (ka) for a binding
 /annihilation[] 
  []
 
-[20]
-Overfull \hbox (32.9967pt too wide) in paragraph at lines 1074--1074
+
+Overfull \hbox (32.9967pt too wide) in paragraph at lines 1083--1083
 []    \OT1/cmtt/m/n/10 """Convert an intrinsic reaction rate (kd) for an unbind
 ing reaction[] 
  []
 
 
-Overfull \hbox (32.9967pt too wide) in paragraph at lines 1074--1074
+Overfull \hbox (32.9967pt too wide) in paragraph at lines 1083--1083
 []    \OT1/cmtt/m/n/10 """Convert an intrinsic reaction rate (kd) for an unbind
 ing reaction[] 
  []
 
 
-Overfull \hbox (1.49698pt too wide) in paragraph at lines 1074--1074
+Overfull \hbox (1.49698pt too wide) in paragraph at lines 1083--1083
 []    \OT1/cmtt/m/n/10 Similar to the function k_off(), but expects an intrinsi
 c rate[] 
  []
 
 [21]
 LaTeX Font Info:    Font shape `OT1/cmtt/bx/n' in size <10> not available
-(Font)              Font shape `OT1/cmtt/m/n' tried instead on input line 1134.
+(Font)              Font shape `OT1/cmtt/m/n' tried instead on input line 1143.
 
- [22]
-Overfull \hbox (11.99689pt too wide) in paragraph at lines 1177--1177
+ [22] [23]
+Overfull \hbox (11.99689pt too wide) in paragraph at lines 1186--1186
 []    \OT1/cmtt/m/n/10 def __init__(self, logname='log', directory='data', comm
 ent=''):[] 
  []
 
-[23]
-Overfull \hbox (374.24373pt too wide) in paragraph at lines 1216--1216
+
+Overfull \hbox (374.24373pt too wide) in paragraph at lines 1225--1225
 []  \OT1/cmtt/m/n/10 SpeciesInfo (identifier_type const &id, D_type const &D=0.
 , length_type const &r=0., structure_id_type const &s="", v_type const &v=0.)[]
  
  []
 
 
-Overfull \hbox (64.49643pt too wide) in paragraph at lines 1216--1216
+Overfull \hbox (64.49643pt too wide) in paragraph at lines 1225--1225
 []\OT1/cmtt/m/n/10 template<typename Tid_, typename TD_, typename Tlen_, typena
 me Tstructure_id_>[] 
  []
 
-[24] (./interface_functions.aux) ) 
+[24] [25] (./interface_functions.aux) ) 
 Here is how much of TeX's memory you used:
  508 strings out of 95086
  7761 string characters out of 1183255
@@ -855,18 +879,18 @@ Here is how much of TeX's memory you used:
  8578 words of font info for 31 fonts, out of 1200000 for 2000
  28 hyphenation exceptions out of 8191
  23i,8n,20p,323b,243s stack positions out of 5000i,500n,6000p,200000b,5000s
-</usr/share/texmf-texlive/fonts/type1/bluesky
-/cm/cmbx10.pfb></usr/share/texmf-texlive/fonts/type1/bluesky/cm/cmbx12.pfb></us
-r/share/texmf-texlive/fonts/type1/bluesky/cm/cmr10.pfb></usr/share/texmf-texliv
-e/fonts/type1/bluesky/cm/cmr12.pfb></usr/share/texmf-texlive/fonts/type1/bluesk
-y/cm/cmr17.pfb></usr/share/texmf-texlive/fonts/type1/bluesky/cm/cmr6.pfb></usr/
-share/texmf-texlive/fonts/type1/bluesky/cm/cmr7.pfb></usr/share/texmf-texlive/f
-onts/type1/bluesky/cm/cmr8.pfb></usr/share/texmf-texlive/fonts/type1/bluesky/cm
-/cmti10.pfb></usr/share/texmf-texlive/fonts/type1/bluesky/cm/cmtt10.pfb></usr/s
-hare/texmf-texlive/fonts/type1/bluesky/cm/cmtt12.pfb>
-Output written on interface_functions.pdf (24 pages, 109202 bytes).
+</usr/share/texmf-texlive/fonts/type1/bl
+uesky/cm/cmbx10.pfb></usr/share/texmf-texlive/fonts/type1/bluesky/cm/cmbx12.pfb
+></usr/share/texmf-texlive/fonts/type1/bluesky/cm/cmr10.pfb></usr/share/texmf-t
+exlive/fonts/type1/bluesky/cm/cmr12.pfb></usr/share/texmf-texlive/fonts/type1/b
+luesky/cm/cmr17.pfb></usr/share/texmf-texlive/fonts/type1/bluesky/cm/cmr6.pfb><
+/usr/share/texmf-texlive/fonts/type1/bluesky/cm/cmr7.pfb></usr/share/texmf-texl
+ive/fonts/type1/bluesky/cm/cmr8.pfb></usr/share/texmf-texlive/fonts/type1/blues
+ky/cm/cmti10.pfb></usr/share/texmf-texlive/fonts/type1/bluesky/cm/cmtt10.pfb></
+usr/share/texmf-texlive/fonts/type1/bluesky/cm/cmtt12.pfb>
+Output written on interface_functions.pdf (25 pages, 110108 bytes).
 PDF statistics:
- 123 PDF objects out of 1000 (max. 8388607)
+ 127 PDF objects out of 1000 (max. 8388607)
  0 named destinations out of 1000 (max. 131072)
  1 words of extra memory for PDF output out of 10000 (max. 10000000)
 
