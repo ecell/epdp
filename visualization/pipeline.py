@@ -330,6 +330,7 @@ class Pipeline(object):
                 cylindrical_surfaces = \
                     self.add_tensor_glyph(cylindrical_surface_data, 'Cylinder',
                                           name='Cylindrical Surfaces',
+                                          resolution=RESOLUTION,
                                           scale=HELIX_RADIUS_SCALE_FACTOR) 
 
                 rep4 = self.show(cylindrical_surfaces)
