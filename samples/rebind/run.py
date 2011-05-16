@@ -28,8 +28,8 @@ def run(outfilename, D_factor, N_B, N_X, N):
     tau = sigma**2 / D_tot
     print 'tau=', tau
 
-    #T_list = [tau * .1, INF]
-    T_list = [INF]
+    T_list = [tau * .1, INF]
+    # T_list = [INF] # With this option, the simulation stops immediately
 
     outfile_t = open(outfilename + '_t.dat', 'w')
     #outfile_r_list = [open(outfilename + '_r_-1.dat', 'w')] 
@@ -176,6 +176,7 @@ def singlerun(T_list, D_factor, N_B, N_X):
         for d in dd:
             for p in d.particle_id_pair:
                 s.remove_particle(p)
+                print "Removing particle.."
         s.throw_in_particles(X, len(pp), box1)
 
     place_particle(w, A, A_pos)
@@ -191,10 +192,11 @@ def singlerun(T_list, D_factor, N_B, N_X):
         for d in dd:
             for p in d.particle_id_pair:
                 s.remove_particle(p)
+                print "Removing particle.."
         s.throw_in_particles(X, len(pp), box1)
 
     place_particle(w, B, B_pos) 
-    print "Finished clearing.."
+    print "Finished placing particles A & B.."
 
     # Place rest of B at random positions
     if N_B > 1:
