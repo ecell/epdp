@@ -351,7 +351,7 @@ class ParticleSimulatorBase(object):
     def get_position(self, object):
         """
         Function that returns particle position. Can take multiple
-        sort of arguments as input. 
+        sorts of arguments as input. 
 
         Arguments:
             - object: can be:
