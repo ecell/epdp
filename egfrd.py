@@ -525,6 +525,20 @@ class EGFRDSimulator(ParticleSimulatorBase):
         return bursted
 
     def clear_volume(self, pos, radius, ignore=[]):
+        """ Burst domains within a certain volume and give their ids.
+
+        This function actually has a confusing name, as it only bursts 
+        domains within a certain radius, and gives their ids. It doesn't
+        remove the particles or something like that.
+
+        (Bursting means it propagates the particles within the domain until
+        the current time, and then creates a new, minimum-sized domain.)
+
+        Arguments:
+            - pos: position of area to be "bursted"
+            - radius: radius of area to be "bursted"
+            - ignore: domains that should be ignored, none by default.
+        """ # Added by wehrens@amolf.nl; please revise
         neighbors = self.get_neighbors_within_radius_no_sort(pos, radius,
                                                              ignore)
         return self.burst_objs(neighbors)
@@ -1467,16 +1481,19 @@ class EGFRDSimulator(ParticleSimulatorBase):
         # shells. Can for example be used to try to clear all objects 
         # from a certain volume.
 
-        for container in self.containers:
-            result = container.get_neighbors_within_radius(pos, radius)
-            # result = [((shell_id_shell_pair), distance), ]
-            # Since a domain can have more than 1 shell (multis for 
-            # example), and for each shell there is an entry in the 
-            # shell container, we make sure each domain occurs only once 
-            # in the returned list here.
-            for did in uniq(s[0][1].did for s in result):
-                if did not in ignore:
-                    yield self.domains[did]
+        try:
+            for container in self.containers:
+                result = container.get_neighbors_within_radius(pos, radius)
+                # result = [((shell_id_shell_pair), distance), ]
+                # Since a domain can have more than 1 shell (multis for 
+                # example), and for each shell there is an entry in the 
+                # shell container, we make sure each domain occurs only once 
+                # in the returned list here.
+                for did in uniq(s[0][1].did for s in result):
+                    if did not in ignore:
+                        yield self.domains[did]
+        except AttributeError:
+            pass
 
     def get_intruders(self, position, radius, ignore):
         intruders = []   # intruders are domains within radius
