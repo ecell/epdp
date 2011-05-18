@@ -1,23 +1,15 @@
 #!/usr/bin/env python
 
-#TODO
-"""
-See README for a description
+# See README for a description
 
-# [N_B] [N_X] [N]
-
-LOGLEVEL=ERROR PYTHONPATH=../.. python -O run.py 1 100 10
-
-"""
-
+import sys
 
 from egfrd import *
 from bd import *
-import sys
 import gfrdbase
 import model
 
-def run(outfilename, N_B, N_X, T_list, N):
+def run(outfilename, N_B, N_X, N, T_list):
     """ 
     Function that loops over single runs of binding/rebinding
     simulations. (Plus some overhead code.)
@@ -57,14 +49,9 @@ def run(outfilename, N_B, N_X, T_list, N):
     matrix_size = min(max(3, int((9 * (N_X+N_B)) ** (1.0/3.0))), 60)
     print 'matrix_size=', matrix_size
 
-    # Overrides the T_list input
-    T_list = [tau*0.1, tau, tau*10, tau * 100, tau * 1000, INF]
-    T_list = range(0, int(tau*100000), 100)
-    T_list.append(INF)
-
-    # Clear the distance output file
+    # Clear the distance output files
     for j in T_list:
-        outfile_r = open(outfilename + '_r_-'+str(j)+'.dat', 'a')
+        outfile_r = open(outfilename + '_r_'+str(j)+'.dat', 'a')
         outfile_r.close()
 
     # Open the time output file
@@ -164,38 +151,35 @@ def singlerun(T_list, N_B, N_X):
     B_pos = [(float(A['radius']) + float(B['radius']))+1e-23,0,0]
 
     # Clear an area at position A_pos and place particle A there
-    """
-    What happens here:
-        - find particles at position A_pos within species A radius
-        - delete those
-        - add a number of X particles _randomly to the box_, the 
-          number being equal to # removed particles.
-        - if a particle is accidently placed within the "cleared"
-          area, repeat the process (in very crowded box, this 
-          leads to infinite loop)
-        - 
-
-    """#TODO 
-    """This code doesn't function properly, because you want to clear 
-    particles within a certain radius.. Now you can be removing particles 
-    that after bursting are not in the area anymore, but whose bursted 
-    domains were.
-
-    After bursting you should just check whether something is within the radius.
-
-    Perhaps it would be more easy to just place all the particles at
-    the beginning, but give A and B initially a diffusion constant of
-    0, then stirr, and then set the diffusion constant to their
-    desired values.."""
+    # 
+    # How this should be done:
+    #    - find particles at position A_pos within species A radius
+    #    - delete those
+    #    - add a number of X particles _randomly to the box_, the 
+    #      number being equal to # removed particles.
+    #    - if a particle is accidently placed within the "cleared"
+    #      area, repeat the process (in very crowded box, this 
+    #      leads to infinite loop)
+    #
+    # Currently, however, it doesn't get the particles within a certain radius, 
+    # but the particles which domain lies within a certain radius. 
+    #
+    # Therefore, you might be removing particles that after bursting are not 
+    # within the radius anymore, but whose (now bursted) domains were.
+    # 
+    # TODO
+    # This code should thus be adapted to solve this problem.
+    # 
+    # Perhaps it would be more easy to just place all the particles at
+    # the beginning, but give A and B initially a diffusion constant of
+    # 0, then stirr, and then set the diffusion constant to their
+    # desired values.."""
 
     while 1:
 
+        # Burst domains within a certain volume and collect their ids
+        dd = s.clear_volume(A_pos, float(A['radius'])) 
 
-        #pp = s.get_particles_within_radius(A_pos, float(A['radius']))
-        dd = s.clear_volume(A_pos, float(A['radius'])) # returns a list of 
-                                                       # domains ID's that
-                                                       # where bursted within
-                                                       # volume
         if not dd:
             break
         for d in dd:
@@ -208,10 +192,10 @@ def singlerun(T_list, N_B, N_X):
 
     # Idem for a particle B:
     while 1:
-        dd = s.clear_volume(B_pos, float(B['radius'])) # returns a list of 
-                                                       # domains ID's that
-                                                       # where bursted within
-                                                       # volume
+    
+        # Burst domains within a certain volume and collect their ids
+        dd = s.clear_volume(B_pos, float(B['radius'])) 
+
         if not dd:
             break
         for d in dd:
@@ -239,31 +223,32 @@ def singlerun(T_list, N_B, N_X):
 
     #  ### Start simulating
     while 1:
-        """
-        What happens in this if-statement: 
-        Create a list of the times particles were in bound state.
 
-        If there was a reaction:
-            - Binding: Indicated by the fact that there are no C-particles.
-              In this case: record the current time (s.t) to t_last.
-            - Unbinding: Indicated because this is the only other case when
-              a reaction has taken place. 
-              In this case: record the time binding lasted, i.e. dt between
-              current time (s.t) and last reaction time (t_last).
-        """
+        # What happens in the following if-statement: 
+        # Create a list of the durations particles were in bound state.
+        #
+        # If there was a reaction:
+        #     - Binding: Indicated by the fact that there are no C-particles.
+        #       In this case: record the current time (s.t) to t_last.
+        #     - Unbinding: Indicated because this is the only other case when
+        #       a reaction has taken place. 
+        #       In this case: record the time binding lasted, i.e. dt between
+        #       current time (s.t) and last reaction time (t_last).
         if s.last_reaction: # aka if there was a reaction
             print "* Reaction detected at: " + str(s.last_reaction)
             if len(s.world.get_particle_ids(C.id)) == 0:  #A,B
                 print '    - set t_last', str(s.t)
-                t_last = s.t  # set t_last
-            else:    # C
+                # set t_last to "current time" in simulator
+                t_last = s.t  
+            else:    
                 print '    - reaction: ', str(s.t - t_last)
                 t_list.append(s.t - t_last)
 
-        """ If it's time to log, then log distance between particles. """
+        # If it's time to log, then log distance between particles. 
         next_time = s.get_next_time()
         if next_time > next_stop:
-            print '* Measuring distances at ', str(i_T), str(next_stop)
+            print '* Measuring distances at ', str(next_stop),\
+                            '(measurement #', str(i_T), ')'
             s.stop(next_stop)
             print '* stopped'
             # If there is a particle C, the distance is "0".
@@ -290,12 +275,10 @@ def singlerun(T_list, N_B, N_X):
             next_stop = T_list[i_T]
             print "* Done, returning to simulation loop."
         
-        """ If there are no measuring moments on the list any more,
-        stop """
-        if (next_stop == INF):            
-            print '* Break at ', str(s.t)
-            if (len(t_list) == 0):
-                t_list.append(float('nan'))            
+        # If there are no measuring moments on the list any more, and
+        # a duration of being bounded has been recorded, then stop
+        if (next_stop == INF) and (len(t_list) != 0):
+            print 'break', s.t
             break
 
         s.step()
@@ -306,30 +289,15 @@ def singlerun(T_list, N_B, N_X):
 if __name__ == '__main__':
 
     import os
+    
+    # convert last user arguments to array T_list
+    T_list = []
+    for measurement_time in sys.argv[4:]:    
+        T_list.append(float(measurement_time))
 
-    T_list = eval(sys.argv[3])
+    run('data/rebind', float(sys.argv[1]), 
+        int(sys.argv[2]), int(sys.argv[3]), T_list)
 
-    outfilename = 'data/rebind_' + '_'.join(sys.argv[1:4]) +\
-        '_' #+ os.environ['SGE_TASK_ID']
-    run(outfilename, float(sys.argv[1]), 
-        int(sys.argv[2]), T_list, int(sys.argv[4]))
-
-
-
-
-"""
-
-Some additional notes:
-
-    # 100 nM = 100e-9 * N_A * 100 / m^3 = 6.02e19
-    # V = 1 / 6.02e19 = 1.66e-20 m^3
-    # L = 2.55e-7 m
-
-    # 1 uM = 6.02e20 / m^3
-    # V = 1.66e-21 m^3
-    # L = 1.18e-7
-
-"""
 
 
 

@@ -14,7 +14,7 @@
 \section{Introduction}
 This document gives an overview of functions that are usefull to end-users of the enhanced Green's Functions Reaction Dynamics (eGFRD) algorithm. In other words, it lists the "interface functions".
 Basically, this entails a list of function definition plus their so-called python "docstrings", obtained straight from the code.
-Note that functions starting with an underscore are actually C++ functions ported to python by boost. 
+% Note that functions starting with an underscore are actually C++ functions ported to python by boost. 
 
 \section{Functions}
 
@@ -612,6 +612,24 @@ def get_closest_surface_within_radius(world, pos, radius, ignore):
 
 \end{verbatim}
 
+\subsubsection{Manipulating the system}
+\begin{verbatim}
+    def clear_volume(self, pos, radius, ignore=[]):
+    """ Burst domains within a certain volume and give their ids.
+
+    This function actually has a confusing name, as it only bursts 
+    domains within a certain radius, and gives their ids. It doesn't
+    remove the particles or something like that.
+
+    (Bursting means it propagates the particles within the domain until
+    the current time, and then creates a new, minimum-sized domain.)
+
+    Arguments:
+        - pos: position of area to be "bursted"
+        - radius: radius of area to be "bursted"
+        - ignore: domains that should be ignored, none by default.
+    """ 
+\end{verbatim}
 
 
 \subsubsection{Additional functions}
