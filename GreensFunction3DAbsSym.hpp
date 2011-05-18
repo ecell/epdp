@@ -34,6 +34,8 @@ public:
     Real p_int_r_free(Real r, Real t) const;
 
     Real p_r_fourier(Real r, Real t) const;
+	
+    std::string dump() const;
 
 private:
     static Real ellipticTheta4Zero(Real q);
