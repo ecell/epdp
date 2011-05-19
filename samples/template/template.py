@@ -9,11 +9,12 @@ sys.path.append('../../')
 import os
 
 from egfrd import *
-from bd import *
+
 import model
 import gfrdbase
 import _gfrd
 #import dumper
+#from bd import *
 
 
 # Constants
