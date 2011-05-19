@@ -11,7 +11,7 @@ so much for end-users of the eGFRD algorithm.
 
 Running
 =====================================
-$ PYTHONPATH=../../.. python dimer.py 
+$ PYTHONPATH=../../ python dimer.py 
 
 Will already do the trick.
 
