@@ -32,7 +32,7 @@ world_size = 1e-3   # Lengths of simulation box
 m = model.ParticleModel(world_size)
 # Species
 X = model.Species('X', D, sigma/2)                                   
-m.add_species_type(A) 
+m.add_species_type(X) 
 # Reaction rules
 r1 = model.create_binding_reaction_rule(A, B, X, k)
 m.network_rules.add_reaction_rule(r1)
@@ -43,15 +43,15 @@ w = gfrdbase.create_world(m, 3)
 s = EGFRDSimulator(w, myrandom.rng)
 
 # Throw in particles
-throw_in_particles(w, A, numberToThrowIn)
-
+throw_in_particles(w, X, numberToThrowIn)
+place_particle(world, X, [0,0,0])
 
 # Running 1
 # ===============================
-while (s.get_next_time() < end_time)
+while (s.get_next_time() < end_time):
     s.step()
 
-s.stop(s.end_time)
+s.stop(end_time)
     
 
 # Running 2
@@ -75,6 +75,10 @@ if (os.path.exists(vtk_output_directory)):
 from visualization import vtklogger
 l = vtklogger.VTKLogger(s, vtk_output_directory, extra_particle_step=True) 
 
+# log a step
+l.log()
+# stop logger, writing away essential data
+l.stop()
 
 
 
