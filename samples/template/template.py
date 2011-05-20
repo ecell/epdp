@@ -13,6 +13,7 @@ from egfrd import *
 import model
 import gfrdbase
 import _gfrd
+#import logger
 #import dumper
 #from bd import *
 

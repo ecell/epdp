@@ -75,9 +75,7 @@ def Species(name, D, radius=0, structure="world", drift=0):
     """
 \end{verbatim}
 
-Species should be added to the model:
 \begin{verbatim}
-
     def add_reaction_rule(self, reaction_rule):
         """Add a ReactionRule to the ParticleModel.
 
@@ -378,7 +376,7 @@ def create_world(m, matrix_size=10):
 \end{verbatim}
 
 
-\subsubsection{Handling objects (surfaces, cylinders, etc)}
+\subsubsection{Handling regions (surfaces, cylinders, etc)}
 
 \begin{verbatim}
 def get_closest_surface(world, pos, ignore):
