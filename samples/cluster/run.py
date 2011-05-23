@@ -30,11 +30,14 @@ world_size = 1e-3   # Lengths of simulation box
 
 # Functions
 # ===============================
-def cartesian(u1, u2, nx, ny):
-#    global cartesian_x, cartesian_y, u1, u2, nx, ny
-    cartesian_x = (nx * (u1[0]) + ny * (u2[0]))
-    cartesian_y = (ny * (u2[1]) + nx * (u1[1]))
+def cartesian(g1, g2, nx, ny):
+#    global cartesian_x, cartesian_y, g1, g2, nx, ny
+    cartesian_x = (nx * (g1[0]) + ny * (g2[0]))
+    cartesian_y = (ny * (g2[1]) + nx * (g1[1]))
     return cartesian_x, cartesian_y
+
+def distance_to_circle_center(cartesian_x, cartesian_y, r_x, r_y):
+    return math.sqrt(math.pow((cartesian_x-r_x),2)+math.pow((cartesian_y-r_y),2))
 
 def in_circle(cartesian_x, cartesian_y, r_x, r_y, R):
     if (math.sqrt(math.pow((cartesian_x-r_x),2)+math.pow((cartesian_y-r_y),2)) < R):
@@ -42,12 +45,24 @@ def in_circle(cartesian_x, cartesian_y, r_x, r_y, R):
     else:
         return False
 
-def make_cluster(cluster_R):
-    global w, A #, u1, u2, cartesian_x, cartesian_y, nx, ny
+def cluster_particle_coordinates(N):
+    global w, A #, g1, g2, cartesian_x, cartesian_y, nx, ny
 
-    # unit vectors make up grid to place particles on
-    u1 = [sigma+1e-10,0]
-    u2 = [math.cos((math.pi)/3.0)*(sigma+1e-10),math.sin((math.pi)/3.0)*(sigma+1e-10)] #TODO there is actually quite some space inbetween
+    # vectors that make up grid to place particles on
+    spacing = 1e-10 #TODO
+    d1 = [1,0]
+    d2 = [math.cos((math.pi)/3.0),math.sin((math.pi)/3.0)]
+    g1 = [(sigma+spacing)*d1[0], (sigma+spacing)*d1[1]]
+    g2 = [(sigma+spacing)*d2[0], (sigma+spacing)*d2[1]]
+
+    # Calculate conversion factor to calculate size square needed
+    factorNonCartesianGrid = math.sqrt(1/(d1[0]*d2[1]-d1[1]*d2[0]))
+    factroSquareToCircle = math.pi/2 #math.sqrt(math.pow((math.pi*0.5),2)) 
+    print "factorNonCartesianGrid:", str(factorNonCartesianGrid)
+    print "factroSquareToCircle:", str(factroSquareToCircle)
+
+    # Calculate length of square
+    L = (spacing+sigma)*math.sqrt(N)
 
     # counters 
     nx = 0
@@ -57,38 +72,69 @@ def make_cluster(cluster_R):
     cartesian_y = 0
     cartesian_z = 0
 
+    # list with possible cluster particle coordinates
+    clusterParticleCoordinates = []
+
     # place particles on diagonal and right from it
     while (1):
-        cartesian_x, cartesian_y = cartesian(u1, u2, nx, ny)
+        cartesian_x, cartesian_y = cartesian(g1, g2, nx, ny)
         print "placing on nx, ny: ", str(nx), ',',str(ny),\
             "(x=", str(cartesian_x),",y=", str(cartesian_y), ")"
-        if in_circle(cartesian_x, cartesian_y, cluster_R, cluster_R, cluster_R):
-            place_particle(w, A, [cartesian_x, cartesian_y, cartesian_z])
+        #if in_circle(cartesian_x, cartesian_y, cluster_R, cluster_R, cluster_R):
+            # place_particle(w, A, [cartesian_x, cartesian_y, cartesian_z])
+        distanceToCircle =\
+            distance_to_circle_center(cartesian_x,cartesian_y, 
+            L/2, L/2)
+        if (distanceToCircle < L/2):
+            clusterParticleCoordinates.append([
+                        distanceToCircle,
+                        cartesian_x, 
+                        cartesian_y, 
+                        cartesian_z
+                        ])
         ny = ny+1      
-        if (cartesian_x > cluster_R*2 or cartesian_y > cluster_R*2):
+        if (cartesian_x > L or cartesian_y > L*2):
             nx = nx+1
             ny = 0
-            cartesian_x, cartesian_y = cartesian(u1, u2, nx, ny)
-        if (cartesian_x > cluster_R*2 or cartesian_y > cluster_R*2):
+            cartesian_x, cartesian_y = cartesian(g1, g2, nx, ny)
+        if (cartesian_x > L*2 or cartesian_y > L*2):
             break
     # place particles left from diagonal
     print "other side"
     nx = -1
     ny = 2
     while (1):
-        cartesian_x, cartesian_y = cartesian(u1, u2, nx, ny)
+        cartesian_x, cartesian_y = cartesian(g1, g2, nx, ny)
         print "placing on nx, ny: ", str(nx), ',',str(ny),\
             "(x=", str(cartesian_x),",y=", str(cartesian_y), ")"
-        if in_circle(cartesian_x, cartesian_y, cluster_R, cluster_R, cluster_R):
-            place_particle(w, A, [cartesian_x, cartesian_y, cartesian_z])
+        #if in_circle(cartesian_x, cartesian_y, cluster_R, cluster_R, cluster_R):
+            # place_particle(w, A, [cartesian_x, cartesian_y, cartesian_z])
+        distanceToCircle =\
+            distance_to_circle_center(cartesian_x,cartesian_y, 
+            L/2, L/2)
+        if (distanceToCircle < L/2):
+            clusterParticleCoordinates.append([
+                        distanceToCircle,
+                        cartesian_x, 
+                        cartesian_y, 
+                        cartesian_z
+                        ])
         ny = ny+1      
-        if (cartesian_x > cluster_R*2 or cartesian_y > cluster_R*2):
+        if (cartesian_x > L*2 or cartesian_y > L*2):
             nx = nx-1
             ny = nx*-2
-            cartesian_x, cartesian_y = cartesian(u1, u2, nx, ny)
-        if (cartesian_x > cluster_R*2 or cartesian_y > cluster_R*2):
+            cartesian_x, cartesian_y = cartesian(g1, g2, nx, ny)
+        if (cartesian_x > L*2 or cartesian_y > L*2):
             break
-  
+
+    return clusterParticleCoordinates
+
+def make_cluster(N): #TODO: maak optie dat ie zowel R als N aankan
+    cluster_particle_coordinates(N)
+    print str(cluster_particle_coordinates)
+
+    # Create list of 
+
 
 # Basic set up simulator
 # ===============================
