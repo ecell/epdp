@@ -2,7 +2,7 @@
 # Rebinding to a cluster
 
 # Run by:
-# $ python run.py [N] [runs] [outFilename] [Logmode=False]
+# $ python run.py [N] [runs] [outFilename] [Logmode, default=False]
 #
 # Arguments:
 #   - N: Number of particles in cluster
@@ -30,9 +30,6 @@ import model
 import gfrdbase
 import _gfrd
 from visualization import vtklogger
-#import logger
-#import dumper
-#from bd import *
 
 
 # Constants
@@ -51,17 +48,31 @@ try:
         runs = 1
 except: LOGGING = False
 
-
-EARLY_STOP = 500
-sigma = 1e-5        # Diameter particle; more realistic would be e-9
-D = 1e-8            # Diffusion constant; 1e-12 would be more realistic
-world_size = 1e-3   # Lengths of simulation box
+# Particle constants
+sigma = 1e-5        # Diameter particle; big:1e-5
+D = 1e-8            # Diffusion constant; big:1e-8
+world_size = 1e-3   # Lengths of simulation box; normal: 1e-3
 
 k1 = 1e-10
 k2 = 1e2
 
 # Spacing inbetween cluster particles AND cluster/B-particle
 spacing = sigma/1e5
+
+# Seed in case of Logging mode
+# ===============================
+if (LOGGING == True):
+    import datetime    
+    myrandom.seed(long(datetime.datetime.now().year*3600*24*365+
+    datetime.datetime.now().month*30.5*24*3600+
+    datetime.datetime.now().day*24*3600+datetime.datetime.now().hour*3600+
+    datetime.datetime.now().minute*60+datetime.datetime.now().second))
+ 
+    seed = long(datetime.datetime.now().year*3600*24*365+
+    datetime.datetime.now().month*30.5*24*3600+
+    datetime.datetime.now().day*24*3600+datetime.datetime.now().hour*3600+
+    datetime.datetime.now().minute*60+datetime.datetime.now().second)
+    print str('Seed: '+str(seed))
 
 
 # Functions
@@ -205,7 +216,7 @@ def single_run(N, LOGGING):
 
     # World
     w = gfrdbase.create_world(m, 3)
-    # Simulator
+    # Simulator   
     s = EGFRDSimulator(w, myrandom.rng)
 
     # Put in cluster
@@ -219,10 +230,7 @@ def single_run(N, LOGGING):
     if (LOGGING == True):
         vtk_output_directory = 'VTK_out'
         if (os.path.exists(vtk_output_directory)):
-            if (shutil.rmtree(vtk_output_directory)):
-                print '** TRASHED old vtk directory'            
-            else:
-                print '** ERROR removing old vtk directory'
+            print '** Warning: VTK directory already exists.'
         l = vtklogger.VTKLogger(s, vtk_output_directory, extra_particle_step=True) 
     
     # Running 
@@ -236,9 +244,10 @@ def single_run(N, LOGGING):
             if s.last_reaction:
                 numberDetected = numberDetected+1
                 if (numberDetected == 2):
-                    print "2nd Reaction detected at: " + str(s.t) + "(" + str(s.last_reaction) + ")"
-                    reaction_time = s.t
+                    # print "2nd Reaction detected at: " + str(s.t) + "(" + str(s.last_reaction) + ")"
+                    reaction_time = s.t - previous_time
                     break  
+                else: previous_time = s.t
         l.stop() 
     else:
         while 1:
@@ -246,9 +255,10 @@ def single_run(N, LOGGING):
             if s.last_reaction:
                 numberDetected = numberDetected+1
                 if (numberDetected == 2):
-                    print "2nd Reaction detected at: " + str(s.t) + "(" + str(s.last_reaction) + ")"
-                    reaction_time = s.t
+                    # print "2nd Reaction detected at: " + str(s.t) + "(" + str(s.last_reaction) + ")"
+                    reaction_time = s.t - previous_time
                     break  
+                else: previous_time = s.t
 
     s.stop(s.t)
     return (reaction_time)
@@ -268,6 +278,7 @@ outFile.close()
 
 
 # #### OLD CODE
+
 #def in_circle(cartesian_x, cartesian_y, r_x, r_y, R):
 #    if (math.sqrt(math.pow((cartesian_x-r_x),2)+math.pow((cartesian_y-r_y),2)) < R):
 #        return True
