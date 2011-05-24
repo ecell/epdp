@@ -995,6 +995,10 @@ class EGFRDSimulator(ParticleSimulatorBase):
         assert self.t >= single.last_time
         assert self.t <= single.last_time + single.dt
 
+        if single.dt == numpy.inf:
+            # Performance only: don't reschedule singles with D=0.
+            return single
+
         oldpos = single.shell.shape.position
         old_shell_size = single.get_shell_size()
 
