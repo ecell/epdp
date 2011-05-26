@@ -1,5 +1,5 @@
-#if !defined( __FIRSTPASSAGEGREENSFUNCTION1D_HPP )
-#define __FIRSTPASSAGEGREENSFUNCTION1D_HPP
+#if !defined( __GREENSFUNCTION1DABSABS_HPP )
+#define __GREENSFUNCTION1DABSABS_HPP
 
 #include <sstream>
 #include <iostream>
@@ -42,12 +42,6 @@ private:
     // The minimum
     static const int MIN_TERMS = 20;
 
-public:
-    enum EventKind
-    {
-        IV_ESCAPE,
-        IV_REACTION
-    };
 
 public:
     GreensFunction1DAbsAbs(Real D, Real r0, Real sigma, Real a)
@@ -204,4 +198,4 @@ private:
     // This is the time scale of the system, used by drawTime_f
     Real t_scale;
 };
-#endif // __FIRSTPASSAGEGREENSFUNCTION1D_HPP
+#endif // __GREENSFUNCTION1DABSABS_HPP
