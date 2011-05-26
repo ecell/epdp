@@ -44,7 +44,7 @@ s = EGFRDSimulator(w, myrandom.rng)
 
 # Throw in particles
 throw_in_particles(w, X, numberToThrowIn)
-place_particle(world, X, [0,0,0])
+place_particle(w, X, [0,0,0])
 
 # Running 1
 # ===============================

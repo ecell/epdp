@@ -61,7 +61,6 @@ def run(outfilename, N_B, N_X, N, T_list):
     for i in range(N):
 
         # Perform a single simulation run
-        print "###### Run " + str(i) + "."
         r_list, t_list = singlerun(T_list, N_B, N_X)
 
         # Write away time data
@@ -76,10 +75,6 @@ def run(outfilename, N_B, N_X, N, T_list):
             outfile_r = open(outfilename + '_r_-' + str(T_list[j]) +'.dat', 'a')
             outfile_r.write(str(r_list[j]) + '\n')
             outfile_r.close()
-
-        # Print to screen.
-        print "* Output: t_list=" + str(t_list)
-        print "* Output: r_list=" + str(r_list)
 
         # Make sure script writes data NOW
         outfile_t.flush()
@@ -185,7 +180,6 @@ def singlerun(T_list, N_B, N_X):
         for d in dd:
             for p in d.particle_id_pair:
                 s.remove_particle(p)
-                print "* Removing particle to make space for A.."
         s.throw_in_particles(X, len(pp), box1)
 
     place_particle(w, A, A_pos)
@@ -201,7 +195,6 @@ def singlerun(T_list, N_B, N_X):
         for d in dd:
             for p in d.particle_id_pair:
                 s.remove_particle(p)
-                print "* Removing particle to make space for B.."
         s.throw_in_particles(X, len(pp), box1)
 
     place_particle(w, B, B_pos) 
@@ -235,7 +228,7 @@ def singlerun(T_list, N_B, N_X):
         #       In this case: record the time binding lasted, i.e. dt between
         #       current time (s.t) and last reaction time (t_last).
         if s.last_reaction: # aka if there was a reaction
-            print "* Reaction detected at: " + str(s.last_reaction)
+
             if len(s.world.get_particle_ids(C.id)) == 0:  #A,B
                 print '    - set t_last', str(s.t)
                 # set t_last to "current time" in simulator
@@ -267,13 +260,12 @@ def singlerun(T_list, N_B, N_X):
                     B_pos = s.get_position(particle_id)
                     distance = w.distance(A_pos, B_pos)
                     distance_list.append(distance)
-                    print "* Measured distance = " + str(distance)
+
                 # Write list to distances table
                 r_list.append(distance_list)
 
             i_T += 1
             next_stop = T_list[i_T]
-            print "* Done, returning to simulation loop."
         
         # If there are no measuring moments on the list any more, and
         # a duration of being bounded has been recorded, then stop
@@ -297,6 +289,8 @@ if __name__ == '__main__':
 
     run('data/rebind', float(sys.argv[1]), 
         int(sys.argv[2]), int(sys.argv[3]), T_list)
+
+    print "Done."
 
 
 
