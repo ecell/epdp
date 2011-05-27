@@ -4,7 +4,7 @@
 Introduction
 =====================================
 This example deals with the rebinding problem. The simplest case of
-this probllem is when you have two particles of different species
+this problem is when you have two particles of different species
 that can react with each other, say A and B, to a particle of species
 C:
 

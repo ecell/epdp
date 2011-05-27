@@ -19,10 +19,11 @@
 # Modules
 # ===============================
 import sys
-#Also, set relative python path
+#Also, set relative egfrd directory path
 sys.path.append('../../')
 import os
 import shutil
+import datetime
 
 import math
 from egfrd import *
@@ -59,20 +60,15 @@ k2 = 1e2
 # Spacing inbetween cluster particles AND cluster/B-particle
 spacing = sigma/1e5
 
-# Seed in case of Logging mode
+# Create "unique" seed
 # ===============================
-if (LOGGING == True):
-    import datetime    
-    myrandom.seed(long(datetime.datetime.now().year*3600*24*365+
-    datetime.datetime.now().month*30.5*24*3600+
-    datetime.datetime.now().day*24*3600+datetime.datetime.now().hour*3600+
-    datetime.datetime.now().minute*60+datetime.datetime.now().second))
- 
-    seed = long(datetime.datetime.now().year*3600*24*365+
-    datetime.datetime.now().month*30.5*24*3600+
-    datetime.datetime.now().day*24*3600+datetime.datetime.now().hour*3600+
-    datetime.datetime.now().minute*60+datetime.datetime.now().second)
-    print str('Seed: '+str(seed))
+currenttime = (long(datetime.datetime.now().year*3600*24*365+
+datetime.datetime.now().month*30.5*24*3600+
+datetime.datetime.now().day*24*3600+datetime.datetime.now().hour*3600+
+datetime.datetime.now().minute*60+datetime.datetime.now().second))
+myrandom.seed(currenttime)
+
+print str('Seed: '+str(currenttime))
 
 
 # Functions
@@ -272,9 +268,16 @@ outFile.close()
 outFile = open(outFilename, 'a')
 
 for M in range(runs):
-    outFile.write(str(single_run(N, LOGGING)) + '\n')    
+    outFile.write(str(single_run(N, LOGGING)) + '\n')
+    outFile.flush    
 
 outFile.close()
+
+timetaken = (long(datetime.datetime.now().year*3600*24*365+
+datetime.datetime.now().month*30.5*24*3600+
+datetime.datetime.now().day*24*3600+datetime.datetime.now().hour*3600+
+datetime.datetime.now().minute*60+datetime.datetime.now().second)-currenttime)
+print "Done in "+ str(timetaken) +" seconds."
 
 
 # #### OLD CODE
