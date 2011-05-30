@@ -11,7 +11,7 @@ egfrd_directory ='/storage1/wehrens/myfork_egfrd/'
 # (This was defined when calling the logger in your
 # script.)
 simulation_data_directory = egfrd_directory + \
-    'samples/cluster/VTK_out/'
+    'samples/memory/VTK_out/'
 """
 
 2. Start ParaView. Make sure you give Paraview the PYTHONPATH 

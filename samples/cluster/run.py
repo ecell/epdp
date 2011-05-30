@@ -32,43 +32,43 @@ import gfrdbase
 import _gfrd
 from visualization import vtklogger
 
+if __name__ == "__main__":
+    # Constants
+    # ===============================
+    # Number of particles in the cluster
+    N = int(sys.argv[1])
+    # Number of runs
+    runs = int(sys.argv[2])
+    # Output file
+    outFilename = sys.argv[3]
+    # LOGGING mode
+    try: 
+        LOGGING = bool(sys.argv[4])
+        if (LOGGING==True): 
+            print "* Performing only 1 logging run."
+            runs = 1
+    except: LOGGING = False
 
-# Constants
-# ===============================
-# Number of particles in the cluster
-N = int(sys.argv[1])
-# Number of runs
-runs = int(sys.argv[2])
-# Output file
-outFilename = sys.argv[3]
-# LOGGING mode
-try: 
-    LOGGING = bool(sys.argv[4])
-    if (LOGGING==True): 
-        print "* Performing only 1 logging run."
-        runs = 1
-except: LOGGING = False
+    # Particle constants
+    sigma = 1e-5        # Diameter particle; big:1e-5
+    D = 1e-8            # Diffusion constant; big:1e-8
+    world_size = 1e-3   # Lengths of simulation box; normal: 1e-3
 
-# Particle constants
-sigma = 1e-5        # Diameter particle; big:1e-5
-D = 1e-8            # Diffusion constant; big:1e-8
-world_size = 1e-3   # Lengths of simulation box; normal: 1e-3
+    k1 = 1e-10
+    k2 = 1e2
 
-k1 = 1e-10
-k2 = 1e2
+    # Spacing inbetween cluster particles AND cluster/B-particle
+    spacing = sigma/1e5
 
-# Spacing inbetween cluster particles AND cluster/B-particle
-spacing = sigma/1e5
+    # Create "unique" seed
+    # ===============================
+    currenttime = (long(datetime.datetime.now().year*3600*24*365+
+    datetime.datetime.now().month*30.5*24*3600+
+    datetime.datetime.now().day*24*3600+datetime.datetime.now().hour*3600+
+    datetime.datetime.now().minute*60+datetime.datetime.now().second))
+    myrandom.seed(currenttime)
 
-# Create "unique" seed
-# ===============================
-currenttime = (long(datetime.datetime.now().year*3600*24*365+
-datetime.datetime.now().month*30.5*24*3600+
-datetime.datetime.now().day*24*3600+datetime.datetime.now().hour*3600+
-datetime.datetime.now().minute*60+datetime.datetime.now().second))
-myrandom.seed(currenttime)
-
-print str('Seed: '+str(currenttime))
+    print str('Seed: '+str(currenttime))
 
 
 # Functions
@@ -262,22 +262,23 @@ def single_run(N, LOGGING):
 # Main part
 # ===============================
 
-# Output file
-outFile = open(outFilename, 'w')
-outFile.close()
-outFile = open(outFilename, 'a')
+if __name__ == "__main__":
+    # Output file
+    outFile = open(outFilename, 'w')
+    outFile.close()
+    outFile = open(outFilename, 'a')
 
-for M in range(runs):
-    outFile.write(str(single_run(N, LOGGING)) + '\n')
-    outFile.flush    
+    for M in range(runs):
+        outFile.write(str(single_run(N, LOGGING)) + '\n')
+        outFile.flush    
 
-outFile.close()
+    outFile.close()
 
-timetaken = (long(datetime.datetime.now().year*3600*24*365+
-datetime.datetime.now().month*30.5*24*3600+
-datetime.datetime.now().day*24*3600+datetime.datetime.now().hour*3600+
-datetime.datetime.now().minute*60+datetime.datetime.now().second)-currenttime)
-print "Done in "+ str(timetaken) +" seconds."
+    timetaken = (long(datetime.datetime.now().year*3600*24*365+
+    datetime.datetime.now().month*30.5*24*3600+
+    datetime.datetime.now().day*24*3600+datetime.datetime.now().hour*3600+
+    datetime.datetime.now().minute*60+datetime.datetime.now().second)-currenttime)
+    print "Done in "+ str(timetaken) +" seconds."
 
 
 # #### OLD CODE

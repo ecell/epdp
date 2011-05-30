@@ -4,7 +4,7 @@ Introduction
 =====================================
 
 This sample script runs a model composed of a single, non-reactive
-species.   After each run, the script prints the real time it took
+species. After each run, the script prints the real time it took
 to run the simulation in seconds.  This script may be useful for
 a simple benchmarking purpose.
 
