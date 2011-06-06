@@ -714,7 +714,6 @@ class EGFRDSimulator(ParticleSimulatorBase):
             return single
 
     def fire_single(self, single):
-
         # In case nothing is scheduled to happen: do nothing; 
         # results also in disappearance from scheduler.
         if single.dt == numpy.inf:
