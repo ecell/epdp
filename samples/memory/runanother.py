@@ -48,7 +48,6 @@ print str(gc.get_debug())
 # Dozer
 wsgi_app = Dozer(wsgi_app)
 
-
 # Functions
 # ================================
 
