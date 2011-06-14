@@ -37,6 +37,13 @@ public:
 	
     std::string dump() const;
 
+    std::string dump() const;
+
+    const char* getName() const
+    {
+        return "GreensFunction3DAbsSym";
+    }
+
 private:
     static Real ellipticTheta4Zero(Real q);
 
