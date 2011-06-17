@@ -275,6 +275,21 @@ Real g_bd_3D(Real r, Real sigma, Real t, Real D)
 
     return 0.5 * (term1 + term2) * r * r;
 }
+
+Real g_bd_1D(Real r, Real sigma, Real t, Real D, Real v)
+{
+    const Real Dt4(4.0 * D * t);
+    const Real sqrtDt4(std::sqrt(Dt4));
+    const Real sqrtDt4_r(1.0 / sqrtDt4);
+    const Real vt = v*t;
+
+    const Real sprmvt(sigma + r + vt);
+    const Real smrpvt(sigma - r - vt);
+
+    const Real term2(erf(sprmvt * sqrtDt4_r) - erf(smrpvt * sqrtDt4_r));
+
+    return 0.5 * (term1 + term2);
+}
     
 Real I_bd_3D(Real sigma, Real t, Real D)
 {
@@ -297,6 +312,22 @@ Real I_bd_3D(Real sigma, Real t, Real D)
     return result;
 }
 
+Real I_bd_1D(Real sigma, Real t, Real D, Real v)
+{
+    const Real sqrtPi(std::sqrt(M_PI));
+
+    const Real Dt4(4 * D * t);
+    const Real sqrt4Dt(std::sqrt(Dt4));
+    double vt = v*t;
+
+    const Real arg1(-(2*sigma - vt)*(2*sigma - vt)/fourDt);
+    const Real term1(exp( -vt*vt/Dt4 ) - exp( arg1 ));
+    const Real term2(vt*erf( vt/sqrt4Dt ) - (2*sigma - vt)*erf( (2*sigma - vt)/sqrt4Dt ));
+    const Real result(1./2*(sqrt4Dt/sqrtPi*term1 + term2 + 2*sigma));
+
+    return result;
+    
+}
 
 Real I_bd_r_3D(Real r, Real sigma, Real t, Real D)
 {
@@ -334,6 +365,31 @@ Real I_bd_r_3D(Real r, Real sigma, Real t, Real D)
     return result;
 }
 
+Real I_bd_r_1D(Real r, Real sigma, Real t, Real D, Real v)
+{
+    const Real sqrtPi(std::sqrt(M_PI));
+
+    const Real Dt(D * t);
+    const Real Dt2(Dt + Dt);
+    const Real Dt4(Dt2 + Dt2);
+    const Real sqrt4Dt(std::sqrt(Dt4));
+    const Real vt = v*t;
+
+    const Real smrpvt_sq(gsl_pow_2(sigma - r + vt));
+    const Real sprmvt_sq(gsl_pow_2(sigma + r - vt));
+    const Real twosmvt_sq(gsl_pow_2(sigma + r - vt));
+
+    const Real temp1(-std::exp( -smrpvt_sq/Dt4 ) + std::exp( -sprmvt_sq/Dt4 ));
+    const Real temp2(std::exp( -vt*vt/Dt4 ) - std::exp( -twosmvt_sq/Dt4 ));
+    const Real term1(sqrt4Dt/sqrtPi*( temp1 + temp2 ));
+
+    const Real term2(vt*std::erf(vt/sqrt4Dt) - (2*sigma - vt)*std::erf( (2*sigma - vt)/sqrt4Dt ));
+    const Real term3((r - sigma - vt)*std::erf( (sigma - r + vt)/sqrt4Dt ));
+    const Real term4((r + sigma - vt)*std::erf( (R + sigma - vt)/sqrt4Dt ));
+    const Real result(1./2*(term1 + term2 + term3 + term4))
+    
+    return result;
+}
 
 struct g_bd_3D_params
 { 
@@ -341,6 +397,15 @@ struct g_bd_3D_params
     const Real t;
     const Real D;
     const Real target;
+};
+
+struct g_bd_1D_params
+{ 
+    const Real sigma;
+    const Real t;
+    const Real D;
+    const Real target;
+    const Real v;
 };
 
 
@@ -351,23 +416,86 @@ static Real I_gbd_r_3D_F(Real r, const g_bd_params* params)
     const Real D(params->D);
     const Real target(params->target);
 
-    return I_bd_r(r, sigma, t, D) - target;
+    return I_bd_r_3D(r, sigma, t, D) - target;
 }
+
+static Real I_gbd_r_1D_F(Real r, const g_bd_params* params)
+{
+    const Real sigma(params->sigma);
+    const Real t(params->t);
+    const Real D(params->D);
+    const Real target(params->target);
+    const Real v(params->v);
+
+    return I_bd_r_1D(r, sigma, t, D) - target;
+}
+
 
 Real drawR_gbd_3D(Real rnd, Real sigma, Real t, Real D)
 {
-    const Real I(I_bd(sigma, t, D));
+    const Real I(I_bd_3D(sigma, t, D));
 
-    g_bd_params params = { sigma, t, D, rnd * I };
+    g_bd_3D_params params = { sigma, t, D, rnd * I };
 
     gsl_function F =
     {
-        reinterpret_cast<typeof(F.function)>(&I_gbd_r_F),
+        reinterpret_cast<typeof(F.function)>(&I_gbd_r_3D_F),
         &params
     };
 
     Real low(sigma);
     Real high(sigma + 10.0 * std::sqrt (6.0 * D * t));
+
+    const gsl_root_fsolver_type* solverType(gsl_root_fsolver_brent);
+    gsl_root_fsolver* solver(gsl_root_fsolver_alloc(solverType));
+    gsl_root_fsolver_set(solver, &F, low, high);
+
+    const unsigned int maxIter(100);
+
+    unsigned int i(0);
+    while(true)
+    {
+        gsl_root_fsolver_iterate(solver);
+
+        low = gsl_root_fsolver_x_lower(solver);
+        high = gsl_root_fsolver_x_upper(solver);
+        int status(gsl_root_test_interval(low, high, 1e-18, 1e-12));
+
+        if(status == GSL_CONTINUE)
+        {
+            if(i >= maxIter)
+            {
+                gsl_root_fsolver_free(solver);
+                throw std::runtime_error("drawR_gbd: failed to converge");
+            }
+        }
+        else
+        {
+            break;
+        }
+
+        ++i;
+    }
+  
+    gsl_root_fsolver_free(solver);
+
+    return low;
+}
+
+Real drawR_gbd_1D(Real rnd, Real sigma, Real t, Real D, Real v)
+{
+    const Real I(I_bd_1D(sigma, t, D, v));
+
+    g_bd_1D_params params = { sigma, t, D, rnd * I, v };
+
+    gsl_function F =
+    {
+        reinterpret_cast<typeof(F.function)>(&I_gbd_r_1D_F),
+        &params
+    };
+
+    Real low(sigma);
+    Real high(sigma + 10.0 * std::sqrt (2.0 * D * t));
 
     const gsl_root_fsolver_type* solverType(gsl_root_fsolver_brent);
     gsl_root_fsolver* solver(gsl_root_fsolver_alloc(solverType));
