@@ -257,7 +257,7 @@ Real ip_theta_free(Real theta, Real r, Real r0, Real t, Real D)
     return (term1 - term2) / den;
 }
 
-Real g_bd(Real r, Real sigma, Real t, Real D)
+Real g_bd_3D(Real r, Real sigma, Real t, Real D)
 {
     const Real Dt4(4.0 * D * t);
     const Real mDt4_r(- 1.0 / Dt4);
@@ -276,7 +276,7 @@ Real g_bd(Real r, Real sigma, Real t, Real D)
     return 0.5 * (term1 + term2) * r * r;
 }
     
-Real I_bd(Real sigma, Real t, Real D)
+Real I_bd_3D(Real sigma, Real t, Real D)
 {
     const Real sqrtPi(std::sqrt(M_PI));
 
@@ -298,7 +298,7 @@ Real I_bd(Real sigma, Real t, Real D)
 }
 
 
-Real I_bd_r(Real r, Real sigma, Real t, Real D)
+Real I_bd_r_3D(Real r, Real sigma, Real t, Real D)
 {
     const Real sqrtPi(std::sqrt(M_PI));
 
@@ -335,7 +335,7 @@ Real I_bd_r(Real r, Real sigma, Real t, Real D)
 }
 
 
-struct g_bd_params
+struct g_bd_3D_params
 { 
     const Real sigma;
     const Real t;
@@ -344,7 +344,7 @@ struct g_bd_params
 };
 
 
-static Real I_gbd_r_F(Real r, const g_bd_params* params)
+static Real I_gbd_r_3D_F(Real r, const g_bd_params* params)
 {
     const Real sigma(params->sigma);
     const Real t(params->t);
@@ -354,7 +354,7 @@ static Real I_gbd_r_F(Real r, const g_bd_params* params)
     return I_bd_r(r, sigma, t, D) - target;
 }
 
-Real drawR_gbd(Real rnd, Real sigma, Real t, Real D)
+Real drawR_gbd_3D(Real rnd, Real sigma, Real t, Real D)
 {
     const Real I(I_bd(sigma, t, D));
 

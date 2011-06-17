@@ -93,7 +93,7 @@ BOOST_PYTHON_MODULE( _greens_functions )
         .def( "p_int_r", &GreensFunction3DAbsSym::p_int_r )
         .def( "p_int_r_free", &GreensFunction3DAbsSym::p_int_r_free )
         //.def( "p_r_fourier", &GreensFunction3DAbsSym::p_r_fourier )
-	.def( "dump", &GreensFunction3DAbsSym::dump )
+	    .def( "dump", &GreensFunction3DAbsSym::dump )
         ;
 
     class_<GreensFunction3DRadInf>("GreensFunction3DRadInf",

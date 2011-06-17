@@ -37,8 +37,6 @@ public:
 	
     std::string dump() const;
 
-    std::string dump() const;
-
     const char* getName() const
     {
         return "GreensFunction3DAbsSym";

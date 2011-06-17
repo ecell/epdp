@@ -405,10 +405,3 @@ std::string GreensFunction3DAbsSym::dump() const
 
 Logger& GreensFunction3DAbsSym::log_(
         Logger::get_logger("GreensFunction3DAbsSym"));
-
-std::string GreensFunction3DAbsSym::dump() const
-{
-    std::ostringstream ss;
-    ss << "D = " << this->getD() << ", a = " << this->geta() << std::endl;
-    return ss.str();
-}
