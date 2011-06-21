@@ -12,6 +12,7 @@
 
 #include <sstream>
 #include "Vector3.hpp"
+#include "freeFunctions.hpp"
 
 template<typename Ttraits_>
 class Structure
@@ -47,6 +48,8 @@ public:
     virtual position_type random_vector(length_type const& r, rng_type& rng) const = 0;
 
     virtual position_type bd_displacement(length_type const& r, rng_type& rng) const = 0;
+
+    virtual length_type drawR_gbd(Real rnd, length_type r01, Real dt, Real D01, Real v) const = 0;
 
     virtual projected_type projected_point(position_type const& pos) const = 0;
 

@@ -10,6 +10,7 @@
 #include <boost/range/const_iterator.hpp>
 #include <boost/utility/enable_if.hpp>
 #include <boost/scoped_ptr.hpp>
+#include <boost/shared_ptr.hpp>
 #include "Defs.hpp"
 #include "generator.hpp"
 #include "exceptions.hpp"
@@ -228,6 +229,7 @@ private:
                                 s1(tx_.get_species(products[1]));
                         const Real D01(s0.D() + s1.D());
                         const length_type r01(s0.radius() + s1.radius());
+                        const Real v(s0.v() + s1.v());
                         int i = max_retry_count_;
                         position_type np0, np1;
 
@@ -239,9 +241,11 @@ private:
                             }
 
                             const Real rnd(rng_());
-                            length_type pair_distance(
-                                drawR_gbd_3D(rnd, r01, dt_, D01));
-                            const position_type m(random_unit_vector() * pair_distance);
+                            boost::shared_ptr<structure_type> pp_structure( 
+                                tx_.get_structure( tx_.get_species( pp.second.sid() ).structure_id()) );  
+               
+                            length_type pair_distance(pp_structure->drawR_gbd(rnd, r01, dt_, D01, v) );
+                            const position_type m(pp_structure->random_vector(pair_distance, rng_) );
                             np0 = tx_.apply_boundary(pp.second.position()
                                     + m * (s0.D() / D01));
                             np1 = tx_.apply_boundary(pp.second.position()

@@ -283,12 +283,12 @@ Real g_bd_1D(Real r, Real sigma, Real t, Real D, Real v)
     const Real sqrtDt4_r(1.0 / sqrtDt4);
     const Real vt = v*t;
 
-    const Real sprmvt(sigma + r + vt);
-    const Real smrpvt(sigma - r - vt);
+    const Real s_plus_r_min_vt(sigma + r - vt);
+    const Real s_min_r_plus_vt(sigma - r + vt);
 
-    const Real term2(erf(sprmvt * sqrtDt4_r) - erf(smrpvt * sqrtDt4_r));
+    const Real result(erfl(s_plus_r_min_vt * sqrtDt4_r) + erfl(s_min_r_plus_vt * sqrtDt4_r));
 
-    return 0.5 * (term1 + term2);
+    return 0.5 * result;
 }
     
 Real I_bd_3D(Real sigma, Real t, Real D)
@@ -320,9 +320,9 @@ Real I_bd_1D(Real sigma, Real t, Real D, Real v)
     const Real sqrt4Dt(std::sqrt(Dt4));
     double vt = v*t;
 
-    const Real arg1(-(2*sigma - vt)*(2*sigma - vt)/fourDt);
-    const Real term1(exp( -vt*vt/Dt4 ) - exp( arg1 ));
-    const Real term2(vt*erf( vt/sqrt4Dt ) - (2*sigma - vt)*erf( (2*sigma - vt)/sqrt4Dt ));
+    const Real arg1(-(2*sigma - vt)*(2*sigma - vt)/Dt4);
+    const Real term1(expl( -vt*vt/Dt4 ) - expl( arg1 ));
+    const Real term2(vt*erfl( vt/sqrt4Dt ) - (2*sigma - vt)*erfl( (2*sigma - vt)/sqrt4Dt ));
     const Real result(1./2*(sqrt4Dt/sqrtPi*term1 + term2 + 2*sigma));
 
     return result;
@@ -379,27 +379,19 @@ Real I_bd_r_1D(Real r, Real sigma, Real t, Real D, Real v)
     const Real sprmvt_sq(gsl_pow_2(sigma + r - vt));
     const Real twosmvt_sq(gsl_pow_2(sigma + r - vt));
 
-    const Real temp1(-std::exp( -smrpvt_sq/Dt4 ) + std::exp( -sprmvt_sq/Dt4 ));
-    const Real temp2(std::exp( -vt*vt/Dt4 ) - std::exp( -twosmvt_sq/Dt4 ));
+    const Real temp1(-expl( -smrpvt_sq/Dt4 ) + expl( -sprmvt_sq/Dt4 ));
+    const Real temp2(expl( -vt*vt/Dt4 ) - expl( -twosmvt_sq/Dt4 ));
     const Real term1(sqrt4Dt/sqrtPi*( temp1 + temp2 ));
 
-    const Real term2(vt*std::erf(vt/sqrt4Dt) - (2*sigma - vt)*std::erf( (2*sigma - vt)/sqrt4Dt ));
-    const Real term3((r - sigma - vt)*std::erf( (sigma - r + vt)/sqrt4Dt ));
-    const Real term4((r + sigma - vt)*std::erf( (R + sigma - vt)/sqrt4Dt ));
-    const Real result(1./2*(term1 + term2 + term3 + term4))
+    const Real term2(vt*erfl(vt/sqrt4Dt) - (2*sigma - vt)*erfl( (2*sigma - vt)/sqrt4Dt ));
+    const Real term3((r - sigma - vt)*erfl( (sigma - r + vt)/sqrt4Dt ));
+    const Real term4((r + sigma - vt)*erfl( (r + sigma - vt)/sqrt4Dt ));
+    const Real result(1./2*(term1 + term2 + term3 + term4));
     
     return result;
 }
 
-struct g_bd_3D_params
-{ 
-    const Real sigma;
-    const Real t;
-    const Real D;
-    const Real target;
-};
-
-struct g_bd_1D_params
+struct g_bd_params
 { 
     const Real sigma;
     const Real t;
@@ -427,7 +419,7 @@ static Real I_gbd_r_1D_F(Real r, const g_bd_params* params)
     const Real target(params->target);
     const Real v(params->v);
 
-    return I_bd_r_1D(r, sigma, t, D) - target;
+    return I_bd_r_1D(r, sigma, t, D, v) - target;
 }
 
 
@@ -435,7 +427,7 @@ Real drawR_gbd_3D(Real rnd, Real sigma, Real t, Real D)
 {
     const Real I(I_bd_3D(sigma, t, D));
 
-    g_bd_3D_params params = { sigma, t, D, rnd * I };
+    g_bd_params params = { sigma, t, D, rnd * I, 0 };
 
     gsl_function F =
     {
@@ -486,7 +478,7 @@ Real drawR_gbd_1D(Real rnd, Real sigma, Real t, Real D, Real v)
 {
     const Real I(I_bd_1D(sigma, t, D, v));
 
-    g_bd_1D_params params = { sigma, t, D, rnd * I, v };
+    g_bd_params params = { sigma, t, D, rnd * I, v };
 
     gsl_function F =
     {
@@ -495,7 +487,7 @@ Real drawR_gbd_1D(Real rnd, Real sigma, Real t, Real D, Real v)
     };
 
     Real low(sigma);
-    Real high(sigma + 10.0 * std::sqrt (2.0 * D * t));
+    Real high(sigma + 100.0 * std::sqrt (2.0 * D * t));
 
     const gsl_root_fsolver_type* solverType(gsl_root_fsolver_brent);
     gsl_root_fsolver* solver(gsl_root_fsolver_alloc(solverType));

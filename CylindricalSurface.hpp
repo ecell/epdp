@@ -4,6 +4,7 @@
 #include <boost/bind.hpp>
 #include "Surface.hpp"
 #include "Cylinder.hpp"
+//#include "freeFunctions.hpp"
 
 template<typename Ttraits_>
 class CylindricalSurface
@@ -32,6 +33,13 @@ public:
     virtual position_type bd_displacement(length_type const& r, rng_type& rng) const
     {
         return multiply(base_type::shape().unit_z(), rng.normal(0., r));
+    }
+
+    virtual length_type drawR_gbd(Real rnd, length_type r01, Real dt, Real D01, Real v) const
+    {
+        length_type pair_distance( drawR_gbd_1D(rnd, r01, dt, D01, v) );
+    
+        return pair_distance;
     }
 
     virtual length_type minimal_distance(length_type const& radius) const

@@ -4,6 +4,7 @@
 #include <boost/bind.hpp>
 #include "Surface.hpp"
 #include "Plane.hpp"
+//#include "freeFunctions.hpp"
 
 template<typename Ttraits_>
 class PlanarSurface
@@ -40,6 +41,14 @@ public:
         return add(
             multiply(base_type::shape().unit_x(), x),
             multiply(base_type::shape().unit_y(), y));
+    }
+
+    virtual length_type drawR_gbd(Real rnd, length_type r01, Real dt, Real D01, Real v) const
+    {
+        //TODO: use the 2D BD function instead of the 3D one.
+        length_type pair_distance( drawR_gbd_3D(rnd, r01, dt, D01) );
+    
+        return pair_distance;
     }
 
     virtual length_type minimal_distance(length_type const& radius) const

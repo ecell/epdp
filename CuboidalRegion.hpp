@@ -4,6 +4,7 @@
 #include <boost/bind.hpp>
 #include "Region.hpp"
 #include "Box.hpp"
+//#include "freeFunctions.hpp"
 
 template<typename Ttraits_>
 class CuboidalRegion
@@ -44,6 +45,13 @@ public:
             rng.normal(0., r),
             rng.normal(0., r),
             rng.normal(0., r));
+    }
+
+    virtual length_type drawR_gbd(Real rnd, length_type r01, Real dt, Real D01, Real v) const
+    {
+        length_type pair_distance( drawR_gbd_3D(rnd, r01, dt, D01) );
+    
+        return pair_distance;
     }
 
     virtual void accept(ImmutativeStructureVisitor<traits_type> const& visitor) const
