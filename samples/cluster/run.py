@@ -1,6 +1,6 @@
 
 # Rebinding to a cluster
-
+#
 # Run by:
 # $ python run.py [N] [runs] [outFilename] [Logmode, default=False]
 #
@@ -45,16 +45,15 @@ if __name__ == "__main__":
     try: 
         LOGGING = bool(sys.argv[4])
         if (LOGGING==True): 
-            print "* Performing only 1 logging run."
-            runs = 1
+            print "* Logging is ON."
     except: LOGGING = False
 
     # Particle constants
-    sigma = 1e-5        # Diameter particle; big:1e-5
-    D = 1e-8            # Diffusion constant; big:1e-8
-    world_size = 1e-3   # Lengths of simulation box; normal: 1e-3
+    sigma = 1e-9        # Diameter particle (normally 1e-9)
+    D = 1e-12           # Diffusion constant (normally 1e-12)
+    world_size = 1e-6   # Lengths of simulation box (normally 1e-3)
 
-    k1 = 1e-10
+    k1 = 1e-18
     k2 = 1e2
 
     # Spacing inbetween cluster particles AND cluster/B-particle
@@ -237,13 +236,17 @@ def single_run(N, LOGGING):
         while 1:
             l.log() # log
             s.step() # and make eGFRD step
-            if s.last_reaction:
+            if s.last_reaction: 
                 numberDetected = numberDetected+1
-                if (numberDetected == 2):
+                if (numberDetected == 2): 
                     # print "2nd Reaction detected at: " + str(s.t) + "(" + str(s.last_reaction) + ")"
                     reaction_time = s.t - previous_time
                     break  
                 else: previous_time = s.t
+            if (s.t > 10000):
+                reaction_time = 10000
+                print "Long excursion. Aborted."
+                break
         l.stop() 
     else:
         while 1:
@@ -255,6 +258,10 @@ def single_run(N, LOGGING):
                     reaction_time = s.t - previous_time
                     break  
                 else: previous_time = s.t
+            if (s.t > 10000):
+                reaction_time = 10000
+                print "Long excursion. Aborted."
+                break
 
     s.stop(s.t)
     return (reaction_time)
