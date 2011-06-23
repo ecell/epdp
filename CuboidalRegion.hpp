@@ -47,11 +47,18 @@ public:
             rng.normal(0., r));
     }
 
-    virtual length_type drawR_gbd(Real rnd, length_type r01, Real dt, Real D01, Real v) const
+    virtual length_type drawR_gbd(Real rnd, length_type r01, Real dt, Real D01, Real v0, Real v1) const
     {
         length_type pair_distance( drawR_gbd_3D(rnd, r01, dt, D01) );
     
         return pair_distance;
+    }
+
+    virtual Real p_acceptance(Real k_a, Real dt, length_type r01, Real D0, Real D1, Real v0, Real v1) const
+    {
+        Real p_acc(k_a * dt / ((I_bd_3D(r01, dt, D0) + I_bd_3D(r01, dt, D1)) * 4.0 * M_PI));
+    
+        return p_acc;
     }
 
     virtual void accept(ImmutativeStructureVisitor<traits_type> const& visitor) const

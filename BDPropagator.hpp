@@ -229,7 +229,6 @@ private:
                                 s1(tx_.get_species(products[1]));
                         const Real D01(s0.D() + s1.D());
                         const length_type r01(s0.radius() + s1.radius());
-                        const Real v(s0.v() + s1.v());
                         int i = max_retry_count_;
                         position_type np0, np1;
 
@@ -244,7 +243,7 @@ private:
                             boost::shared_ptr<structure_type> pp_structure( 
                                 tx_.get_structure( tx_.get_species( pp.second.sid() ).structure_id()) );  
                
-                            length_type pair_distance(pp_structure->drawR_gbd(rnd, r01, dt_, D01, v) );
+                            length_type pair_distance(pp_structure->drawR_gbd(rnd, r01, dt_, D01, s0.v(), s1.v()) );
                             const position_type m(pp_structure->random_vector(pair_distance, rng_) );
                             np0 = tx_.apply_boundary(pp.second.position()
                                     + m * (s0.D() / D01));
@@ -304,7 +303,7 @@ private:
 
         const species_type s0(tx_.get_species(pp0.second.sid())),
                 s1(tx_.get_species(pp1.second.sid()));
-        const length_type r01(s0.radius() + s1.radius());
+        length_type r01(s0.radius() + s1.radius());
 
         const Real rnd(rng_());
         Real prob = 0;
@@ -313,7 +312,11 @@ private:
                 i(boost::begin(rules)), e(boost::end(rules)); i != e; ++i)
         {
             reaction_rule_type const& r(*i);
-            const Real p(r.k() * dt_ / ((I_bd_3D(r01, dt_, s0.D()) + I_bd_3D(r01, dt_, s1.D())) * 4.0 * M_PI));
+
+            boost::shared_ptr<structure_type> pp_structure( 
+               tx_.get_structure( tx_.get_species( pp0.second.sid() ).structure_id()) );  
+
+            const Real p(pp_structure->p_acceptance( r.k(), dt_, r01, s0.D(), s1.D(), s0.v(), s1.v() ));
             BOOST_ASSERT(p >= 0.);
             prob += p;
             if (prob >= 1.)

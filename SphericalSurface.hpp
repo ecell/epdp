@@ -32,9 +32,14 @@ public:
         return position_type(); // TODO
     }
 
-    virtual length_type drawR_gbd(Real rnd, length_type r01, Real dt, Real D01, Real v) const
+    virtual length_type drawR_gbd(Real rnd, length_type r01, Real dt, Real D01, Real v0, Real v1) const
     {    
         return length_type(); // TODO
+    }
+
+    virtual Real p_acceptance(Real k_a, Real dt, length_type r01, Real D0, Real D1, Real v0, Real v1) const
+    {    
+        return Real(); //TODO
     }
 
     virtual length_type minimal_distance(length_type const& radius) const
