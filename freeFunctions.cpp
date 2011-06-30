@@ -314,6 +314,9 @@ Real I_bd_3D(Real sigma, Real t, Real D)
 
 Real I_bd_1D(Real sigma, Real t, Real D, Real v)
 {
+    if(D == 0)
+        return 0;
+
     const Real sqrtPi(std::sqrt(M_PI));
 
     const Real Dt4(4 * D * t);
@@ -367,6 +370,9 @@ Real I_bd_r_3D(Real r, Real sigma, Real t, Real D)
 
 Real I_bd_r_1D(Real r, Real sigma, Real t, Real D, Real v)
 {
+    if(D == 0)
+        return 0;
+
     const Real sqrtPi(std::sqrt(M_PI));
 
     const Real Dt(D * t);
@@ -377,7 +383,7 @@ Real I_bd_r_1D(Real r, Real sigma, Real t, Real D, Real v)
 
     const Real smrpvt_sq(gsl_pow_2(sigma - r + vt));
     const Real sprmvt_sq(gsl_pow_2(sigma + r - vt));
-    const Real twosmvt_sq(gsl_pow_2(sigma + r - vt));
+    const Real twosmvt_sq(gsl_pow_2(2*sigma - vt));
 
     const Real temp1(-expl( -smrpvt_sq/Dt4 ) + expl( -sprmvt_sq/Dt4 ));
     const Real temp2(expl( -vt*vt/Dt4 ) - expl( -twosmvt_sq/Dt4 ));
