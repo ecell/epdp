@@ -27,19 +27,24 @@ public:
         return position_type(); // TODO
     }
 
-    virtual position_type bd_displacement(length_type const& r, rng_type& rng) const
+    virtual position_type bd_displacement(length_type const& mean, length_type const& r, rng_type& rng) const
     {
         return position_type(); // TODO
     }
 
-    virtual length_type drawR_gbd(Real rnd, length_type r01, Real dt, Real D01, Real v0, Real v1) const
+    virtual length_type drawR_gbd(Real rnd, length_type r01, Real dt, Real D01, Real v) const
     {    
         return length_type(); // TODO
     }
 
-    virtual Real p_acceptance(Real k_a, Real dt, length_type r01, Real D0, Real D1, Real v0, Real v1) const
+    virtual Real p_acceptance(Real k_a, Real dt, length_type r01, position_type ipv, Real D0, Real D1, Real v0, Real v1) const
     {    
         return Real(); //TODO
+    }
+
+    virtual position_type dissociation_vector( rng_type& rng, length_type r01, Real dt, Real D01, Real v ) const
+    {
+        return position_type(); //TODO
     }
 
     virtual length_type minimal_distance(length_type const& radius) const

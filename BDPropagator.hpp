@@ -161,7 +161,7 @@ public:
 private:
     position_type drawR_free(species_type const& species)
     {
-        return tx_.get_structure(species.structure_id())->bd_displacement(std::sqrt(2.0 * species.D() * dt_), rng_);
+        return tx_.get_structure(species.structure_id())->bd_displacement(species.v() * dt_, std::sqrt(2.0 * species.D() * dt_), rng_);
     }
 
     bool attempt_reaction(particle_id_pair const& pp)
@@ -239,16 +239,17 @@ private:
                                 throw propagation_error("no space");
                             }
 
-                            const Real rnd(rng_());
                             boost::shared_ptr<structure_type> pp_structure( 
                                 tx_.get_structure( tx_.get_species( pp.second.sid() ).structure_id()) );  
                
-                            length_type pair_distance(pp_structure->drawR_gbd(rnd, r01, dt_, D01, s0.v(), s1.v()) );
-                            const position_type m(pp_structure->random_vector(pair_distance, rng_) );
+                            position_type m( pp_structure->
+                                        dissociation_vector( rng_, r01, dt_, D01, s0.v() - s1.v() ) );
+                            
                             np0 = tx_.apply_boundary(pp.second.position()
-                                    + m * (s0.D() / D01));
+                                    - m * (s0.D() / D01));
                             np1 = tx_.apply_boundary(pp.second.position()
-                                    - m * (s1.D() / D01));
+                                    + m * (s1.D() / D01));
+                           
                             boost::scoped_ptr<particle_id_pair_and_distance_list> overlapped_s0(
                                 tx_.check_overlap(
                                     particle_shape_type(np0, s0.radius()),
@@ -316,7 +317,8 @@ private:
             boost::shared_ptr<structure_type> pp_structure( 
                tx_.get_structure( tx_.get_species( pp0.second.sid() ).structure_id()) );  
 
-            const Real p(pp_structure->p_acceptance( r.k(), dt_, r01, s0.D(), s1.D(), s0.v(), s1.v() ));
+            const Real p(pp_structure->p_acceptance( r.k(), dt_, r01, subtract( pp1.second.position(), 
+                                                pp0.second.position() ), s0.D(), s1.D(), s0.v(), s1.v() ));
             BOOST_ASSERT(p >= 0.);
             prob += p;
             if (prob >= 1.)

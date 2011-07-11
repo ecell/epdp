@@ -30,24 +30,47 @@ public:
                 (rng.uniform_int(0, 1) * 2 - 1) * r);
     }
 
-    virtual position_type bd_displacement(length_type const& r, rng_type& rng) const
+    virtual position_type bd_displacement(length_type const& mean, length_type const& r, rng_type& rng) const
     {
-        return multiply(base_type::shape().unit_z(), rng.normal(0., r));
+        return multiply(base_type::shape().unit_z(), rng.normal(mean, r));
     }
 
-    virtual length_type drawR_gbd(Real rnd, length_type r01, Real dt, Real D01, Real v0, Real v1) const
+    virtual length_type drawR_gbd(Real rnd, length_type r01, Real dt, Real D01, Real v) const
     {
-        length_type pair_distance( drawR_gbd_1D(rnd, r01, dt, D01, v0 - v1) );
-    
-        return pair_distance;
+        return drawR_gbd_1D(rnd, r01, dt, D01, v);
     }
 
-    virtual Real p_acceptance(Real k_a, Real dt, length_type r01, Real D0, Real D1, Real v0, Real v1) const
+    virtual Real p_acceptance(Real k_a, Real dt, length_type r01, position_type ipv, Real D0, Real D1, Real v0, Real v1) const
     {
-        
-        Real p_acc(k_a * dt / (I_bd_1D(r01, dt, D0, v0) + I_bd_1D(r01, dt, D1, v1)));
-    
-        return p_acc;
+        /*
+            The I_bd factors used for calculating the acceptance probability are dependent on the direction 
+            of the overlap step (step_direction = r_1 - r_0), compared to the direction of the drift. 
+            The I_bd factors are defined for a particle creating an overlap comming from the right (r < 0). 
+            If the particle comes from the left, we invert (v *= -1) the direction of its drift.
+        */
+        length_type step_direction = dot_product( ipv, base_type::shape().unit_z() );
+
+        if( step_direction > 0 )
+            v0 *= -1;
+        else
+            v1 *= -1;
+
+        return k_a * dt / ( I_bd_1D(r01, dt, D0, v0) + I_bd_1D(r01, dt, D1, v1) );
+    }
+
+    virtual position_type dissociation_vector( rng_type& rng, length_type r01, Real dt, Real D01, Real v ) const
+    {
+        Real I_A( I_bd_1D(r01, dt, D01, v) );        
+        Real prob( rng()*(I_A + I_bd_1D(r01, dt, D01, -v)) );
+        Real rnd( rng() );
+
+        if( prob < I_A )    
+            return multiply(base_type::shape().unit_z(), drawR_gbd( rnd, r01, dt, D01, v ) );
+        else
+        {
+            position_type direction( base_type::shape().unit_z() * -1. );
+            return multiply( direction, drawR_gbd( rnd, r01, dt, D01, -v ) );    
+        }
     }
 
     virtual length_type minimal_distance(length_type const& radius) const
