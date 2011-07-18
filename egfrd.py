@@ -1,6 +1,5 @@
 #!/usr/env python
 
-
 from weakref import ref
 import math
 
@@ -309,10 +308,14 @@ class EGFRDSimulator(ParticleSimulatorBase):
         # assert if not too many successive dt=0 steps occur.
         if __debug__:
             if self.dt == 0:
+                log.warning('dt=zero step, working in s.t >> dt~0 Python limit.')
                 self.zero_steps += 1
-                if self.zero_steps >= max(self.scheduler.size * 3, 10):
+                # TODO Changed from 10 to 10000, because only a problem 
+                # when reaching certain magnitude.
+                if self.zero_steps >= max(self.scheduler.size * 3, 10000): 
                     raise RuntimeError('too many dt=zero steps. '
-                                       'Simulator halted?')
+                                       'Simulator halted?'
+                                    'dt= %.300g-%.300g' % (self.scheduler.top[1].time, self.t))
             else:
                 self.zero_steps = 0
 
@@ -741,12 +744,15 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
             return
 
-        if single.event_type == EventType.IV_EVENT:
-            # Draw actual pair event for iv at very last minute.
-            single.event_type = single.draw_iv_event_type()
-            self.interaction_steps[single.event_type] += 1
-        else:
-            self.single_steps[single.event_type] += 1
+#       TO BE DELETED; code shouldn't be here. 
+#       (<-> Surface binding en unbinding.)
+#
+#        if single.event_type == EventType.IV_EVENT:
+#            # Draw actual pair event for iv at very last minute.
+#            single.event_type = single.draw_iv_event_type()
+#            self.interaction_steps[single.event_type] += 1
+#        else:
+#            self.single_steps[single.event_type] += 1
 
         if __debug__:
             log.info('%s' % single.event_type)
