@@ -1,5 +1,5 @@
-#if !defined( __FIRSTPASSAGEGREENSFUNCTION1DRAD_HPP )
-#define __FIRSTPASSAGEGREENSFUNCTION1DRAD_HPP
+#if !defined( __GREENSFUNCTION1DRADABS_HPP )
+#define __GREENSFUNCTION1DRADABS_HPP
 
 #include <sstream>
 #include <iostream>
@@ -48,7 +48,7 @@ public:
 
     // The constructor is overloaded and can be called with or without drift v
     // copy constructor including drift variable v
-    GreensFunction1DRadAbs(Real D, Real k, Real v, Real r0, Real sigma, Real a)
+    GreensFunction1DRadAbs(Real D, Real v, Real k, Real r0, Real sigma, Real a)
 	: GreensFunction(D), v(v), k(k), r0(r0), sigma(sigma), a(a), l_scale(L_TYPICAL), t_scale(T_TYPICAL)
     {
 	// do nothing
@@ -174,6 +174,11 @@ public:
 
     std::string dump() const;
 
+    const char* getName() const
+    {
+        return "GreensFunction1DRadAbs";
+    }
+
     // Calculates the roots of tan(a*x)=-xk/h
     Real root_n(int n) const;
     
@@ -234,4 +239,4 @@ private:
     // This is the time scale of the system.
     Real t_scale;
 };
-#endif // __FIRSTPASSAGEGREENSFUNCTION1DRAD_HPP
+#endif // __GREENSFUNCTION1DRADABS_HPP

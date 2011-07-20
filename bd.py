@@ -37,12 +37,12 @@ def calculate_bd_dt(species_list):
 
 
 class BDSimulatorCore(object):
-    '''
+    """
     BDSimulatorCore borrows the following from the main simulator:
     - species_list
     - reaction_types list (both 1 and 2)
     
-    '''
+    """
     def __init__(self, world, rng, network_rules, dissociation_retry_moves):
         self.world = world
         self.rng = rng
@@ -79,9 +79,12 @@ class BDSimulatorCore(object):
         def increment_reaction_events(rr):
             self.reaction_events += 1
 
+        def dummy(shape, ignore0, ignore1=None):
+            return True
+
         ppg = _gfrd.BDPropagator(self.world, self.network_rules,
                      self.rng, self.dt, self.dissociation_retry_moves,
-                     increment_reaction_events, self.world.particle_ids)
+                     increment_reaction_events, dummy, self.world.particle_ids)
         ppg.propagate_all()
 
         self.t += self.dt

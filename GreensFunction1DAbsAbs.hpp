@@ -1,5 +1,5 @@
-#if !defined( __FIRSTPASSAGEGREENSFUNCTION1D_HPP )
-#define __FIRSTPASSAGEGREENSFUNCTION1D_HPP
+#if !defined( __GREENSFUNCTION1DABSABS_HPP )
+#define __GREENSFUNCTION1DABSABS_HPP
 
 #include <sstream>
 #include <iostream>
@@ -42,12 +42,6 @@ private:
     // The minimum
     static const int MIN_TERMS = 20;
 
-public:
-    enum EventKind
-    {
-        IV_ESCAPE,
-        IV_REACTION
-    };
 
 public:
     GreensFunction1DAbsAbs(Real D, Real r0, Real sigma, Real a)
@@ -163,30 +157,35 @@ public:
 
     std::string dump() const;
 
+    const char* getName() const
+    {
+        return "GreensFunction1DAbsAbs";
+    }
+
 private:
     struct drawT_params
     {
-	// use 10 terms in the summation for now
-	double exponent[MAX_TERMS];
-	double Xn[MAX_TERMS];
-	double prefactor;
-	int    terms;
-	Real tscale;
-	// random number
-	double rnd;
+        // use 10 terms in the summation for now
+        double exponent[MAX_TERMS];
+        double Xn[MAX_TERMS];
+        double prefactor;
+        int    terms;
+        Real tscale;
+        // random number
+        double rnd;
     };
 
     static double drawT_f (double t, void *p);
 
     struct drawR_params
     {
-	double S_Cn_An[MAX_TERMS];
-	double n_L[MAX_TERMS];
-	// variables H: for additional terms appearing as multiplicative factors etc.
-	double H[5];
-	int terms;
-	// random number
-	double rnd;
+        double S_Cn_An[MAX_TERMS];
+        double n_L[MAX_TERMS];
+        // variables H: for additional terms appearing as multiplicative factors etc.
+        double H[5];
+        int terms;
+        // random number
+        double rnd;
     };
 
     static double drawR_f (double z, void *p);
@@ -204,4 +203,4 @@ private:
     // This is the time scale of the system, used by drawTime_f
     Real t_scale;
 };
-#endif // __FIRSTPASSAGEGREENSFUNCTION1D_HPP
+#endif // __GREENSFUNCTION1DABSABS_HPP
