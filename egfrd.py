@@ -686,6 +686,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
     def fire_single(self, single):
         assert abs(single.dt + single.last_time - self.t) <= 1e-18 * self.t
+	# why this assert -> we need to take into account that single.dt might be infinite
 
         # Reaction.
         if single.event_type == EventType.SINGLE_REACTION:

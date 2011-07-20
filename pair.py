@@ -302,6 +302,8 @@ class SphericalPair(Pair):
     def create_new_shell(self, position, radius, domain_id):
         return SphericalShell(domain_id, Sphere(position, radius))
 
+    # selects between the full solution or an approximation where one of
+    # the boundaries is ignored
     def choose_pair_greens_function(self, r0, t):
         distance_from_sigma = r0 - self.sigma
         distance_from_shell = self.a_r - r0
@@ -409,9 +411,51 @@ class PlanarSurfacePair(Pair):
 
         a_R, a_r = self.determine_radii()
 
+    #def choose_pair_greens_function(self, r0, t):
+    #    if __debug__:
+    #        log.debug('ivGF2D: normal')
+    #    return self.iv_greens_function(r0)
+
+    # selects between the full solution or an approximation where one of
+    # the boundaries is ignored
     def choose_pair_greens_function(self, r0, t):
-        # Todo
-        return self.iv_greens_function(r0)
+        distance_from_sigma = r0 - self.sigma
+        distance_from_shell = self.a_r - r0
+
+        threshold_distance = Pair.CUTOFF_FACTOR * \
+            math.sqrt(4.0 * self.D_tot * t)
+
+        if distance_from_sigma < threshold_distance:
+        
+            if distance_from_shell < threshold_distance:
+                # near both a and sigma;
+                # use GreensFunction3DRadAbs
+                if __debug__:
+                    log.debug('GF2D: normal')
+                return self.iv_greens_function(r0)
+            else:
+                # near sigma; use GreensFunction3DRadInf
+                if __debug__:
+                    log.debug('GF2D: only sigma')
+                return self.iv_greens_function(r0)
+        	# Todo
+                # return GreensFunction2DRadInf(self.D_tot, self.rt.ktot, r0, self.sigma)
+        else:
+            if distance_from_shell < threshold_distance:
+                # near a;
+                if __debug__:
+                    log.debug('GF2D: only a')
+                return self.iv_greens_function(r0)
+	        # Todo
+                # return GreensFunction2DAbs(self.D_tot, r0, self.a_r)
+                
+            else:
+                # distant from both a and sigma; 
+                if __debug__:
+                    log.debug('GF2D: free')
+                return self.iv_greens_function(r0)
+        	# Todo
+                # return GreensFunction2D(self.D_tot, r0)
 
     def create_com_vector(self, r):
         x, y = random_vector2D(r)
