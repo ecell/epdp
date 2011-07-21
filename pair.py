@@ -182,12 +182,13 @@ class Pair(object):
 
         return a_R, a_r
 
+    # draws a first event time and the (not fully specified) type of event
     def draw_com_escape_or_iv_event_time_tuple(self, r0):
         """Returns a (event time, event type, reactingsingle=None) tuple.
         
         """
         dt_com = draw_time_wrapper(self.com_greens_function())
-        dt_iv = draw_time_wrapper(self.iv_greens_function(r0))
+        dt_iv = draw_time_wrapper(self.iv_greens_function(r0))	# uses the full solution to draw IV first event time
         if dt_com < dt_iv:
             return dt_com, EventType.COM_ESCAPE, None
         else:
@@ -329,8 +330,7 @@ class SphericalPair(Pair):
                 # near a;
                 if __debug__:
                     log.debug('GF: only a')
-                return GreensFunction3DAbs(self.D_tot,
-                                                                 r0, self.a_r)
+                return GreensFunction3DAbs(self.D_tot, r0, self.a_r)
                 
             else:
                 # distant from both a and sigma; 
@@ -391,7 +391,7 @@ class PlanarSurfacePair(Pair):
 
     def iv_greens_function(self, r0):
         # Todo. 2D gf Rad Abs.
-        # This exact solution is used for drawing times.
+        # This exact solution is used for drawing times and event times.
         return GreensFunction3DRadAbs(self.D_tot, self.rt.ktot, r0,
                                               self.sigma, self.a_r)
 
@@ -410,14 +410,9 @@ class PlanarSurfacePair(Pair):
 
         a_R, a_r = self.determine_radii()
 
-    #def choose_pair_greens_function(self, r0, t):
-    #    if __debug__:
-    #        log.debug('ivGF2D: normal')
-    #    return self.iv_greens_function(r0)
-
-    # selects between the full solution or an approximation where one of
-    # the boundaries is ignored
     def choose_pair_greens_function(self, r0, t):
+	# selects between the full solution or an approximation where one of
+	# the boundaries is ignored
         distance_from_sigma = r0 - self.sigma
         distance_from_shell = self.a_r - r0
 
