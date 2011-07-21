@@ -32,6 +32,7 @@ class Pair(object):
         self.single2 = single2 
 
         self.a_R, self.a_r = self.determine_radii(r0, shell_size)
+	# set the radii of the inner domains as a function of the outer protective domain
 
         self.rt = rt
 
@@ -407,8 +408,6 @@ class PlanarSurfacePair(Pair):
                           self.single2.pid_particle_pair[1].radius)
         return CylindricalShell(domain_id, Cylinder(position, radius, 
                                                     orientation, half_length))
-
-        a_R, a_r = self.determine_radii()
 
     def choose_pair_greens_function(self, r0, t):
 	# selects between the full solution or an approximation where one of
