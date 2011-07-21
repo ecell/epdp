@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 
 # Rebinding to a cluster
 

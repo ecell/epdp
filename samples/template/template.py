@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 
 # Template file to copy and paste basic code from.
 
