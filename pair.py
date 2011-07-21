@@ -111,7 +111,7 @@ class Pair(object):
         self.event_type = None
 
     def determine_radii(self, r0, shell_size):
-        """Determine a_r and a_R.
+        """Determine a_r and a_R from the size of the protective domain.
 
         Todo. Make dimension (1D/2D/3D) specific someday. Optimization only.
 
@@ -123,6 +123,10 @@ class Pair(object):
 
         D1 = single1.pid_particle_pair[1].D
         D2 = single2.pid_particle_pair[1].D
+
+	LD_MAX = 20 # temporary value
+	a_r_max = LD_MAX * (r0 - self.sigma)
+	# a_r_max is the maximum size of a_r for a given maximum ratio of l/delta
 
         # Make sure that D1 != 0 to avoid division by zero in the followings.
         if D1 == 0:
@@ -157,6 +161,12 @@ class Pair(object):
 
         #ar
         a_r = (D_geom * r0 + D_tot * (shell_size - radiusa)) / (Da + D_geom)
+
+	# Now if the planned domainsize for r is too large for proper convergence of the Green's
+	# functions, make it the maximum allowed size
+	if (a_r > a_r_max):
+	    a_r = a_r_max
+	    a_R = shell_size - a_r
 
         assert a_R + a_r * Da / D_tot + radius1 >= \
                a_R + a_r * Db / D_tot + radius2
