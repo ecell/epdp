@@ -31,6 +31,11 @@ class GreensFunction2DRadAbs
     static const unsigned int MAX_ALPHA_SEQ = 2000;	// The maximum number of n terms
 
 public:
+
+    const char* getName() const
+    {
+        return "GreensFunction2DRadAbs";
+    }
     
     GreensFunction2DRadAbs( const Real D, 
 				    const Real kf,

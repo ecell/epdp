@@ -76,9 +76,8 @@ BOOST_PYTHON_MODULE( _greens_functions )
         ;
 
     class_<GreensFunction2DAbsSym>( "GreensFunction2DAbsSym",
-					init<const Real>() )
+					init<const Real, const Real>() )
 	.def( "getD", &GreensFunction2DAbsSym::getD )
-	.def( "seta", &GreensFunction2DAbsSym::seta )
 	.def( "geta", &GreensFunction2DAbsSym::geta )
 	.def( "drawTime", &GreensFunction2DAbsSym::drawTime )
 	.def( "drawR", &GreensFunction2DAbsSym::drawR )
@@ -88,11 +87,13 @@ BOOST_PYTHON_MODULE( _greens_functions )
 	//.def( "p_r_fourier", &GreensFunction2DAbsSym::p_r_fourier )
 	;
 
+
     class_<GreensFunction2DRadAbs>( "GreensFunction2DRadAbs",
 					    init<const Real, 
 					    const Real,
-					    const Real>() )
-	.def( "seta", &GreensFunction2DRadAbs::seta )
+					    const Real,
+                        const Real,
+                        const Real>() )
 	.def( "geta", &GreensFunction2DRadAbs::geta )
 	.def( "getD", &GreensFunction2DRadAbs::getD )
 	.def( "getkf", &GreensFunction2DRadAbs::getkf )

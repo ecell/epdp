@@ -25,6 +25,11 @@ public:
 	;
     }
 
+    const char* getName() const
+    {
+        return "GreensFunction2DAbsSym";
+    }
+
     const Real getD() const
     {
 	return this->D;
