@@ -308,8 +308,10 @@ class SphericalPair(Pair):
         threshold_distance = Pair.CUTOFF_FACTOR * \
             math.sqrt(6.0 * self.D_tot * t)
 
+        # if sigma reachable
         if distance_from_sigma < threshold_distance:
         
+            # if shell reachable
             if distance_from_shell < threshold_distance:
                 # near both a and sigma;
                 # use GreensFunction3DRadAbs
@@ -322,6 +324,8 @@ class SphericalPair(Pair):
                     log.debug('GF: only sigma')
                 return GreensFunction3DRadInf(self.D_tot, self.rt.ktot, r0,
                                                self.sigma)
+
+        # sigma unreachable
         else:
             if distance_from_shell < threshold_distance:
                 # near a;
