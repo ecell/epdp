@@ -388,13 +388,10 @@ class PlanarSurfacePair(Pair):
                       r0, shell_size, rt, surface)
 
     def com_greens_function(self):
-        # Todo. 2D gf Abs Sym.
-        return GreensFunction3DAbsSym(self.D_R, self.a_R)
+        return GreensFunction2DAbsSym(self.D_R, self.a_R)
 
     def iv_greens_function(self, r0):
-        # Todo. 2D gf Rad Abs.
-        # This exact solution is used for drawing times.
-        return GreensFunction3DRadAbs(self.D_tot, self.rt.ktot, r0,
+        return GreensFunction2DRadAbs(self.D_tot, self.rt.ktot, r0,
                                               self.sigma, self.a_r)
 
     def create_new_shell(self, position, radius, domain_id):

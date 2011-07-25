@@ -23,49 +23,34 @@
 
 #include "FirstPassagePairGreensFunction2D.hpp"
 
-const Real FirstPassagePairGreensFunction2D::MIN_T_FACTOR;
-const unsigned int FirstPassagePairGreensFunction2D::MAX_ORDER;
-const unsigned int FirstPassagePairGreensFunction2D::MAX_ALPHA_SEQ;
+const Real GreensFunction2DRadAbs::MIN_T_FACTOR;
+const unsigned int GreensFunction2DRadAbs::MAX_ORDER;
+const unsigned int GreensFunction2DRadAbs::MAX_ALPHA_SEQ;
 
 
 // This is the constructor
-FirstPassagePairGreensFunction2D::
-FirstPassagePairGreensFunction2D( const Real D, 
+GreensFunction2DRadAbs::
+GreensFunction2DRadAbs( const Real D, 
 				const Real kf, 
 				const Real Sigma )
     :
     PairGreensFunction( D, kf, Sigma ),
     h( kf / D ),
-    a( INFINITY )
+    a( a )
 {
     ; // do nothing
 }
 
-FirstPassagePairGreensFunction2D::~FirstPassagePairGreensFunction2D()
+GreensFunction2DRadAbs::~GreensFunction2DRadAbs()
 {
     ; // do nothing
-}
-
-void FirstPassagePairGreensFunction2D::seta( const Real a )
-// This sets the parameter a (not seta or smt)
-// a is the outer shell 
-{
-    const Real sigma( this->getSigma() );
-
-    THROW_UNLESS( std::invalid_argument, a >= sigma );
-
-    if( this->a != a )
-    {
-        this->a = a;
-        clearAlphaTable();
-    }
 }
 
 //
 // Alpha-related methods
 //
 
-void FirstPassagePairGreensFunction2D::clearAlphaTable() const
+void GreensFunction2DRadAbs::clearAlphaTable() const
 {
     std::for_each( this->alphaTable.begin(), this->alphaTable.end(),
 		   boost::mem_fn( &RealVector::clear ) );
@@ -78,7 +63,7 @@ void FirstPassagePairGreensFunction2D::clearAlphaTable() const
 // The method evaluates the equation for finding the alphas for given alpha. This
 // is needed to find the alpha's at which the expression is zero -> alpha is the root.
 const Real 
-FirstPassagePairGreensFunction2D::f_alpha0( const Real alpha ) const
+GreensFunction2DRadAbs::f_alpha0( const Real alpha ) const
 {
 	const Real a( this->geta() );
 	const Real sigma( getSigma() );
@@ -102,17 +87,17 @@ FirstPassagePairGreensFunction2D::f_alpha0( const Real alpha ) const
 
 // completely unclear why this is a separate function
 const Real 
-FirstPassagePairGreensFunction2D::f_alpha0_aux_F( const Real alpha,
+GreensFunction2DRadAbs::f_alpha0_aux_F( const Real alpha,
 						const f_alpha0_aux_params* const params )
 {
-    const FirstPassagePairGreensFunction2D* const gf( params->gf ); 	// get the gf from the params?
+    const GreensFunction2DRadAbs* const gf( params->gf ); 	// get the gf from the params?
     return gf->f_alpha0( alpha );
 }
 
 // finding the ith root for the order of Bessel functions zero. Only needed for the survival probability
 // and the flux
 const Real 
-FirstPassagePairGreensFunction2D::alpha0_i( const Real previous ) const
+GreensFunction2DRadAbs::alpha0_i( const Real previous ) const
 {
     THROW_UNLESS( std::out_of_range, previous >= 0.0 );
 
@@ -134,7 +119,7 @@ FirstPassagePairGreensFunction2D::alpha0_i( const Real previous ) const
     f_alpha0_aux_params params = { this, target };	// struct with the gf object and the target
     gsl_function F = 
 	{
-	    reinterpret_cast<typeof(F.function)>( &FirstPassagePairGreensFunction2D::f_alpha0_aux_F ),
+	    reinterpret_cast<typeof(F.function)>( &GreensFunction2DRadAbs::f_alpha0_aux_F ),
 	    &params 
 	};
 
@@ -150,7 +135,7 @@ FirstPassagePairGreensFunction2D::alpha0_i( const Real previous ) const
     gsl_root_fsolver* solver( gsl_root_fsolver_alloc( solverType ) );
 
     const Real alpha ( findRoot( F, solver, low, high,
-		 EPSILON/L_TYPICAL, EPSILON, "FirstPassagePairGreensFunction2D::alpha0_i" ) );
+		 EPSILON/L_TYPICAL, EPSILON, "GreensFunction2DRadAbs::alpha0_i" ) );
 
     gsl_root_fsolver_free( solver );
   
@@ -160,7 +145,7 @@ FirstPassagePairGreensFunction2D::alpha0_i( const Real previous ) const
 // calculates the value of the expression for which the roots have to be found for given order n
 // The expression is evaluated for given alpha, to check if it zero or to get the value of the expression
 // n is the summation index used in the solution
-const Real FirstPassagePairGreensFunction2D::f_alpha( const Real alpha,
+const Real GreensFunction2DRadAbs::f_alpha( const Real alpha,
 						    const Integer n ) const
 {
 	const Real a( this->geta() );
@@ -186,10 +171,10 @@ const Real FirstPassagePairGreensFunction2D::f_alpha( const Real alpha,
 
 // Finding the roots alpha
 const Real 
-FirstPassagePairGreensFunction2D::f_alpha_aux_F( const Real alpha,
+GreensFunction2DRadAbs::f_alpha_aux_F( const Real alpha,
 	       					const f_alpha_aux_params* const params )
 {
-    const FirstPassagePairGreensFunction2D* const gf( params->gf ); 
+    const GreensFunction2DRadAbs* const gf( params->gf ); 
     const Integer n( params->n );
 
     return gf->f_alpha( alpha, n );	// f_alpha is the function of which we have to find the roots
@@ -199,7 +184,7 @@ FirstPassagePairGreensFunction2D::f_alpha_aux_F( const Real alpha,
 // This calculates a root based on the previous one (offset) with Bessel functions of order n
 // The roots are calculated based on the previous root which is given as an argument (offset)
 const Real 
-FirstPassagePairGreensFunction2D::alpha_i( const Real offset, const Integer n ) const
+GreensFunction2DRadAbs::alpha_i( const Real offset, const Integer n ) const
 {
     const Real sigma( this->getSigma() );
     const Real a( this->geta() );
@@ -221,7 +206,7 @@ FirstPassagePairGreensFunction2D::alpha_i( const Real offset, const Integer n ) 
     gsl_function F = 
 	{
 	    reinterpret_cast<typeof(F.function)>
-	    ( &FirstPassagePairGreensFunction2D::f_alpha_aux_F ),
+	    ( &GreensFunction2DRadAbs::f_alpha_aux_F ),
 	    &params 
 	};
 
@@ -229,7 +214,7 @@ FirstPassagePairGreensFunction2D::alpha_i( const Real offset, const Integer n ) 
     gsl_root_fsolver* solver( gsl_root_fsolver_alloc( solverType ) );
 
     const Real alpha ( findRoot( F, solver, low, high,
-		 EPSILON/L_TYPICAL, EPSILON, "FirstPassagePairGreensFunction2D::alpha_i" ) );
+		 EPSILON/L_TYPICAL, EPSILON, "GreensFunction2DRadAbs::alpha_i" ) );
     gsl_root_fsolver_free( solver );
 
     return alpha;
@@ -238,7 +223,7 @@ FirstPassagePairGreensFunction2D::alpha_i( const Real offset, const Integer n ) 
 
 // Calculates the first root (called the offset) for summation index n (so using Bessel functions of order n)
 const Real
-FirstPassagePairGreensFunction2D::alphaOffset( const unsigned int n ) const
+GreensFunction2DRadAbs::alphaOffset( const unsigned int n ) const
 {
     if( this->alphaOffsetTable[n] > 0 )		// if the offset has already been calculated
     {
@@ -284,7 +269,7 @@ FirstPassagePairGreensFunction2D::alphaOffset( const unsigned int n ) const
 
    f_alpha_aux_params params = { this, n, 0};
    gsl_function F = 	{reinterpret_cast<typeof(F.function)>
-			( &FirstPassagePairGreensFunction2D::f_alpha_aux_F ),
+			( &GreensFunction2DRadAbs::f_alpha_aux_F ),
 			&params
 			};
 
@@ -302,8 +287,7 @@ FirstPassagePairGreensFunction2D::alphaOffset( const unsigned int n ) const
 
 // calculates the constant part of the i-th term for the survival probability
 const Real 
-FirstPassagePairGreensFunction2D::p_survival_i( const Real alpha,
-					      const Real r0 ) const
+GreensFunction2DRadAbs::p_survival_i( const Real alpha) const
 {
 	const Real a( geta() );		// get the needed parameters
 	const Real sigma( getSigma() );
@@ -346,8 +330,7 @@ FirstPassagePairGreensFunction2D::p_survival_i( const Real alpha,
 
 // calculates the An,0 terms for determination of the flux through the outer interface
 const Real 
-FirstPassagePairGreensFunction2D::leavea_i( const Real alpha,
-					  const Real r0 ) const
+GreensFunction2DRadAbs::leavea_i( const Real alpha) const
 {
         const Real a( geta() );         // get the needed parameters
         const Real sigma( getSigma() );
@@ -380,8 +363,7 @@ FirstPassagePairGreensFunction2D::leavea_i( const Real alpha,
 
 // Calculates the n-th term of the summation for calculating the flux through the inner interface (reaction)
 const Real 
-FirstPassagePairGreensFunction2D::leaves_i( const Real alpha,
-					  const Real r0 ) const
+GreensFunction2DRadAbs::leaves_i( const Real alpha) const
 {
         const Real a( geta() );         // get the needed parameters
         const Real sigma( getSigma() );
@@ -422,8 +404,7 @@ FirstPassagePairGreensFunction2D::leaves_i( const Real alpha,
 
 // calculates a table with all the constant factors for the survival probability
 void 
-FirstPassagePairGreensFunction2D::createPsurvTable( RealVector& table,
-							const Real r0 ) const
+GreensFunction2DRadAbs::createPsurvTable( RealVector& table) const
 {
     const RealVector& alphaTable_0( this->getAlphaTable( 0 ) );	// get the roots for the survival probability
 
@@ -432,18 +413,17 @@ FirstPassagePairGreensFunction2D::createPsurvTable( RealVector& table,
 
     std::transform( alphaTable_0.begin(), alphaTable_0.end(),
 		    std::back_inserter( table ),
-		    boost::bind( &FirstPassagePairGreensFunction2D::p_survival_i,
-				 this, _1, r0 ) );	// This gets all the roots from 'begin' to 'end'
+		    boost::bind( &GreensFunction2DRadAbs::p_survival_i,
+				 this, _1) );	// This gets all the roots from 'begin' to 'end'
 							// passes them as an argument to p_survival_i and
 							// the result is passed to back_inserter
 }
 
 // Creates the tables with various Bessel functions used in drawR, the table is used to speed things up
 void
-FirstPassagePairGreensFunction2D::createY0J0Tables( RealVector& Y0_Table,
+GreensFunction2DRadAbs::createY0J0Tables( RealVector& Y0_Table,
 							RealVector& J0_Table,
 							RealVector& Y0J1J0Y1_Table,
-							const Real r0,
 							const Real t ) const
 {
 	const RealVector& alphaTable_0( this->getAlphaTable( 0 ) );
@@ -459,7 +439,7 @@ FirstPassagePairGreensFunction2D::createY0J0Tables( RealVector& Y0_Table,
 	boost::tuple<Real,Real,Real> result;
 	
 	for (unsigned int count = 0; count < alphaTable_0.size(); count++)
-	{	result = Y0J0J1_constants(alphaTable_0[count], t, r0);
+	{	result = Y0J0J1_constants(alphaTable_0[count], t);
 		Y0_Table.push_back (result.get<0>());
 		J0_Table.push_back (result.get<1>());
 		Y0J1J0Y1_Table.push_back (result.get<2>());
@@ -469,9 +449,8 @@ FirstPassagePairGreensFunction2D::createY0J0Tables( RealVector& Y0_Table,
 
 // Creates the values for in the tables Y0, J0 and Y0J1J0Y1
 const boost::tuple<Real,Real,Real>
-FirstPassagePairGreensFunction2D::Y0J0J1_constants ( const Real alpha,
-							const Real t,
-							const Real r0) const
+GreensFunction2DRadAbs::Y0J0J1_constants ( const Real alpha,
+							const Real t) const
 {	const Real D(this->getD());
 	const Real h(this->geth());
 	const Real sigma(this->getSigma());
@@ -513,9 +492,8 @@ FirstPassagePairGreensFunction2D::Y0J0J1_constants ( const Real alpha,
 
 // calculates the ith term with exponent and time for the survival probability
 const Real 
-FirstPassagePairGreensFunction2D::p_survival_i_exp_table( const unsigned int i,
+GreensFunction2DRadAbs::p_survival_i_exp_table( const unsigned int i,
 							const Real t,
-							const Real r0,
 							const RealVector& table ) const
 {
     const Real alpha( this->getAlpha0( i ) );
@@ -525,9 +503,8 @@ FirstPassagePairGreensFunction2D::p_survival_i_exp_table( const unsigned int i,
 // adds the exponential with the time to the sum. Needed for the calculation of the flux throught the outer
 // interface
 const Real 
-FirstPassagePairGreensFunction2D::leavea_i_exp( const unsigned int i,
-					      const Real t,
-					      const Real r0 ) const
+GreensFunction2DRadAbs::leavea_i_exp( const unsigned int i,
+					      const Real t) const
 {
     const Real alpha( this->getAlpha0( i ) );
     return std::exp( - getD() * t * alpha * alpha ) * leavea_i( alpha, r0 );
@@ -535,19 +512,18 @@ FirstPassagePairGreensFunction2D::leavea_i_exp( const unsigned int i,
 
 // adds the exponential with the time to the sum. Needed for the inner interface (reaction)
 const Real 
-FirstPassagePairGreensFunction2D::leaves_i_exp( const unsigned int i,
-					      const Real t,
-					      const Real r0 ) const
+GreensFunction2DRadAbs::leaves_i_exp( const unsigned int i,
+					      const Real t) const
 {
     const Real alpha( this->getAlpha0( i ) );
 
-    return std::exp( - getD() * t * alpha * alpha ) * leaves_i( alpha, r0 );
+    return std::exp( - getD() * t * alpha * alpha ) * leaves_i( alpha );
 }
 
 
 // calculates the Bossen function for a given r
 const Real
-FirstPassagePairGreensFunction2D::p_int_r_i_exp_table( const unsigned int i,
+GreensFunction2DRadAbs::p_int_r_i_exp_table( const unsigned int i,
 				                     const Real r,
                 				     const RealVector& Y0_aAnTable,
                					     const RealVector& J0_aAnTable,
@@ -568,7 +544,7 @@ FirstPassagePairGreensFunction2D::p_int_r_i_exp_table( const unsigned int i,
 // Not really sure yet how this works
 
 const unsigned int
-FirstPassagePairGreensFunction2D::guess_maxi( const Real t ) const
+GreensFunction2DRadAbs::guess_maxi( const Real t ) const
 {
     const unsigned int safety( 2 );
 
@@ -602,12 +578,11 @@ FirstPassagePairGreensFunction2D::guess_maxi( const Real t ) const
 // This is a little wrapper for the p_survival_table so that you can easily calculate the survival probability
 // at a given time
 const Real 
-FirstPassagePairGreensFunction2D::p_survival( const Real t,
-					    const Real r0 ) const
+GreensFunction2DRadAbs::p_survival( const Real t) const
 {
     RealVector psurvTable;
 
-    const Real p( p_survival_table( t, r0, psurvTable ) );
+    const Real p( p_survival_table( t, psurvTable ) );
 
     return p;
 }
@@ -616,8 +591,7 @@ FirstPassagePairGreensFunction2D::p_survival( const Real t,
 // It uses the pSurvTable for efficiency (so you don't have to calculate all the constant factors all
 // the time)
 const Real 
-FirstPassagePairGreensFunction2D::p_survival_table( const Real t,
-						  const Real r0,
+GreensFunction2DRadAbs::p_survival_table( const Real t,
 		  				  RealVector& psurvTable ) const
 {
 	Real p;
@@ -626,13 +600,13 @@ FirstPassagePairGreensFunction2D::p_survival_table( const Real t,
         if( psurvTable.size() < maxi + 1 )		// if the dimensions are good then this means
         {						// that the table is filled
         	IGNORE_RETURN getAlpha0( maxi );	// this updates the table of roots
-                this->createPsurvTable( psurvTable, r0 );	// then the table is filled with data
+                this->createPsurvTable( psurvTable);	// then the table is filled with data
         }
 //std::cout << "p_survival_2DPair ";
-        p = funcSum_all( boost::bind( &FirstPassagePairGreensFunction2D::
+        p = funcSum_all( boost::bind( &GreensFunction2DRadAbs::
                                           p_survival_i_exp_table,
                                           this,
-                                          _1, t, r0, psurvTable ),
+                                          _1, t, psurvTable ),
                          maxi );	// calculate the sum at time t
 
         return p*M_PI*M_PI_2;
@@ -641,16 +615,15 @@ FirstPassagePairGreensFunction2D::p_survival_table( const Real t,
 // calculates the flux leaving through the inner interface at a given moment
 // FIXME: This is inaccurate for small t's!!
 const Real 
-FirstPassagePairGreensFunction2D::leaves( const Real t,
-					const Real r0 ) const
+GreensFunction2DRadAbs::leaves( const Real t) const
 {
     const Real sigma(this->getSigma());
     const Real D(this->getD() );
 
-    const Real p( funcSum( boost::bind( &FirstPassagePairGreensFunction2D::
+    const Real p( funcSum( boost::bind( &GreensFunction2DRadAbs::
                                         leaves_i_exp,
                                         this,
-                                        _1, t, r0 ),
+                                        _1, t),
                            this->MAX_ALPHA_SEQ ) );
 
     return -M_PI_2*M_PI*D*sigma*p;	// The minus is there because the flux is in the negative r
@@ -659,15 +632,14 @@ FirstPassagePairGreensFunction2D::leaves( const Real t,
 
 // calculates the flux leaving through the outer interface at a given moment
 const Real 
-FirstPassagePairGreensFunction2D::leavea( const Real t,
-					const Real r0 ) const
+GreensFunction2DRadAbs::leavea( const Real t) const
 {
     const Real D(this->getD() );
 
-    const Real p( funcSum( boost::bind( &FirstPassagePairGreensFunction2D::
+    const Real p( funcSum( boost::bind( &GreensFunction2DRadAbs::
                                         leavea_i_exp,
                                         this,
-                                        _1, t, r0 ),
+                                        _1, t),
                            this->MAX_ALPHA_SEQ ) );
     return M_PI*D*p;
 }
@@ -675,12 +647,12 @@ FirstPassagePairGreensFunction2D::leavea( const Real t,
 
 // calculates the sum of the sequence for drawR based upon the values in the tables and r
 const Real
-FirstPassagePairGreensFunction2D::p_int_r_table( const Real r,
+GreensFunction2DRadAbs::p_int_r_table( const Real r,
                					const RealVector& Y0_aAnTable,
                					const RealVector& J0_aAnTable,
                					const RealVector& Y0J1J0Y1Table ) const
 {
-    const Real p( funcSum( boost::bind( &FirstPassagePairGreensFunction2D::
+    const Real p( funcSum( boost::bind( &GreensFunction2DRadAbs::
                                         p_int_r_i_exp_table,
                                         this,
                                         _1, r, Y0_aAnTable, J0_aAnTable, Y0J1J0Y1Table ),
@@ -691,25 +663,25 @@ FirstPassagePairGreensFunction2D::p_int_r_table( const Real r,
 // Used by drawTime
 // Wrapper for p_survival_table for the interator to find the root for drawTime
 const Real
-FirstPassagePairGreensFunction2D::p_survival_table_F( const Real t,
+GreensFunction2DRadAbs::p_survival_table_F( const Real t,
                     					const p_survival_table_params* params )
 {
-    const FirstPassagePairGreensFunction2D* const gf( params->gf ); // the current gf (not sure why this is
+    const GreensFunction2DRadAbs* const gf( params->gf ); // the current gf (not sure why this is
 								    // here)
     const Real r0( params->r0 );
     RealVector& table( params->table );		// table is empty but will be filled in p_survival_table
     const Real rnd( params->rnd );
 
-    return rnd - gf->p_survival_table( t, r0, table );
+    return rnd - gf->p_survival_table( t, table );
 }
 
 
 // a wrapper to make p_int_r_table available to the iterator calculating the root
 const Real
-FirstPassagePairGreensFunction2D::p_int_r_F( const Real r,
+GreensFunction2DRadAbs::p_int_r_F( const Real r,
 					   const p_int_r_params* params )
 {
-    const FirstPassagePairGreensFunction2D* const gf( params->gf ); 
+    const GreensFunction2DRadAbs* const gf( params->gf ); 
     const RealVector& Y0_aAnTable( params->Y0_aAnTable );
     const RealVector& J0_aAnTable( params->J0_aAnTable );
     const RealVector& Y0J1J0Y1Table( params->Y0J1J0Y1Table );
@@ -721,8 +693,7 @@ FirstPassagePairGreensFunction2D::p_int_r_F( const Real r,
 
 // Draws a first passage time, this could be an escape (through the outer boundary) or a reaction (through
 // the inner boundary)
-const Real FirstPassagePairGreensFunction2D::drawTime( const Real rnd, 
-						     const Real r0 ) const
+const Real GreensFunction2DRadAbs::drawTime( const Real rnd) const
 {
     const Real D( this->getD() );
     const Real sigma( this->getSigma() );
@@ -811,7 +782,7 @@ const Real FirstPassagePairGreensFunction2D::drawTime( const Real rnd,
     gsl_root_fsolver* solver( gsl_root_fsolver_alloc( solverType ) );
 
     const Real t( findRoot( F, solver, low, high,		// find the intersection between the random
-		EPSILON*T_TYPICAL, EPSILON, "FirstPassagePairGreensFunction2D::drawTime" ) );
+		EPSILON*T_TYPICAL, EPSILON, "GreensFunction2DRadAbs::drawTime" ) );
 								// number and the cumm probability
     gsl_root_fsolver_free( solver );
 
@@ -820,8 +791,7 @@ const Real FirstPassagePairGreensFunction2D::drawTime( const Real rnd,
 
 // This determines based on the flux at a certain time, if the 'escape' was a reaction or a proper escape
 const EventType
-FirstPassagePairGreensFunction2D::drawEventType( const Real rnd, 
-					       const Real r0,
+GreensFunction2DRadAbs::drawEventType( const Real rnd, 
 					       const Real t ) const
 {
     const Real D( this->getD() );
@@ -865,8 +835,8 @@ FirstPassagePairGreensFunction2D::drawEventType( const Real rnd,
         }
     }
 
-    const Real reaction( leaves( t, r0 ) );	// flux through rad boundary
-    const Real escape( leavea( t, r0 ) );	// flux through abs boundary
+    const Real reaction( leaves( t ) );	// flux through rad boundary
+    const Real escape( leavea( t ) );	// flux through abs boundary
     const Real value( reaction / ( reaction + escape ) );
 
     if( rnd <= value )  
@@ -880,8 +850,7 @@ FirstPassagePairGreensFunction2D::drawEventType( const Real rnd,
 }
 
 // This draws a radius R at a given time, provided that the particle was at r0 at t=0
-const Real FirstPassagePairGreensFunction2D::drawR( const Real rnd, 
-						  const Real r0, 
+const Real GreensFunction2DRadAbs::drawR( const Real rnd, 
 						  const Real t ) const
 {
     const Real D( this->getD() );
@@ -896,7 +865,7 @@ const Real FirstPassagePairGreensFunction2D::drawR( const Real rnd,
 	return r0;
     }
 
-    const Real psurv( p_survival( t, r0 ) );	// calculate the survival probability at this time
+    const Real psurv( p_survival( t ) );	// calculate the survival probability at this time
 						// this is used as the normalization factor
 						// BEWARE!!! This also produces the roots An and therefore
 						// SETS THE HIGHEST INDEX -> side effect
@@ -975,7 +944,7 @@ const Real FirstPassagePairGreensFunction2D::drawR( const Real rnd,
     const gsl_root_fsolver_type* solverType( gsl_root_fsolver_brent );
     gsl_root_fsolver* solver( gsl_root_fsolver_alloc( solverType ) );
     const Real r( findRoot( F, solver, low, high,		// find the intersection between the random
-		 L_TYPICAL*EPSILON, EPSILON, "FirstPassagePairGreensFunction2D::drawR" ) );
+		 L_TYPICAL*EPSILON, EPSILON, "GreensFunction2DRadAbs::drawR" ) );
 								// number and the cumm probability
     gsl_root_fsolver_free( solver );
 
@@ -985,10 +954,9 @@ const Real FirstPassagePairGreensFunction2D::drawR( const Real rnd,
 
 
 // The calculates constant factor m,n for the drawing of theta. These factors are summed later.
-const Real FirstPassagePairGreensFunction2D::p_m_alpha( const unsigned int n,
+const Real GreensFunction2DRadAbs::p_m_alpha( const unsigned int n,
 						      const unsigned int m,
 						      const Real r,
-						      const Real r0, 
 						      const Real t ) const
 {
 	const Real sigma( this->getSigma() );
@@ -1044,12 +1012,11 @@ const Real FirstPassagePairGreensFunction2D::p_m_alpha( const unsigned int n,
 
 // This calculates the m-th constant factor for the drawTheta method. 
 const Real 
-FirstPassagePairGreensFunction2D::p_m( const Integer m,
+GreensFunction2DRadAbs::p_m( const Integer m,
 				     const Real r,
-				     const Real r0, 
 				     const Real t ) const
 {
-    const Real p( funcSum( boost::bind( &FirstPassagePairGreensFunction2D::
+    const Real p( funcSum( boost::bind( &GreensFunction2DRadAbs::
 					p_m_alpha,
 					this,
 					_1, m, r, r0, t ),	// The m-th factor is a summation over n
@@ -1060,18 +1027,17 @@ FirstPassagePairGreensFunction2D::p_m( const Integer m,
 // this should make the table of constants used in the iteration for finding the root for drawTheta
 // The index of the array is consistent with the index of the summation
 void
-FirstPassagePairGreensFunction2D::makep_mTable( RealVector& p_mTable,
+GreensFunction2DRadAbs::makep_mTable( RealVector& p_mTable,
 					      const Real r, 
-					      const Real r0, 
 					      const Real t ) const
 {
 	p_mTable.clear();
 
-	const Real p_0 ( this->p_m( 0, r, r0, t ) );	// This is the p_m where m is 0, for the denominator
+	const Real p_0 ( this->p_m( 0, r, t ) );	// This is the p_m where m is 0, for the denominator
 	p_mTable.push_back( p_0 );			// put it in the table
 
 
-	const Real p_1 ( this->p_m( 1, r, r0, t ) / p_0 );
+	const Real p_1 ( this->p_m( 1, r, t ) / p_0 );
 	p_mTable.push_back( p_1 );			// put the first result in the table
 
 
@@ -1096,7 +1062,7 @@ FirstPassagePairGreensFunction2D::makep_mTable( RealVector& p_mTable,
 
 
 		p_m_prev_abs = p_m_abs;					// store the previous term
-		const Real p_m( this->p_m( m, r, r0, t ) / p_0 );	// get the next term
+		const Real p_m( this->p_m( m, r, t ) / p_0 );	// get the next term
 
 		if( ! std::isfinite( p_m ) )		// if the calculated value is not valid->exit
 		{
@@ -1117,9 +1083,8 @@ FirstPassagePairGreensFunction2D::makep_mTable( RealVector& p_mTable,
 
 // This method calculates the constants for the drawTheta method when the particle is at the boundary
 const Real 
-FirstPassagePairGreensFunction2D::dp_m_alpha_at_a( const unsigned int n,
+GreensFunction2DRadAbs::dp_m_alpha_at_a( const unsigned int n,
 						 const unsigned int m,
-						 const Real r0, 
 						 const Real t ) const
 {
         const Real sigma( this->getSigma() );
@@ -1163,14 +1128,13 @@ FirstPassagePairGreensFunction2D::dp_m_alpha_at_a( const unsigned int n,
 
 // Makes the sum over n for order m for the constants for the drawtheta Method
 const Real 
-FirstPassagePairGreensFunction2D::dp_m_at_a( const Integer m,
-					   const Real r0, 
+GreensFunction2DRadAbs::dp_m_at_a( const Integer m,
 					   const Real t ) const
 {
-    const Real p( funcSum( boost::bind( &FirstPassagePairGreensFunction2D::
+    const Real p( funcSum( boost::bind( &GreensFunction2DRadAbs::
 					dp_m_alpha_at_a,
 					this,
-					_1, m, r0, t ),
+					_1, m, r0,t ),
 			   MAX_ALPHA_SEQ, EPSILON ) );
 
     return p;
@@ -1178,17 +1142,16 @@ FirstPassagePairGreensFunction2D::dp_m_at_a( const Integer m,
 
 // creates a tables of constants for drawTheta when the particle is at the edge of the domain
 void
-FirstPassagePairGreensFunction2D::makedp_m_at_aTable( RealVector& p_mTable,
-						    const Real r0, 
+GreensFunction2DRadAbs::makedp_m_at_aTable( RealVector& p_mTable,
 						    const Real t ) const
 {
         p_mTable.clear();
 
-        const Real p_0 ( this->dp_m_at_a( 0, r0, t ) );	// This is the p_m where m is 0, for the denominator
+        const Real p_0 ( this->dp_m_at_a( 0, t ) );	// This is the p_m where m is 0, for the denominator
         p_mTable.push_back( p_0 );                      // put it in the table
 
 
-        const Real p_1 ( this->dp_m_at_a( 1, r0, t ) / p_0 );
+        const Real p_1 ( this->dp_m_at_a( 1, t ) / p_0 );
         p_mTable.push_back( p_1 );                      // put the first result in the table
 
 
@@ -1213,7 +1176,7 @@ FirstPassagePairGreensFunction2D::makedp_m_at_aTable( RealVector& p_mTable,
 
 
                 p_m_prev_abs = p_m_abs;					// store the previous term
-                const Real p_m( this->dp_m_at_a( m, r0, t ) / p_0 );	// get the next term
+                const Real p_m( this->dp_m_at_a( m, t ) / p_0 );	// get the next term
 
                 if( ! std::isfinite( p_m ) )			// if the calculated value is not valid->exit
                 {
@@ -1235,7 +1198,7 @@ FirstPassagePairGreensFunction2D::makedp_m_at_aTable( RealVector& p_mTable,
 
 // This calculates the m-th term of the summation for the drawTheta calculation
 const Real 
-FirstPassagePairGreensFunction2D::ip_theta_n( const unsigned int m,
+GreensFunction2DRadAbs::ip_theta_n( const unsigned int m,
 						const Real theta,
 						const RealVector& p_nTable) const
 {
@@ -1248,14 +1211,14 @@ FirstPassagePairGreensFunction2D::ip_theta_n( const unsigned int m,
 // It is used by the drawTheta method
 // It uses the p_nTable for it to speed things up
 const Real 
-FirstPassagePairGreensFunction2D::ip_theta_table( const Real theta,
+GreensFunction2DRadAbs::ip_theta_table( const Real theta,
 						const RealVector& p_nTable ) const
 {
     const unsigned int maxm( p_nTable.size()-1 );	// get the length of the sum
 							// it is shifted one because the first entry should
 							// be used (m=0)
 
-    const Real p( funcSum_all( boost::bind( &FirstPassagePairGreensFunction2D::
+    const Real p( funcSum_all( boost::bind( &GreensFunction2DRadAbs::
                                              ip_theta_n,
                                              this,
                                              _1, theta, p_nTable ),
@@ -1265,10 +1228,10 @@ FirstPassagePairGreensFunction2D::ip_theta_table( const Real theta,
 
 // function to iterate when drawing the theta
 const Real
-FirstPassagePairGreensFunction2D::ip_theta_F( const Real theta,
+GreensFunction2DRadAbs::ip_theta_F( const Real theta,
 					    const ip_theta_params* params )
 {
-    const FirstPassagePairGreensFunction2D* const gf( params->gf ); 
+    const GreensFunction2DRadAbs* const gf( params->gf ); 
     const RealVector& p_nTable( params->p_nTable );	// table with useful constants
     const Real value( params->value );
 
@@ -1278,9 +1241,8 @@ FirstPassagePairGreensFunction2D::ip_theta_F( const Real theta,
 
 // This method draws a theta given a certain r and time (and intial condition of course)
 const Real 
-FirstPassagePairGreensFunction2D::drawTheta( const Real rnd,
+GreensFunction2DRadAbs::drawTheta( const Real rnd,
 					   const Real r, 
-					   const Real r0, 
 					   const Real t ) const
 {
 	const Real sigma( this->getSigma() );
@@ -1327,7 +1289,7 @@ FirstPassagePairGreensFunction2D::drawTheta( const Real rnd,
 	const gsl_root_fsolver_type* solverType( gsl_root_fsolver_brent );
 	gsl_root_fsolver* solver( gsl_root_fsolver_alloc( solverType ) );
 	const Real theta( findRoot( F, solver, 0, M_PI, EPSILON, EPSILON,
-                "FirstPassagePairGreensFunction2D::drawTheta" ) );
+                "GreensFunction2DRadAbs::drawTheta" ) );
 	gsl_root_fsolver_free( solver );
 
 	return theta;
@@ -1338,7 +1300,7 @@ FirstPassagePairGreensFunction2D::drawTheta( const Real rnd,
 // debug
 //
 
-const std::string FirstPassagePairGreensFunction2D::dump() const
+const std::string GreensFunction2DRadAbs::dump() const
 {
     std::ostringstream ss;
     ss << "D = " << this->getD() << ", sigma = " << this->getSigma() <<

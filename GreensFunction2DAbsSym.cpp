@@ -15,14 +15,14 @@
 
 #include "findRoot.hpp"
 
-#include "FirstPassageGreensFunction2D.hpp"
+#include "GreensFunction2DAbsSym.hpp"
 
 
 
 
 // an alternative form, which is not very convergent.
 const Real 
-FirstPassageGreensFunction2D::p_survival( const Real t ) const
+GreensFunction2DAbsSym::p_survival( const Real t ) const
 {
     const Real D( getD() );
     const Real a( geta() );
@@ -61,7 +61,7 @@ FirstPassageGreensFunction2D::p_survival( const Real t ) const
 
 
 const Real 
-FirstPassageGreensFunction2D::p_int_r_free( const Real r, const Real t ) const
+GreensFunction2DAbsSym::p_int_r_free( const Real r, const Real t ) const
 {
     const Real D( getD() );
     const Real Dt( D * t );
@@ -73,7 +73,7 @@ FirstPassageGreensFunction2D::p_int_r_free( const Real r, const Real t ) const
 }
 
 const Real 
-FirstPassageGreensFunction2D::p_int_r( const Real r, 
+GreensFunction2DAbsSym::p_int_r( const Real r, 
                                      const Real t ) const
 {
     const Real a( geta() );
@@ -111,10 +111,10 @@ FirstPassageGreensFunction2D::p_int_r( const Real r,
 
 
 const Real
-FirstPassageGreensFunction2D::p_survival_F( const Real t,
+GreensFunction2DAbsSym::p_survival_F( const Real t,
 					  const p_survival_params* params )
 {
-    const FirstPassageGreensFunction2D* const gf( params->gf ); 
+    const GreensFunction2DAbsSym* const gf( params->gf ); 
     const Real rnd( params->rnd );
 
     return 1 - gf->p_survival( t ) - rnd;
@@ -123,7 +123,7 @@ FirstPassageGreensFunction2D::p_survival_F( const Real t,
 
 
 const Real 
-FirstPassageGreensFunction2D::drawTime( const Real rnd ) const
+GreensFunction2DAbsSym::drawTime( const Real rnd ) const
 {
 	THROW_UNLESS( std::invalid_argument, rnd < 1.0 && rnd >= 0.0 );
 
@@ -193,17 +193,17 @@ FirstPassageGreensFunction2D::drawTime( const Real rnd ) const
 	const gsl_root_fsolver_type* solverType( gsl_root_fsolver_brent );	// a new solver type brent
 	gsl_root_fsolver* solver( gsl_root_fsolver_alloc( solverType ) );	// make a new solver instance
 	const Real t( findRoot( F, solver, low, high, 1e-18, 1e-12,
-                            "FirstPassageGreensFunction2D::drawTime" ) );
+                            "GreensFunction2DAbsSym::drawTime" ) );
 	gsl_root_fsolver_free( solver );
 
 	return t;
 }
 
 const Real
-FirstPassageGreensFunction2D::p_r_free_F( const Real r,
+GreensFunction2DAbsSym::p_r_free_F( const Real r,
                                         const p_r_params* params )
 {
-    const FirstPassageGreensFunction2D* const gf( params->gf ); 
+    const GreensFunction2DAbsSym* const gf( params->gf ); 
     const Real t( params->t );
     const Real target( params->target );
 
@@ -212,10 +212,10 @@ FirstPassageGreensFunction2D::p_r_free_F( const Real r,
 
 
 const Real
-FirstPassageGreensFunction2D::p_r_F( const Real r,
+GreensFunction2DAbsSym::p_r_F( const Real r,
 				   const p_r_params* params )
 {
-    const FirstPassageGreensFunction2D* const gf( params->gf ); 
+    const GreensFunction2DAbsSym* const gf( params->gf ); 
     const Real t( params->t );
     const Real target( params->target );
 
@@ -225,7 +225,7 @@ FirstPassageGreensFunction2D::p_r_F( const Real r,
 
 
 const Real 
-FirstPassageGreensFunction2D::drawR( const Real rnd, const Real t ) const 
+GreensFunction2DAbsSym::drawR( const Real rnd, const Real t ) const 
 {
     THROW_UNLESS( std::invalid_argument, rnd <= 1.0 && rnd >= 0.0 );
     THROW_UNLESS( std::invalid_argument, t >= 0.0 );
@@ -282,7 +282,7 @@ FirstPassageGreensFunction2D::drawR( const Real rnd, const Real t ) const
     gsl_root_fsolver* solver( gsl_root_fsolver_alloc( solverType ) );
 
     const Real r( findRoot( F, solver, low, high, 1e-18, 1e-12,
-                            "FirstPassageGreensFunction2D::drawR" ) );
+                            "GreensFunction2DAbsSym::drawR" ) );
   
     gsl_root_fsolver_free( solver );
 
@@ -291,7 +291,7 @@ FirstPassageGreensFunction2D::drawR( const Real rnd, const Real t ) const
 
 
 
-const std::string FirstPassageGreensFunction2D::dump() const
+const std::string GreensFunction2DAbsSym::dump() const
 {
     std::ostringstream ss;
     ss << "D = " << this->getD() << ", a = " << this->geta() << std::endl;

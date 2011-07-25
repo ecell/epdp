@@ -7,20 +7,20 @@
 #include "Defs.hpp"
 
 
-class FirstPassageGreensFunction2D
+class GreensFunction2DAbsSym
 {
 
 public:
 
-    FirstPassageGreensFunction2D( const Real D )
+    GreensFunction2DAbsSym( const Real D, const Real a )
 	:
 	D( D ),
-        a( 0.0 )
+        a( a )
     {
 	;
     }
 
-    virtual ~FirstPassageGreensFunction2D()
+    virtual ~GreensFunction2DAbsSym()
     {
 	;
     }
@@ -28,12 +28,6 @@ public:
     const Real getD() const
     {
 	return this->D;
-    }
-
-    void seta( const Real a )
-    {
-        THROW_UNLESS( std::invalid_argument, a >= 0.0 );
-        this->a = a;
     }
 
     const Real geta() const
@@ -57,7 +51,7 @@ private:
 
     struct p_survival_params
     {
-	const FirstPassageGreensFunction2D* const gf;
+	const GreensFunction2DAbsSym* const gf;
 	const Real rnd;
     };
 
@@ -66,7 +60,7 @@ private:
 
     struct p_r_params
     {
-	const FirstPassageGreensFunction2D* const gf;
+	const GreensFunction2DAbsSym* const gf;
 	const Real t;
 	const Real target;
     };
@@ -88,7 +82,7 @@ private:
 
     const Real D;
 
-    Real a;
+    const Real a;
 };
 
 

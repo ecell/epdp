@@ -10,7 +10,7 @@
 #include "PairGreensFunction.hpp"
 
 
-class FirstPassagePairGreensFunction2D
+class GreensFunction2DRadAbs
     :
     public PairGreensFunction
 {
@@ -32,11 +32,13 @@ class FirstPassagePairGreensFunction2D
 
 public:
     
-    FirstPassagePairGreensFunction2D( const Real D, 
-				    const Real kf, 
-				    const Real Sigma );
+    GreensFunction2DRadAbs( const Real D, 
+				    const Real kf,
+                    const Real r0, 
+				    const Real Sigma,
+                    const Real a );
     
-    virtual ~FirstPassagePairGreensFunction2D();
+    virtual ~GreensFunction2DRadAbs();
 
     const Real geth() const
     {
@@ -48,21 +50,16 @@ public:
 	return this->a;
     }
 
-    void seta( const Real a );    
-
-    const Real drawTime( const Real rnd, const Real r0 ) const;
+    const Real drawTime( const Real rnd) const;
 
     const EventType drawEventType( const Real rnd, 
-				   const Real r0, 
 				   const Real t ) const;
     
     const Real drawR( const Real rnd, 
-		      const Real r0, 
 		      const Real t ) const;
     
     const Real drawTheta( const Real rnd,
 			  const Real r, 
-			  const Real r0, 
 			  const Real t ) const;
     
     
@@ -71,35 +68,28 @@ public:
     const Real f_alpha( const Real alpha, const Integer n ) const;
 
     
-    const Real p_survival( const Real t,
-			   const Real r0 ) const;
+    const Real p_survival( const Real t) const;
 
     const Real p_survival_table( const Real t,
-				 const Real r0,
 				 RealVector& table ) const;
 
 
-    const Real leaves( const Real t,
-		       const Real r0 ) const;
+    const Real leaves( const Real t) const;
 
-    const Real leavea( const Real t,
-		       const Real r0 ) const;
+    const Real leavea( const Real t) const;
 
-    const Real p_m( const Integer n, const Real r, 
-		    const Real r0, const Real t ) const;
+    const Real p_m( const Integer n, const Real r, const Real t ) const;
 
-    const Real dp_m_at_a( const Integer m, const Real r0, const Real t ) const;
+    const Real dp_m_at_a( const Integer m, const Real t ) const;
 
 
     const Real p_m_alpha( const unsigned int n,
 			  const unsigned int m,
 			  const Real r, 
-			  const Real r0,
 			  const Real t ) const;
 
     const Real dp_m_alpha_at_a( const unsigned int n,
 				const unsigned int m,
-				const Real r0,
 				const Real t ) const;
 
     // methods below are kept public for debugging purpose.
@@ -112,18 +102,14 @@ public:
 
     const Real alpha_i( const Real offset, const Integer n ) const;
 
-    const Real p_survival_i( const Real alpha,
-			     const Real r0 ) const;
+    const Real p_survival_i( const Real alpha) const;
 
-    const Real leavea_i( const Real alpha,
-			 const Real r0 ) const;
+    const Real leavea_i( const Real alpha) const;
 
-    const Real leaves_i( const Real alpha,
-			 const Real r0 ) const;
+    const Real leaves_i( const Real alpha) const;
 
     const boost::tuple<Real,Real,Real> Y0J0J1_constants ( const Real alpha,
-                                                          const Real t,
-                                                          const Real r0) const;
+                                                          const Real t) const;
 
     const Real getAlpha( const size_t n, const RealVector::size_type i ) const
     {
@@ -199,16 +185,13 @@ protected:
 
     const Real p_survival_i_exp_table( const unsigned int i,
 				       const Real t,
-				       const Real r0,
 				       const RealVector& table ) const;
 
     const Real leavea_i_exp( const unsigned int i,
-			     const Real alpha,
-			     const Real r0 ) const;
+			     const Real alpha) const;
 
     const Real leaves_i_exp( const unsigned int i,
-			     const Real alpha,
-			     const Real r0 ) const;
+			     const Real alpha) const;
 
     const Real ip_theta_n( const unsigned int m,
 			   const Real theta,
@@ -221,25 +204,23 @@ protected:
 					const RealVector& J0_aAnTable,
 					const RealVector& Y0J1J0Y1Table ) const;
 
-    void createPsurvTable( RealVector& table, const Real r0 ) const; 
+    void createPsurvTable( RealVector& table) const; 
 
     void createY0J0Tables( RealVector& Y0_Table, RealVector& J0_Table, RealVector& Y0J1J0Y1_Table,
-				const Real r0, const Real t ) const;
+				const Real t ) const;
 
     void makep_mTable( RealVector& p_mTable,
 		       const Real r, 
-		       const Real r0, 
 		       const Real t ) const;
     
     void makedp_m_at_aTable( RealVector& p_mTable,
-			     const Real r0, 
 			     const Real t ) const;
 
     const unsigned int guess_maxi( const Real t ) const;
 
     struct f_alpha0_aux_params
     { 
-	const FirstPassagePairGreensFunction2D* const gf;
+	const GreensFunction2DRadAbs* const gf;
 	const Real value;
     };
 
@@ -250,7 +231,7 @@ protected:
 
     struct f_alpha_aux_params
     { 
-	const FirstPassagePairGreensFunction2D* const gf;
+	const GreensFunction2DRadAbs* const gf;
 	const Integer n;
 	Real value;
     };
@@ -261,8 +242,8 @@ protected:
 
     struct p_survival_table_params
     { 
-	const FirstPassagePairGreensFunction2D* const gf;
-	const Real r0;
+	const GreensFunction2DRadAbs* const gf;
+//	const Real r0;
 	RealVector& table;
 	const Real rnd;
     };
@@ -273,9 +254,9 @@ protected:
 
     struct p_int_r_params
     { 
-	const FirstPassagePairGreensFunction2D* const gf;
+	const GreensFunction2DRadAbs* const gf;
 	const Real t;
-	const Real r0;
+//	const Real r0;
 	const RealVector& Y0_aAnTable;
 	const RealVector& J0_aAnTable;
 	const RealVector& Y0J1J0Y1Table;
@@ -288,9 +269,9 @@ protected:
 
     struct ip_theta_params
     { 
-	const FirstPassagePairGreensFunction2D* const gf;
+	const GreensFunction2DRadAbs* const gf;
 	const Real r;
-	const Real r0;
+//	const Real r0;
 	const Real t;
 	const RealVector& p_nTable;
 	const Real value;
