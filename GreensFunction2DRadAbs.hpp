@@ -59,16 +59,6 @@ public:
 	return this->a;
     }
 
-    Real getSigma() const
-    {
-        return this->Sigma;
-    }
-
-    Real getr0() const
-    {
-        return this->r0;
-    }
-
     virtual Real drawTime( const Real rnd) const;
 
     const EventKind drawEventType( const Real rnd, 
