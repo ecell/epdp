@@ -15,6 +15,10 @@ class GreensFunction2DRadAbs
     public PairGreensFunction
 {
 
+public: 
+    typedef std::vector<Real> RealVector;
+
+private:
     // Error tolerance used by default.
     static const Real TOLERANCE = 1e-8;
 

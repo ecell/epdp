@@ -21,7 +21,7 @@
 #include "findRoot.hpp"
 #include "freeFunctions.hpp"
 
-#include "FirstPassagePairGreensFunction2D.hpp"
+#include "GreensFunction2DRadAbs.hpp"
 
 const Real GreensFunction2DRadAbs::MIN_T_FACTOR;
 const unsigned int GreensFunction2DRadAbs::MAX_ORDER;
