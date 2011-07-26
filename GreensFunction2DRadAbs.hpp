@@ -64,6 +64,11 @@ public:
         return this->Sigma;
     }
 
+    Real getr0() const
+    {
+        return this->r0;
+    }
+
     virtual Real drawTime( const Real rnd) const;
 
     const EventKind drawEventType( const Real rnd, 
@@ -123,8 +128,7 @@ public:
     const Real leaves_i( const Real alpha) const;
 
     const boost::tuple<Real,Real,Real> Y0J0J1_constants ( const Real alpha,
-                                                          const Real t,
-                                                          const Real r0) const;
+                                                          const Real t) const;
 
     const Real getAlpha( const size_t n, const RealVector::size_type i ) const
     {

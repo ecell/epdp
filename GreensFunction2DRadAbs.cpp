@@ -459,6 +459,7 @@ GreensFunction2DRadAbs::Y0J0J1_constants ( const Real alpha,
 	const Real h(this->geth());
 	const Real sigma(this->getSigma());
 	const Real a(this->geta());
+	const Real r0(this->getr0); 
 
 	const Real s_An (sigma*alpha);
 	const Real a_An (a*alpha);
@@ -511,7 +512,7 @@ GreensFunction2DRadAbs::leavea_i_exp( const unsigned int i,
 					      const Real t) const
 {
     const Real alpha( this->getAlpha0( i ) );
-    return std::exp( - getD() * t * alpha * alpha ) * leavea_i( alpha, r0 );
+    return std::exp( - getD() * t * alpha * alpha ) * leavea_i( alpha );
 }
 
 // adds the exponential with the time to the sum. Needed for the inner interface (reaction)
@@ -672,7 +673,7 @@ GreensFunction2DRadAbs::p_survival_table_F( const Real t,
 {
     const GreensFunction2DRadAbs* const gf( params->gf ); // the current gf (not sure why this is
 								    // here)
-    const Real r0( params->r0 );
+//    const Real r0(this->getr0) // not necessary since r0 now class parameter // OLD ( params->r0 ); 
     RealVector& table( params->table );		// table is empty but will be filled in p_survival_table
     const Real rnd( params->rnd );
 
@@ -703,6 +704,7 @@ virtual Real GreensFunction2DRadAbs::drawTime( const Real rnd) const
     const Real sigma( this->getSigma() );
     const Real a( this->geta() );
     const Real kf( this->getkf() );
+    const Real r0( this->getr0() );
 
     THROW_UNLESS( std::invalid_argument, 0.0 <= rnd && rnd < 1.0 );
     THROW_UNLESS( std::invalid_argument, sigma <= r0 && r0 <= a );
@@ -802,6 +804,7 @@ GreensFunction2DRadAbs::drawEventType( const Real rnd,
     const Real sigma( this->getSigma() );
     const Real kf( this->getkf() );
     const Real a( this->geta() );
+    const Real r0( this->getr0() );
 
     THROW_UNLESS( std::invalid_argument, 0 <= rnd && rnd < 1.0 );
     THROW_UNLESS( std::invalid_argument, sigma <= r0 && r0 < a );
@@ -860,6 +863,7 @@ virtual Real GreensFunction2DRadAbs::drawR( const Real rnd,
     const Real D( this->getD() );
     const Real sigma( getSigma() );
     const Real a( this->geta() );
+    const Real r0( this->getr0() );
 
     THROW_UNLESS( std::invalid_argument, rnd < 1.0 && rnd >= 0.0 );
     THROW_UNLESS( std::invalid_argument, r0 >= sigma && r0 < a );
@@ -968,6 +972,7 @@ const Real GreensFunction2DRadAbs::p_m_alpha( const unsigned int n,
 	const Real a( this->geta() );
 	const Real D( this->getD() );
 	const Real alpha( this->getAlpha( m, n ) ); // get the n-th root using the besselfunctions of order m
+    const Real r0( this->getr0() );
 
 
 	const Real alpha_sq( alpha * alpha );
@@ -1095,6 +1100,7 @@ GreensFunction2DRadAbs::dp_m_alpha_at_a( const unsigned int n,
         const Real h( this->geth() );
         const Real a( this->geta() );
         const Real D( this->getD() );
+        const Real r0( this->getr0() );
 
         const Real alpha( this->getAlpha( m, n ) ); // get the n-th root using the besselfunctions of order m
 
@@ -1252,6 +1258,7 @@ GreensFunction2DRadAbs::drawTheta( const Real rnd,
 	const Real sigma( this->getSigma() );
 	const Real a( this->geta() );
 	const Real D( this->getD() );
+    const Real r0( this->getr0() );
 
 	// input parameter range checks.
 	THROW_UNLESS( std::invalid_argument, 0.0 <= rnd && rnd < 1.0 );
@@ -1273,11 +1280,11 @@ GreensFunction2DRadAbs::drawTheta( const Real rnd,
 	RealVector p_mTable;			// a table with constants to make calculations much faster
 	if( fabs(r - a) <= EPSILON*L_TYPICAL )	// If the r is at the outer boundary
 	{
-		makedp_m_at_aTable( p_mTable, r0, t );	// making the table if particle on the outer boundary
+		makedp_m_at_aTable( p_mTable, t );	// making the table if particle on the outer boundary
 	}
 	else
 	{
-		makep_mTable( p_mTable, r, r0, t );	// making the table of constants for the regular case
+		makep_mTable( p_mTable, r, t );	// making the table of constants for the regular case
 	}
 
 
