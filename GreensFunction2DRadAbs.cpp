@@ -693,7 +693,7 @@ GreensFunction2DRadAbs::p_int_r_F( const Real r,
 
 // Draws a first passage time, this could be an escape (through the outer boundary) or a reaction (through
 // the inner boundary)
-const Real GreensFunction2DRadAbs::drawTime( const Real rnd) const
+virtual Real GreensFunction2DRadAbs::drawTime( const Real rnd) const
 {
     const Real D( this->getD() );
     const Real sigma( this->getSigma() );
@@ -790,7 +790,7 @@ const Real GreensFunction2DRadAbs::drawTime( const Real rnd) const
 }
 
 // This determines based on the flux at a certain time, if the 'escape' was a reaction or a proper escape
-const EventType
+const EventKind
 GreensFunction2DRadAbs::drawEventType( const Real rnd, 
 					       const Real t ) const
 {
@@ -850,7 +850,7 @@ GreensFunction2DRadAbs::drawEventType( const Real rnd,
 }
 
 // This draws a radius R at a given time, provided that the particle was at r0 at t=0
-const Real GreensFunction2DRadAbs::drawR( const Real rnd, 
+virtual Real GreensFunction2DRadAbs::drawR( const Real rnd, 
 						  const Real t ) const
 {
     const Real D( this->getD() );
@@ -1240,7 +1240,7 @@ GreensFunction2DRadAbs::ip_theta_F( const Real theta,
 
 
 // This method draws a theta given a certain r and time (and intial condition of course)
-const Real 
+virtual Real 
 GreensFunction2DRadAbs::drawTheta( const Real rnd,
 					   const Real r, 
 					   const Real t ) const
@@ -1300,7 +1300,7 @@ GreensFunction2DRadAbs::drawTheta( const Real rnd,
 // debug
 //
 
-const std::string GreensFunction2DRadAbs::dump() const
+std::string GreensFunction2DRadAbs::dump() const
 {
     std::ostringstream ss;
     ss << "D = " << this->getD() << ", sigma = " << this->getSigma() <<

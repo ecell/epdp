@@ -55,15 +55,15 @@ public:
 	return this->a;
     }
 
-    const Real drawTime( const Real rnd) const;
+    virtual Real drawTime( const Real rnd) const;
 
-    const EventType drawEventType( const Real rnd, 
+    const EventKind drawEventType( const Real rnd, 
 				   const Real t ) const;
     
-    const Real drawR( const Real rnd, 
+    virtual Real drawR( const Real rnd, 
 		      const Real t ) const;
     
-    const Real drawTheta( const Real rnd,
+    virtual Real drawTheta( const Real rnd,
 			  const Real r, 
 			  const Real t ) const;
     
@@ -99,7 +99,7 @@ public:
 
     // methods below are kept public for debugging purpose.
 
-    const std::string dump() const;
+    std::string dump() const;
 
     const Real alphaOffset( const unsigned int n ) const;
 
