@@ -46,7 +46,7 @@ public:
                     const Real r0, 
 				    const Real Sigma,
                     const Real a );
-    
+  
     virtual ~GreensFunction2DRadAbs();
 
     const Real geth() const
@@ -57,6 +57,11 @@ public:
     const Real geta() const
     {
 	return this->a;
+    }
+
+    Real getSigma() const
+    {
+        return this->Sigma;
     }
 
     virtual Real drawTime( const Real rnd) const;
@@ -118,7 +123,8 @@ public:
     const Real leaves_i( const Real alpha) const;
 
     const boost::tuple<Real,Real,Real> Y0J0J1_constants ( const Real alpha,
-                                                          const Real t) const;
+                                                          const Real t,
+                                                          const Real r0) const;
 
     const Real getAlpha( const size_t n, const RealVector::size_type i ) const
     {
