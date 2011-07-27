@@ -1310,6 +1310,7 @@ std::string GreensFunction2DRadAbs::dump() const
     ss << "D = " << this->getD() << ", sigma = " << this->getSigma() <<
 	", a = " << this->geta() <<
 	", kf = " << this->getkf() <<
+	", r0 = " << this->getr0() <<
 	", h = " << this->geth() << std::endl;
     return ss.str();
 }    
