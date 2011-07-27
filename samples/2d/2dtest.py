@@ -33,10 +33,12 @@ import _gfrd
 # Unique seed
 # ===============================
 currenttime = (long(
-datetime.datetime.now().month*30.5*24*3600+
-datetime.datetime.now().day*24*3600+datetime.datetime.now().hour*3600+
-datetime.datetime.now().minute*60+datetime.datetime.now().second))
+datetime.datetime.now().month*30.5*24*3600*1e6+
+datetime.datetime.now().day*24*3600*1e6+datetime.datetime.now().hour*3600*1e6+
+datetime.datetime.now().minute*60*1e6+datetime.datetime.now().second*1e6+
+datetime.datetime.now().microsecond))
 myrandom.seed(currenttime)
+print "(Seed " + str(currenttime) + ")"
  
 
 # Constants
