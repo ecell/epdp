@@ -61,7 +61,7 @@ public:
 
     virtual Real drawTime( const Real rnd) const;
 
-    const EventKind drawEventType( const Real rnd, 
+    virtual EventKind drawEventType( const Real rnd, 
 				   const Real t ) const;
     
     virtual Real drawR( const Real rnd, 

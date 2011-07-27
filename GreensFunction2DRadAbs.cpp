@@ -1,6 +1,8 @@
 //#define NDEBUG
 //#define BOOST_DISABLE_ASSERTS
 
+#include "compat.h"
+
 #include <iostream>
 #include <stdexcept>
 #include <vector>
@@ -457,7 +459,7 @@ GreensFunction2DRadAbs::Y0J0J1_constants ( const Real alpha,
 	const Real h(this->geth());
 	const Real sigma(this->getSigma());
 	const Real a(this->geta());
-	const Real r0(this->getr0); 
+	const Real r0(this->getr0()); 
 
 	const Real s_An (sigma*alpha);
 	const Real a_An (a*alpha);
@@ -606,8 +608,7 @@ GreensFunction2DRadAbs::p_survival_table( const Real t,
                 this->createPsurvTable( psurvTable);	// then the table is filled with data
         }
 //std::cout << "p_survival_2DPair ";
-        p = funcSum_all( boost::bind( &GreensFunction2DRadAbs::
-                                          p_survival_i_exp_table,
+        p = funcSum_all( boost::bind( &GreensFunction2DRadAbs::p_survival_i_exp_table,
                                           this,
                                           _1, t, psurvTable ),
                          maxi );	// calculate the sum at time t
@@ -623,8 +624,7 @@ GreensFunction2DRadAbs::leaves( const Real t) const
     const Real sigma(this->getSigma());
     const Real D(this->getD() );
 
-    const Real p( funcSum( boost::bind( &GreensFunction2DRadAbs::
-                                        leaves_i_exp,
+    const Real p( funcSum( boost::bind( &GreensFunction2DRadAbs::leaves_i_exp,
                                         this,
                                         _1, t),
                            this->MAX_ALPHA_SEQ ) );
@@ -639,8 +639,7 @@ GreensFunction2DRadAbs::leavea( const Real t) const
 {
     const Real D(this->getD() );
 
-    const Real p( funcSum( boost::bind( &GreensFunction2DRadAbs::
-                                        leavea_i_exp,
+    const Real p( funcSum( boost::bind( &GreensFunction2DRadAbs::leavea_i_exp,
                                         this,
                                         _1, t),
                            this->MAX_ALPHA_SEQ ) );
@@ -655,8 +654,7 @@ GreensFunction2DRadAbs::p_int_r_table( const Real r,
                					const RealVector& J0_aAnTable,
                					const RealVector& Y0J1J0Y1Table ) const
 {
-    const Real p( funcSum( boost::bind( &GreensFunction2DRadAbs::
-                                        p_int_r_i_exp_table,
+    const Real p( funcSum( boost::bind( &GreensFunction2DRadAbs::p_int_r_i_exp_table,
                                         this,
                                         _1, r, Y0_aAnTable, J0_aAnTable, Y0J1J0Y1Table ),
                            Y0_aAnTable.size() ) );
@@ -671,7 +669,7 @@ GreensFunction2DRadAbs::p_survival_table_F( const Real t,
 {
     const GreensFunction2DRadAbs* const gf( params->gf ); // the current gf (not sure why this is
 								    // here)
-//    const Real r0(this->getr0) // not necessary since r0 now class parameter // OLD ( params->r0 ); 
+//    const Real r0(this->getr0()) // not necessary since r0 now class parameter // OLD ( params->r0 ); 
     RealVector& table( params->table );		// table is empty but will be filled in p_survival_table
     const Real rnd( params->rnd );
 
@@ -696,7 +694,7 @@ GreensFunction2DRadAbs::p_int_r_F( const Real r,
 
 // Draws a first passage time, this could be an escape (through the outer boundary) or a reaction (through
 // the inner boundary)
-virtual Real GreensFunction2DRadAbs::drawTime( const Real rnd) const
+Real GreensFunction2DRadAbs::drawTime( const Real rnd) const
 {
     const Real D( this->getD() );
     const Real sigma( this->getSigma() );
@@ -732,7 +730,7 @@ virtual Real GreensFunction2DRadAbs::drawTime( const Real rnd) const
 
 
 	RealVector psurvTable;		// this is still empty as of now->not used
-	p_survival_table_params params = { this, r0, psurvTable, rnd };
+	p_survival_table_params params = { this, psurvTable, rnd };
 	gsl_function F = 
 	{
 	    reinterpret_cast<typeof(F.function)>( &p_survival_table_F ),
@@ -794,7 +792,7 @@ virtual Real GreensFunction2DRadAbs::drawTime( const Real rnd) const
 }
 
 // This determines based on the flux at a certain time, if the 'escape' was a reaction or a proper escape
-const EventKind
+GreensFunction2DRadAbs::EventKind
 GreensFunction2DRadAbs::drawEventType( const Real rnd, 
 					       const Real t ) const
 {
@@ -810,7 +808,7 @@ GreensFunction2DRadAbs::drawEventType( const Real rnd,
 
     if( kf == 0.0 )	// if there cannot be any flow through the radiating boundary it is always an escape
     {
-        return ESCAPE;
+        return IV_ESCAPE;
     }
     
     // First, check if r0 is close only either to a or sigma relative
@@ -829,14 +827,14 @@ GreensFunction2DRadAbs::drawEventType( const Real rnd,
     {
         if( s_dist < max_dist )
         {
-            return REACTION;
+            return IV_REACTION;
         }
     }
     else // a_dist < max_dist
     {
         if( s_dist > max_dist )
         {
-            return ESCAPE;
+            return IV_ESCAPE;
         }
     }
 
@@ -846,16 +844,16 @@ GreensFunction2DRadAbs::drawEventType( const Real rnd,
 
     if( rnd <= value )  
     {
-	return REACTION;   // leaves -> return 0
+	return IV_REACTION;   // leaves -> return 0
     }
     else 
     {
-	return ESCAPE;     // leavea -> return 1
+	return IV_ESCAPE;     // leavea -> return 1
     }
 }
 
 // This draws a radius R at a given time, provided that the particle was at r0 at t=0
-virtual Real GreensFunction2DRadAbs::drawR( const Real rnd, 
+Real GreensFunction2DRadAbs::drawR( const Real rnd, 
 						  const Real t ) const
 {
     const Real D( this->getD() );
@@ -880,9 +878,9 @@ virtual Real GreensFunction2DRadAbs::drawR( const Real rnd,
     RealVector Y0_aAnTable;
     RealVector J0_aAnTable;
     RealVector Y0J1J0Y1Table;
-    createY0J0Tables( Y0_aAnTable, J0_aAnTable, Y0J1J0Y1Table, r0, t);
+    createY0J0Tables( Y0_aAnTable, J0_aAnTable, Y0J1J0Y1Table, t);
 
-    p_int_r_params params = { this, t, r0, Y0_aAnTable, J0_aAnTable, Y0J1J0Y1Table, rnd * psurv };
+    p_int_r_params params = { this, t, Y0_aAnTable, J0_aAnTable, Y0J1J0Y1Table, rnd * psurv };
 
     gsl_function F = 
 	{
@@ -1023,10 +1021,9 @@ GreensFunction2DRadAbs::p_m( const Integer m,
 				     const Real r,
 				     const Real t ) const
 {
-    const Real p( funcSum( boost::bind( &GreensFunction2DRadAbs::
-					p_m_alpha,
+    const Real p( funcSum( boost::bind( &GreensFunction2DRadAbs::p_m_alpha,
 					this,
-					_1, m, r, r0, t ),	// The m-th factor is a summation over n
+					_1, m, r, t ),	// The m-th factor is a summation over n
 			   MAX_ALPHA_SEQ, EPSILON ) );
     return p;
 }
@@ -1139,10 +1136,9 @@ const Real
 GreensFunction2DRadAbs::dp_m_at_a( const Integer m,
 					   const Real t ) const
 {
-    const Real p( funcSum( boost::bind( &GreensFunction2DRadAbs::
-					dp_m_alpha_at_a,
+    const Real p( funcSum( boost::bind( &GreensFunction2DRadAbs::dp_m_alpha_at_a,
 					this,
-					_1, m, r0,t ),
+					_1, m,t ),
 			   MAX_ALPHA_SEQ, EPSILON ) );
 
     return p;
@@ -1226,8 +1222,7 @@ GreensFunction2DRadAbs::ip_theta_table( const Real theta,
 							// it is shifted one because the first entry should
 							// be used (m=0)
 
-    const Real p( funcSum_all( boost::bind( &GreensFunction2DRadAbs::
-                                             ip_theta_n,
+    const Real p( funcSum_all( boost::bind( &GreensFunction2DRadAbs::ip_theta_n,
                                              this,
                                              _1, theta, p_nTable ),
                                 maxm ) );
@@ -1248,7 +1243,7 @@ GreensFunction2DRadAbs::ip_theta_F( const Real theta,
 
 
 // This method draws a theta given a certain r and time (and intial condition of course)
-virtual Real 
+Real 
 GreensFunction2DRadAbs::drawTheta( const Real rnd,
 					   const Real r, 
 					   const Real t ) const
@@ -1287,7 +1282,7 @@ GreensFunction2DRadAbs::drawTheta( const Real rnd,
 
 
 	// preparing the function
-	ip_theta_params params = { this, r, r0, t, p_mTable, rnd*0.5 };	// r, r0, t are not required
+	ip_theta_params params = { this, r, t, p_mTable, rnd*0.5 };	// r, r0, t are not required
 	gsl_function F = 
 	{
 	    reinterpret_cast<typeof(F.function)>( &ip_theta_F ),
