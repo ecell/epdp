@@ -325,8 +325,10 @@ class SphericalPair(Pair):
         threshold_distance = Pair.CUTOFF_FACTOR * \
             math.sqrt(6.0 * self.D_tot * t)
 
+        # if sigma reachable
         if distance_from_sigma < threshold_distance:
         
+            # if shell reachable
             if distance_from_shell < threshold_distance:
                 # near both a and sigma;
                 # use GreensFunction3DRadAbs
@@ -339,12 +341,15 @@ class SphericalPair(Pair):
                     log.debug('GF: only sigma')
                 return GreensFunction3DRadInf(self.D_tot, self.rt.ktot, r0,
                                                self.sigma)
+
+        # sigma unreachable
         else:
             if distance_from_shell < threshold_distance:
                 # near a;
                 if __debug__:
                     log.debug('GF: only a')
-                return GreensFunction3DAbs(self.D_tot, r0, self.a_r)
+                return GreensFunction3DAbs(self.D_tot,
+                                                                 r0, self.a_r)
                 
             else:
                 # distant from both a and sigma; 
@@ -400,13 +405,10 @@ class PlanarSurfacePair(Pair):
                       r0, shell_size, rt, surface)
 
     def com_greens_function(self):
-        # Todo. 2D gf Abs Sym.
-        return GreensFunction3DAbsSym(self.D_R, self.a_R)
+        return GreensFunction2DAbsSym(self.D_R, self.a_R)
 
     def iv_greens_function(self, r0):
-        # Todo. 2D gf Rad Abs.
-        # This exact solution is used for drawing times and event times.
-        return GreensFunction3DRadAbs(self.D_tot, self.rt.ktot, r0,
+        return GreensFunction2DRadAbs(self.D_tot, self.rt.ktot, r0,
                                               self.sigma, self.a_r)
 
     def create_new_shell(self, position, radius, domain_id):

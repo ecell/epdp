@@ -252,9 +252,7 @@ class PlanarSurfaceSingle(NonInteractionSingle):
                                       shell_id, reactiontypes, surface)
 
     def greens_function(self):
-        # Todo. 2D gf Abs Sym.
-        #gf = GreensFunction2DAbsSym(self.getD())
-        return GreensFunction3DAbsSym(self.getD(),
+        return GreensFunction2DAbsSym(self.getD(),
                                           self.get_mobility_radius())
 
     def create_new_shell(self, position, radius, domain_id):
