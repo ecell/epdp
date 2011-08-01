@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python
 
 # Small scripts that demonstrates 2d
 #
@@ -12,13 +12,15 @@
 # created automatically, errormessages will
 # be supressed however. When logging is
 # off, then errormessages are not supressed.
-
+#
+#
+# Make sure that the egfrd system is added to your PYTHONPATH
+# This means, in bash for example:
+# $ export PYTHONPATH=$HOME/egfrd
 
 # Modules
 # ===============================
 import sys
-#Also, set relative python path
-sys.path.append('../../')
 import os
 import datetime
 

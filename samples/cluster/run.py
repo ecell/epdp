@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python
 
 # Rebinding to a cluster
 
@@ -16,14 +16,17 @@
 # $ python run.py 7 1000 data.out
 # Or:
 # $ python run.py 7 1 data.out True
+#
+#
+# Make sure that the egfrd system is added to your PYTHONPATH
+# This means, in bash for example:
+# $ export PYTHONPATH=$HOME/egfrd
 
 print "v23jun2011.3"
 
 # Modules
 # ===============================
 import sys
-#Also, set relative egfrd directory path
-sys.path.append('../../')
 import os
 import shutil
 import datetime
