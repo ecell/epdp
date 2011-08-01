@@ -125,14 +125,14 @@ class Pair(object):
         D2 = single2.pid_particle_pair[1].D
 
 	LD_MAX = 20 # temporary value
-	a_r_max = LD_MAX * (r0 - self.sigma)
+	a_r_max = LD_MAX * (r0 - self.sigma) + self.sigma
 	# a_r_max is the maximum size of a_r for a given maximum ratio of l/delta
 
         # Make sure that D1 != 0 to avoid division by zero in the followings.
         if D1 == 0:
-            D1, D2 = D2, D1
+            D1, D2 = D2, D1	# shouldn't we also here swap the particle radii if we're swapping diffusion contants?
 
-        shell_size /= SAFETY
+        shell_size /= SAFETY	#??
 
         D_tot = D1 + D2
         D_geom = math.sqrt(D1 * D2)
@@ -162,28 +162,31 @@ class Pair(object):
         #ar
         a_r = (D_geom * r0 + D_tot * (shell_size - radiusa)) / (Da + D_geom)
 
+
 	# Now if the planned domainsize for r is too large for proper convergence of the Green's
 	# functions, make it the maximum allowed size
 	if (a_r > a_r_max):
 	    a_r = a_r_max
-	    a_R = shell_size - a_r
+	    a_R = shell_size - radiusa - a_r * Da / D_tot
+	    if __debug__:
+		log.info('domainsize changed for convergence.')
 
         assert a_R + a_r * Da / D_tot + radius1 >= \
                a_R + a_r * Db / D_tot + radius2
 
         assert abs(a_R + a_r * Da / D_tot + radiusa - shell_size) \
-            < 1e-12 * shell_size
+            < 1e-12 * shell_size			# here the shell_size is the relevant scale
 
 
         if __debug__:
           log.debug('a %g, r %g, R %g r0 %g' % 
                  (shell_size, a_r, a_R, r0))
         if __debug__:
-            tr = ((a_r - r0) / math.sqrt(6 * self.D_tot))**2
+            tr = ((a_r - r0)**2) / (6 * self.D_tot)	# the expected escape time of the iv
             if self.D_R == 0:
                 tR = numpy.inf 
             else:
-                tR = (a_R / math.sqrt(6*self.D_R))**2
+                tR = (a_R**2) / (6 * self.D_R)		# the expected escape time of the CoM
             log.debug('tr %g, tR %g' % (tr, tR))
 
 
