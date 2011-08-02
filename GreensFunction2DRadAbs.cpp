@@ -295,33 +295,33 @@ GreensFunction2DRadAbs::p_survival_i( const Real alpha) const
 {
 	const Real a( geta() );		// get the needed parameters
 	const Real sigma( getSigma() );
-        const Real h (this->geth());	// is this the correct one or do I need to use kf?
+//        const Real h (this->geth());	// is this the correct one or do I need to use kf?
 
 	const Real s_An (sigma*alpha);
 	const Real a_An (a*alpha);
-	const Real r0An (r0*alpha);
+//	const Real r0An (r0*alpha);
 
-        const Real J0_sAn  (gsl_sf_bessel_J0(s_An));	// calculate all the required Bessel functions
+//        const Real J0_sAn  (gsl_sf_bessel_J0(s_An));	// calculate all the required Bessel functions
         const Real J1_sAn  (gsl_sf_bessel_J1(s_An));
         const Real J0_aAn  (gsl_sf_bessel_J0(a_An));
-	const Real J1_aAn  (gsl_sf_bessel_J1(a_An));
+//	const Real J1_aAn  (gsl_sf_bessel_J1(a_An));
 
-        const Real J0_r0An (gsl_sf_bessel_J0(r0An));
+//        const Real J0_r0An (gsl_sf_bessel_J0(r0An));
         const Real Y0_aAn  (gsl_sf_bessel_Y0(a_An));
-        const Real Y0_r0An (gsl_sf_bessel_Y0(r0An));
+//        const Real Y0_r0An (gsl_sf_bessel_Y0(r0An));
 
-	const Real Y1_aAn  (gsl_sf_bessel_Y1(a_An));
+//	const Real Y1_aAn  (gsl_sf_bessel_Y1(a_An));
 	const Real Y1_sAn  (gsl_sf_bessel_Y1(s_An));
 
 	// calculate C0,n
         const Real alpha_sq (alpha*alpha);
-
-        const Real rho (h*J0_sAn + alpha*J1_sAn);		// this is only the numerator of rho
-        const Real rho_sq (rho*rho);
-
-        const Real B_n_0 (J0_r0An*Y0_aAn - Y0_r0An*J0_aAn);	// B_0,n (r')
-
-        const Real C_i_0 ((alpha_sq * rho_sq * B_n_0)/( rho_sq - (J0_aAn*J0_aAn)*(h*h + alpha_sq)));
+//
+//        const Real rho (h*J0_sAn + alpha*J1_sAn);		// this is only the numerator of rho
+//        const Real rho_sq (rho*rho);
+//
+//        const Real B_n_0 (J0_r0An*Y0_aAn - Y0_r0An*J0_aAn);	// B_0,n (r')
+//
+        const Real C_i_0 (calc_A_i_0(alpha)); //(alpha_sq * rho_sq * B_n_0)/( rho_sq - (J0_aAn*J0_aAn)*(h*h + alpha_sq)));
 
 	// calculate the integral over Bn,0
 	//const Real B_n_0_int_tmp (Y0_aAn*( a*J1_aAn - sigma*J1_sAn ) - J0_aAn*( a*Y1_aAn - sigma*Y1_sAn ));
@@ -333,35 +333,42 @@ GreensFunction2DRadAbs::p_survival_i( const Real alpha) const
 	return result;
 }
 
-// calculates the An,0 terms for determination of the flux through the outer interface
+// calculates the factor An,0 for (for example) determination of the flux through the outer interface
 const Real 
-GreensFunction2DRadAbs::leavea_i( const Real alpha) const
+GreensFunction2DRadAbs::calc_A_i_0( const Real alpha) const
 {
-        const Real a( geta() );         // get the needed parameters
+        const Real a( geta() );    		        // get the needed parameters
         const Real sigma( getSigma() );
-        const Real h (this->geth());    // is this the correct one or do I need to use kf?
+        const Real h (this->geth());
 
         const Real s_An (sigma*alpha);
         const Real a_An (a*alpha);
         const Real r0An (r0*alpha);
 
-        const Real J0_aAn  (gsl_sf_bessel_J0(s_An));    // calculate all the required Bessel functions
-        const Real J1_aAn  (gsl_sf_bessel_J1(s_An));
-        const Real J0_bAn  (gsl_sf_bessel_J0(a_An));
+//	const int n = 0;
+//	if ( n == 0)
+//	{
+		const Real J0_sAn  (gsl_sf_bessel_J0(s_An));    // calculate all the required Bessel functions
+	        const Real J1_sAn  (gsl_sf_bessel_J1(s_An));
+	        const Real J0_aAn  (gsl_sf_bessel_J0(a_An));
 
-        const Real J0_r0An (gsl_sf_bessel_J0(r0An));
-        const Real Y0_bAn  (gsl_sf_bessel_Y0(a_An));
-        const Real Y0_r0An (gsl_sf_bessel_Y0(r0An));
+	        const Real J0_r0An (gsl_sf_bessel_J0(r0An));
+	        const Real Y0_aAn  (gsl_sf_bessel_Y0(a_An));
+	        const Real Y0_r0An (gsl_sf_bessel_Y0(r0An));
+//	}
+//	else
+//	{
+//	}
 
         // calculate An,0
         const Real alpha_sq (alpha*alpha);
 
-        const Real rho (h*J0_aAn + alpha*J1_aAn);
+        const Real rho (h*J0_sAn + alpha*J1_sAn);
         const Real rho_sq (rho*rho);
 
-        const Real B_n_0 (J0_r0An*Y0_bAn - Y0_r0An*J0_bAn);
+        const Real B_n_0 (J0_r0An*Y0_aAn - Y0_r0An*J0_aAn);
 
-        const Real A_i_0 ((alpha_sq * rho_sq * B_n_0)/( rho_sq - J0_bAn*J0_bAn*(h*h + alpha_sq)));
+        const Real A_i_0 ((alpha_sq * rho_sq * B_n_0)/( rho_sq - (J0_aAn*J0_aAn)*(h*h + alpha_sq)));
 
 	return A_i_0;
 }
@@ -372,37 +379,37 @@ GreensFunction2DRadAbs::leaves_i( const Real alpha) const
 {
         const Real a( geta() );         // get the needed parameters
         const Real sigma( getSigma() );
-        const Real h (this->geth());    // is this the correct one or do I need to use kf?
+//        const Real h (this->geth());    // is this the correct one or do I need to use kf?
 
         const Real s_An (sigma*alpha);
         const Real a_An (a*alpha);
-        const Real r0An (r0*alpha);
+//        const Real r0An (r0*alpha);
 
-        const Real J0_aAn  (gsl_sf_bessel_J0(s_An));    // calculate all the required Bessel functions
-        const Real J1_aAn  (gsl_sf_bessel_J1(s_An));
-        const Real J0_bAn  (gsl_sf_bessel_J0(a_An));
+//        const Real J0_sAn  (gsl_sf_bessel_J0(s_An));    // calculate all the required Bessel functions
+        const Real J1_sAn  (gsl_sf_bessel_J1(s_An));
+        const Real Y1_sAn  (gsl_sf_bessel_Y1(s_An));
+        const Real J0_aAn  (gsl_sf_bessel_J0(a_An));
+        const Real Y0_aAn  (gsl_sf_bessel_Y0(a_An));
 
-        const Real J0_r0An (gsl_sf_bessel_J0(r0An));
-        const Real Y0_bAn  (gsl_sf_bessel_Y0(a_An));
-        const Real Y0_r0An (gsl_sf_bessel_Y0(r0An));
+//        const Real J0_r0An (gsl_sf_bessel_J0(r0An));
+//        const Real Y0_r0An (gsl_sf_bessel_Y0(r0An));
 
-        const Real Y1_aAn  (gsl_sf_bessel_Y1(s_An));
 
         // calculate An,0
-        const Real alpha_sq (alpha*alpha);
+//        const Real alpha_sq (alpha*alpha);
+//
+//        const Real rho (h*J0_aAn + alpha*J1_aAn);
+//        const Real rho_sq (rho*rho);
+//
+//        const Real B_n_0 (J0_r0An*Y0_bAn - Y0_r0An*J0_bAn);
+//
+        const Real A_i_0 (calc_A_i_0(alpha));		// calculate the coefficient A0,n
 
-        const Real rho (h*J0_aAn + alpha*J1_aAn);
-        const Real rho_sq (rho*rho);
-
-        const Real B_n_0 (J0_r0An*Y0_bAn - Y0_r0An*J0_bAn);
-
-        const Real A_i_0 ((alpha_sq * rho_sq * B_n_0));
-
-	// calculate Bn,0(sigma, alpha)
-	const Real B_n_0_sigma (Y0_bAn * J1_aAn - J0_bAn * Y1_aAn);
+	// calculate dBn,0(sigma)/dr
+	const Real dB_n_0dr (-alpha*(J1_sAn*Y0_aAn - Y1_sAn*J0_aAn));
 
 	// calculate the total result
-	const Real result ((alpha * A_i_0 * B_n_0_sigma)/( rho_sq - J0_bAn*J0_bAn*(h*h + alpha_sq)));
+	const Real result (A_i_0 * dB_n_0dr);
         return result;
 }
 
@@ -462,32 +469,32 @@ const boost::tuple<Real,Real,Real>
 GreensFunction2DRadAbs::Y0J0J1_constants ( const Real alpha,
 							const Real t) const
 {	const Real D(this->getD());
-	const Real h(this->geth());
+//	const Real h(this->geth());
 	const Real sigma(this->getSigma());
 	const Real a(this->geta());
-	const Real r0(this->getr0()); 
+//	const Real r0(this->getr0()); 
 
 	const Real s_An (sigma*alpha);
 	const Real a_An (a*alpha);
-	const Real r0An (r0*alpha);
+//	const Real r0An (r0*alpha);
 
-	const Real J0_aAn  (gsl_sf_bessel_J0(s_An));    // calculate all the required Bessel functions
-	const Real J1_aAn  (gsl_sf_bessel_J1(s_An));
-	const Real J0_bAn  (gsl_sf_bessel_J0(a_An));
+//	const Real J0_aAn  (gsl_sf_bessel_J0(s_An));    // calculate all the required Bessel functions
 
-	const Real J0_r0An (gsl_sf_bessel_J0(r0An));
-	const Real Y0_bAn  (gsl_sf_bessel_Y0(a_An));
-	const Real Y0_r0An (gsl_sf_bessel_Y0(r0An));
+//	const Real J0_r0An (gsl_sf_bessel_J0(r0An));
+	const Real J0_aAn  (gsl_sf_bessel_J0(a_An));
+	const Real Y0_aAn  (gsl_sf_bessel_Y0(a_An));
+//	const Real Y0_r0An (gsl_sf_bessel_Y0(r0An));
 
-	const Real Y1_aAn  (gsl_sf_bessel_Y1(s_An));
+	const Real J1_sAn  (gsl_sf_bessel_J1(s_An));
+	const Real Y1_sAn  (gsl_sf_bessel_Y1(s_An));
 
 
         // calculate An,0
 	const Real alpha_sq (alpha*alpha);
-	const Real rho (h*J0_aAn + alpha*J1_aAn);
-	const Real rho_sq (rho*rho);
-	const Real B_n_0 (J0_r0An*Y0_bAn - Y0_r0An*J0_bAn);
-	const Real A_i_0 ((alpha_sq * rho_sq * B_n_0)/( rho_sq - J0_bAn*J0_bAn*(h*h + alpha_sq)));
+//	const Real rho (h*J0_aAn + alpha*J1_aAn);
+//	const Real rho_sq (rho*rho);
+//	const Real B_n_0 (J0_r0An*Y0_bAn - Y0_r0An*J0_bAn);
+	const Real A_i_0 (calc_A_i_0(alpha)); //_sq * rho_sq * B_n_0)/( rho_sq - J0_bAn*J0_bAn*(h*h + alpha_sq)));
 
 	// calculate the exponent with the time
 	const Real expT( std::exp(-D*alpha_sq*t));
@@ -495,9 +502,9 @@ GreensFunction2DRadAbs::Y0J0J1_constants ( const Real alpha,
 	const Real Ai0_expT (A_i_0 * expT / alpha);
 
 	// calculate the large constant term in the intergral of Bn,0
-	const Real Y0J1_J0Y1 (Y0_bAn*sigma*J1_aAn - J0_bAn*sigma*Y1_aAn);
+	const Real Y0J1_J0Y1 (Y0_aAn*sigma*J1_sAn - J0_aAn*sigma*Y1_sAn);
 
-	return boost::make_tuple (Ai0_expT*Y0_bAn, Ai0_expT*J0_bAn, Ai0_expT*Y0J1_J0Y1);
+	return boost::make_tuple (Ai0_expT*Y0_aAn, Ai0_expT*J0_aAn, Ai0_expT*Y0J1_J0Y1);
 }
 
 
@@ -518,7 +525,7 @@ GreensFunction2DRadAbs::leavea_i_exp( const unsigned int i,
 					      const Real t) const
 {
     const Real alpha( this->getAlpha0( i ) );
-    return std::exp( - getD() * t * alpha * alpha ) * leavea_i( alpha );
+    return std::exp( - getD() * t * alpha * alpha ) * calc_A_i_0( alpha );
 }
 
 // adds the exponential with the time to the sum. Needed for the inner interface (reaction)
@@ -635,8 +642,9 @@ GreensFunction2DRadAbs::leaves( const Real t) const
                                         _1, t),
                            this->MAX_ALPHA_SEQ ) );
 
-    return -M_PI_2*M_PI*D*sigma*p;	// The minus is there because the flux is in the negative r
-					// direction. The minus makes the flux always positive
+    return M_PI_2*M_PI*D*sigma*p;	// The minus is not there because the flux is in the negative r
+					// direction, and the direction is already accounted for in the derivative of B0,n(r)
+					// See also leaves_i
 }
 
 // calculates the flux leaving through the outer interface at a given moment
@@ -1006,7 +1014,7 @@ const Real GreensFunction2DRadAbs::p_m_alpha( const unsigned int n,
 	// calculating Bn,m(r')
 	const Real B_n_m_r0 (Jm_r0Anm * Ym_aAnm  -  Ym_r0Anm * Jm_aAnm);
 
-	const Real A_n_m ((alpha_sq * rho_sq * B_n_m_r0)/( rho_sq - Jm_aAnm*Jm_aAnm*(h*h + alpha_sq - msq/ssq)));
+	const Real A_n_m ((alpha_sq * rho_sq * B_n_m_r0)/( rho_sq - (Jm_aAnm*Jm_aAnm)*(h*h + alpha_sq - msq/ssq)));
 
 
 	// calculating Bn,m(r*)
@@ -1129,7 +1137,7 @@ GreensFunction2DRadAbs::dp_m_alpha_at_a( const unsigned int n,
         // calculating Bn,m(r')
         const Real B_n_m_r0 (Jm_r0Anm * Ym_aAnm  -  Ym_r0Anm * Jm_aAnm);
 
-        const Real A_n_m ((alpha_sq * rho_sq * B_n_m_r0)/( rho_sq - Jm_aAnm*Jm_aAnm*(h*h + alpha_sq - msq/ssq)));
+        const Real A_n_m ((alpha_sq * rho_sq * B_n_m_r0)/( rho_sq - (Jm_aAnm*Jm_aAnm)*(h*h + alpha_sq - msq/ssq)));
 
         // calculating the result
         const Real result( A_n_m * exp(-D*alpha_sq*t) );
@@ -1206,12 +1214,13 @@ GreensFunction2DRadAbs::makedp_m_at_aTable( RealVector& p_mTable,
 }
 
 // This calculates the m-th term of the summation for the drawTheta calculation
+// Note that m here starts at 0 and in the equations the sum starts at 1!
 const Real 
 GreensFunction2DRadAbs::ip_theta_n( const unsigned int m,
 						const Real theta,
 						const RealVector& p_nTable) const
 {
-	const unsigned int m_p1 (m+1);
+	const unsigned int m_p1 (m+1);		// artificial increase of m to make sure m starts at 1
         return p_nTable[m_p1] * sin (m_p1*theta)/m_p1;
 }
 
@@ -1256,7 +1265,7 @@ GreensFunction2DRadAbs::drawTheta( const Real rnd,
 	const Real sigma( this->getSigma() );
 	const Real a( this->geta() );
 	const Real D( this->getD() );
-    const Real r0( this->getr0() );
+    	const Real r0( this->getr0() );
 
 	// input parameter range checks.
 	THROW_UNLESS( std::invalid_argument, 0.0 <= rnd && rnd < 1.0 );

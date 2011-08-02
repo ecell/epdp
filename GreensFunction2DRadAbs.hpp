@@ -113,7 +113,7 @@ public:
 
     const Real p_survival_i( const Real alpha) const;
 
-    const Real leavea_i( const Real alpha) const;
+    const Real calc_A_i_0( const Real alpha) const;
 
     const Real leaves_i( const Real alpha) const;
 
