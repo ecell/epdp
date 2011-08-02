@@ -43,9 +43,9 @@ public:
     
     GreensFunction2DRadAbs( const Real D, 
 				    const Real kf,
-                    const Real r0, 
+               			    const Real r0, 
 				    const Real Sigma,
-                    const Real a );
+		                    const Real a );
   
     virtual ~GreensFunction2DRadAbs();
 

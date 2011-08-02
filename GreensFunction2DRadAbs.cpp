@@ -301,34 +301,35 @@ GreensFunction2DRadAbs::p_survival_i( const Real alpha) const
 	const Real a_An (a*alpha);
 	const Real r0An (r0*alpha);
 
-        const Real J0_aAn  (gsl_sf_bessel_J0(s_An));	// calculate all the required Bessel functions
-        const Real J1_aAn  (gsl_sf_bessel_J1(s_An));
-        const Real J0_bAn  (gsl_sf_bessel_J0(a_An));
-	const Real J1_bAn  (gsl_sf_bessel_J1(a_An));
+        const Real J0_sAn  (gsl_sf_bessel_J0(s_An));	// calculate all the required Bessel functions
+        const Real J1_sAn  (gsl_sf_bessel_J1(s_An));
+        const Real J0_aAn  (gsl_sf_bessel_J0(a_An));
+	const Real J1_aAn  (gsl_sf_bessel_J1(a_An));
 
         const Real J0_r0An (gsl_sf_bessel_J0(r0An));
-        const Real Y0_bAn  (gsl_sf_bessel_Y0(a_An));
+        const Real Y0_aAn  (gsl_sf_bessel_Y0(a_An));
         const Real Y0_r0An (gsl_sf_bessel_Y0(r0An));
 
-	const Real Y1_bAn  (gsl_sf_bessel_Y1(a_An));
-	const Real Y1_aAn  (gsl_sf_bessel_Y1(s_An));
+	const Real Y1_aAn  (gsl_sf_bessel_Y1(a_An));
+	const Real Y1_sAn  (gsl_sf_bessel_Y1(s_An));
 
-	// calculate An,0
+	// calculate C0,n
         const Real alpha_sq (alpha*alpha);
 
-        const Real rho (h*J0_aAn + alpha*J1_aAn);
+        const Real rho (h*J0_sAn + alpha*J1_sAn);		// this is only the numerator of rho
         const Real rho_sq (rho*rho);
 
-        const Real B_n_0 (J0_r0An*Y0_bAn - Y0_r0An*J0_bAn);
+        const Real B_n_0 (J0_r0An*Y0_aAn - Y0_r0An*J0_aAn);	// B_0,n (r')
 
-        const Real A_i_0 ((alpha_sq * rho_sq * B_n_0)/( rho_sq - J0_bAn*J0_bAn*(h*h + alpha_sq)));
+        const Real C_i_0 ((alpha_sq * rho_sq * B_n_0)/( rho_sq - (J0_aAn*J0_aAn)*(h*h + alpha_sq)));
 
 	// calculate the integral over Bn,0
-	const Real B_n_0_int_tmp (Y0_bAn*( a*J1_bAn - sigma*J1_aAn ) - J0_bAn*( a*Y1_bAn - sigma*Y1_aAn ));
-	const Real B_n_0_int (B_n_0_int_tmp/alpha);
+	//const Real B_n_0_int_tmp (Y0_aAn*( a*J1_aAn - sigma*J1_sAn ) - J0_aAn*( a*Y1_aAn - sigma*Y1_sAn ));
+	const Real dB_n_0dr (J1_sAn*Y0_aAn - Y1_sAn*J0_aAn);	// this is only the part without alpha of dB0,n(sigma)/dr
+	const Real B_n_0_int (Real(2.0)/(M_PI*alpha_sq) - (sigma/alpha)*dB_n_0dr);
 
 	// return the total result
-	const Real result (A_i_0 * B_n_0_int);
+	const Real result (C_i_0 * B_n_0_int);
 	return result;
 }
 
@@ -441,13 +442,18 @@ GreensFunction2DRadAbs::createY0J0Tables( RealVector& Y0_Table,
 	Y0J1J0Y1_Table.reserve( alphaTable_0.size() );
 
 	boost::tuple<Real,Real,Real> result;
+
+	std::clog << "building Y0J0Tables... ";
 	
 	for (unsigned int count = 0; count < alphaTable_0.size(); count++)
 	{	result = Y0J0J1_constants(alphaTable_0[count], t);
+
 		Y0_Table.push_back (result.get<0>());
 		J0_Table.push_back (result.get<1>());
 		Y0J1J0Y1_Table.push_back (result.get<2>());
 	}
+
+	std::clog << "done" << std::endl;
 }
 
 
@@ -667,8 +673,7 @@ const Real
 GreensFunction2DRadAbs::p_survival_table_F( const Real t,
                     					const p_survival_table_params* params )
 {
-    const GreensFunction2DRadAbs* const gf( params->gf ); // the current gf (not sure why this is
-								    // here)
+    const GreensFunction2DRadAbs* const gf( params->gf ); // the current gf (not sure why this is here)
 //    const Real r0(this->getr0()) // not necessary since r0 now class parameter // OLD ( params->r0 ); 
     RealVector& table( params->table );		// table is empty but will be filled in p_survival_table
     const Real rnd( params->rnd );
@@ -968,7 +973,7 @@ const Real GreensFunction2DRadAbs::p_m_alpha( const unsigned int n,
 	const Real a( this->geta() );
 	const Real D( this->getD() );
 	const Real alpha( this->getAlpha( m, n ) ); // get the n-th root using the besselfunctions of order m
-    const Real r0( this->getr0() );
+	const Real r0( this->getr0() );
 
 
 	const Real alpha_sq( alpha * alpha );
@@ -1270,16 +1275,21 @@ GreensFunction2DRadAbs::drawTheta( const Real rnd,
 	}
 
 	// making the tables with constants
+	std::clog << "Making table p_mTable... ";
+
 	RealVector p_mTable;			// a table with constants to make calculations much faster
 	if( fabs(r - a) <= EPSILON*L_TYPICAL )	// If the r is at the outer boundary
 	{
+		std::clog << "at a... ";
 		makedp_m_at_aTable( p_mTable, t );	// making the table if particle on the outer boundary
 	}
 	else
 	{
+		std::clog << "NOT at a... ";
 		makep_mTable( p_mTable, r, t );	// making the table of constants for the regular case
 	}
 
+	std::clog << "done" << std::endl;
 
 	// preparing the function
 	ip_theta_params params = { this, r, t, p_mTable, rnd*0.5 };	// r, r0, t are not required
