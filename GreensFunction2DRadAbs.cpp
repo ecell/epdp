@@ -34,12 +34,12 @@ const unsigned int GreensFunction2DRadAbs::MAX_ALPHA_SEQ;
 GreensFunction2DRadAbs::
 GreensFunction2DRadAbs( const Real D, 
 				    const Real kf,
-                    const Real r0, 
+				    const Real r0, 
 				    const Real Sigma,
-                    const Real a )
+                    		    const Real a )
     :
     PairGreensFunction(D, kf, r0, Sigma),
-    h( kf / D ),
+    h( kf / (D * 2.0 * M_PI * Sigma) ),
     a( a )
 {
     ; // do nothing
