@@ -295,36 +295,21 @@ GreensFunction2DRadAbs::p_survival_i( const Real alpha) const
 {
 	const Real a( geta() );		// get the needed parameters
 	const Real sigma( getSigma() );
-//        const Real h (this->geth());	// is this the correct one or do I need to use kf?
 
 	const Real s_An (sigma*alpha);
 	const Real a_An (a*alpha);
-//	const Real r0An (r0*alpha);
+        const Real alpha_sq (alpha*alpha);
 
-//        const Real J0_sAn  (gsl_sf_bessel_J0(s_An));	// calculate all the required Bessel functions
+	// calculate all the required Bessel functions
         const Real J1_sAn  (gsl_sf_bessel_J1(s_An));
         const Real J0_aAn  (gsl_sf_bessel_J0(a_An));
-//	const Real J1_aAn  (gsl_sf_bessel_J1(a_An));
-
-//        const Real J0_r0An (gsl_sf_bessel_J0(r0An));
         const Real Y0_aAn  (gsl_sf_bessel_Y0(a_An));
-//        const Real Y0_r0An (gsl_sf_bessel_Y0(r0An));
-
-//	const Real Y1_aAn  (gsl_sf_bessel_Y1(a_An));
 	const Real Y1_sAn  (gsl_sf_bessel_Y1(s_An));
 
 	// calculate C0,n
-        const Real alpha_sq (alpha*alpha);
-//
-//        const Real rho (h*J0_sAn + alpha*J1_sAn);		// this is only the numerator of rho
-//        const Real rho_sq (rho*rho);
-//
-//        const Real B_n_0 (J0_r0An*Y0_aAn - Y0_r0An*J0_aAn);	// B_0,n (r')
-//
-        const Real C_i_0 (calc_A_i_0(alpha)); //(alpha_sq * rho_sq * B_n_0)/( rho_sq - (J0_aAn*J0_aAn)*(h*h + alpha_sq)));
+        const Real C_i_0 (calc_A_i_0(alpha)); 
 
 	// calculate the integral over Bn,0
-	//const Real B_n_0_int_tmp (Y0_aAn*( a*J1_aAn - sigma*J1_sAn ) - J0_aAn*( a*Y1_aAn - sigma*Y1_sAn ));
 	const Real dB_n_0dr (J1_sAn*Y0_aAn - Y1_sAn*J0_aAn);	// this is only the part without alpha of dB0,n(sigma)/dr
 	const Real B_n_0_int (Real(2.0)/(M_PI*alpha_sq) - (sigma/alpha)*dB_n_0dr);
 
@@ -379,30 +364,17 @@ GreensFunction2DRadAbs::leaves_i( const Real alpha) const
 {
         const Real a( geta() );         // get the needed parameters
         const Real sigma( getSigma() );
-//        const Real h (this->geth());    // is this the correct one or do I need to use kf?
 
         const Real s_An (sigma*alpha);
         const Real a_An (a*alpha);
-//        const Real r0An (r0*alpha);
 
-//        const Real J0_sAn  (gsl_sf_bessel_J0(s_An));    // calculate all the required Bessel functions
+	// calculate all the required Bessel functions
         const Real J1_sAn  (gsl_sf_bessel_J1(s_An));
         const Real Y1_sAn  (gsl_sf_bessel_Y1(s_An));
         const Real J0_aAn  (gsl_sf_bessel_J0(a_An));
         const Real Y0_aAn  (gsl_sf_bessel_Y0(a_An));
 
-//        const Real J0_r0An (gsl_sf_bessel_J0(r0An));
-//        const Real Y0_r0An (gsl_sf_bessel_Y0(r0An));
-
-
         // calculate An,0
-//        const Real alpha_sq (alpha*alpha);
-//
-//        const Real rho (h*J0_aAn + alpha*J1_aAn);
-//        const Real rho_sq (rho*rho);
-//
-//        const Real B_n_0 (J0_r0An*Y0_bAn - Y0_r0An*J0_bAn);
-//
         const Real A_i_0 (calc_A_i_0(alpha));		// calculate the coefficient A0,n
 
 	// calculate dBn,0(sigma)/dr
@@ -427,8 +399,8 @@ GreensFunction2DRadAbs::createPsurvTable( RealVector& table) const
 		    std::back_inserter( table ),
 		    boost::bind( &GreensFunction2DRadAbs::p_survival_i,
 				 this, _1) );	// This gets all the roots from 'begin' to 'end'
-							// passes them as an argument to p_survival_i and
-							// the result is passed to back_inserter
+						// passes them as an argument to p_survival_i and
+						// the result is passed to back_inserter
 }
 
 // Creates the tables with various Bessel functions used in drawR, the table is used to speed things up
@@ -469,31 +441,21 @@ const boost::tuple<Real,Real,Real>
 GreensFunction2DRadAbs::Y0J0J1_constants ( const Real alpha,
 							const Real t) const
 {	const Real D(this->getD());
-//	const Real h(this->geth());
 	const Real sigma(this->getSigma());
 	const Real a(this->geta());
-//	const Real r0(this->getr0()); 
 
 	const Real s_An (sigma*alpha);
 	const Real a_An (a*alpha);
-//	const Real r0An (r0*alpha);
+	const Real alpha_sq (alpha*alpha);
 
-//	const Real J0_aAn  (gsl_sf_bessel_J0(s_An));    // calculate all the required Bessel functions
-
-//	const Real J0_r0An (gsl_sf_bessel_J0(r0An));
+	// calculate all the required Bessel functions
 	const Real J0_aAn  (gsl_sf_bessel_J0(a_An));
 	const Real Y0_aAn  (gsl_sf_bessel_Y0(a_An));
-//	const Real Y0_r0An (gsl_sf_bessel_Y0(r0An));
-
 	const Real J1_sAn  (gsl_sf_bessel_J1(s_An));
 	const Real Y1_sAn  (gsl_sf_bessel_Y1(s_An));
 
 
         // calculate An,0
-	const Real alpha_sq (alpha*alpha);
-//	const Real rho (h*J0_aAn + alpha*J1_aAn);
-//	const Real rho_sq (rho*rho);
-//	const Real B_n_0 (J0_r0An*Y0_bAn - Y0_r0An*J0_bAn);
 	const Real A_i_0 (calc_A_i_0(alpha)); //_sq * rho_sq * B_n_0)/( rho_sq - J0_bAn*J0_bAn*(h*h + alpha_sq)));
 
 	// calculate the exponent with the time
@@ -682,7 +644,6 @@ GreensFunction2DRadAbs::p_survival_table_F( const Real t,
                     					const p_survival_table_params* params )
 {
     const GreensFunction2DRadAbs* const gf( params->gf ); // the current gf (not sure why this is here)
-//    const Real r0(this->getr0()) // not necessary since r0 now class parameter // OLD ( params->r0 ); 
     RealVector& table( params->table );		// table is empty but will be filled in p_survival_table
     const Real rnd( params->rnd );
 
