@@ -22,7 +22,7 @@
 #include "funcSum.hpp"
 #include "findRoot.hpp"
 #include "freeFunctions.hpp"
-
+#include "CylindricalBesselGenerator.hpp"
 #include "GreensFunction2DRadAbs.hpp"
 
 const Real GreensFunction2DRadAbs::MIN_T_FACTOR;
@@ -983,7 +983,6 @@ const Real GreensFunction2DRadAbs::p_m_alpha( const unsigned int n,
 	const Real alpha( this->getAlpha( m, n ) ); // get the n-th root using the besselfunctions of order m
 	const Real r0( this->getr0() );
 
-
 	const Real alpha_sq( alpha * alpha );
 	const Real realm( static_cast<Real>( m ) );
 	const Real msq( realm * realm);
@@ -994,17 +993,31 @@ const Real GreensFunction2DRadAbs::p_m_alpha( const unsigned int n,
 	const Real r0Anm (r0*alpha);
 	const Real r_Anm (r*alpha);
 
+
+//	const CylindricalBesselGenerator& s(CylindricalBesselGenerator::instance());
+
 	// calculate the needed bessel functions
 	const Real Jm_sAnm   (gsl_sf_bessel_Jn(m, s_Anm));
 	const Real Jmp1_sAnm (gsl_sf_bessel_Jn(m+1, s_Anm));	// prime
+//	const Real Jm_sAnm   (s.J(m, s_Anm));
+//	const Real Jmp1_sAnm (s.J(m+1, s_Anm));	// prime
+
+	std::clog << "|";	// DEBUG
 	const Real Jm_aAnm   (gsl_sf_bessel_Jn(m, a_Anm));
 	const Real Ym_aAnm   (gsl_sf_bessel_Yn(m, a_Anm));
+//	const Real Jm_aAnm   (s.J(m, a_Anm));
+//	const Real Ym_aAnm   (s.Y(m, a_Anm));
+	std::clog << "_";	// DEBUG
 
 	const Real Jm_r0Anm  (gsl_sf_bessel_Jn(m, r0Anm));
 	const Real Ym_r0Anm  (gsl_sf_bessel_Yn(m, r0Anm));
+//	const Real Jm_r0Anm  (s.J(m, r0Anm));
+//	const Real Ym_r0Anm  (s.Y(m, r0Anm));
 
 	const Real Jm_rAnm   (gsl_sf_bessel_Jn(m, r_Anm));
 	const Real Ym_rAnm   (gsl_sf_bessel_Yn(m, r_Anm));
+//	const Real Jm_rAnm   (s.J(m, r_Anm));
+//	const Real Ym_rAnm   (s.Y(m, r_Anm));
 
 
 	// calculating An,m
@@ -1053,17 +1066,19 @@ GreensFunction2DRadAbs::makep_mTable( RealVector& p_mTable,
 	const Real p_0 ( this->p_m( 0, r, t ) );	// This is the p_m where m is 0, for the denominator
 	p_mTable.push_back( p_0 );			// put it in the table
 
+	std::clog << "m=0, ";	// DEBUG
 
 	const Real p_1 ( this->p_m( 1, r, t ) / p_0 );
 	p_mTable.push_back( p_1 );			// put the first result in the table
 
+	std::clog << "m=1, ";	// DEBUG
 
 	if( p_1 == 0 )
 	{
 		return;					// apparantly all the terms are zero? We are finished
 	}
 
-	const Real threshold( fabs( EPSILON * p_1  ) );	// get a measure for the allowed error
+	const Real threshold( fabs( EPSILON * p_1  ) );	// get a measure for the allowed error, is this correct?
 
 	Real p_m_abs (fabs (p_1));
 	Real p_m_prev_abs;	
@@ -1077,9 +1092,12 @@ GreensFunction2DRadAbs::makep_mTable( RealVector& p_mTable,
 			break;
 		}
 
+		std::clog << "m=" << m ;	// DEBUG
 
 		p_m_prev_abs = p_m_abs;					// store the previous term
 		const Real p_m( this->p_m( m, r, t ) / p_0 );	// get the next term
+
+		std::clog << ", ";		// DEBUG
 
 		if( ! std::isfinite( p_m ) )		// if the calculated value is not valid->exit
 		{
