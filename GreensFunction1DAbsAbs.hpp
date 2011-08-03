@@ -41,6 +41,8 @@ private:
     static const int MAX_TERMS = 500;
     // The minimum
     static const int MIN_TERMS = 20;
+    // Cutoff distance: When H * sqrt(2Dt) < 1/2*L, use free greensfunction instead of absorbing.
+    static const Real CUTOFF_H = 6.0;
 
 
 public:
@@ -188,7 +190,8 @@ private:
         double rnd;
     };
 
-    static double drawR_f (double z, void *p);
+    static double drawR_f (double z, drawR_params const* params);
+    static double drawR_free_f (double z, drawR_params const* params);
 
 private:
     // The diffusion constant and drift velocity

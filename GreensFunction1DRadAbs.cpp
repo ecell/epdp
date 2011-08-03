@@ -506,7 +506,7 @@ GreensFunction1DRadAbs::drawTime (Real rnd) const
 
 	    if( fabs( high ) >= t_guess * 1e6 )
 	    {
-		std::cerr << "GF1DRad: Couldn't adjust high. F("
+		std::cerr << "GF1DRad::drawTime Couldn't adjust high. F("
 		          << high << ") = " << value << std::endl;
 		throw std::exception();
 	    }
@@ -524,7 +524,7 @@ GreensFunction1DRadAbs::drawTime (Real rnd) const
 	    if( fabs( low ) <= t_guess * 1e-6 ||
 	        fabs(value-value_prev) < EPSILON*1.0 )
 	    {
-		std::cerr << "GF1DRad: Couldn't adjust low. F(" << low << ") = "
+		std::cerr << "GF1DRad::drawTime Couldn't adjust low. F(" << low << ") = "
 		          << value << " t_guess: " << t_guess << " diff: "
 		          << (value - value_prev) << " value: " << value
 		          << " value_prev: " << value_prev << " rnd: "

@@ -2,6 +2,7 @@
 #define CYLINDRICAL_SURFACE_HPP
 
 #include <boost/bind.hpp>
+#include <iostream>
 #include "Surface.hpp"
 #include "Cylinder.hpp"
 //#include "freeFunctions.hpp"
@@ -42,35 +43,51 @@ public:
 
     virtual Real p_acceptance(Real k_a, Real dt, length_type r01, position_type ipv, Real D0, Real D1, Real v0, Real v1) const
     {
+
+        /* The inter particle vector (ipv) points from A -> B, where A initiated overlap. */
+        Real ipv = dot_product( ipv, base_type::shape().unit_z() );
+        Real abs_ipv = fabs( ipv );
+        Real v = v1 - v0;
+        Real D01 = D0 + D1;
+
+        Real correction = exp( -ipv/abs_ipv * (abs_ipv - r01) * v/D01 );
+       
         /*
             The I_bd factors used for calculating the acceptance probability are dependent on the direction 
-            of the overlap step (step_direction = r_1 - r_0), compared to the direction of the drift. 
-            The I_bd factors are defined for a particle creating an overlap comming from the right (r < 0). 
-            If the particle comes from the left, we invert (v *= -1) the direction of its drift.
+            of the overlap step (r = r_1 - r_0), compared to the direction of the drift. 
+            The I_bd factors are defined for a particle creating an overlap comming from the right (r < 0).
+            Since the I_bd terms calulated here are for the backward move, we have to invert their drifts.
+            When the particle comes from the left (r > 0) we have to invert its drift again.
+
+            ---Code below is used for drift dependent backstep.
+
+            Real numerator = g_bd_1D(ipv, r01, dt, D0, -v0);
+            Real denominator = g_bd_1D(ipv, r01, dt, D0, v0)*exp( ipv/abs_ipv*(abs_ipv - r01)*v/D01 );
+            Real correction = numerator/denominator;
+
+            if( ipv < 0 )
+                return correction*( k_a * dt / ( I_bd_1D(r01, dt, D0, -v0) + I_bd_1D(r01, dt, D1, v1) ) );
+            else
+                return correction*( k_a * dt / ( I_bd_1D(r01, dt, D0, v0) + I_bd_1D(r01, dt, D1, -v1) ) );
+
+            Also change v -> -v in drawR for the dissociation move.
         */
-        length_type step_direction = dot_product( ipv, base_type::shape().unit_z() );
 
-        if( step_direction > 0 )
-            v0 *= -1;
-        else
-            v1 *= -1;
-
-        return k_a * dt / ( I_bd_1D(r01, dt, D0, v0) + I_bd_1D(r01, dt, D1, v1) );
+        return correction*( k_a * dt / ( I_bd_1D(r01, dt, D0, v0) + I_bd_1D(r01, dt, D1, v1) ) );
+  
     }
 
     virtual position_type dissociation_vector( rng_type& rng, length_type r01, Real dt, Real D01, Real v ) const
     {
-        Real I_A( I_bd_1D(r01, dt, D01, v) );        
-        Real prob( rng()*(I_A + I_bd_1D(r01, dt, D01, -v)) );
-        Real rnd( rng() );
-
-        if( prob < I_A )    
-            return multiply(base_type::shape().unit_z(), drawR_gbd( rnd, r01, dt, D01, v ) );
+        //Real I_01( I_bd_1D(r01, dt, D01,  v) );        
+        //Real I_10( I_bd_1D(r01, dt, D01, -v) ); 
+        //Real prob( rng()*(I_01 + I_10 );
+        Real prob( rng() );
+        
+        if( prob < 0.5 ) 
+            return base_type::shape().unit_z() * drawR_gbd( rnd, r01, dt, D01, v );
         else
-        {
-            position_type direction( base_type::shape().unit_z() * -1. );
-            return multiply( direction, drawR_gbd( rnd, r01, dt, D01, -v ) );    
-        }
+            return base_type::shape().unit_z() * -1. * drawR_gbd( rnd, r01, dt, D01, v );
     }
 
     virtual length_type minimal_distance(length_type const& radius) const

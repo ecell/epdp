@@ -66,7 +66,7 @@ GreensFunction1DAbsAbs::p_survival (Real t) const
       {
 	  if (n >= MAX_TERMS )
 	  {
-	      std::cerr << "Too many terms for p_survival. N: " << n << std::endl;
+	      std::cerr << "Too many terms for GF1DAbs::p_survival. N: " << n << std::endl;
 	      break;
 	  }
 	  
@@ -160,7 +160,7 @@ GreensFunction1DAbsAbs::prob_r (Real r, Real t) const
     {
 	if (n >= MAX_TERMS )
 	{
-	    std::cerr << "Too many terms for prob_r. N: " << n << std::endl;
+	    std::cerr << "Too many terms for GF1DAbs::prob_r. N: " << n << std::endl;
 	    break;
 	}
 
@@ -224,7 +224,7 @@ GreensFunction1DAbsAbs::leaves(Real t) const
     {
 	if (n >= MAX_TERMS )
 	{
-	    std::cerr << "Too many terms for p_survival. N: " << n << std::endl;
+	    std::cerr << "Too many terms for GF1DAbs::leaves. N: " << n << std::endl;
 	    break;
 	}
 
@@ -279,7 +279,7 @@ GreensFunction1DAbsAbs::leavea(Real t) const
      {
        if (n >= MAX_TERMS )
        {
-	 std::cerr << "Too many terms for leaves. N: " << n << std::endl;
+	 std::cerr << "Too many terms for GF1DAbs::leavea. N: " << n << std::endl;
 	 break;
        }
        
@@ -380,7 +380,7 @@ GreensFunction1DAbsAbs::drawT_f (double t, void *p)
     prefactor = params->prefactor;
     
     // find intersection with the random number
-    return 1.0 - prefactor*sum - params->rnd;
+    return params->rnd - prefactor*sum; 
 }
 
 // Draws the first passage time from the propensity function.
@@ -465,8 +465,8 @@ GreensFunction1DAbsAbs::drawTime (Real rnd) const
     }
 
     // the prefactor of the sum is also different in case of drift<>0 :
-    if(v==0)	prefactor = 2.0*exp(vexpo_pref);
-    else	prefactor = 2.0;
+    if(v == 0)	prefactor = 2.0;
+    else	prefactor = 2.0*exp(vexpo_pref);
     parameters.prefactor = prefactor;
     
     parameters.rnd = rnd;
@@ -556,15 +556,22 @@ GreensFunction1DAbsAbs::drawTime (Real rnd) const
     return t;
 }
 
+Real GreensFunction1DAbsAbs::drawR_free_f(double r, drawR_params const* params)
+{
+    const Real D(params->H[0]);
+    const Real vt(params->H[1]*params->H[2]);
+    const Real sqrt4Dt(sqrt( 4 * D * params->H[2] ));
+
+    return 0.5*( 1.0 + erf( (r - vt) / sqrt4Dt ) ) - params->rnd;
+}
 
 // This is a help function that casts the drawR_params parameter structure into
 // the right form and calculates the survival probability from it (and returns it).
 // The routine drawR uses this function to sample the exit point, making use of the
 // GSL root finder to draw the random position.
 double
-GreensFunction1DAbsAbs::drawR_f (double r, void *p)
+GreensFunction1DAbsAbs::drawR_f (double r, drawR_params const* params)
 {   
-    struct drawR_params *params = (struct drawR_params *)p;
     double sum = 0, term = 0, prev_term = 0;
     double S_Cn_An, n_L;
     int    terms = params->terms;
@@ -616,6 +623,7 @@ GreensFunction1DAbsAbs::drawR (Real rnd, Real t) const
     const Real r0(this->getr0());
     const Real D(this->getD());
     const Real v(this->getv());
+    const Real vt( v*t );
 
     // the trivial case: if there was no movement or the domain was zero
     if ( (D==0.0 && v==0.0) || L<0.0 || t==0.0)
@@ -633,55 +641,81 @@ GreensFunction1DAbsAbs::drawR (Real rnd, Real t) const
     // From here on the problem is well defined
 
 
-    // structure to store the numbers to calculate numbers for 1-S(t)
+    const Real thresholdDistance(this->CUTOFF_H * sqrt(2.0 * D * t));
+
     struct drawR_params parameters;
-    Real S_Cn_An;
-    Real nPI;
-    const Real expo (-D*t/(L*L));
-    const Real r0s_L((r0-sigma)/L);
-    const Real v2D(v/2.0/D);
-    const Real Lv2D(L*v/2.0/D);
-    const Real vexpo(-v*v*t/4.0/D - v*r0/2.0/D);	// exponent of the drift-prefactor, same as in survival prob.
-    const Real S = 2.0*exp(vexpo)/p_survival(t);	// This is a prefactor to every term, so it also contains there
+    gsl_function F;
+    F.params = &parameters;
+    Real psurv;
+
+    if ((r0 + vt - sigma) <= thresholdDistance || (a - r0 - vt) <= thresholdDistance)
+    {
+        psurv = p_survival(t);
+
+        assert(psurv >= 0.0);
+
+        // structure to store the numbers to calculate numbers for 1-S(t)
+        Real S_Cn_An;
+        Real nPI;
+        const Real expo (-D*t/(L*L));
+        const Real r0s_L((r0-sigma)/L);
+        const Real v2D(v/2.0/D);
+        const Real Lv2D(L*v/2.0/D);
+        const Real vexpo(-v*v*t/4.0/D - v*r0/2.0/D);	// exponent of the drift-prefactor, same as in survival prob.
+        const Real S = 2.0*exp(vexpo)/psurv;	// This is a prefactor to every term, so it also contains there
 							// exponential drift-prefactor.
 
-    // Construct the coefficients and the terms in the exponent and put them 
-    // in the params structure
-    int n=0;
-    do
-    {
-	nPI = ((Real)(n+1))*M_PI;	    // note: summation starting with n=1, indexing with n=0, therefore we need n+1 here
-	
-	if(v==0.0)	S_Cn_An = S * exp(nPI*nPI*expo) * sin(nPI*r0s_L) / nPI;
-	else		S_Cn_An = S * exp(nPI*nPI*expo) * sin(nPI*r0s_L) * nPI/(nPI*nPI + Lv2D*Lv2D);
-	  // The rest is the z-dependent part, which has to be defined directly in drawR_f(z).
-	  // Of course also the summation happens there because the terms now are z-dependent.
-	  // The last term originates from the integrated prob. density including drift.
-	  //
-	  // In case of zero drift this expression becomes: 2.0/p_survival(t) * exp(nPI*nPI*expo) * sin(nPI*r0s_L) / nPI
-	  
-	// also store the values for the exponent, so they don't have to be recalculated in drawR_f
-	parameters.S_Cn_An[n]= S_Cn_An;
-	parameters.n_L[n]    = nPI/L;
-	n++;
-    }
-    while (n<MAX_TERMS);
+        // store needed constants
+        parameters.H[0] = sigma;
+        parameters.H[1] = v2D;
 
+        // Construct the coefficients and the terms in the exponent and put them 
+        // in the params structure
+        int n=0;
+        do
+        {
+	        nPI = ((Real)(n+1))*M_PI;	    // note: summation starting with n=1, indexing with n=0, therefore we need n+1 here
+	    
+	        if(v==0.0)	S_Cn_An = S * exp(nPI*nPI*expo) * sin(nPI*r0s_L) / nPI;
+	        else		S_Cn_An = S * exp(nPI*nPI*expo) * sin(nPI*r0s_L) * nPI/(nPI*nPI + Lv2D*Lv2D);
+	        // The rest is the z-dependent part, which has to be defined directly in drawR_f(z).
+	        // Of course also the summation happens there because the terms now are z-dependent.
+	        // The last term originates from the integrated prob. density including drift.
+	        //
+	        // In case of zero drift this expression becomes: 2.0/p_survival(t) * exp(nPI*nPI*expo) * sin(nPI*r0s_L) / nPI
+	      
+	        // also store the values for the exponent, so they don't have to be recalculated in drawR_f
+	        parameters.S_Cn_An[n]= S_Cn_An;
+	        parameters.n_L[n]    = nPI/L;
+	        n++;
+        }
+        while (n<MAX_TERMS);
+    
+        F.function = reinterpret_cast<typeof(F.function)>(&drawR_f);
+    }
+    else
+    {
+        parameters.H[0] = D;
+        parameters.H[1] = v;
+        parameters.H[3] = t;
+
+        // drawR_f < drawR_free_f
+        if (drawR_free_f(L, &parameters) < rnd)
+        {
+            std::cerr << "drawR_free_f(L, t) < rnd, returning (r0 - sigma) <= (a - r0) ? sigma : a" << std::endl;
+            return (r0 - sigma) <= (a - r0) ? sigma : a;
+        }
+    
+        F.function = reinterpret_cast<typeof(F.function)>(&drawR_free_f);
+    }
+    
     // store the random number for the probability
     parameters.rnd = rnd ;
     // store the number of terms used
     parameters.terms = MAX_TERMS;
-    
-    // store needed constants
-    parameters.H[0] = sigma;
-    parameters.H[1] = v2D;
+   
 
-    // find the intersection on the y-axis between the random number and 
-    // the function
-    gsl_function F;
-    F.function = &drawR_f;
-    F.params = &parameters;
-
+    // find the intersection on the y-axis between the random number and the function
     // define a new solver type brent
     const gsl_root_fsolver_type* solverType( gsl_root_fsolver_brent );
     // make a new solver instance
@@ -690,7 +724,7 @@ GreensFunction1DAbsAbs::drawR (Real rnd, Real t) const
     const Real r( findRoot( F, solver, sigma, a, L*EPSILON, EPSILON,
                             "GreensFunction1DAbsAbs::drawR" ) );
 
-    // return the drawn time
+    // return the drawn position
     return r;
 }
 
