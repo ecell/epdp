@@ -422,7 +422,7 @@ GreensFunction2DRadAbs::createY0J0Tables( RealVector& Y0_Table,
 
 	boost::tuple<Real,Real,Real> result;
 
-	std::clog << "building Y0J0Tables... ";
+	std::clog << "building Y0J0Tables... ";	// DEBUG
 	
 	for (unsigned int count = 0; count < alphaTable_0.size(); count++)
 	{	result = Y0J0J1_constants(alphaTable_0[count], t);
@@ -432,7 +432,7 @@ GreensFunction2DRadAbs::createY0J0Tables( RealVector& Y0_Table,
 		Y0J1J0Y1_Table.push_back (result.get<2>());
 	}
 
-	std::clog << "done" << std::endl;
+	std::clog << "done" << std::endl;	// DEBUG
 }
 
 
@@ -580,7 +580,9 @@ GreensFunction2DRadAbs::p_survival_table( const Real t,
         if( psurvTable.size() < maxi + 1 )		// if the dimensions are good then this means
         {						// that the table is filled
         	IGNORE_RETURN getAlpha0( maxi );	// this updates the table of roots
+		std::clog << "creating PsurvTable... ";	// DEBUG
                 this->createPsurvTable( psurvTable);	// then the table is filled with data
+		std::clog << "done" << std::endl;	// DEBUG
         }
 //std::cout << "p_survival_2DPair ";
         p = funcSum_all( boost::bind( &GreensFunction2DRadAbs::p_survival_i_exp_table,

@@ -107,7 +107,8 @@ Arguments:
 
 """
 
-
+# Species is just a function, not a class. It seems to be a frontend to the
+# constructor of _gfrd.SpeciesType
 def Species(name, D, radius=0, structure="world", drift=0):
     """Define a new Species (in/on a specific Region or Surface).
 
@@ -185,6 +186,9 @@ class ParticleModel(_gfrd.Model):
         self.structures[structure.id] = structure
         return structure
 
+    def get_structure(self, id): 
+        return self.structures[id]
+
     def add_reaction_rule(self, reaction_rule):
         """Add a ReactionRule to the ParticleModel.
 
@@ -195,9 +199,6 @@ class ParticleModel(_gfrd.Model):
 
         """
         self.network_rules.add_reaction_rule(reaction_rule)
-
-    def get_structure(self, id): 
-        return self.structures[id]
 
     def set_all_repulsive(self):
         """Set all 'other' possible ReactionRules to be repulsive.

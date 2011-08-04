@@ -133,17 +133,17 @@ class EGFRDSimulator(ParticleSimulatorBase):
         self.MULTI_SHELL_FACTOR = 0.05
         self.SINGLE_SHELL_FACTOR = 1.1
 
-        self.is_dirty = True
+        self.is_dirty = True			# what does this mean?
         self.scheduler = EventScheduler()
 
-        self.user_max_shell_size = numpy.inf
+        self.user_max_shell_size = numpy.inf	# Note: shell_size is actually the RADIUS of the shell
 
         self.domains = {}
 
         self.reset()
 
     def get_matrix_cell_size(self):
-        return self.containers[0].cell_size
+        return self.containers[0].cell_size	# cell_size is the width of the (cubic) cell
 
     def get_next_time(self):
         """ 
@@ -151,10 +151,11 @@ class EGFRDSimulator(ParticleSimulatorBase):
         is completed.        
         """ #~MW
         if self.scheduler.size == 0:
-            return self.t
+            return self.t			# self.t is the current time of the simulator
+	else:
+            return self.scheduler.top[1].time
 
-        return self.scheduler.top[1].time
-
+    # Here shell_size is actually the shell radius (and not shell diameter)
     def set_user_max_shell_size(self, size):
         self.user_max_shell_size = size
 
@@ -165,6 +166,9 @@ class EGFRDSimulator(ParticleSimulatorBase):
         return min(self.get_matrix_cell_size() * .5 / SAFETY,
                    self.user_max_shell_size)
 
+    ###
+    # The next methods control the general functioning of the simulator
+    ###
     def reset(self):
         """
         This function resets the "records" of the simulator. This means
@@ -196,9 +200,14 @@ class EGFRDSimulator(ParticleSimulatorBase):
         self.is_dirty = True
 
     def initialize(self):
+	"""Initialize the eGFRD simulator
+
+	Not sure what that means yet
+	"""
         ParticleSimulatorBase.initialize(self)
 
         self.scheduler.clear()
+	# These containers hold the spherical and cylindrical protective domains respectively 
         self.containers = [SphericalShellContainer(self.world.world_size, 
                                                    self.world.matrix_size),
                            CylindricalShellContainer(self.world.world_size, 
@@ -246,7 +255,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
         if __debug__:
             log.info('stop at %s' % (FORMAT_DOUBLE % t))
 
-        if self.t == t:
+        if self.t == t:			# FIXME: is this accurate? Probably use feq from utils.py
             return
 
         if t >= self.scheduler.top[1].time:
@@ -259,7 +268,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
         non_single_list = []
 
-        # first burst all Singles.
+        # first burst all Singles, and put Pairs and Multis in a list.
         for id, event in self.scheduler:
             obj = event.data
             if isinstance(obj, Pair) or isinstance(obj, Multi):
@@ -270,7 +279,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
                               (obj, FORMAT_DOUBLE % obj.last_time))
                 self.burst_single(obj)
             else:
-                assert False, 'do not reach here'
+                assert False, 'object from scheduler was no Single, Pair or Multi'
 
 
         # then burst all Pairs and Multis.
@@ -297,8 +306,10 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
         if __debug__:
             if self.scheduler.size == 0:
-                raise RuntimeError('No particles in scheduler.')
-
+                raise RuntimeError('No Events in scheduler.')
+	
+	# 1. Get the next event from the scheduler
+	#
         id, event = self.scheduler.pop()
         self.t, self.last_event = event.time, event
 
@@ -311,18 +322,22 @@ class EGFRDSimulator(ParticleSimulatorBase):
                      'event=#%d reactions=%d rejectedmoves=%d' %
                      (id, self.reaction_events, self.rejected_moves))
        
-        # Dispatch is simply dict of what function to use to fire for 
-        # different classes (see bottom egfrd.py) 
-        # event.data simply holds the data of the next event.
-        # e.g. "if class is single fire single" ~ MW
+	# 2. Use the correct method to process (fire) the shell that produced the event
+	#
+        # Dispatch is a dictionary (hash) of what function to use to fire
+        # different classes of shells (see bottom egfrd.py) 
+        # event.data holds the object (Single, Pair, Multi) that is associated with the next event.
+        # e.g. "if class is Single, then fire_single" ~ MW
         for klass, f in self.dispatch:
             if isinstance(event.data, klass):
-                f(self, event.data)
+                f(self, event.data)		# fire the correct method for the class (e.g. fire_singel(self, Single))
 
         if __debug__:
             if self.scheduler.size == 0:
                 raise RuntimeError('Zero events left.')
 
+	# 3. Adjust the simulation time
+	#
         next_time = self.scheduler.top[1].time
         self.dt = next_time - self.t
 
