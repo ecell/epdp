@@ -14,6 +14,7 @@ __all__ = [
     'PlanarSurfaceInteraction',
     ]
 
+
 class Single(object):
     """There are 2 main types of Singles:
         * NonInteractionSingle
@@ -35,12 +36,11 @@ class Single(object):
 
         self.last_time = 0.0
         self.dt = 0.0
-        self.event_type = None
-
-        self.surface = surface
 
         self.event_id = None
+        self.event_type = None
 
+        self.surface = surface		# shouldn't this be a structure instead?
         self.domain_id = domain_id
 
         self.updatek_tot()
@@ -50,7 +50,7 @@ class Single(object):
     D = property(getD)
 
     def getv(self):
-        return 0 # TODO.
+        return 0 # TODO, include drift.
         return self.pid_particle_pair[1].v
     v = property(getv)
 
@@ -69,11 +69,20 @@ class Single(object):
     shell_id_shell_pair = property(get_shell_id_shell_pair, 
                                    set_shell_id_shell_pair)
 
+    # FIXME: This shouldn't be here, since the mobility_radius doens't mean anything
+    #        for interaction singles
     def get_mobility_radius(self):
         return self.get_shell_size() - self.pid_particle_pair[1].radius
 
+    # FIXME: Same goes here
     def get_shell_size(self):
         return self.shell_list[0][1].shape.radius
+
+    def draw_new_position(self, dt, event_type):
+	'''Draw a new position of the particle in the simulation coordinate system
+	given that an event of event_type has occured
+	'''
+	pass
 
     def initialize(self, t):
         '''
@@ -83,6 +92,7 @@ class Single(object):
         particle.  self.dt is reset to 0.0.  Do not forget to reschedule 
         this Single after calling this method.
         '''
+	# TODO? shell size (radius) is not shrunken
         self.dt = 0.0
         self.last_time = t
         self.event_type = EventType.SINGLE_ESCAPE
@@ -347,6 +357,7 @@ class InteractionSingle(Single):
 
     def draw_iv_interaction_or_escape_time_tuple(self):
         """Return an (interaction/escape time, event type)-tuple.
+	Note that an interaction is modelled similarly to an escape.
  
         Note: we are not calling single.draw_iv_event_type() just yet, but 
         postpone it to the very last minute (when this event is executed 
@@ -381,6 +392,7 @@ class PlanarSurfaceInteraction(InteractionSingle):
     def __init__(self, domain_id, pid_particle_pair, shell_id, reactiontypes,
                  surface, interaction_type, origin, orientation, half_length, 
                  particle_offset, projected_point, size_of_domain):
+
         InteractionSingle.__init__(self, domain_id, pid_particle_pair, 
                                    shell_id, reactiontypes, surface, 
                                    interaction_type, origin, orientation,
@@ -444,7 +456,7 @@ class PlanarSurfaceInteraction(InteractionSingle):
         return CylindricalShell(position, radius, orientation, half_length,
                                 domain_id)
 
-    def draw_new_positions(self, dt, eventType):
+    def draw_new_position(self, dt, eventType):
         gf_r = self.greens_function_r()
         a = self.get_mobility_radius()
         r = draw_displacement_wrapper(gf_r, dt, eventType, a)

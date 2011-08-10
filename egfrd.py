@@ -105,7 +105,10 @@ class Delegate(object):
 
 
 class EGFRDSimulator(ParticleSimulatorBase):
-    """
+    """The eGFRDSimulator implements the asynchronous egfrd scheme of performing
+    the diffusing and reaction of n particles. The eGFRDsimulator acts on a 'world'
+    object containing particles and structures, and can attached and detached from
+    this 'world'.
     """
     def __init__(self, world, rng=myrandom.rng, network_rules=None):
         """Create a new EGFRDSimulator.
@@ -130,17 +133,23 @@ class EGFRDSimulator(ParticleSimulatorBase):
         self.domain_id_generator = DomainIDGenerator(0)
         self.shell_id_generator = ShellIDGenerator(0)
 
+	# some constants
         self.MULTI_SHELL_FACTOR = 0.05
         self.SINGLE_SHELL_FACTOR = 1.1
-
-        self.is_dirty = True			# what does this mean?
-        self.scheduler = EventScheduler()
-
         self.user_max_shell_size = numpy.inf	# Note: shell_size is actually the RADIUS of the shell
 
-        self.domains = {}
+	# used datastructrures
+        self.scheduler = EventScheduler()
+        self.domains = {}			# a dictionary containing the protective domains that are defined
+						# in the simulation system. The id of the domain (domain_id) is the key.
 
-        self.reset()
+	# other stuff
+        self.is_dirty = True			# The simulator is dirty if the state if the simulator is not
+						# consistent with the content of the world that it represents
+						# (or if we don't know for sure)
+
+        self.reset()				# The Simulator is only initialized at the first step, allowing
+						# modifications to the world to be made before simulation starts
 
     def get_matrix_cell_size(self):
         return self.containers[0].cell_size	# cell_size is the width of the (cubic) cell
@@ -174,8 +183,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
         This function resets the "records" of the simulator. This means
         the simulator time is reset, the step counter is reset, events
         are reset, etc.
-        Can be for example usefull when users want to "stirr" the 
-        simulation before starting the "real experiment".
+        Can be for example usefull when users want to first do an equilibration
+	run before starting the "real experiment".
         """ #~ MW
         self.t = 0.0
         self.dt = 0.0
@@ -197,26 +206,33 @@ class EGFRDSimulator(ParticleSimulatorBase):
         self.last_event = None
         self.last_reaction = None
 
-        self.is_dirty = True
+        self.is_dirty = True		# simulator needs to be re-initialized
 
     def initialize(self):
 	"""Initialize the eGFRD simulator
 
-	Not sure what that means yet
+	This method (re-)initializes the simulator with the current state of the 'world'
+	that it represents.
+	Call this method if you change the 'world' using methods outside of the Simulator
+	thereby invalidating the state of the eGFRD simulator (the simulator is dirty), or
+	in an other case that the state of the simulator is inconsistent with the state of
+	the world.
 	"""
+	# 1. (re-)initialize previously set datastructures
         ParticleSimulatorBase.initialize(self)
-
         self.scheduler.clear()
-	# These containers hold the spherical and cylindrical protective domains respectively 
+        self.domains = {}
+
+	# create/clear other datastructures
+	# the containers hold the spherical and cylindrical protective domains respectively 
         self.containers = [SphericalShellContainer(self.world.world_size, 
                                                    self.world.matrix_size),
                            CylindricalShellContainer(self.world.world_size, 
                                                      self.world.matrix_size)]
-        self.domains = {}
 
-        singles = []
-
+	# 2. Couple all the particles in 'world' to a new 'single' in the eGFRD simulator
         # Fix order of adding particles (always, or at least in debug mode).
+        singles = []
         pid_particle_pairs = list(self.world)
         pid_particle_pairs.sort()
 
@@ -230,14 +246,17 @@ class EGFRDSimulator(ParticleSimulatorBase):
         for single in singles:
             self.add_single_event(single)
 
+	# 3. The simulator is now consistent with 'world'
         self.is_dirty = False
 
     def stop(self, t):
-        """Synchronize all particles at time t.
+        """Bring the simulation to a full stop, which synchronizes all
+	particles at time t. The state is similar to the state after
+	initialization.
 
         With eGFRD, particle positions are normally updated 
-        asynchronously. This method bursts all protective domains and 
-        assigns a position to each particle.
+        asynchronously. This method bursts all protective domains so that 
+        the position of each particle is known.
 
         Arguments:
             - t
@@ -255,10 +274,10 @@ class EGFRDSimulator(ParticleSimulatorBase):
         if __debug__:
             log.info('stop at %s' % (FORMAT_DOUBLE % t))
 
-        if self.t == t:			# FIXME: is this accurate? Probably use feq from utils.py
-            return
+        if self.t == t:				# We actually already stopped?
+            return				# FIXME: is this accurate? Probably use feq from utils.py
 
-        if t >= self.scheduler.top[1].time:
+        if t >= self.scheduler.top[1].time:	# Can't schedule a stop later than the next event time
             raise RuntimeError('Stop time >= next event time.')
 
         if t < self.t:
@@ -354,6 +373,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
                                     'dt= %.300g-%.300g' % (self.scheduler.top[1].time, self.t))
             else:
                 self.zero_steps = 0
+
+
 
     def create_single(self, pid_particle_pair):
         rts = self.network_rules.query_reaction_rule(pid_particle_pair[1].sid)
@@ -504,6 +525,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
         self.world.update_particle(new_pid_particle_pair)
 
     def get_container(self, shell):
+	"""Returns the container that holds 'shell'
+	"""
         if type(shell) is SphericalShell:
             return self.containers[0]
         elif type(shell) is CylindricalShell:
