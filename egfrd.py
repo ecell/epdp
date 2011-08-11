@@ -139,13 +139,15 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
 	# some constants
         self.MULTI_SHELL_FACTOR = 0.05
-        self.SINGLE_SHELL_FACTOR = 1.1
+        self.SINGLE_SHELL_FACTOR = 2.0
+	self.MAX_NUM_DT0_STEPS = 10000
         self.user_max_shell_size = numpy.inf	# Note: shell_size is actually the RADIUS of the shell
 
 	# used datastructrures
         self.scheduler = EventScheduler()
-        self.domains = {}			# a dictionary containing the protective domains that are defined
+        self.domains = {}			# a dictionary containing the domains that are defined
 						# in the simulation system. The id of the domain (domain_id) is the key.
+						# The domains can be a single, pair or multi of any type.
 
 	# other stuff
         self.is_dirty = True			# The simulator is dirty if the state if the simulator is not
@@ -371,7 +373,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
                 self.zero_steps += 1
                 # TODO Changed from 10 to 10000, because only a problem 
                 # when reaching certain magnitude.
-                if self.zero_steps >= max(self.scheduler.size * 3, 10000): 
+                if self.zero_steps >= max(self.scheduler.size * 3, self.MAX_NUM_DT0_STEPS): 
                     raise RuntimeError('too many dt=zero steps. '
                                        'Simulator halted?'
                                     'dt= %.300g-%.300g' % (self.scheduler.top[1].time, self.t))
@@ -536,12 +538,12 @@ class EGFRDSimulator(ParticleSimulatorBase):
             return self.containers[1]
 
     def remove_domain(self, obj):
-	# Removes a domain (single, pair, multi) from the system.
+	# Removes all the ties to a domain (single, pair, multi) from the system.
 	# Note that the particles that it represented still exist
 	# in 'world' and that obj also still persits (?!)
         if __debug__:
             log.info("remove: %s" % obj)
-	# TODO assert that the domain is not on the scheduler
+	# TODO assert that the domain is not still in the scheduler
         del self.domains[obj.domain_id]
         for shell_id, shell in obj.shell_list:
             container = self.get_container(shell)
