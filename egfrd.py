@@ -251,7 +251,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
             singles.append(single)
         assert len(singles) == self.world.num_particles
         for single in singles:
-            self.add_single_event(single)
+            self.add_domain_event(single)
 
 	# 3. The simulator is now consistent with 'world'
         self.is_dirty = False
@@ -558,33 +558,37 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
 
 ### TODO These methods can be generalized further. Also should be made methods to the scheduler class
-    def add_single_event(self, single):
+    def add_domain_event(self, domain):
+    # This method makes an event for domain 'domain' in the scheduler.
+    # The event will have the domain_id pointing to the appropriate domain in 'domains{}'.
+    # The domain will have the event_id pointing to the appropriate event in the scheduler.
+	event_time = self.t + domain.dt
         event_id = self.scheduler.add(
-            DomainEvent(self.t + single.dt, single))
+            DomainEvent(event_time, domain))
         if __debug__:
             log.info('add_event: %s, event=#%d, t=%s' %
-                     (single.domain_id, event_id,
-                      FORMAT_DOUBLE % (self.t + single.dt)))
-        single.event_id = event_id
+                     (domain.domain_id, event_id,
+                      FORMAT_DOUBLE % (event_time)))
+        domain.event_id = event_id			# FIXME side effect programming -> unclear!!
 
-    def add_pair_event(self, pair):
-        event_id = self.scheduler.add(
-            DomainEvent(self.t + pair.dt, pair))
-        if __debug__:
-            log.info('add_event: %s, event=#%d, t=%s' %
-                     (pair.domain_id, event_id,
-                      FORMAT_DOUBLE % (self.t + pair.dt)))
-        pair.event_id = event_id
-
-    def add_multi_event(self, multi):
-        event_id = self.scheduler.add(
-            DomainEvent(self.t + multi.dt, multi))
-
-        if __debug__:
-            log.info('add_event: %s, event=#%d, t=%s' %
-                     (multi.domain_id, event_id,
-                      FORMAT_DOUBLE % (self.t + multi.dt)))
-        multi.event_id = event_id
+#    def add_pair_event(self, pair):
+#        event_id = self.scheduler.add(
+#            DomainEvent(self.t + pair.dt, pair))
+#        if __debug__:
+#            log.info('add_event: %s, event=#%d, t=%s' %
+#                     (pair.domain_id, event_id,
+#                      FORMAT_DOUBLE % (self.t + pair.dt)))
+#        pair.event_id = event_id
+#
+#    def add_multi_event(self, multi):
+#        event_id = self.scheduler.add(
+#            DomainEvent(self.t + multi.dt, multi))
+#
+#        if __debug__:
+#            log.info('add_event: %s, event=#%d, t=%s' %
+#                     (multi.domain_id, event_id,
+#                      FORMAT_DOUBLE % (self.t + multi.dt)))
+#        multi.event_id = event_id
 
     def remove_event(self, event):
         if __debug__:
@@ -619,8 +623,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
             # Don't schedule events in burst/propagate_pair, because 
             # scheduling is different after a single reaction in 
             # fire_pair.
-            self.add_single_event(single1)
-            self.add_single_event(single2)
+            self.add_domain_event(single1)
+            self.add_domain_event(single2)
             self.remove_event(obj)
             bursted = [single1, single2]
         else:  # Multi
@@ -707,7 +711,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
             newsingle = self.create_single(newparticle)
             if __debug__:
                 log.info('product = %s' % newsingle)
-            self.add_single_event(newsingle)
+            self.add_domain_event(newsingle)
 
             self.last_reaction = (rt, (single.pid_particle_pair[1], None),
                                   [newparticle])
@@ -776,8 +780,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
                 log.info('product1 = %s\nproduct2 = %s' % 
                      (newsingle1, newsingle2))
 
-            self.add_single_event(newsingle1)
-            self.add_single_event(newsingle2)
+            self.add_domain_event(newsingle1)
+            self.add_domain_event(newsingle2)
 
             self.last_reaction = (rt, (single.pid_particle_pair[1], None),
                                   [particle1, particle2])
@@ -893,7 +897,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
             # no propagation, just calculate next reaction time.
             single.dt, single.event_type = single.determine_next_event() 
             single.last_time = self.t
-            self.add_single_event(single)
+            self.add_domain_event(single)
             return
         
         if single.dt != 0.0:
@@ -988,7 +992,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
                      (single.shell_id, single.shell.did,
                       single.shell.shape.show(PRECISION)))
 
-        self.add_single_event(single)
+        self.add_domain_event(single)
         return
 
     def reject_single_reaction(self, single):
@@ -998,7 +1002,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
         self.move_shell(single.shell_id_shell_pair)
         self.rejected_moves += 1
         single.initialize(self.t)
-        self.add_single_event(single)
+        self.add_domain_event(single)
 
     def calculate_single_shell_size(self, single, closest, 
                                  distance, shell_distance):
@@ -1091,7 +1095,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
             self.burst_pair(pair)
 
-            self.add_single_event(theothersingle)
+            self.add_domain_event(theothersingle)
 
             if __debug__:
                 log.info('reactant = %s' % reactingsingle)
@@ -1126,7 +1130,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
                 particle = self.world.new_particle(species3.id, new_com)
                 product = self.create_single(particle)
-                self.add_single_event(product)
+                self.add_domain_event(product)
 
                 self.reaction_events += 1
 
@@ -1152,8 +1156,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
             dt = pair.dt
             event_type = pair.event_type
             single1, single2 = self.propagate_pair(pair, dt, event_type)
-            self.add_single_event(single1)
-            self.add_single_event(single2)
+            self.add_domain_event(single1)
+            self.add_domain_event(single2)
         else:
             raise SystemError('Bug: invalid event_type.')
 
@@ -1175,14 +1179,14 @@ class EGFRDSimulator(ParticleSimulatorBase):
             self.break_up_multi(multi)
             self.multi_steps[multi.last_event] += 1
         else:
-            self.add_multi_event(multi)
+            self.add_domain_event(multi)
 
     def break_up_multi(self, multi):
     #Dissolves a multi in singles with a zero shell (dt=0)
         singles = []
         for pid_particle_pair in multi.particles:
             single = self.create_single(pid_particle_pair)
-            self.add_single_event(single)
+            self.add_domain_event(single)
             singles.append(single)
 
         self.remove_domain(multi)
@@ -1228,7 +1232,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
             # InteractionSingles nor for bursting 
             # NonInteractionSingles.
             self.remove_event(single)
-            self.add_single_event(newsingle)
+            self.add_domain_event(newsingle)
         else:
             assert single == newsingle
             self.update_single_event(self.t, single)
@@ -1460,7 +1464,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
                        FORMAT_DOUBLE % dz_right))
 
         assert self.check_obj(interaction)
-        self.add_single_event(interaction)
+        self.add_domain_event(interaction)
 
         return interaction
 
@@ -1764,7 +1768,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
                       FORMAT_DOUBLE % closest_shell_distance, closest))
 
         assert self.check_obj(pair)
-        self.add_pair_event(pair)
+        self.add_domain_event(pair)
 
         return pair
     
@@ -1792,7 +1796,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
             multi.initialize(self.t)
             
-            self.add_multi_event(multi)
+            self.add_domain_event(multi)
 
             return multi
 
