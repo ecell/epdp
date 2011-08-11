@@ -24,7 +24,7 @@ class Pair(object):
     CUTOFF_FACTOR = 5.6
 
     def __init__(self, domain_id, com, single1, single2, shell_id, r0, 
-                 shell_size, rt, surface):
+                 shell_size, rt, structure):
         self.multiplicity = 2
         self.num_shells = 1
 
@@ -42,7 +42,7 @@ class Pair(object):
         self.dt = 0.0
         self.event_type = None
 
-        self.surface = surface
+        self.structure = structure
 
         # Create shell.
         shell = self.create_new_shell(com, shell_size, domain_id)
@@ -299,9 +299,9 @@ class SphericalPair(Pair):
 
     """
     def __init__(self, domain_id, com, single1, single2, shell_id,
-                 r0, shell_size, rt, surface):
+                 r0, shell_size, rt, structure):
         Pair.__init__(self, domain_id, com, single1, single2, shell_id,
-                      r0, shell_size, rt, surface)
+                      r0, shell_size, rt, structure)
 
     def com_greens_function(self):
         # Green's function for centre of mass inside absorbing sphere.
@@ -400,9 +400,9 @@ class PlanarSurfacePair(Pair):
 
     """
     def __init__(self, domain_id, com, single1, single2, shell_id,
-                 r0, shell_size, rt, surface):
+                 r0, shell_size, rt, structure):
         Pair.__init__(self, domain_id, com, single1, single2, shell_id,
-                      r0, shell_size, rt, surface)
+                      r0, shell_size, rt, structure)
 
     def com_greens_function(self):
         return GreensFunction2DAbsSym(self.D_R, self.a_R)
@@ -418,8 +418,8 @@ class PlanarSurfacePair(Pair):
         # the particle undergoes an unbinding reaction we still have to 
         # clear the target volume and the move may be rejected (NoSpace 
         # error).
-        orientation = crossproduct(self.surface.shape.unit_x,
-                                   self.surface.shape.unit_y)
+        orientation = crossproduct(self.structure.shape.unit_x,
+                                   self.structure.shape.unit_y)
         half_length = max(self.single1.pid_particle_pair[1].radius,
                           self.single2.pid_particle_pair[1].radius)
         return CylindricalShell(domain_id, Cylinder(position, radius, 
@@ -468,7 +468,7 @@ class PlanarSurfacePair(Pair):
 
     def create_com_vector(self, r):
         x, y = random_vector2D(r)
-        return x * self.surface.shape.unit_x + y * self.surface.shape.unit_y
+        return x * self.structure.shape.unit_x + y * self.structure.shape.unit_y
 
     def create_interparticle_vector(self, gf, r, dt, r0, old_iv): 
         if __debug__:
@@ -476,8 +476,8 @@ class PlanarSurfacePair(Pair):
         theta = draw_theta_wrapper(gf, r, dt)
 
         #FIXME: need better handling of angles near zero and pi?
-        unit_x = self.surface.shape.unit_x
-        unit_y = self.surface.shape.unit_y
+        unit_x = self.structure.shape.unit_x
+        unit_y = self.structure.shape.unit_y
         angle = vector_angle(unit_x, old_iv)
         # Todo. Test if nothing changes when theta == 0.
         new_angle = angle + theta
@@ -497,9 +497,9 @@ class CylindricalSurfacePair(Pair):
 
     """
     def __init__(self, domain_id, com, single1, single2, shell_id,
-                 r0, shell_size, rt, surface):
+                 r0, shell_size, rt, structure):
         Pair.__init__(self, domain_id, com, single1, single2, shell_id,
-                      r0, shell_size, rt, surface)
+                      r0, shell_size, rt, structure)
 
     def com_greens_function(self):
         # The domain is created around r0, so r0 corresponds to r=0 within the domain
@@ -515,7 +515,7 @@ class CylindricalSurfacePair(Pair):
         # and the move may be rejected (NoSpace error).
         radius = max(self.single1.pid_particle_pair[1].radius,
                      self.single2.pid_particle_pair[1].radius)
-        orientation = self.surface.shape.unit_z
+        orientation = self.structure.shape.unit_z
         return CylindricalShell(domain_id, Cylinder(position, radius, 
                                                     orientation, half_length))
 
@@ -524,12 +524,12 @@ class CylindricalSurfacePair(Pair):
         return self.iv_greens_function(r0)
 
     def create_com_vector(self, r):
-        return r * self.surface.shape.unit_z
+        return r * self.structure.shape.unit_z
 
     def create_interparticle_vector(self, gf, r, dt, r0, old_iv): 
         if __debug__:
             log.debug("create_interparticle_vector: r=%g, dt=%g", r, dt)
-        # Note: using self.surface.shape.unit_z here might accidently 
+        # Note: using self.structure.shape.unit_z here might accidently 
         # interchange the particles.
         return r * normalize(old_iv)
 

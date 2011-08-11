@@ -25,7 +25,7 @@ class Single(object):
     specified.
 
     """
-    def __init__(self, domain_id, pid_particle_pair, reactiontypes, surface):
+    def __init__(self, domain_id, pid_particle_pair, reactiontypes, structure):
         self.multiplicity = 1
         self.num_shells = 1
 
@@ -40,7 +40,7 @@ class Single(object):
         self.event_id = None
         self.event_type = None
 
-        self.surface = surface		# shouldn't this be a structure instead?
+        self.structure = structure		# the structure in/on which the particle lives
         self.domain_id = domain_id
 
         self.updatek_tot()
@@ -173,9 +173,9 @@ class NonInteractionSingle(Single):
 
     """
     def __init__(self, domain_id, pid_particle_pair, shell_id, reactiontypes, 
-                 surface):
+                 structure):
         Single.__init__(self, domain_id, pid_particle_pair, reactiontypes,
-                        surface)
+                        structure)
 
         # Create shell.
         shell = self.create_new_shell(pid_particle_pair[1].position,
@@ -228,9 +228,9 @@ class SphericalSingle(NonInteractionSingle):
 
     """
     def __init__(self, domain_id, pid_particle_pair, shell_id, reactiontypes, 
-                 surface):
+                 structure):
         NonInteractionSingle.__init__(self, domain_id, pid_particle_pair, 
-                                      shell_id, reactiontypes, surface)
+                                      shell_id, reactiontypes, structure)
 
     def greens_function(self):
         return GreensFunction3DAbsSym(self.getD(),
@@ -257,9 +257,9 @@ class PlanarSurfaceSingle(NonInteractionSingle):
 
     """
     def __init__(self, domain_id, pid_particle_pair, shell_id, reactiontypes, 
-                 surface):
+                 structure):
         NonInteractionSingle.__init__(self, domain_id, pid_particle_pair, 
-                                      shell_id, reactiontypes, surface)
+                                      shell_id, reactiontypes, structure)
 
     def greens_function(self):
         return GreensFunction2DAbsSym(self.getD(),
@@ -272,15 +272,15 @@ class PlanarSurfaceSingle(NonInteractionSingle):
         # clear the target volume and the move may be rejected (NoSpace 
         # error).
         orientation = normalize(
-            utils.crossproduct(self.surface.shape.unit_x,
-                               self.surface.shape.unit_y))
+            utils.crossproduct(self.structure.shape.unit_x,
+                               self.structure.shape.unit_y))
         half_length = self.pid_particle_pair[1].radius
         return CylindricalShell(domain_id, Cylinder(position, radius, 
                                                     orientation, half_length))
 
     def create_position_vector(self, r):
         x, y = random_vector2D(r)
-        return x * self.surface.shape.unit_x + y * self.surface.shape.unit_y
+        return x * self.structure.shape.unit_x + y * self.structure.shape.unit_y
 
     def __str__(self):
         return 'PlanarSurface' + Single.__str__(self)
@@ -297,9 +297,9 @@ class CylindricalSurfaceSingle(NonInteractionSingle):
 
     """
     def __init__(self, domain_id, pid_particle_pair, shell_id, reactiontypes, 
-                 surface):
+                 structure):
         NonInteractionSingle.__init__(self, domain_id, pid_particle_pair, 
-                                      shell_id, reactiontypes, surface)
+                                      shell_id, reactiontypes, structure)
 
     def greens_function(self):
         # The domain is created around r0, so r0 corresponds to r=0 within the domain
@@ -311,7 +311,7 @@ class CylindricalSurfaceSingle(NonInteractionSingle):
         # unbinding reaction we still have to clear the target volume 
         # and the move may be rejected (NoSpace error).
         radius = self.pid_particle_pair[1].radius
-        orientation = self.surface.shape.unit_z
+        orientation = self.structure.shape.unit_z
         return CylindricalShell(domain_id, Cylinder(position, radius, 
                                                     orientation, half_length))
 
@@ -340,12 +340,13 @@ class InteractionSingle(Single):
 
     """
     def __init__(self, domain_id, pid_particle_pair, shell_id, shell,  
-                 reactiontypes, interaction_type, surface):
+                 reactiontypes, interaction_type, surface, structure):
 
         Single.__init__(self, domain_id, pid_particle_pair, reactiontypes,
-                        surface)
+                        structure)
         self.interaction_type = interaction_type
         self.shell_list = [(shell_id, shell), ]
+	self.surface = surface			# The surface with which the particle is trying to interact
 
     def determine_next_event(self):
         """Return an (event time, event type)-tuple.
@@ -389,15 +390,18 @@ class PlanarSurfaceInteraction(InteractionSingle):
         * Selected randomly when drawing displacement vector: theta.
 
     """
-    def __init__(self, domain_id, pid_particle_pair, shell_id, reactiontypes,
-                 surface, interaction_type, origin, orientation, half_length, 
+    def __init__(self, domain_id, pid_particle_pair, structure, shell_id, reactiontypes,
+                 interaction_type, surface, origin, orientation, half_length, 
                  particle_offset, projected_point, size_of_domain):
 
-        InteractionSingle.__init__(self, domain_id, pid_particle_pair, 
-                                   shell_id, reactiontypes, surface, 
-                                   interaction_type, origin, orientation,
-                                   half_length, particle_offset,
-                                   projected_point, size_of_domain)
+###TODO	One of the two constructors for InteractionSingle should be right. The one below doesn't seem so
+#        InteractionSingle.__init__(self, domain_id, pid_particle_pair, 
+#                                   shell_id, reactiontypes, surface, 
+#                                   interaction_type, origin, orientation,
+#                                   half_length, particle_offset,
+#                                   projected_point, size_of_domain)
+	InteractionSingle.__init__(self, domain_id, pid_particle_pair, structure, shell_id, shell,
+                 reactiontypes, interaction_type, surface, structure)
 
         # Compute from dr, dz_left and dz_right the length of the new 
         # domain (only that part of the cylinder where the particle can 
@@ -405,7 +409,7 @@ class PlanarSurfaceInteraction(InteractionSingle):
         # cylinder.
 
         # a
-        # sigma
+        # what is here sigma?
         sigma = self.surface.shape.Lz + self.pid_particle_pair[1].radius
         # r0
         if isinstance(surface, PlanarSurface):
@@ -554,7 +558,7 @@ class CylindricalSurfaceInteraction(InteractionSingle):
             z = draw_r_wrapper(gf, dt, self.get_mobility_radius())
 
         # Orientation matters, so use shell.shape.unit_z instead of 
-        # surface.shape.unit_z.
+        # structure.shape.unit_z.
         z_vector = z * self.shell.shape.unit_z
 
         # 2) Draw r and theta.

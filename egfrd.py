@@ -45,21 +45,24 @@ if __debug__:
     PRECISION = 3
     FORMAT_DOUBLE = '%.' + str(PRECISION) + 'g'
 
-def create_default_single(domain_id, pid_particle_pair, shell_id, rt, surface):
-    if isinstance(surface, CuboidalRegion):
+def create_default_single(domain_id, pid_particle_pair, shell_id, rt, structure):
+    if isinstance(structure, CuboidalRegion):
         return SphericalSingle(domain_id, pid_particle_pair,
-                               shell_id, rt, surface)
-    elif isinstance(surface, CylindricalSurface):
+                               shell_id, rt, structure)
+    elif isinstance(structure, CylindricalSurface):
         return CylindricalSurfaceSingle(domain_id, pid_particle_pair, 
-                                        shell_id, rt, surface)
-    elif isinstance(surface, PlanarSurface):
+                                        shell_id, rt, structure)
+    elif isinstance(structure, PlanarSurface):
         return PlanarSurfaceSingle(domain_id, pid_particle_pair, 
-                                   shell_id, rt, surface)
+                                   shell_id, rt, structure)
+
 
 def create_default_interaction(domain_id, pid_particle_pair, shell_id,
                                reaction_types, interaction_type, surface,
                                projected_point, particle_distance, 
                                orientation_vector, dr, dz_left, dz_right):
+    # surface is the surface with which the interaction is made
+
     if isinstance(surface, CylindricalSurface):
         return CylindricalSurfaceInteraction(domain_id, pid_particle_pair,
                                              shell_id, reaction_types,
@@ -75,17 +78,18 @@ def create_default_interaction(domain_id, pid_particle_pair, shell_id,
                                         orientation_vector,
                                         dr, dz_left, dz_right)
 
+
 def create_default_pair(domain_id, com, single1, single2, shell_id, 
-                        r0, shell_size, rt, surface):
-    if isinstance(surface, CuboidalRegion):
+                        r0, shell_size, rt, structure):
+    if isinstance(structure, CuboidalRegion):
         return SphericalPair(domain_id, com, single1, single2,
-                             shell_id, r0, shell_size, rt, surface)
-    elif isinstance(surface, CylindricalSurface):
+                             shell_id, r0, shell_size, rt, structure)
+    elif isinstance(structure, CylindricalSurface):
         return CylindricalSurfacePair(domain_id, com, single1, single2,
-                                      shell_id, r0, shell_size, rt, surface)
-    elif isinstance(surface, PlanarSurface):
+                                      shell_id, r0, shell_size, rt, structure)
+    elif isinstance(structure, PlanarSurface):
         return PlanarSurfacePair(domain_id, com, single1, single2,
-                                 shell_id, r0, shell_size, rt, surface)
+                                 shell_id, r0, shell_size, rt, structure)
 
 
 class DomainEvent(Event):
@@ -107,7 +111,7 @@ class Delegate(object):
 class EGFRDSimulator(ParticleSimulatorBase):
     """The eGFRDSimulator implements the asynchronous egfrd scheme of performing
     the diffusing and reaction of n particles. The eGFRDsimulator acts on a 'world'
-    object containing particles and structures, and can attached and detached from
+    object containing particles and structures, and can be attached and detached from
     this 'world'.
     """
     def __init__(self, world, rng=myrandom.rng, network_rules=None):
@@ -381,7 +385,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
         domain_id = self.domain_id_generator()
         shell_id = self.shell_id_generator()
 
-        # Get structure (region or surface).
+        # Get structure (region or surface) where the particle lives.
         species = self.world.get_species(pid_particle_pair[1].sid)
         structure = self.world.get_structure(species.structure_id)
 
@@ -525,16 +529,19 @@ class EGFRDSimulator(ParticleSimulatorBase):
         self.world.update_particle(new_pid_particle_pair)
 
     def get_container(self, shell):
-	"""Returns the container that holds 'shell'
-	"""
+	# Returns the container that holds 'shell'
         if type(shell) is SphericalShell:
             return self.containers[0]
         elif type(shell) is CylindricalShell:
             return self.containers[1]
 
     def remove_domain(self, obj):
+	# Removes a domain (single, pair, multi) from the system.
+	# Note that the particles that it represented still exist
+	# in 'world' and that obj also still persits (?!)
         if __debug__:
             log.info("remove: %s" % obj)
+	# TODO assert that the domain is not on the scheduler
         del self.domains[obj.domain_id]
         for shell_id, shell in obj.shell_list:
             container = self.get_container(shell)
@@ -545,6 +552,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
         container = self.get_container(shell)
         container.update(shell_id_shell_pair)
 
+
+### TODO These methods can be generalized further. Also should be made methods to the scheduler class
     def add_single_event(self, single):
         event_id = self.scheduler.add(
             DomainEvent(self.t + single.dt, single))
@@ -589,6 +598,9 @@ class EGFRDSimulator(ParticleSimulatorBase):
             log.info('update_event: %s, event=#%d, t=%s' %
                      (multi.domain_id, multi.event_id, FORMAT_DOUBLE % t))
         self.scheduler.update((multi.event_id, DomainEvent(t, multi)))
+
+
+
 
     def burst_obj(self, obj):
         if __debug__:
@@ -662,7 +674,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
             raise NotImplementedError
         reactant_species_radius = single.pid_particle_pair[1].radius
         oldpos = single.pid_particle_pair[1].position
-        current_surface = single.surface
+        current_structure = single.structure
         
         rt = single.draw_reaction_rule()
 
@@ -717,7 +729,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
             self.clear_volume(oldpos, rad)
 
             for _ in range(self.dissociation_retry_moves):
-                vector = _random_vector(current_surface, particle_radius12 *
+                vector = _random_vector(current_structure, particle_radius12 *
                                         MINIMAL_SEPARATION_FACTOR, self.rng)
             
                 # place particles according to the ratio D1:D2
@@ -814,8 +826,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
                 # For escapes and bursts of interaction singles we do 
                 # it here.
                 self.move_single_particle(single, newpos)
-                self.remove_domain(single)
                 newsingle = self.create_single(single.pid_particle_pair)
+                self.remove_domain(single)
                 if __debug__:
                     log.debug('    *New %s.\n'
                               '        radius = %.3g. dt = %.3g.' %
@@ -896,6 +908,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
         singlepos = single.shell.shape.position
 
+	# Now try to make a new domain
         # (2) Clear volume.
 
         min_shell = single.pid_particle_pair[1].radius * \
@@ -917,12 +930,12 @@ class EGFRDSimulator(ParticleSimulatorBase):
             burst = None
 
         # Check closest surface.
-        # Only relevant when in the "world" or other 3D region.
-        if isinstance(single.surface, CuboidalRegion):
+        # Only relevant when the particle lives in the "world" or other 3D region.
+        if isinstance(single.structure, CuboidalRegion):
             interaction_surface, closest_surface, surface_distance = \
                 get_closest_surface_within_radius(self.world, 
                                                   singlepos, min_shell,
-                                                  ignore=[single.surface.id])
+                                                  ignore=[single.structure.id])
             if interaction_surface:
                 obj = self.form_interaction(single, interaction_surface, burst)
                 if obj:
@@ -942,7 +955,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
             closest, closest_distance = \
                 self.get_closest_obj(singlepos, ignore=[single.domain_id],
-                                     ignores=[single.surface.id])
+                                     ignores=[single.structure.id])
             self.update_single(single, closest, closest_distance)
             for s in burst:
                 if not isinstance(s, Single):
@@ -950,7 +963,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
                 assert s.is_reset()
                 closest, closest_distance = self.get_closest_obj(
                     s.shell.shape.position, ignore=[s.domain_id],
-                    ignores=[s.surface.id])
+                    ignores=[s.structure.id])
 
                 self.update_single(s, closest, closest_distance)
                 self.update_single_event(self.t + s.dt, s)
@@ -1161,14 +1174,14 @@ class EGFRDSimulator(ParticleSimulatorBase):
             self.add_multi_event(multi)
 
     def break_up_multi(self, multi):
-        self.remove_domain(multi)
-
+    #Dissolves a multi in singles with a zero shell (dt=0)
         singles = []
         for pid_particle_pair in multi.particles:
             single = self.create_single(pid_particle_pair)
             self.add_single_event(single)
             singles.append(single)
 
+        self.remove_domain(multi)
         return singles
 
     def burst_multi(self, multi):
@@ -1312,6 +1325,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
         return single1, single2
 
     def form_pair_or_multi(self, single, neighbors):
+    # single is the current single being treated, neighbors is a list (?) of neighboring shells
         assert neighbors
 
         singlepos = single.shell.shape.position
@@ -1323,7 +1337,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
             dists = dists.take(n)
             neighbors = numpy.take(neighbors, n)
 
-        # First, try forming a Pair.
+        # First, try forming a Pair if the neighbor is a single.
         if isinstance(neighbors[0], Single):
             obj = self.form_pair(single, singlepos,
                                  neighbors[0], neighbors[1:])
@@ -1335,8 +1349,10 @@ class EGFRDSimulator(ParticleSimulatorBase):
         if obj:
             return obj
 
+	
+
     def form_interaction(self, single, surface, burst):
-        # Try to form an interaction.
+        # Try to form an interaction between the 'single' particle and the 'surface'.
 
         particle = single.pid_particle_pair[1]
         # Cyclic transpose needed when calling surface.projected_point!
@@ -1562,10 +1578,10 @@ class EGFRDSimulator(ParticleSimulatorBase):
         assert single1.is_reset()
         assert single2.is_reset()
 
-        # Try forming a Pair only if singles are on same surface.
-        if single1.surface != single2.surface:
+        # Try forming a Pair only if singles are on same structure.
+        if single1.structure != single2.structure:
             if __debug__:
-                log.debug('Pair(%s, %s) not formed: not on same surface.' %
+                log.debug('Pair(%s, %s) not formed: not on same structure.' %
                           (single1.pid_particle_pair[0],
                            single2.pid_particle_pair[0]))
             return None
@@ -1650,7 +1666,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
         # close (squeezing).
         c, d = self.get_closest_obj(com, ignore=[single1.domain_id,
                                                  single2.domain_id],
-                                    ignores=[single1.surface.id])
+                                    ignores=[single1.structure.id])
         if d < closest_shell_distance:
             closest, closest_shell_distance = c, d
 
@@ -2018,7 +2034,7 @@ rejected moves = %d
 
         for shell_id, shell in obj.shell_list:
             if not isinstance(obj, Multi):
-                ignores = [obj.surface.id]
+                ignores = [obj.structure.id]
             else:
                 # Ignore all surfaces, multi shells can overlap with 
                 # surfaces.
