@@ -96,7 +96,8 @@ class DomainEvent(Event):
     __slot__ = ['data']
     def __init__(self, time, domain):
         Event.__init__(self, time)
-        self.data = domain
+        self.data = domain.domain_id		# Store the domain_id key refering to the domain
+						# in domains{} in the scheduler
 
 class Delegate(object):
     def __init__(self, obj, method, arg):
@@ -295,7 +296,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
         # first burst all Singles, and put Pairs and Multis in a list.
         for id, event in self.scheduler:
-            obj = event.data
+            obj = self.domains[event.data]
             if isinstance(obj, Pair) or isinstance(obj, Multi):
                 non_single_list.append(obj)
             elif isinstance(obj, Single):
@@ -336,6 +337,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
 	# 1. Get the next event from the scheduler
 	#
         id, event = self.scheduler.pop()
+	domain = self.domains[event.data]
         self.t, self.last_event = event.time, event
 
         if __debug__:
@@ -354,8 +356,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
         # event.data holds the object (Single, Pair, Multi) that is associated with the next event.
         # e.g. "if class is Single, then fire_single" ~ MW
         for klass, f in self.dispatch:
-            if isinstance(event.data, klass):
-                f(self, event.data)		# fire the correct method for the class (e.g. fire_singel(self, Single))
+            if isinstance(domain, klass):
+                f(self, domain)		# fire the correct method for the class (e.g. fire_singel(self, Single))
 
         if __debug__:
             if self.scheduler.size == 0:
@@ -2090,16 +2092,21 @@ rejected moves = %d
 
     def check_obj_for_all(self):
         for id, event in self.scheduler:
-            self.check_obj(event.data)
+	    domain = self.domains[event.data]
+            self.check_obj(domain)
 
     def check_event_stoichiometry(self):
-        event_population = 0
+    # checks if the number of particles in the world is equal to the number
+    # of particles represented in the EGFRD simulator
+	world_population = self.world.num_particles
+        domain_population = 0
         for id, event in self.scheduler:
-            event_population += event.data.multiplicity
+	    domain = self.domains[event.data]
+            domain_population += domain.multiplicity
 
-        if self.world.num_particles != event_population:
-            raise RuntimeError('population %d != event_population %d' %
-                               (population, event_population))
+        if world_population != domain_population:
+            raise RuntimeError('population %d != domain_population %d' %
+                               (world_population, domain_population))
 
     def check_shell_matrix(self):
         did_map = {}
@@ -2114,18 +2121,19 @@ rejected moves = %d
 
         shell_population = 0
         for id, event in self.scheduler:
-            shell_population += event.data.num_shells
-            shell_ids = did_map[event.data.domain_id]
-            if len(shell_ids) != event.data.num_shells:
+	    domain = self.domains[event.data]
+            shell_population += domain.num_shells
+            shell_ids = did_map[domain.domain_id]
+            if len(shell_ids) != domain.num_shells:
                 diff = set(sid for (sid, _)
-                               in event.data.shell_list).difference(shell_ids)
+                               in domain.shell_list).difference(shell_ids)
                 for sid in diff:
                     print shell_map.get(sid, None)
 
                 raise RuntimeError('number of shells are inconsistent '
                                    '(%d != %d; %s) - %s' %
-                                   (len(shell_ids), event.data.num_shells, 
-                                    event.data.domain_id, diff))
+                                   (len(shell_ids), domain.num_shells, 
+                                    domain.domain_id, diff))
 
         matrix_population = sum(len(container)
                                 for container in self.containers)
@@ -2134,17 +2142,20 @@ rejected moves = %d
                                (shell_population, matrix_population))
 
     def check_domains(self):
+	# make set of event_id that are stored in all the domains
         event_ids = set(domain.event_id
                         for domain in self.domains.itervalues())
+	# check that all the event_id in the scheduler are also stored in a domain
         for id, event in self.scheduler:
             if id not in event_ids:
-                raise RuntimeError('%s in EventScheduler not in self.domains' %
-                                   event.data)
-            event_ids.remove(id)
+                raise RuntimeError('Event %s in EventScheduler has no domain in self.domains' %
+                                   event)
+	    else:
+                event_ids.remove(id)
 
         # self.domains always include a None  --> this can change in future
         if event_ids:
-            raise RuntimeError('following domains in self.domains not in '
+            raise RuntimeError('following domains in self.domains are not in '
                                'Event Scheduler: %s' % str(tuple(event_ids)))
 
     def check_pair_pos(self, pair, pos1, pos2, com, radius):
@@ -2213,7 +2224,7 @@ rejected moves = %d
 
         """
         for id, event in self.scheduler:
-            print id, event, event.data
+            print id, event, self.domains[event.data]
 
     def count_domains(self):
         # Returns a tuple (# Singles, # Pairs, # Multis).
