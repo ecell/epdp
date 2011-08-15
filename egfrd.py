@@ -386,9 +386,10 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
 
     def create_single(self, pid_particle_pair):
-        rts = self.network_rules.query_reaction_rule(pid_particle_pair[1].sid)
         domain_id = self.domain_id_generator()
         shell_id = self.shell_id_generator()
+
+        rts = self.network_rules.query_reaction_rule(pid_particle_pair[1].sid)
 
         # Get structure (region or surface) where the particle lives.
         species = self.world.get_species(pid_particle_pair[1].sid)
@@ -415,6 +416,9 @@ class EGFRDSimulator(ParticleSimulatorBase):
                            dr, dz_left, dz_right):
         assert single.dt == 0.0 and single.get_mobility_radius() == 0.0
 
+        domain_id = self.domain_id_generator()
+        shell_id = self.shell_id_generator()
+
         pid_particle_pair = single.pid_particle_pair
         species_id = pid_particle_pair[1].sid
 
@@ -422,9 +426,6 @@ class EGFRDSimulator(ParticleSimulatorBase):
         #interaction_type = self.query_interaction_rule(species_id, surface)
         # TODO.
         interaction_type = None
-
-        domain_id = self.domain_id_generator()
-        shell_id = self.shell_id_generator()
 
         interaction = \
             create_default_interaction(domain_id, pid_particle_pair, shell_id,
@@ -448,6 +449,9 @@ class EGFRDSimulator(ParticleSimulatorBase):
         assert single1.dt == 0.0
         assert single2.dt == 0.0
 
+        domain_id = self.domain_id_generator()
+        shell_id = self.shell_id_generator()
+
         # Select 1 reaction type out of all possible reaction types.
         rts = self.network_rules.query_reaction_rule(
                 single1.pid_particle_pair[1].sid,
@@ -460,9 +464,6 @@ class EGFRDSimulator(ParticleSimulatorBase):
         # The probability for this reaction to happen is proportional to 
         # the sum of the rates of all the possible reaction types. 
         rt.ktot = k_max
-
-        domain_id = self.domain_id_generator()
-        shell_id = self.shell_id_generator()
 
         pos1 = single1.shell.shape.position
         pos2 = single2.shell.shape.position
@@ -491,6 +492,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
     def create_multi(self):
         domain_id = self.domain_id_generator()
+
         if __debug__:
             try:
                 # Option to make multis run faster for nicer visualization.
@@ -499,6 +501,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
                 dt_factor = DEFAULT_DT_FACTOR 
         else:
             dt_factor = DEFAULT_DT_FACTOR
+
         multi = Multi(domain_id, self, dt_factor)
         self.domains[domain_id] = multi
         return multi
