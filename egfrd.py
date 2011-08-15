@@ -145,8 +145,9 @@ class EGFRDSimulator(ParticleSimulatorBase):
         self.user_max_shell_size = numpy.inf	# Note: shell_size is actually the RADIUS of the shell
 
 	# used datastructrures
-        self.scheduler = EventScheduler()
-        self.domains = {}			# a dictionary containing the domains that are defined
+        self.scheduler = EventScheduler()	# contains the events. Note that every domains has exactly one event
+
+        self.domains = {}			# a dictionary containing references to the domains that are defined
 						# in the simulation system. The id of the domain (domain_id) is the key.
 						# The domains can be a single, pair or multi of any type.
 
@@ -231,7 +232,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
         self.domains = {}
 
 	# create/clear other datastructures
-	# the containers hold the spherical and cylindrical protective domains respectively 
+	# the containers hold the spherical and cylindrical shells respectively 
         self.containers = [SphericalShellContainer(self.world.world_size, 
                                                    self.world.matrix_size),
                            CylindricalShellContainer(self.world.world_size, 
@@ -595,17 +596,17 @@ class EGFRDSimulator(ParticleSimulatorBase):
             log.info('remove_event: event=#%d' % event.event_id)
         del self.scheduler[event.event_id]
 
-    def update_single_event(self, t, single):
+    def update_domain_event(self, t, domain):
         if __debug__:
             log.info('update_event: %s, event=#%d, t=%s' %
-                     (single.domain_id, single.event_id, FORMAT_DOUBLE % t))
-        self.scheduler.update((single.event_id, DomainEvent(t, single)))
+                     (domain.domain_id, domain.event_id, FORMAT_DOUBLE % t))
+        self.scheduler.update((domain.event_id, DomainEvent(t, domain)))
 
-    def update_multi_event(self, t, multi):
-        if __debug__:
-            log.info('update_event: %s, event=#%d, t=%s' %
-                     (multi.domain_id, multi.event_id, FORMAT_DOUBLE % t))
-        self.scheduler.update((multi.event_id, DomainEvent(t, multi)))
+#    def update_multi_event(self, t, multi):
+#        if __debug__:
+#            log.info('update_event: %s, event=#%d, t=%s' %
+#                     (multi.domain_id, multi.event_id, FORMAT_DOUBLE % t))
+#        self.scheduler.update((multi.event_id, DomainEvent(t, multi)))
 
 
 
@@ -974,7 +975,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
                     ignores=[s.structure.id])
 
                 self.update_single(s, closest, closest_distance)
-                self.update_single_event(self.t + s.dt, s)
+                self.update_domain_event(self.t + s.dt, s)
                 if __debug__:
                     log.debug('restore shell %s radius %s dt %s\n'
                               'closest %s distance %s' %
@@ -1235,7 +1236,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
             self.add_domain_event(newsingle)
         else:
             assert single == newsingle
-            self.update_single_event(self.t, single)
+            self.update_domain_event(self.t, single)
 
         assert newsingle.shell.shape.radius == particle_radius
 
@@ -1811,7 +1812,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
             multi.initialize(self.t)
 
-            self.update_multi_event(self.t + multi.dt, multi)
+            self.update_domain_event(self.t + multi.dt, multi)
 
             return multi
 
