@@ -387,8 +387,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
     def create_single(self, pid_particle_pair):
         rts = self.network_rules.query_reaction_rule(pid_particle_pair[1].sid)
-        domain_id = self.domain_id_generator()
-        shell_id = self.shell_id_generator()
+        domain_id = self.domain_id_generator()	# FIXME: move to domain constructor
+        shell_id = self.shell_id_generator()	# FIXME: move to protective_domain constructor
 
         # Get structure (region or surface) where the particle lives.
         species = self.world.get_species(pid_particle_pair[1].sid)
@@ -403,7 +403,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
         single.initialize(self.t)
         self.move_shell(single.shell_id_shell_pair)
-        self.domains[domain_id] = single
+        self.domains[single.domain_id] = single
 
         if __debug__:
             # Used in __str__.
@@ -423,8 +423,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
         # TODO.
         interaction_type = None
 
-        domain_id = self.domain_id_generator()
-        shell_id = self.shell_id_generator()
+        domain_id = self.domain_id_generator()	# FIXME: move to domain constructor
+        shell_id = self.shell_id_generator()	# FIXME: move to protective domain constructor
 
         interaction = \
             create_default_interaction(domain_id, pid_particle_pair, shell_id,
@@ -435,7 +435,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
         interaction.initialize(self.t)
 
         self.move_shell(interaction.shell_id_shell_pair)
-        self.domains[domain_id] = interaction
+        self.domains[interaction.domain_id] = interaction
 
         if __debug__:
             # Used in __str__.
@@ -461,8 +461,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
         # the sum of the rates of all the possible reaction types. 
         rt.ktot = k_max
 
-        domain_id = self.domain_id_generator()
-        shell_id = self.shell_id_generator()
+        domain_id = self.domain_id_generator()	# FIXME: move to domain constructor
+        shell_id = self.shell_id_generator()	# FIXME: move to protective_domain constructor
 
         pos1 = single1.shell.shape.position
         pos2 = single2.shell.shape.position
@@ -481,7 +481,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
         pair.initialize(self.t)
 
         self.move_shell(pair.shell_id_shell_pair)
-        self.domains[domain_id] = pair
+        self.domains[pair.domain_id] = pair
 
         if __debug__:
             # Used in __str__.
@@ -490,7 +490,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
         return pair
 
     def create_multi(self):
-        domain_id = self.domain_id_generator()
+        domain_id = self.domain_id_generator()	# FIXME: move to domain constructor
         if __debug__:
             try:
                 # Option to make multis run faster for nicer visualization.
@@ -500,7 +500,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
         else:
             dt_factor = DEFAULT_DT_FACTOR
         multi = Multi(domain_id, self, dt_factor)
-        self.domains[domain_id] = multi
+        self.domains[multi.domain_id] = multi
         return multi
 
     def move_single(self, single, position, radius=None):
@@ -558,7 +558,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
         container.update(shell_id_shell_pair)
 
 
-### TODO These methods can be generalized further. Also should be made methods to the scheduler class
+### TODO These methods can be made methods to the scheduler class
     def add_domain_event(self, domain):
     # This method makes an event for domain 'domain' in the scheduler.
     # The event will have the domain_id pointing to the appropriate domain in 'domains{}'.
@@ -610,27 +610,26 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
 
 
-
-    def burst_obj(self, obj):
+    def burst_domain(self, domain):
         if __debug__:
-            log.info('burst_obj: %s' % obj)
+            log.info('burst_domain: %s' % domain)
 
-        if isinstance(obj, Single):
+        if isinstance(domain, Single):
             # TODO. Compare with gfrd.
-            obj = self.burst_single(obj)
-            bursted = [obj, ]
-        elif isinstance(obj, Pair):  # Pair
-            single1, single2 = self.burst_pair(obj)
+            domain = self.burst_single(domain)
+            bursted = [domain, ]
+        elif isinstance(domain, Pair):  # Pair
+            single1, single2 = self.burst_pair(domain)
             # Don't schedule events in burst/propagate_pair, because 
             # scheduling is different after a single reaction in 
             # fire_pair.
             self.add_domain_event(single1)
             self.add_domain_event(single2)
-            self.remove_event(obj)
+            self.remove_event(domain)
             bursted = [single1, single2]
         else:  # Multi
-            bursted = self.burst_multi(obj)
-            self.remove_event(obj)
+            bursted = self.burst_multi(domain)
+            self.remove_event(domain)
 
         if __debug__:
             # After a burst, InteractionSingles should be gone.
@@ -639,11 +638,12 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
         return bursted
 
-    def burst_objs(self, objs):
+    def burst_objs(self, domains):
+    # bursts all the domains that are in the list 'domains'
         bursted = []
-        for obj in objs:
-            b = self.burst_obj(obj)
-            bursted.extend(b)
+        for domain in domains:
+            d = self.burst_domain(domain)
+            bursted.extend(d)
 
         return bursted
 
@@ -662,6 +662,10 @@ class EGFRDSimulator(ParticleSimulatorBase):
             - radius: radius of area to be "bursted"
             - ignore: domains that should be ignored, none by default.
         """ # ~ MW
+	# TODO clear_volume now always assumes a spherical volume to burst.
+	# It is inefficient to burst on the 'other' side of the membrane or to
+	# burst in a circle, when you want to make a new shell in the membrane.
+	# Then we may want to burst in a cylindrical volume, not a sphere
         neighbors = self.get_neighbors_within_radius_no_sort(pos, radius,
                                                              ignore)
         return self.burst_objs(neighbors)
@@ -669,12 +673,12 @@ class EGFRDSimulator(ParticleSimulatorBase):
     def burst_non_multis(self, neighbors):
         bursted = []
 
-        for obj in neighbors:
-            if not isinstance(obj, Multi):
-                b = self.burst_obj(obj)
-                bursted.extend(b)
+        for domain in neighbors:
+            if not isinstance(domain, Multi):
+                d = self.burst_domain(domain)
+                bursted.extend(d)
             else:
-                bursted.append(obj)
+                bursted.append(domain)
 
         return bursted
 
@@ -946,17 +950,17 @@ class EGFRDSimulator(ParticleSimulatorBase):
                                                   singlepos, min_shell,
                                                   ignore=[single.structure.id])
             if interaction_surface:
-                obj = self.form_interaction(single, interaction_surface, burst)
-                if obj:
+                domain = self.form_interaction(single, interaction_surface, burst)
+                if domain:
                     return
         else:
             # Surfaces are not allowed to touch or overlap.
             closest_surface = None
 
         if burst:
-            obj = self.form_pair_or_multi(single, burst)
+            domain = self.form_pair_or_multi(single, burst)
 
-            if obj:
+            if domain:
                 return
 
             # if nothing was formed, recheck closest and restore shells.
@@ -1820,39 +1824,39 @@ class EGFRDSimulator(ParticleSimulatorBase):
         assert False, 'do not reach here'
 
 
-    def add_to_multi_recursive(self, obj, multi):
-        if isinstance(obj, Single):
-            if multi.has_particle(obj.pid_particle_pair[0]):
+    def add_to_multi_recursive(self, domain, multi):
+        if isinstance(domain, Single):
+            if multi.has_particle(domain.pid_particle_pair[0]):
                 # Already in the Multi.
                 return
-            assert obj.is_reset()
-            objpos = obj.shell.shape.position
+            assert domain.is_reset()
+            objpos = domain.shell.shape.position
             
-            self.add_to_multi(obj, multi)
-            self.remove_domain(obj)
-            self.remove_event(obj)
+            self.add_to_multi(domain, multi)
+            self.remove_domain(domain)
+            self.remove_event(domain)
 
-            radius = obj.pid_particle_pair[1].radius * \
+            radius = domain.pid_particle_pair[1].radius * \
                 (1.0 + self.MULTI_SHELL_FACTOR)
             neighbors = self.get_neighbors_within_radius_no_sort(
-                    objpos, radius, ignore=[obj.domain_id])
+                    objpos, radius, ignore=[domain.domain_id])
 
             burst = self.burst_non_multis(neighbors)
             neighbor_dists = self.obj_distance_array(objpos, burst)
             neighbors = [burst[i] for i
                                   in (neighbor_dists <= radius).nonzero()[0]]
 
-            for obj in neighbors:
-                self.add_to_multi_recursive(obj, multi)
+            for domain in neighbors:
+                self.add_to_multi_recursive(domain, multi)
 
-        elif isinstance(obj, Multi):
+        elif isinstance(domain, Multi):
             for pp in multi.particles:
-                if obj.has_particle(pp[0]):
+                if domain.has_particle(pp[0]):
                     if __debug__:
-                        log.debug('%s already added. skipping.' % obj)
+                        log.debug('%s already added. skipping.' % domain)
                     break
             else:
-                self.merge_multis(obj, multi)
+                self.merge_multis(domain, multi)
         else:
             assert False, 'do not reach here.'  # Pairs are burst
 
