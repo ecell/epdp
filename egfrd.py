@@ -631,7 +631,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
             self.remove_event(domain)
             bursted = [single1, single2]
         else:  # Multi
-            bursted = self.burst_multi(domain)
+#            bursted = self.burst_multi(domain)
+            bursted = self.break_up_multi(domain)
             self.remove_event(domain)
 
         if __debug__:
@@ -1200,12 +1201,12 @@ class EGFRDSimulator(ParticleSimulatorBase):
         self.remove_domain(multi)
         return singles
 
-    def burst_multi(self, multi):
-        #multi.sim.sync()
-        assert isinstance(multi, Multi)
-        singles = self.break_up_multi(multi)
-
-        return singles
+#    def burst_multi(self, multi):
+#        #multi.sim.sync()
+#        assert isinstance(multi, Multi)
+#        singles = self.break_up_multi(multi)
+#
+#        return singles
 
     def burst_single(self, single):
         # Sets next event time of single domain in such a way it will end 
