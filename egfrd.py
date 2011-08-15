@@ -387,8 +387,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
     def create_single(self, pid_particle_pair):
         rts = self.network_rules.query_reaction_rule(pid_particle_pair[1].sid)
-        domain_id = self.domain_id_generator()	# FIXME: move to domain constructor
-        shell_id = self.shell_id_generator()	# FIXME: move to protective_domain constructor
+        domain_id = self.domain_id_generator()
+        shell_id = self.shell_id_generator()
 
         # Get structure (region or surface) where the particle lives.
         species = self.world.get_species(pid_particle_pair[1].sid)
@@ -403,7 +403,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
         single.initialize(self.t)
         self.move_shell(single.shell_id_shell_pair)
-        self.domains[single.domain_id] = single
+        self.domains[domain_id] = single
 
         if __debug__:
             # Used in __str__.
@@ -423,8 +423,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
         # TODO.
         interaction_type = None
 
-        domain_id = self.domain_id_generator()	# FIXME: move to domain constructor
-        shell_id = self.shell_id_generator()	# FIXME: move to protective domain constructor
+        domain_id = self.domain_id_generator()
+        shell_id = self.shell_id_generator()
 
         interaction = \
             create_default_interaction(domain_id, pid_particle_pair, shell_id,
@@ -435,7 +435,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
         interaction.initialize(self.t)
 
         self.move_shell(interaction.shell_id_shell_pair)
-        self.domains[interaction.domain_id] = interaction
+        self.domains[domain_id] = interaction
 
         if __debug__:
             # Used in __str__.
@@ -461,8 +461,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
         # the sum of the rates of all the possible reaction types. 
         rt.ktot = k_max
 
-        domain_id = self.domain_id_generator()	# FIXME: move to domain constructor
-        shell_id = self.shell_id_generator()	# FIXME: move to protective_domain constructor
+        domain_id = self.domain_id_generator()
+        shell_id = self.shell_id_generator()
 
         pos1 = single1.shell.shape.position
         pos2 = single2.shell.shape.position
@@ -481,7 +481,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
         pair.initialize(self.t)
 
         self.move_shell(pair.shell_id_shell_pair)
-        self.domains[pair.domain_id] = pair
+        self.domains[domain_id] = pair
 
         if __debug__:
             # Used in __str__.
@@ -490,7 +490,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
         return pair
 
     def create_multi(self):
-        domain_id = self.domain_id_generator()	# FIXME: move to domain constructor
+        domain_id = self.domain_id_generator()
         if __debug__:
             try:
                 # Option to make multis run faster for nicer visualization.
@@ -500,7 +500,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
         else:
             dt_factor = DEFAULT_DT_FACTOR
         multi = Multi(domain_id, self, dt_factor)
-        self.domains[multi.domain_id] = multi
+        self.domains[domain_id] = multi
         return multi
 
     def move_single(self, single, position, radius=None):
