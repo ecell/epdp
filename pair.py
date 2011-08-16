@@ -32,6 +32,8 @@ class Pair(ProtectiveDomain):
 
         self.single1 = single1
         self.single2 = single2 
+	self.pid_particle_pair1 = single1.pid_particle_pair
+	self.pid_particle_pair2 = single2.pid_particle_pair
 
         self.a_R, self.a_r = self.determine_radii(r0, shell_size)
 	# set the radii of the inner domains as a function of the outer protective domain
@@ -48,39 +50,39 @@ class Pair(ProtectiveDomain):
             log.debug('del %s' % str(self))
 
     def get_com(self):
-        return self.shell_list[0][1].shape.position
+        return self.shell.shape.position
     com = property(get_com)
 
     def get_shell_size(self):
-        return self.shell_list[0][1].shape.radius
+        return self.shell.shape.radius
 
     def get_D_tot(self):
-        return self.single1.pid_particle_pair[1].D + \
-               self.single2.pid_particle_pair[1].D
+        return self.pid_particle_pair1[1].D + \
+               self.pid_particle_pair2[1].D
     D_tot = property(get_D_tot)
 
     def get_D_R(self):
-        return (self.single1.pid_particle_pair[1].D *
-                self.single2.pid_particle_pair[1].D) / self.D_tot
+        return (self.pid_particle_pair1[1].D *
+                self.pid_particle_pair2[1].D) / self.D_tot
     D_R = property(get_D_R)
 
     def get_v_tot(self):
-        return self.single2.pid_particle_pair[1].v - \
-               self.single1.pid_particle_pair[1].v
+        return self.pid_particle_pair2[1].v - \
+               self.pid_particle_pair1[1].v
     v_tot = property(get_v_tot)
     
     v_r = property(get_v_tot)
 
     def get_v_R(self):
-        return (self.single1.pid_particle_pair[1].v * 
-                self.single2.pid_particle_pair[1].D +
-                self.single2.pid_particle_pair[1].v *
-                self.single1.pid_particle_pair[1].D) / self.D_tot
+        return (self.pid_particle_pair1[1].v * 
+                self.pid_particle_pair2[1].D +
+                self.pid_particle_pair2[1].v *
+                self.pid_particle_pair1[1].D) / self.D_tot
     v_R = property(get_v_R)
 
     def getSigma(self):
-        return self.single1.pid_particle_pair[1].radius + \
-               self.single2.pid_particle_pair[1].radius
+        return self.pid_particle_pair1[1].radius + \
+               self.pid_particle_pair2[1].radius
     sigma = property(getSigma)
 
     def initialize(self, t):
@@ -94,13 +96,11 @@ class Pair(ProtectiveDomain):
         Todo. Make dimension (1D/2D/3D) specific someday. Optimization only.
 
         """
-        single1 = self.single1
-        single2 = self.single2
-        radius1 = single1.pid_particle_pair[1].radius
-        radius2 = single2.pid_particle_pair[1].radius
+        radius1 = self.pid_particle_pair1[1].radius
+        radius2 = self.pid_particle_pair2[1].radius
 
-        D1 = single1.pid_particle_pair[1].D
-        D2 = single2.pid_particle_pair[1].D
+        D1 = self.pid_particle_pair1[1].D
+        D2 = self.pid_particle_pair2[1].D
 
 	LD_MAX = 20 # temporary value
 	a_r_max = LD_MAX * (r0 - self.sigma) + self.sigma
@@ -226,8 +226,8 @@ class Pair(ProtectiveDomain):
         new_com = self.draw_new_com(dt, event_type)
         new_iv = self.draw_new_iv(dt, r0, old_iv, event_type)
 
-        D1 = self.single1.pid_particle_pair[1].D
-        D2 = self.single2.pid_particle_pair[1].D
+        D1 = self.pid_particle_pair1[1].D
+        D2 = self.pid_particle_pair2[1].D
 
         newpos1 = new_com - new_iv * (D1 / self.D_tot)
         newpos2 = new_com + new_iv * (D2 / self.D_tot)
@@ -262,15 +262,15 @@ class Pair(ProtectiveDomain):
         pass
 
     def __str__(self):
-        sid = self.single1.pid_particle_pair[1].sid
-        sid2 = self.single2.pid_particle_pair[1].sid
-        name = self.world.model.get_species_type_by_id(sid)["name"]
+        sid1 = self.pid_particle_pair1[1].sid
+        sid2 = self.pid_particle_pair2[1].sid
+        name1 = self.world.model.get_species_type_by_id(sid1)["name"]
         name2 = self.world.model.get_species_type_by_id(sid2)["name"]
         return 'Pair[%s: %s, %s, (%s, %s)]' % (
             self.domain_id,
-            self.single1.pid_particle_pair[0],
-            self.single2.pid_particle_pair[0],
-            name, name2)
+            self.pid_particle_pair1[0],
+            self.pid_particle_pair2[0],
+            name1, name2)
 
 class SphericalPair(Pair):
     """2 Particles inside a (spherical) shell not on any surface.
@@ -398,8 +398,8 @@ class PlanarSurfacePair(Pair):
         # error).
         orientation = crossproduct(self.structure.shape.unit_x,
                                    self.structure.shape.unit_y)
-        half_length = max(self.single1.pid_particle_pair[1].radius,
-                          self.single2.pid_particle_pair[1].radius)
+        half_length = max(self.pid_particle_pair1[1].radius,
+                          self.pid_particle_pair2[1].radius)
         return CylindricalShell(domain_id, Cylinder(position, radius, 
                                                     orientation, half_length))
 
@@ -491,8 +491,8 @@ class CylindricalSurfacePair(Pair):
         # radius of the biggest particle), so if the particle undergoes 
         # an unbinding reaction we still have to clear the target volume 
         # and the move may be rejected (NoSpace error).
-        radius = max(self.single1.pid_particle_pair[1].radius,
-                     self.single2.pid_particle_pair[1].radius)
+        radius = max(self.pid_particle_pair1[1].radius,
+                     self.pid_particle_pair2[1].radius)
         orientation = self.structure.shape.unit_z
         return CylindricalShell(domain_id, Cylinder(position, radius, 
                                                     orientation, half_length))

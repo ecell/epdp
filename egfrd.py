@@ -449,13 +449,17 @@ class EGFRDSimulator(ParticleSimulatorBase):
         assert single1.dt == 0.0
         assert single2.dt == 0.0
 
+	pid_particle_pair1 = single1.pid_particle_pair
+	pid_particle_pair2 = single2.pid_particle_pair
+
+
         domain_id = self.domain_id_generator()
         shell_id = self.shell_id_generator()
 
-        # Select 1 reaction type out of all possible reaction types.
+        # Select 1 reaction type out of all possible reaction types between the two particles.
         rts = self.network_rules.query_reaction_rule(
-                single1.pid_particle_pair[1].sid,
-                single2.pid_particle_pair[1].sid)
+                pid_particle_pair1[1].sid,
+                pid_particle_pair2[1].sid)
         k_array = numpy.add.accumulate([rt.k for rt in rts])
         k_max = k_array[-1]
         rnd = myrandom.uniform()
@@ -465,12 +469,10 @@ class EGFRDSimulator(ParticleSimulatorBase):
         # the sum of the rates of all the possible reaction types. 
         rt.ktot = k_max
 
-        pos1 = single1.shell.shape.position
-        pos2 = single2.shell.shape.position
-
-        # Get structure (region or surface).
-        species = self.world.get_species(single1.pid_particle_pair[1].sid)
-        structure = self.world.get_structure(species.structure_id)
+        # Get structure (region or surface) where particle1 lives (assuming particle2
+	# also lives here -> TODO).
+        species1 = self.world.get_species(pid_particle_pair1[1].sid)
+        structure = self.world.get_structure(species1.structure_id)
 
         # Create pair. The type of the pair that will be created depends
         # on the structure (region or surface) the particles are in/on.  
