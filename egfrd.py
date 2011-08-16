@@ -614,6 +614,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
 
     def burst_domain(self, domain):
+    # Reduces and domain (Single, Pair or Multi) to Singles with the zero shell, and dt=0
         if __debug__:
             log.info('burst_domain: %s' % domain)
 
@@ -632,7 +633,9 @@ class EGFRDSimulator(ParticleSimulatorBase):
             bursted = [single1, single2]
         else:  # Multi
 #            bursted = self.burst_multi(domain)
-            bursted = self.break_up_multi(domain)
+            bursted = self.break_up_multi(domain)	# Multi's can really be 'bursted' since the
+							# positions of the particles are known. They
+							# are broken up to singles instead.
             self.remove_event(domain)
 
         if __debug__:
@@ -865,6 +868,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
         if single.dt == numpy.inf:
             return single 
         
+	### 1. Process event produced by the single
+
         # Otherwise check timeline
         assert (abs(single.dt + single.last_time - self.t) <= 1e-18 * self.t)
 
@@ -925,7 +930,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
         singlepos = single.shell.shape.position
 
-	# Now try to make a new domain
+	### 2. Now make a new domain
         # (2) Clear volume.
 
         min_shell = single.pid_particle_pair[1].radius * \
@@ -1184,7 +1189,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
             self.reaction_events += 1
             self.last_reaction = multi.last_reaction
 
-        if multi.last_event is not None:
+        if multi.last_event is not None:		# if an event took place
             self.break_up_multi(multi)
             self.multi_steps[multi.last_event] += 1
         else:
