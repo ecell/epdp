@@ -2,6 +2,7 @@ from _gfrd import *
 from constants import EventType
 from _greens_functions import *
 from greens_function_wrapper import *
+from domain import *
 
 __all__ = [
     'CylindricalSurfacePair',
@@ -10,7 +11,7 @@ __all__ = [
     'Pair',
     ]
 
-class Pair(object):
+class Pair(ProtectiveDomain):
     """There are 3 types of pairs:
         * SphericalPair
         * PlanarSurfacePair
@@ -25,8 +26,9 @@ class Pair(object):
 
     def __init__(self, domain_id, com, single1, single2, shell_id, r0, 
                  shell_size, rt, structure):
+	ProtectiveDomain.__init__(self, domain_id)
+
         self.multiplicity = 2
-        self.num_shells = 1
 
         self.single1 = single1
         self.single2 = single2 
@@ -35,20 +37,11 @@ class Pair(object):
 	# set the radii of the inner domains as a function of the outer protective domain
 
         self.rt = rt
-
-        self.event_id = None
-
-        self.last_time = 0.0
-        self.dt = 0.0
-        self.event_type = None
-
-        self.structure = structure
+        self.structure = structure		# structure on which both particles live
 
         # Create shell.
-        shell = self.create_new_shell(com, shell_size, domain_id)
-
-        self.shell_list = [(shell_id, shell), ]
-        self.domain_id = domain_id
+	self.shell_id = shell_id
+        self.shell = self.create_new_shell(com, shell_size, domain_id)
 
     def __del__(self):
         if __debug__:
@@ -57,21 +50,6 @@ class Pair(object):
     def get_com(self):
         return self.shell_list[0][1].shape.position
     com = property(get_com)
-
-    def get_shell_id(self):
-        return self.shell_list[0][0]
-    shell_id = property(get_shell_id)
-
-    def get_shell(self):
-        return self.shell_list[0][1]
-    shell = property(get_shell)
-
-    def get_shell_id_shell_pair(self):
-        return self.shell_list[0]
-    def set_shell_id_shell_pair(self, value):
-        self.shell_list[0] = value
-    shell_id_shell_pair = property(get_shell_id_shell_pair, 
-                                   set_shell_id_shell_pair)
 
     def get_shell_size(self):
         return self.shell_list[0][1].shape.radius
@@ -535,7 +513,7 @@ class CylindricalSurfacePair(Pair):
 
     def get_shell_size(self):
         # Heads up.
-        return self.shell_list[0][1].shape.half_length
+        return self.shell.shape.half_length
 
     def __str__(self):
         return 'CylindricalSurface' + Pair.__str__(self)

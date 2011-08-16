@@ -3,6 +3,7 @@ from _greens_functions import *
 from greens_function_wrapper import *
 from constants import EventType
 import utils
+from domain import *
 
 __all__ = [
     'CylindricalSurfaceSingle',
@@ -15,7 +16,7 @@ __all__ = [
     ]
 
 
-class Single(object):
+class Single(ProtectiveDomain):
     """There are 2 main types of Singles:
         * NonInteractionSingle
         * InteractionSingle (when the particle is nearby a surface)
@@ -26,23 +27,15 @@ class Single(object):
 
     """
     def __init__(self, domain_id, pid_particle_pair, reactiontypes, structure):
+	ProtectiveDomain.__init__(self, domain_id)
+
         self.multiplicity = 1
-        self.num_shells = 1
 
         self.pid_particle_pair = pid_particle_pair
-        self.reactiontypes = reactiontypes
-
-        self.k_tot = 0
-
-        self.last_time = 0.0
-        self.dt = 0.0
-
-        self.event_id = None
-        self.event_type = None
-
         self.structure = structure		# the structure in/on which the particle lives
-        self.domain_id = domain_id
 
+        self.reactiontypes = reactiontypes
+        self.k_tot = 0
         self.updatek_tot()
 
     def getD(self):
@@ -54,20 +47,6 @@ class Single(object):
         return self.pid_particle_pair[1].v
     v = property(getv)
 
-    def get_shell_id(self):
-        return self.shell_list[0][0]
-    shell_id = property(get_shell_id)
-
-    def get_shell(self):
-        return self.shell_list[0][1]
-    shell = property(get_shell)
-
-    def get_shell_id_shell_pair(self):
-        return self.shell_list[0]
-    def set_shell_id_shell_pair(self, value):
-        self.shell_list[0] = value
-    shell_id_shell_pair = property(get_shell_id_shell_pair, 
-                                   set_shell_id_shell_pair)
 
     # FIXME: This shouldn't be here, since the mobility_radius doens't mean anything
     #        for interaction singles
@@ -76,7 +55,7 @@ class Single(object):
 
     # FIXME: Same goes here
     def get_shell_size(self):
-        return self.shell_list[0][1].shape.radius
+        return self.shell.shape.radius
 
     def draw_new_position(self, dt, event_type):
 	'''Draw a new position of the particle in the simulation coordinate system
@@ -178,10 +157,10 @@ class NonInteractionSingle(Single):
                         structure)
 
         # Create shell.
-        shell = self.create_new_shell(pid_particle_pair[1].position,
+	self.shell_id = shell_id
+        self.shell = self.create_new_shell(pid_particle_pair[1].position,
                                       pid_particle_pair[1].radius, domain_id)
 
-        self.shell_list = [(shell_id, shell), ]
 
     def determine_next_event(self):
         """Return an (event time, event type)-tuple.
@@ -294,7 +273,6 @@ class CylindricalSurfaceSingle(NonInteractionSingle):
         * Domain: cartesian z.
         * Initial position: z = 0.
         * Selected randomly when drawing displacement vector: none.
-
     """
     def __init__(self, domain_id, pid_particle_pair, shell_id, reactiontypes, 
                  structure):
@@ -319,12 +297,12 @@ class CylindricalSurfaceSingle(NonInteractionSingle):
         if utils.feq(z, self.get_mobility_radius()):
             # Escape, can be either to the left or to the right.
             z = myrandom.choice(-1, 1) * z 
-        return z * self.shell_list[0][1].shape.unit_z
+        return z * self.shell.shape.unit_z
 
     def get_shell_size(self):
         # Heads up. The cylinder's *half_length*, not radius, 
         # determines the size in case of a cylindrical surface.
-        return self.shell_list[0][1].shape.half_length
+        return self.shell.shape.half_length
 
     def __str__(self):
         return 'CylindricalSurface' + Single.__str__(self)
@@ -344,8 +322,11 @@ class InteractionSingle(Single):
 
         Single.__init__(self, domain_id, pid_particle_pair, reactiontypes,
                         structure)
+
         self.interaction_type = interaction_type
-        self.shell_list = [(shell_id, shell), ]
+        self.shell_id = shell_id
+	self.shell = shell
+
 	self.surface = surface			# The surface with which the particle is trying to interact
 
     def determine_next_event(self):
@@ -390,7 +371,7 @@ class PlanarSurfaceInteraction(InteractionSingle):
         * Selected randomly when drawing displacement vector: theta.
 
     """
-    def __init__(self, domain_id, pid_particle_pair, structure, shell_id, reactiontypes,
+    def __init__(self, domain_id, shell_id, pid_particle_pair, structure, reactiontypes,
                  interaction_type, surface, origin, orientation, half_length, 
                  particle_offset, projected_point, size_of_domain):
 
@@ -457,7 +438,7 @@ class PlanarSurfaceInteraction(InteractionSingle):
     def createNewShell(self, position, radius, domain_id):
         orientation = self.orientation
         half_length = self.half_length
-        return CylindricalShell(position, radius, orientation, half_length,
+        return CylindricalShell(position, radius, orientation, half_length,	# FIXME
                                 domain_id)
 
     def draw_new_position(self, dt, eventType):
@@ -582,7 +563,7 @@ class CylindricalSurfaceInteraction(InteractionSingle):
     def get_shell_size(self):
         # Heads up. The cylinder's *half_length*, not radius, 
         # determines the size in case of a cylindrical surface.
-        return self.shell_list[0][1].shape.half_length
+        return self.shell.shape.half_length
 
     def __str__(self):
         return 'CylindricalSurfaceInteraction' + Single.__str__(self)
