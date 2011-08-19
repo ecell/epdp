@@ -393,7 +393,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
         domain_id = self.domain_id_generator()
         shell_id = self.shell_id_generator()
 
-        rts = self.network_rules.query_reaction_rule(pid_particle_pair[1].sid)
+        rrs = self.network_rules.query_reaction_rule(pid_particle_pair[1].sid)
         # Get structure (region or surface) where the particle lives.
         species = self.world.get_species(pid_particle_pair[1].sid)
         structure = self.world.get_structure(species.structure_id)
@@ -404,7 +404,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
         # in/on. Either SphericalSingle, PlanarSurfaceSingle, or 
         # CylindricalSurfaceSingle.
         single = create_default_single(domain_id, pid_particle_pair, 
-                                       shell_id, rts, structure)
+                                       shell_id, rrs, structure)
 #        assert isinstance(single, NonInteractionSingle)
         single.initialize(self.t)
         self.domains[domain_id] = single
@@ -466,17 +466,17 @@ class EGFRDSimulator(ParticleSimulatorBase):
         shell_id = self.shell_id_generator()
 
         # Select 1 reaction type out of all possible reaction types between the two particles.
-        rts = self.network_rules.query_reaction_rule(
+        rrs = self.network_rules.query_reaction_rule(
                 pid_particle_pair1[1].sid,
                 pid_particle_pair2[1].sid)
-        k_array = numpy.add.accumulate([rt.k for rt in rts])
+        k_array = numpy.add.accumulate([rr.k for rr in rrs])
         k_max = k_array[-1]
         rnd = myrandom.uniform()
         i = numpy.searchsorted(k_array, rnd * k_max)
-        rt = rts[i]
+        rr = rrs[i]
         # The probability for this reaction to happen is proportional to 
         # the sum of the rates of all the possible reaction types. 
-        rt.ktot = k_max
+        rr.ktot = k_max
 
         # Get structure (region or surface) where particle1 lives (assuming particle2
 	# also lives here -> TODO).
@@ -489,7 +489,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
         # Either SphericalPair, PlanarSurfacePair, or 
         # CylindricalSurfacePair.
         pair = create_default_pair(domain_id, com, single1, single2, shell_id, 
-                                   r0, shell_size, rt, structure)
+                                   r0, shell_size, rr, structure)
 
         pair.initialize(self.t)
         self.domains[domain_id] = pair

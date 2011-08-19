@@ -80,7 +80,7 @@ class Single(ProtectiveDomain):
         return self.dt == 0.0 and self.event_type == EventType.SINGLE_ESCAPE
 
     def draw_reaction_time_tuple(self):
-        """Return a (reaction time, event type)-tuple.
+        """Return a (reaction time, event type)-tuple for a unimolecular reaction.
 
         """
         if self.k_tot <= 0:
