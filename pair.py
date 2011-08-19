@@ -211,6 +211,7 @@ class Pair(ProtectiveDomain):
     def draw_iv_event_type(self, r0):
         gf = self.iv_greens_function(r0)
         event_kind = draw_event_type_wrapper(gf, self.dt)
+	print event_kind
         if event_kind == PairEventKind.IV_REACTION:
             return EventType.IV_REACTION
         elif event_kind == PairEventKind.IV_ESCAPE:
