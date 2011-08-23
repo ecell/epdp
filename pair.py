@@ -66,20 +66,6 @@ class Pair(ProtectiveDomain):
                 self.pid_particle_pair2[1].D) / self.D_tot
     D_R = property(get_D_R)
 
-    def get_v_tot(self):
-        return self.pid_particle_pair2[1].v - \
-               self.pid_particle_pair1[1].v
-    v_tot = property(get_v_tot)
-    
-    v_r = property(get_v_tot)
-
-    def get_v_R(self):
-        return (self.pid_particle_pair1[1].v * 
-                self.pid_particle_pair2[1].D +
-                self.pid_particle_pair2[1].v *
-                self.pid_particle_pair1[1].D) / self.D_tot
-    v_R = property(get_v_R)
-
     def getSigma(self):
         return self.pid_particle_pair1[1].radius + \
                self.pid_particle_pair2[1].radius
@@ -479,6 +465,20 @@ class CylindricalSurfacePair(Pair):
                  r0, shell_size, rt, structure):
         Pair.__init__(self, domain_id, com, single1, single2, shell_id,
                       r0, shell_size, rt, structure)
+
+    def get_v_tot(self):
+        return self.pid_particle_pair2[1].v - \
+               self.pid_particle_pair1[1].v
+    v_tot = property(get_v_tot)
+    
+    v_r = property(get_v_tot)
+
+    def get_v_R(self):
+        return (self.pid_particle_pair1[1].v * 
+                self.pid_particle_pair2[1].D +
+                self.pid_particle_pair2[1].v *
+                self.pid_particle_pair1[1].D) / self.D_tot
+    v_R = property(get_v_R)
 
     def com_greens_function(self):
         # The domain is created around r0, so r0 corresponds to r=0 within the domain

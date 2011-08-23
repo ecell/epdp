@@ -43,12 +43,6 @@ class Single(ProtectiveDomain):
         return self.pid_particle_pair[1].D
     D = property(getD)
 
-    def getv(self):
-	# MOVE to CylindericalSurfaceSingle (no meaning anywhere else)
-        return 0 # TODO, include drift.
-        return self.pid_particle_pair[1].v
-    v = property(getv)
-
 
 	# Note that this is the mobility RADIUS, for cylindrical domains with non-trivial
 	# length you need more information to characterize the insides of the shell
@@ -321,6 +315,11 @@ class CylindricalSurfaceSingle(NonInteractionSingle):
                  structure):
         NonInteractionSingle.__init__(self, domain_id, pid_particle_pair, 
                                       shell_id, reactionrules, structure)
+
+    def getv(self):
+        return 0 # TODO, include drift.
+        return self.pid_particle_pair[1].v
+    v = property(getv)
 
     def greens_function(self):
         # The domain is created around r0, so r0 corresponds to r=0 within the domain
@@ -598,8 +597,8 @@ class CylindricalSurfaceInteraction(InteractionSingle):
 	# The greens function not used for the interaction
         z0 = self.dz_left - self.shell.shape.half_length
 
-        # Free diffusion in z direction.
-        return GreensFunction1DAbsAbs(self.getD(), self.getv(), z0,
+        # Free diffusion in z direction, drift is zero by default.
+        return GreensFunction1DAbsAbs(self.getD(), 0, z0,
                                       -self.get_mobility_radius(),
                                       self.get_mobility_radius())
 
