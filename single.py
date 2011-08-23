@@ -44,16 +44,12 @@ class Single(ProtectiveDomain):
     D = property(getD)
 
 
-	# Note that this is the mobility RADIUS, for cylindrical domains with non-trivial
-	# length you need more information to characterize the insides of the shell
-	# RENAME to get_inner_a, for the parameter a of the 'inner shell', which demarkates
-	# the volume where the CoM of the particle can go.
-    def get_mobility_radius(self):
+    def get_inner_a(self):
+	# inner_a is the outer radius of the 'inner shell', which demarkates
+	# the space where the CoM of the particle can go. The space can be
+	# one, two or three dimensional and can be linear, round, spherical or
+	# cylindric in form.
         return self.shell.shape.radius - self.pid_particle_pair[1].radius
-
-	# FIXME: Same goes here
-    def get_shell_size(self):
-        return self.shell.shape.radius
 
     def draw_new_position(self, dt, event_type):
 	'''Draw a new position of the particle in the coordinate system given that an
@@ -180,6 +176,11 @@ class NonInteractionSingle(Single):
         self.shell = self.create_new_shell(pid_particle_pair[1].position,
                                       pid_particle_pair[1].radius, domain_id)
 
+    def get_shell_size(self):
+	# Note: this method only means something for Protective Domains that can
+	# only be sized in one direction
+        return self.shell.shape.radius
+
 
     def determine_next_event(self):
         """Return an (event time, event type)-tuple.
@@ -204,10 +205,10 @@ class NonInteractionSingle(Single):
 
 	    # TODO Either include check for non-zero drift here, or overload
 	    # this method in CylindricalSurfaceSingle to check exit interface
-        	r = self.get_mobility_radius()
+        	r = self.get_inner_a()
             else:
         	gf = self.greens_function()
-        	r = draw_r_wrapper(gf, dt, self.get_mobility_radius())
+        	r = draw_r_wrapper(gf, dt, self.get_inner_a())
 		# Note that in case of 1D diffusion r has a direction. It is
 		# the lateral displacement and can be positive or negative. 
 		# In other cases r is always positive and denotes
@@ -250,7 +251,7 @@ class SphericalSingle(NonInteractionSingle):
 
     def greens_function(self):
         return GreensFunction3DAbsSym(self.getD(),
-                                          self.get_mobility_radius())
+                                          self.get_inner_a())
 
     def create_new_shell(self, position, radius, domain_id):
         return SphericalShell(self.domain_id, Sphere(position, radius))
@@ -279,7 +280,7 @@ class PlanarSurfaceSingle(NonInteractionSingle):
 
     def greens_function(self):
         return GreensFunction2DAbsSym(self.getD(),
-                                          self.get_mobility_radius())
+                                          self.get_inner_a())
 
     def create_new_shell(self, position, radius, domain_id):
         # The half_length (thickness) of a hockey puck is not more than 
@@ -323,7 +324,7 @@ class CylindricalSurfaceSingle(NonInteractionSingle):
 
     def greens_function(self):
         # The domain is created around r0, so r0 corresponds to r=0 within the domain
-        return GreensFunction1DAbsAbs(self.getD(), self.getv(), 0.0, -self.get_mobility_radius(), self.get_mobility_radius())
+        return GreensFunction1DAbsAbs(self.getD(), self.getv(), 0.0, -self.get_inner_a(), self.get_inner_a())
 
     def create_new_shell(self, position, half_length, domain_id):
         # The radius of a rod is not more than it has to be (namely the 
@@ -336,7 +337,7 @@ class CylindricalSurfaceSingle(NonInteractionSingle):
                                                     orientation, half_length))
 
     def create_position_vector(self, z):
-        if utils.feq(z, self.get_mobility_radius()):
+        if utils.feq(z, self.get_inner_a()):
             # Escape, can be either to the left or to the right.
 	    # FIXME This is wrong in case of drift
             z = myrandom.choice(-1, 1) * z 
@@ -483,8 +484,8 @@ class PlanarSurfaceInteraction(InteractionSingle):
 
     def greens_function(self):
         # This is the Greens function that does not produce REACTION event
-        #return GreensFunction3DAbsSYm(self.getD(), get_mobility_radius())
-        return GreensFunction2DAbsSym(self.getD(), self.get_mobility_radius())
+        #return GreensFunction3DAbsSYm(self.getD(), get_inner_a())
+        return GreensFunction2DAbsSym(self.getD(), self.get_inner_a())
 
     def iv_greens_function(self):
 	# The green's function that also modelles the association of the particle
@@ -512,7 +513,7 @@ class PlanarSurfaceInteraction(InteractionSingle):
 	    newpos = oldpos		# just return oldpos, particle will be removed anyway
 	else:
 	    # calculate r vector
-            a = self.get_mobility_radius()
+            a = self.get_inner_a()
 	    if event_type == EventType.SINGLE_ESCAPE:
 		r = a
 	    else:
@@ -599,8 +600,8 @@ class CylindricalSurfaceInteraction(InteractionSingle):
 
         # Free diffusion in z direction, drift is zero by default.
         return GreensFunction1DAbsAbs(self.getD(), 0, z0,
-                                      -self.get_mobility_radius(),
-                                      self.get_mobility_radius())
+                                      -self.get_inner_a(),
+                                      self.get_inner_a())
 
     def iv_greens_function(self):
 	# Green's function used for the interaction
@@ -627,10 +628,10 @@ class CylindricalSurfaceInteraction(InteractionSingle):
             # Moving this checks to the Green's functions is not a good 
             # idea, because then you'd draw an unused random number.  
             # The same yields for the draw_new_com and draw_new_iv.  
-            z = self.get_mobility_radius()
+            z = self.get_inner_a()
         else:
             gf = self.greens_function()
-            z = draw_r_wrapper(gf, dt, self.get_mobility_radius())
+            z = draw_r_wrapper(gf, dt, self.get_inner_a())
 
         # Orientation matters, so use shell.shape.unit_z instead of 
         # structure.shape.unit_z.
@@ -654,11 +655,11 @@ class CylindricalSurfaceInteraction(InteractionSingle):
         # Add displacement to shape.position, not to particle.position.  
         return self.shell.shape.position + z_vector + r_vector
 
-    def get_shell_size(self):
-	# REMOVE this method, it doesn't mean anything here.
-        # Heads up. The cylinder's *half_length*, not radius, 
-        # determines the size in case of a cylindrical surface.
-        return self.shell.shape.half_length
+#    def get_shell_size(self):
+#	# REMOVE this method, it doesn't mean anything here.
+#        # Heads up. The cylinder's *half_length*, not radius, 
+#        # determines the size in case of a cylindrical surface.
+#        return self.shell.shape.half_length
 
     def __str__(self):
         return 'CylindricalSurfaceInteraction' + Single.__str__(self)
