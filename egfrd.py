@@ -1147,10 +1147,13 @@ class EGFRDSimulator(ParticleSimulatorBase):
             self.world.remove_particle(single1.pid_particle_pair[0])
             self.world.remove_particle(single2.pid_particle_pair[0])
 
-            if len(pair.rt.products) == 1:
-                species3 = self.world.get_species(pair.rt.products[0])
+            if len(pair.rt.products) == 0:
+		# no product particles, nothing new to be made
+                product = []
 
-                # calculate new R
+	    elif len(pair.rt.products) == 1:
+                species3 = self.world.get_species(pair.rt.products[0])
+                # calculate new position
                 event_type = pair.event_type
                 new_com = pair.draw_new_com(pair.dt, event_type)
 
@@ -1161,16 +1164,18 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
                 new_com = self.world.apply_boundary(new_com)
 
+		# make product particle
                 particle = self.world.new_particle(species3.id, new_com)
+
+		# create a new domain for the new particle
                 product = self.create_single(particle)
+		# schedule domain
                 self.add_domain_event(product)
 
+		# update counters
                 self.reaction_events += 1
-
                 self.last_reaction = (pair.rt, (particle1, particle2),
                                       [particle])
-            elif len(pair.rt.products) == 0:
-                product = []
             else:
                 raise NotImplementedError('num products >= 2 not supported.')
 
