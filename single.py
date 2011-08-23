@@ -66,20 +66,6 @@ class Single(ProtectiveDomain):
 	'''
 	pass
 
-    def initialize(self, t):
-	# MOVE to NonInteractionSingle, can't really initialize an InteractionSingle
-        '''
-        Reset the Single.
-
-        Radius (shell size) is shrunken to the actual radius of the 
-        particle.  self.dt is reset to 0.0.  Do not forget to reschedule 
-        this Single after calling this method.
-        '''
-	# self.shell.shape.radius = self.pid_particle_pair[1].radius
-        self.dt = 0.0
-        self.last_time = t
-        self.event_type = EventType.SINGLE_ESCAPE
-
     def is_reset(self):
         return self.dt == 0.0 and self.event_type == EventType.SINGLE_ESCAPE
 
@@ -180,6 +166,12 @@ class NonInteractionSingle(Single):
 	# Note: this method only means something for Protective Domains that can
 	# only be sized in one direction
         return self.shell.shape.radius
+
+    def initialize(self, t):
+	# self.shell.shape.radius = self.pid_particle_pair[1].radius
+        self.dt = 0.0
+        self.last_time = t
+        self.event_type = EventType.SINGLE_ESCAPE
 
 
     def determine_next_event(self):
@@ -377,11 +369,12 @@ class InteractionSingle(Single):
 
 	self.surface = surface			# The surface with which the particle is trying to interact
 
-	# REMOVE: this doens't make any sence here, only for NonInteractingSingles.
-    def initialize(self, t):			# does this method make any sence??
+    def initialize(self, t):	
+	# initialize the domain object with the appropriate time to allow reuse of
+	# the Domain at different times
 	self.dt = 0
-	self.event_type = None
 	self.last_time = t
+	self.event_type = None
 
     def create_new_shell(self, position, radius, half_length):
 #        orientation = self.orientation

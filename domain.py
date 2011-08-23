@@ -14,6 +14,16 @@ class Domain(object):
 	self.dt = 0.0
 
     def initialize(self, time):		# this method needs to be overloaded in all subclasses
+        '''
+        Sets the local time variables for the Domain (usually to the current simulation time).
+        Do not forget to reschedule this Domain after calling this method.
+
+        For the NonInteractingSingle, the radius (shell size) should be shrunken to the actual
+        radius of the particle.
+
+        initialize allows you to reuse the same Domain (of the same class with the same particles)
+	at a different time.
+        '''
 	pass
 
 

@@ -72,6 +72,7 @@ class Pair(ProtectiveDomain):
     sigma = property(getSigma)
 
     def initialize(self, t):
+	# re-initialize the time parameters of the Domain to reuse it.
         self.last_time = t
         self.dt = 0
         self.event_type = None
