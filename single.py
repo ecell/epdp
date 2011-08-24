@@ -338,6 +338,7 @@ class CylindricalSurfaceSingle(NonInteractionSingle):
         radius = self.pid_particle_pair[1].radius
         orientation = self.structure.shape.unit_z
         return CylindricalShell(self.domain_id, Cylinder(position, radius, 
+                                                    orientation, half_length))
 
     def create_position_vector(self, z):
         if utils.feq(z, self.get_inner_a()):
@@ -365,17 +366,23 @@ class InteractionSingle(Single):
 	* Diffusion in the direction that is normal the the direction of interaction
 	* Decay of the particle into a different or no particle
     """
-    def __init__(self, domain_id, pid_particle_pair, shell_id, shell,  
-                 reactionrules, interactionrules, surface, structure):
+    def __init__(self, domain_id, pid_particle_pair, reactionrules, structure, shell_id,   
+                 interactionrules, surface):
 
         Single.__init__(self, domain_id, pid_particle_pair, reactionrules,
                         structure)
 
-        self.interactionrules = interactionrules
-        self.shell_id = shell_id
-	self.shell = self.create_new_shell (self, )	# TODO: maybe this shouldn't be here but in the subclasses
+	self.shell_id = shell_id
+        self.interactionrules = interactionrules	# the surface interaction 'reactions'
+	self.surface = surface				# The surface with which the particle is
+							# trying to interact
 
-	self.surface = surface			# The surface with which the particle is trying to interact
+	# There are defined here but are overloaded later
+    def get_inner_dz_lefti(self):
+	pass
+
+    def get_inner_dz_right(self):
+	pass
 
     def initialize(self, t):	
 	# initialize the domain object with the appropriate time to allow reuse of
@@ -384,18 +391,10 @@ class InteractionSingle(Single):
 	self.last_time = t
 	self.event_type = None
 
-    def create_new_shell(self, position, radius, half_length):
-#        orientation = self.orientation
-#        half_length = self.half_length
-#	return CylindricalShell(domain_id, Cylinder(position, radius,
-#                                                    orientation, half_length))
-
-	# TODO: Does not both shapes have a unit_z that is appropriate for the
-	# orientation?
-	orientation = crossproduct(self.surface.shape.unit_x,
-                                   self.surface.shape.unit_y)
+	# This is defined here, but only used in the subclasses
+    def create_new_shell(self, position, radius, orientation_vector, half_length):
         return CylindricalShell(self.domain_id, Cylinder(position, radius,
-                                                    orientation, half_length))
+                                                    orientation_vector, half_length))
 
     def determine_next_event(self):
         """Return an (event time, event type)-tuple.
@@ -423,8 +422,8 @@ class InteractionSingle(Single):
     def draw_iv_event_type(self):
         gf = self.iv_greens_function()
         event_kind = draw_event_type_wrapper(gf, self.dt)
-        if event_kind == PairEventKind.IV_REACTION:
-            return EventType.IV_REACTION
+        if event_kind == PairEventKind.IV_REACTION:	# Note REACTION -> INTERACTION
+            return EventType.IV_INTERACTION
         elif event_kind == PairEventKind.IV_ESCAPE:
             return EventType.IV_ESCAPE
         raise NotImplemented()
@@ -432,75 +431,86 @@ class InteractionSingle(Single):
 
 class PlanarSurfaceInteraction(InteractionSingle):
     """1 Particle close to a PlanarSurface, inside a cylindrical shell 
-    placed on top of the surface.
+    placed against the surface with its flat face.
 
         * Particle coordinates inside shell: r, theta, z.
         * Coordinates: radial r, cartesian z.
-        * Initial position: r = 0, z = z.
+        * Initial position: r = 0, z = z0 (relative to center shell).
         * Selected randomly when drawing displacement vector: theta.
 
     """
-    def __init__(self, domain_id, pid_particle_pair, reactionrules,
-                 interaction_type, surface, shell_id, shell_center, shell_radius,
-		 shell_length, orientation_vector):
+    def __init__(self, domain_id, pid_particle_pair, reactionrules, structure,
+                 shell_id, shell_center, shell_radius, shell_half_length, shell_orientation_vector, z0,
+		 interactionrules, surface):
+	# shell_orientation_vector and z0 are supplied by arguments because Domains can't do
+	# spatial calculations (they don't know about the world)
+	# NOTE shell_orientation_vector should be normalized and pointing from the surface to the particle!
 
-###TODO	One of the two constructors for InteractionSingle should be right. The one below doesn't seem so
-#        InteractionSingle.__init__(self, domain_id, pid_particle_pair, 
-#                                   shell_id, reactionrules, surface, 
-#                                   interaction_type, origin, orientation,
-#                                   half_length, particle_offset,
-#                                   projected_point, size_of_domain)
-	InteractionSingle.__init__(self, domain_id, pid_particle_pair, structure, shell_id, shell,
-                 reactionrules, interaction_type, surface, structure)
+	InteractionSingle.__init__(self, domain_id, pid_particle_pair, reactionrules,
+				   structure, shell_id, interactionrules, surface)
 
-	self.shell = self.create_new_shell(self, position, radius, length)
+	# z0 is the initial position of the particle relative to the center
+	# of the shell in the direction normal to the surface.
+	self.z0 = z0
+	self.shell = self.create_new_shell(self, shell_center, shell_radius, 
+					   shell_orientation_vector, shell_half_length)
 
-        # Compute from dr, dz_left and dz_right the length of the new 
-        # domain (only that part of the cylinder where the particle can 
-        # diffuse to) and the radius and half_length of the new 
-        # cylinder.
 
-        # a
-        # what is here sigma?
-        sigma = self.surface.shape.Lz + self.pid_particle_pair[1].radius
-        # r0
-        if isinstance(surface, PlanarSurface):
-            # Heads up: length of domain (the part of the cylinder 
-            # where the particle can get) is a bit different from the 
-            # length of the cylinder because of dz_left.
-            # Assume surface.Lz == 0
-            length_of_domain = particle_distance + dz_right
-            radius = dr
-            half_length = (particle_distance + dz_left + dz_right) / 2
 
-        # TODO. This is not correct anymore.
-        if isinstance(surface, PlanarSurface):
-            # Compute new particle offset relative to origin of the 
-            # domain in the z-direction (z=0).
-            # The surface boundary is at z=-length_of_domain / 2, the 
-            # other end in the middles*at* the surface boundary. (z=L) 
-            # is at the end of the cylinder.
-            # (min_radius correction in the constructor).
-            particle_offset = [0, particle_distance - length_of_domain.Lz]
+#        # Compute from dr, dz_left and dz_right the length of the new 
+#        # domain (only that part of the cylinder where the particle can 
+#        # diffuse to) and the radius and half_length of the new 
+#        # cylinder.
+#
+#        # a
+#        # what is here sigma?
+#        sigma = self.surface.shape.Lz + self.pid_particle_pair[1].radius
+#        # r0
+#        if isinstance(surface, PlanarSurface):
+#            # Heads up: length of domain (the part of the cylinder 
+#            # where the particle can get) is a bit different from the 
+#            # length of the cylinder because of dz_left.
+#            # Assume surface.Lz == 0
+#            length_of_domain = particle_distance + dz_right
+#            radius = dr
+#            half_length = (particle_distance + dz_left + dz_right) / 2
+#
+#        # TODO. This is not correct anymore.
+#        if isinstance(surface, PlanarSurface):
+#            # Compute new particle offset relative to origin of the 
+#            # domain in the z-direction (z=0).
+#            # The surface boundary is at z=-length_of_domain / 2, the 
+#            # other end in the middles*at* the surface boundary. (z=L) 
+#            # is at the end of the cylinder.
+#            # (min_radius correction in the constructor).
+#            particle_offset = [0, particle_distance - length_of_domain.Lz]
+
+
+
+    def get_inner_dz_right(self):
+	# This is the distance the particle can travel from its initial position
+	# to the flat boundary away from the surface
+	return self.shell.shape.half_length - self.pid_particle_pair[1].radius
+
+    def get_inner_dz_left(self):
+	# This is the distance the particle can traval towards the surface
+	# Note that it is implied that the shell sticks out at the other end
+	# of the planar surface by the particle radius, and that the surface
+	# has no thickness.
+	dist_to_surface = self.shell.half_length - self.pid_particle_pair[1].radius
+	return dist_to_surface - self.pid_particle_pair[1].radius
 
     def greens_function(self):
         # This is the Greens function that does not produce REACTION event
         #return GreensFunction3DAbsSYm(self.getD(), get_inner_a())
-        return GreensFunction2DAbsSym(self.getD(), self.get_inner_a())
+        return GreensFunction2DAbsSym(self.D, self.get_inner_a())
 
     def iv_greens_function(self):
 	# The green's function that also modelles the association of the particle
 	# with the planar surface.
-        # Todo. 1D gf Rad Abs should be sigma to a.
-        return GreensFunction1DRadAbs(self.getD, self.interactionrule.k, self.r0, self.sigma, self.a)
-
-        # TODO.
-        # Cartesian domain of half_length L. Correction with getMinRadius().
-        #zDomain = CartesianDomain(particle_offset[1] - self.getMinRadius(), 
-        #                           size_of_domain - 2 * self.getMinRadius(), 
-        #                           gfz)
-
-
+	# TODO choose interactionrule
+        return GreensFunction1DRadAbs(self.D, self.interactionrule.k, self.z0,
+				      self.get_inner_dz_left(), self.get_inner_dz_right())
 
     def draw_new_position(self, dt, event_type):
 	"""Draws a new position for the particle for a given event type at a given time
@@ -519,7 +529,7 @@ class PlanarSurfaceInteraction(InteractionSingle):
 		r = a
 	    else:
 		gf = self.greens_function()
-        	r = draw_r_wrapper(gf, dt, event_type, a)
+        	r = draw_r_wrapper(gf, dt, a)
 
 	    x, y = randomVector2D(r)
 	    vector_r = x * self.surface.unitX + y * self.surface.unitY
@@ -529,21 +539,24 @@ class PlanarSurfaceInteraction(InteractionSingle):
             # Heads up. size_of_domain is different from the half_length of 
             # the cylinder, because the domain ends where the surface 
             # starts, while the cylinder is continuing into the surface.
-            sigma = self.sigma	# left side of the domain
-	    a = self.shell.shape.half_length*2 - self.sigma # FIXME ??????
+            z_surface = self.get_inner_dz_left()	# left side of the inner domain
+	    z_not_surface = self.get_inner_dz_right()	# right side of the inner domain (away from the surface)
+
+	    if event_type == EventType.IV_EVENT:	# If the event was not yet fully specified
+		event_type = self.draw_iv_event_type()
+
 	    if event_type == EventType.IV_INTERACTION:
-		z = sigma
+		z = z_surface
 	    elif event_type == EventType.IV_ESCAPE:
-		z = a
+		z = z_not_surface
 	    else:
 	        gf_iv = self.iv_greens_function()
-        	r0 = self.particle_offset			# TODO
-        	z = draw_displacement_wrapper(gf_z, dt, eventType, a, r0, sigma)
+        	z = draw_r_wrapper(gf_iv, dt, z_not_surface, z_surface)
 
-	    vector_z = z * self.shell.unitZ
+	    vector_z = z * self.shell.shape.orientation_vector	# TODO Is the orientation_vector normalized?
 
-            # Add displacement vector to self.particle.pos, not self.pos.
-	    newpos = oldpos + vector_r + vector_z
+	    # The new position is relative to the center of the shell
+	    newpos = self.shell.shape.position + vector_r + vector_z
 
         return newpos
 
@@ -562,9 +575,11 @@ class CylindricalSurfaceInteraction(InteractionSingle):
         * Selected randomly when drawing displacement vector: none.
 
     """
-    def __init__(self, domain_id, pid_particle_pair, shell_id, reactionrules,
-                 interaction_type, surface, projected_point, particle_distance,
-                 orientation_vector, dr, dz_left, dz_right):
+    def __init__(self, domain_id, pid_particle_pair, reactionrules, structure,
+		 shell_id, shell_center, shell_radius, shell_half_length, shell_orientation_vector,
+		 r0, interactionrules, surface):
+#                 interaction_type, surface, projected_point, particle_distance,
+#                 orientation_vector, dr, dz_left, dz_right):
 
         self.particle_distance = particle_distance
         self.dz_left = dz_left
@@ -572,31 +587,44 @@ class CylindricalSurfaceInteraction(InteractionSingle):
         # Only needed for this type of Interaction.
         self.unit_r = normalize(pid_particle_pair[1].position - projected_point)
 
-        shell = self.create_new_shell(domain_id, projected_point,
-                                      particle_distance, orientation_vector,
-                                      dr, dz_left, dz_right)
+        #shell = self.create_new_shell(domain_id, projected_point,
+        #                              particle_distance, orientation_vector,
+        #                              dr, dz_left, dz_right)
 
-        InteractionSingle.__init__(self, domain_id, pid_particle_pair,
-                                   shell_id, shell, reactionrules,
-                                   interaction_type, surface)
+        InteractionSingle.__init__(self, domain_id, pid_particle_pair, reactionrules,
+				   structure, shell_id, interactionrules, surface)
 
-    def create_new_shell(self, domain_id, projected_point, particle_distance,
-                         orientation_vector, dr, dz_left, dz_right):
+	# First the surface_unit_z is defined, then we can make the shell.
+	# Sort of a hack -> unit_z should be a property of surface
+	self.surface_unit_z = self.surface.shape.unit_z
+	self.shell = self.create_new_shell(self, shell_center, shell_radius, shell_half_length)
 
-        # Compute origin, radius and half_length of cylinder.
-        # This stuff is complicated. and should not be here.
-        half_length = (dz_left + dz_right) / 2
-        shiftZ = half_length - dz_left
-        origin = projected_point + shiftZ * orientation_vector
-        radius = dr + particle_distance
+#    def create_new_shell(self, domain_id, projected_point, particle_distance,
+#                         orientation_vector, dr, dz_left, dz_right):
+#
+#        # Compute origin, radius and half_length of cylinder.
+#        # This stuff is complicated. and should not be here.
+#        half_length = (dz_left + dz_right) / 2
+#        shiftZ = half_length - dz_left
+#        origin = projected_point + shiftZ * orientation_vector
+#        radius = dr + particle_distance
+#
+#        # Return shell.
+#        return CylindricalShell(domain_id, Cylinder(origin, radius, 
+#                                                    orientation_vector, 
+#                                                    half_length))
 
-        # Return shell.
-        return CylindricalShell(domain_id, Cylinder(origin, radius, 
-                                                    orientation_vector, 
-                                                    half_length))
+    def get_inner_dz_left(self):
+	return self.shell.shape.half_length - self.pid_particle_pair[1].radius
+
+    def get_inner_dz_right(self):
+	return self.get_inner_dz_left()		# domain is assumed to be symmetric
+
+    def get_inner_sigma(self):
+	return self.shell.shape.radius + self.pid_particle_pair[1].radius
 
     def greens_function(self):
-	# The greens function not used for the interaction
+	# The greens function not used for the interaction but for the other coordinate
         z0 = self.dz_left - self.shell.shape.half_length
 
         # Free diffusion in z direction, drift is zero by default.

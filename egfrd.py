@@ -58,25 +58,28 @@ def create_default_single(domain_id, pid_particle_pair, shell_id, rt, structure)
 
 
 def create_default_interaction(domain_id, pid_particle_pair, shell_id,
-                               reaction_types, interaction_type, surface,
+                               reaction_rules, interaction_rules, surface,
                                projected_point, particle_distance, 
                                orientation_vector, dr, dz_left, dz_right):
     # surface is the surface with which the interaction is made
 
     if isinstance(surface, CylindricalSurface):
         return CylindricalSurfaceInteraction(domain_id, pid_particle_pair,
-                                             shell_id, reaction_types,
-                                             interaction_type, surface, 
+                                             shell_id, reaction_rules,
+                                             interaction_rules, surface, 
                                              projected_point, particle_distance,
                                              orientation_vector,
                                              dr, dz_left, dz_right)
     elif isinstance(surface, PlanarSurface):
         return PlanarSurfaceInteraction(domain_id, pid_particle_pair,
-                                        shell_id, reaction_types,
-                                        interaction_type, surface,
-                                        projected_point, particle_distance, 
-                                        orientation_vector,
-                                        dr, dz_left, dz_right)
+                                        reaction_rules, structure,
+					shell_id, shell_center, shell_radius,
+					shell_half_length, orientation_vector,
+					z0, interaction_rules, surface)
+#                                        interaction_type, surface,
+#                                        projected_point, particle_distance, 
+#                                        orientation_vector,
+#                                        dr, dz_left, dz_right)
 
 
 def create_default_pair(domain_id, com, single1, single2, shell_id, 
