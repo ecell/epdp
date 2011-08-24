@@ -101,7 +101,7 @@ class Single(ProtectiveDomain):
         else:
             dt = draw_time_wrapper(self.greens_function())
 
-        event_type = EventType.SINGLE_ESCAPE
+        event_type = EventType.SINGLE_ESCAPE	# TODO Event is not an ESCAPE when in 1D there is drift
         return dt, event_type
 
     def updatek_tot(self):
@@ -271,7 +271,7 @@ class PlanarSurfaceSingle(NonInteractionSingle):
                                       shell_id, reactionrules, structure)
 
     def greens_function(self):
-        return GreensFunction2DAbsSym(self.getD(),
+        return GreensFunction2DAbsSym(self.D,
                                           self.get_inner_a())
 
     def create_new_shell(self, position, radius, domain_id):
@@ -314,9 +314,21 @@ class CylindricalSurfaceSingle(NonInteractionSingle):
         return self.pid_particle_pair[1].v
     v = property(getv)
 
+    def get_shell_size(self):
+        # Heads up. The cylinder's *half_length*, not radius, 
+        # determines the size in case of a cylindrical surface.
+        return self.shell.shape.half_length
+
+    def get_inner_a(self):
+	# Here the free coordinate is not the radius of the domain as in the
+	# PlanarSurfaceSingle and SphericalSingle, although it is treated as a
+	# radius in NonInteractionSingle.draw_new_position for simplicity
+	return self.shell.shape.half_length - self.pid_particle_pair[1].radius
+
     def greens_function(self):
         # The domain is created around r0, so r0 corresponds to r=0 within the domain
-        return GreensFunction1DAbsAbs(self.getD(), self.getv(), 0.0, -self.get_inner_a(), self.get_inner_a())
+	inner_half_length = self.get_inner_a()
+        return GreensFunction1DAbsAbs(self.D, self.v, 0.0, -inner_half_length, inner_half_length)
 
     def create_new_shell(self, position, half_length, domain_id):
         # The radius of a rod is not more than it has to be (namely the 
@@ -326,19 +338,15 @@ class CylindricalSurfaceSingle(NonInteractionSingle):
         radius = self.pid_particle_pair[1].radius
         orientation = self.structure.shape.unit_z
         return CylindricalShell(self.domain_id, Cylinder(position, radius, 
-                                                    orientation, half_length))
 
     def create_position_vector(self, z):
         if utils.feq(z, self.get_inner_a()):
             # Escape, can be either to the left or to the right.
-	    # FIXME This is wrong in case of drift
+	    # The side of escape should be decided on by the flux through
+	    # both boundaries at the escape time
+	    # TODO, include drift
             z = myrandom.choice(-1, 1) * z 
         return z * self.shell.shape.unit_z
-
-    def get_shell_size(self):
-        # Heads up. The cylinder's *half_length*, not radius, 
-        # determines the size in case of a cylindrical surface.
-        return self.shell.shape.half_length
 
     def __str__(self):
         return 'CylindricalSurface' + Single.__str__(self)
