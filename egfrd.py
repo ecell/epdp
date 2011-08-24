@@ -64,12 +64,18 @@ def create_default_interaction(domain_id, pid_particle_pair, shell_id,
     # surface is the surface with which the interaction is made
 
     if isinstance(surface, CylindricalSurface):
+	# Only needed for this type of Interaction.
+	# TODO make sure the periodic boundary conditions don't spoil this
+        unit_r = normalize(pid_particle_pair[1].position - projected_point)
+
         return CylindricalSurfaceInteraction(domain_id, pid_particle_pair,
-                                             shell_id, reaction_rules,
-                                             interaction_rules, surface, 
-                                             projected_point, particle_distance,
-                                             orientation_vector,
-                                             dr, dz_left, dz_right)
+                                             reaction_rules, structure,
+					     shell_id, shell_center, shell_radius,
+					     shell_half_length, shell_orientation_vector,
+					     r0, unit_r, interaction_rules, surface)
+#                                             projected_point, particle_distance,
+#                                             orientation_vector,
+#                                             dr, dz_left, dz_right)
     elif isinstance(surface, PlanarSurface):
         return PlanarSurfaceInteraction(domain_id, pid_particle_pair,
                                         reaction_rules, structure,
@@ -1413,6 +1419,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
         particle_distance = abs(projection_distance)
 
         # For interaction with a planar surface, decide orientation. 
+	# Note that the orientation_vector is normalized
         orientation_vector = cmp(projection_distance, 0) * surface.shape.unit_z 
 
         if __debug__:
@@ -1481,6 +1488,16 @@ class EGFRDSimulator(ParticleSimulatorBase):
                           (single, surface, dr, min_dr, dz_left, min_dz_left, 
                            dz_right, min_dz_right))
             return None
+
+	# FIXME For cylinder only?
+        # Compute origin, radius and half_length of cylinder.
+        # This stuff is complicated. 
+        half_length = (dz_left + dz_right) / 2
+        shiftZ = half_length - dz_left
+        origin = projected_point + shiftZ * orientation_vector
+        radius = dr + particle_distance
+
+
 
         interaction = self.create_interaction(single, surface,
                                               projected_point, 

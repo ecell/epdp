@@ -378,7 +378,7 @@ class InteractionSingle(Single):
 							# trying to interact
 
 	# There are defined here but are overloaded later
-    def get_inner_dz_lefti(self):
+    def get_inner_dz_left(self):
 	pass
 
     def get_inner_dz_right(self):
@@ -542,8 +542,10 @@ class PlanarSurfaceInteraction(InteractionSingle):
             z_surface = self.get_inner_dz_left()	# left side of the inner domain
 	    z_not_surface = self.get_inner_dz_right()	# right side of the inner domain (away from the surface)
 
-	    if event_type == EventType.IV_EVENT:	# If the event was not yet fully specified
+	    # If the event was not yet fully specified
+	    if event_type == EventType.IV_EVENT:	
 		event_type = self.draw_iv_event_type()
+
 
 	    if event_type == EventType.IV_INTERACTION:
 		z = z_surface
@@ -553,7 +555,7 @@ class PlanarSurfaceInteraction(InteractionSingle):
 	        gf_iv = self.iv_greens_function()
         	z = draw_r_wrapper(gf_iv, dt, z_not_surface, z_surface)
 
-	    vector_z = z * self.shell.shape.orientation_vector	# TODO Is the orientation_vector normalized?
+	    vector_z = z * self.shell.shape.unit_z
 
 	    # The new position is relative to the center of the shell
 	    newpos = self.shell.shape.position + vector_r + vector_z
@@ -577,112 +579,93 @@ class CylindricalSurfaceInteraction(InteractionSingle):
     """
     def __init__(self, domain_id, pid_particle_pair, reactionrules, structure,
 		 shell_id, shell_center, shell_radius, shell_half_length, shell_orientation_vector,
-		 r0, interactionrules, surface):
-#                 interaction_type, surface, projected_point, particle_distance,
-#                 orientation_vector, dr, dz_left, dz_right):
-
-        self.particle_distance = particle_distance
-        self.dz_left = dz_left
-
-        # Only needed for this type of Interaction.
-        self.unit_r = normalize(pid_particle_pair[1].position - projected_point)
-
-        #shell = self.create_new_shell(domain_id, projected_point,
-        #                              particle_distance, orientation_vector,
-        #                              dr, dz_left, dz_right)
+		 r0, unit_r, interactionrules, surface):
 
         InteractionSingle.__init__(self, domain_id, pid_particle_pair, reactionrules,
 				   structure, shell_id, interactionrules, surface)
 
-	# First the surface_unit_z is defined, then we can make the shell.
-	# Sort of a hack -> unit_z should be a property of surface
-	self.surface_unit_z = self.surface.shape.unit_z
-	self.shell = self.create_new_shell(self, shell_center, shell_radius, shell_half_length)
+	# z0 is implied to be zero (the particle being in the center of the shell in the z direction)
+	self.z0 = 0
+	self.r0 = r0
+	self.unit_r = unit_r	# This is the vector from the cylinder to the particle
+        self.shell = self.create_new_shell(self, shell_center, shell_radius,
+                                           shell_orientation_vector, shell_half_length)
 
-#    def create_new_shell(self, domain_id, projected_point, particle_distance,
-#                         orientation_vector, dr, dz_left, dz_right):
-#
-#        # Compute origin, radius and half_length of cylinder.
-#        # This stuff is complicated. and should not be here.
-#        half_length = (dz_left + dz_right) / 2
-#        shiftZ = half_length - dz_left
-#        origin = projected_point + shiftZ * orientation_vector
-#        radius = dr + particle_distance
-#
-#        # Return shell.
-#        return CylindricalShell(domain_id, Cylinder(origin, radius, 
-#                                                    orientation_vector, 
-#                                                    half_length))
 
     def get_inner_dz_left(self):
-	return self.shell.shape.half_length - self.pid_particle_pair[1].radius
+	return self.shell.shape.half_length + self.z0 - self.pid_particle_pair[1].radius
 
     def get_inner_dz_right(self):
-	return self.get_inner_dz_left()		# domain is assumed to be symmetric
+	return self.get_inner_dz_left()	- self.z0 - self.pid_particle_pair[1].radius
 
     def get_inner_sigma(self):
-	return self.shell.shape.radius + self.pid_particle_pair[1].radius
+	return self.surface.shape.radius + self.pid_particle_pair[1].radius
 
     def greens_function(self):
 	# The greens function not used for the interaction but for the other coordinate
-        z0 = self.dz_left - self.shell.shape.half_length
-
-        # Free diffusion in z direction, drift is zero by default.
-        return GreensFunction1DAbsAbs(self.getD(), 0, z0,
-                                      -self.get_inner_a(),
-                                      self.get_inner_a())
+        # Free diffusion in z direction, drift is zero.
+        return GreensFunction1DAbsAbs(self.D, 0, z0,
+                                      -self.get_inner_dz_left(),
+                                      self.get_inner_dz_right())
 
     def iv_greens_function(self):
 	# Green's function used for the interaction
         # Interaction possible in r direction.
         # TODO.
-        #k = self.interaction_type.k
+        #k = self.interaction_rule.k
         k = 0
-        r0 = self.particle_distance
-        sigma = self.surface.shape.radius + self.pid_particle_pair[1].radius
-        a_r = self.shell.shape.radius - self.pid_particle_pair[1].radius
-        # Todo 2D.
-        return GreensFunction3DRadAbs(self.getD(), k, r0, sigma, a_r)
+        # TODO 2D.
+        return GreensFunction3DRadAbs(self.D, k, self.r0, self.get_inner_sigma(),
+				      self.get_inner_a())
 
     def draw_new_position(self, dt, event_type):
 	oldpos = self.pid_particle_pair[1].position
 
 	if self.D == 0:
-	    return oldpos
-	elif event_type == EventType.SINGLE_REACTION and len(self.reactionrule.products) == 2:
-	    return oldpos
+	    newpos = oldpos
+	elif event_type == EventType.SINGLE_REACTION and len(self.reactionrule.products) == 0:
+	    newpos = oldpos
+	else:
+            # 1) Draw z.
+            if event_type == EventType.SINGLE_ESCAPE:
+                # Moving this checks to the Green's functions is not a good 
+        	# idea, because then you'd draw an unused random number.  
+        	# The same yields for the draw_new_com and draw_new_iv.  
+		# Assume for now that z0 = 0 -> both boundaries are equally likely
+		z = myrandom.choice(-1, 1) * self.get_inner_dz_left()
+            else:
+        	gf = self.greens_function()
+        	z = draw_r_wrapper(gf, dt, self.get_inner_dz_left())
 
-        # 1) Draw z.
-        if event_type == EventType.SINGLE_ESCAPE:
-            # Moving this checks to the Green's functions is not a good 
-            # idea, because then you'd draw an unused random number.  
-            # The same yields for the draw_new_com and draw_new_iv.  
-            z = self.get_inner_a()
-        else:
-            gf = self.greens_function()
-            z = draw_r_wrapper(gf, dt, self.get_inner_a())
+            # Direction matters, so use shell.shape.unit_z instead of 
+            # structure.shape.unit_z.
+            z_vector = z * self.shell.shape.unit_z
 
-        # Orientation matters, so use shell.shape.unit_z instead of 
-        # structure.shape.unit_z.
-        z_vector = z * self.shell.shape.unit_z
 
-        # 2) Draw r and theta.
-        sigma = self.surface.shape.radius + self.pid_particle_pair[1].radius
-        a_r = self.shell.shape.radius - self.pid_particle_pair[1].radius
-        iv_gf = self.iv_greens_function()
-        if event_type == EventType.IV_ESCAPE:
-            r = a_r
-        elif event_type == EventType.IV_INTERACTION:
-            r = sigma
-        else:
-            r = draw_r_wrapper(iv_gf, dt, a_r, sigma)
-        theta = draw_theta_wrapper(iv_gf, r, dt)
+            # 2) Draw r and theta.
+	    # If the event was not yet fully specified
+	    if event_type == EventType.IV_EVENT:	
+		event_type = self.draw_iv_event_type()
 
-        r_vector = r * rotate_vector(self.unit_r, self.shell.shape.unit_z,
+            sigma = self.get_inner_sigma()
+            a_r = self.get_inner_a()
+            gf_iv = self.iv_greens_function()
+
+            if event_type == EventType.IV_ESCAPE:
+        	r = a_r
+            elif event_type == EventType.IV_INTERACTION:
+        	r = sigma
+            else:
+        	r = draw_r_wrapper(gf_iv, dt, a_r, sigma)
+            theta = draw_theta_wrapper(iv_gf, r, dt)
+
+            r_vector = r * rotate_vector(self.unit_r, self.shell.shape.unit_z,
                                      theta)
 
-        # Add displacement to shape.position, not to particle.position.  
-        return self.shell.shape.position + z_vector + r_vector
+            # Add displacement to shell.shape.position, not to particle.position.  
+            newpos = self.shell.shape.position + z_vector + r_vector
+
+	return newpos
 
 #    def get_shell_size(self):
 #	# REMOVE this method, it doesn't mean anything here.
