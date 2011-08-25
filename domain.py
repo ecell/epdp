@@ -1,4 +1,3 @@
-from _gfrd import *
 
 class Domain(object):
 # The domain is the main unit of eGFRD. Single, Pairs and Multis are all domains
