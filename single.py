@@ -586,8 +586,9 @@ class CylindricalSurfaceInteraction(InteractionSingle):
 
 	# z0 is implied to be zero (the particle being in the center of the shell in the z direction)
 	self.z0 = 0
-	self.r0 = r0
 	self.unit_r = unit_r	# This is the vector from the cylinder to the particle
+	self.r0 = r0		# r0 is the distance from the center of the cylinder to the
+				# center of the particle
         self.shell = self.create_new_shell(self, shell_center, shell_radius,
                                            shell_orientation_vector, shell_half_length)
 
