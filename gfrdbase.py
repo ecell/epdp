@@ -27,8 +27,8 @@ __all__ = [
     'NoSpace',
     'create_world',
     'ParticleSimulatorBase',
-    'get_closest_surface',
-    'get_closest_surface_within_radius'
+    'get_closest_surface'#,
+#    'get_closest_surface_within_radius'
     ]
 
 World = _gfrd.World
@@ -95,7 +95,7 @@ def get_closest_surface(world, pos, ignore):
         if isinstance(surface, _gfrd.Surface) and surface.id not in ignore:
             pos_transposed = \
                 world.cyclic_transpose(pos, surface.shape.position)
-            distance = world.distance(surface.shape, pos_transposed)
+            distance = abs(world.distance(surface.shape, pos_transposed))	# This should not be here but C++ code
             surfaces_and_distances_to_surfaces.append((surface, distance))
 
     if surfaces_and_distances_to_surfaces:
@@ -103,17 +103,17 @@ def get_closest_surface(world, pos, ignore):
     else:
         return None, numpy.inf
 
-def get_closest_surface_within_radius(world, pos, radius, ignore):
-    """Return:
-      - surface within radius or None
-      - closest surface (regardless of radius)
-      - distance to closest surface"""
-
-    surface, distance = get_closest_surface(world, pos, ignore) 
-    if distance < radius:
-        return surface, surface, distance
-    else:
-        return None, surface, distance
+#def get_closest_surface_within_radius(world, pos, radius, ignore):
+#    """Return:
+#      - surface within radius or None
+#      - closest surface (regardless of radius)
+#      - distance to closest surface"""
+#
+#    surface, distance = get_closest_surface(world, pos, ignore) 
+#    if distance < radius:
+#        return surface, surface, distance
+#    else:
+#        return None, surface, distance
 
 def create_world(m, matrix_size=10):
     """Create a world object.

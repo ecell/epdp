@@ -155,6 +155,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
 	self.SURFACE_BARRIER = 3e-8		# This is the distance that cytosolic shells should at least have
 						# when not attempting an interaction with the surface.
 						# This should be at least as big as the largest particle on the surface
+	self.SURFACE_HORIZON = 0		# distance to a surface when it should starting trying to make an interaction
 
 	# used datastructrures
         self.scheduler = EventScheduler()	# contains the events. Note that every domains has exactly one event
@@ -721,6 +722,9 @@ class EGFRDSimulator(ParticleSimulatorBase):
         return bursted
 
     def fire_single_reaction(self, single, interaction_flag=False):
+	# This takes care of the identity change when a single particle decays into
+	# one or a number of other particles
+	# TODO This can also be used when a particle falls off a surface.
         if interaction_flag == True:
             raise NotImplementedError
         reactant_species_radius = single.pid_particle_pair[1].radius
@@ -892,19 +896,18 @@ class EGFRDSimulator(ParticleSimulatorBase):
                 return single
 
     def fire_single(self, single):
-#        assert abs(single.dt + single.last_time - self.t) <= 1e-18 * self.t
-#	# why this assert -> we need to take into account that single.dt might be infinite
+	### 1. Process event produced by the single
+	### 1.1 Special cases (shortcuts)
         # In case nothing is scheduled to happen: do nothing; 
         # results also in disappearance from scheduler.
         if single.dt == numpy.inf:
-            return single 
-        
-	### 1. Process event produced by the single
+            return 
+	# Else continue
 
-        # Otherwise check timeline
+        # check timeline
         assert (abs(single.dt + single.last_time - self.t) <= 1e-18 * self.t)
 
-        # Reaction.
+        # If the single had a decay reaction.
         if single.event_type == EventType.SINGLE_REACTION:
             if __debug__:
                 log.info('%s' % single.event_type)
@@ -923,31 +926,31 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
             return
 
-#       TO BE DELETED; code shouldn't be here. 
-#       (<-> Surface binding en unbinding.)
-#
-#        if single.event_type == EventType.IV_EVENT:
-#            # Draw actual pair event for iv at very last minute.
-#            single.event_type = single.draw_iv_event_type()
-#            self.interaction_steps[single.event_type] += 1
-#        else:
-#            self.single_steps[single.event_type] += 1
+	# Else the event was either an ESCAPE (NonInteractionSingle or InteractionSingle),
+	# or IV_EVENT (InteractionSingle only), NO BURST event comes up here!
+
 
         if __debug__:
             log.info('%s' % single.event_type)
             log.info('single = %s' % single)
 
-        # Handle immobile case first.
+        # Handle immobile case (what event has taken place to get here?!).
         if single.getD() == 0:
-            # no propagation, just calculate next reaction time.
+	    # The domain has not produced an decay reaction event and is immobile
+            # ->no propagation, no other changes just calculate next reaction time
+	    # and reschedule the single. So this also takes care of the domain making part
             single.dt, single.event_type = single.determine_next_event() 
             single.last_time = self.t
             self.add_domain_event(single)
             return
         
+
+	### 1.2 General case
+	# There is a non-trivial event time for the domain
         if single.dt != 0.0:
             # Propagate this particle to the exit point on the shell.
             single = self.propagate_single(single)
+
 
         # An interaction event is similar to a single reaction.
         if single.event_type == EventType.IV_INTERACTION:
@@ -960,6 +963,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
             return
 
         singlepos = single.shell.shape.position
+
 
 	### 2. Now make a new domain
         # (2) Clear volume.
@@ -978,48 +982,53 @@ class EGFRDSimulator(ParticleSimulatorBase):
                       (', '.join(str(i) for i in intruders),
                        closest, FORMAT_DOUBLE % closest_distance))
 
-        # 2.2 Burst the intruders.
-	# burst now contains all the Domains resulting from the burst (singles and multi's)
+        # 2.2 Burst the intruders if present.
         if intruders:
             burst = self.burst_non_multis(intruders)
+	    # burst now contains all the Domains resulting from the burst (singles and multi's)
         else:
             burst = None
+
+
 
         # 2.3 Check if there is a surface within min_shell (also returns the closest surface)
         # Only relevant when the particle lives in the "world" or other 3D region.
         if isinstance(single.structure, CuboidalRegion):
-            interaction_surface, closest_surface, surface_distance = \
-                get_closest_surface_within_radius(self.world, 
-                                                  singlepos, min_shell,
-                                                  ignore=[single.structure.id])
-	# 2.3.1 If there is a surface within min_shell -> try interaction
-            if interaction_surface:
-                domain = self.form_interaction(single, interaction_surface, burst)
+            closest_surface, surface_distance = \
+                get_closest_surface(self.world, singlepos, ignore=[single.structure.id])
+	    # 2.3.1 If there is a surface within min_shell -> try interaction
+	    if surface_distance < self.SURFACE_HORIZON:
+                domain = self.form_interaction(single, closest_surface, burst)
                 if domain:
                     return
+
         else:
             # Surfaces are not allowed to touch or overlap.
             closest_surface = None
 
 
-	# 2.4 If there were bursted Domains (intruders)
-	# 2.4.1 try making a Pair or Multi
+	# 2.4 If there were bursted Domains (intruders),
+	# try making a Pair or Multi
         if burst:
             domain = self.form_pair_or_multi(single, burst)
-
             if domain:
                 return
 
-            # if nothing was formed, recheck closest and restore shells.
-            burst = uniq(burst)
+        # if nothing was formed, resize the Single shell for the 'current'
+	# domain (the domain that started it all).
+        closest, closest_distance = \
+            self.get_closest_obj(singlepos, ignore=[single.domain_id],
+                                 ignores=[single.structure.id])
+        self.update_single(single, closest, closest_distance)
+        self.add_domain_event(single)
 
-            closest, closest_distance = \
-                self.get_closest_obj(singlepos, ignore=[single.domain_id],
-                                     ignores=[single.structure.id])
-            self.update_single(single, closest, closest_distance)
+	# Then resize all the bursted domains -> WHY NOT LET THE SCHEDULER HANDLE THIS?
+        if burst:
+            burst = uniq(burst)
             for s in burst:
                 if not isinstance(s, Single):
                     continue
+
                 assert s.is_reset()
                 closest, closest_distance = self.get_closest_obj(
                     s.shell.shape.position, ignore=[s.domain_id],
@@ -1027,6 +1036,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
                 self.update_single(s, closest, closest_distance)
                 self.update_domain_event(self.t + s.dt, s)
+
                 if __debug__:
                     log.debug('restore shell %s radius %s dt %s\n'
                               'closest %s distance %s' %
@@ -1034,19 +1044,17 @@ class EGFRDSimulator(ParticleSimulatorBase):
                                FORMAT_DOUBLE % s.dt, closest,
                                FORMAT_DOUBLE % closest_distance))
 
-	# 2.4.2 Else just continue with the NonInteractionSingle
-        else:
-            if closest_surface and surface_distance < closest_distance:
-                closest = closest_surface
-                closest_distance = surface_distance - self.SURFACE_BARRIER
-            self.update_single(single, closest, closest_distance)
+#        else:
+#            if closest_surface and surface_distance < closest_distance:
+#                closest = closest_surface
+#                closest_distance = surface_distance - self.SURFACE_BARRIER
+#            self.update_single(single, closest, closest_distance)
             
         if __debug__:
             log.info('updated shell: (%s,\n  Shell(%s, %s)' %
                      (single.shell_id, single.shell.did,
                       single.shell.shape.show(PRECISION)))
 
-        self.add_domain_event(single)
         return
 
     def reject_single_reaction(self, single):
