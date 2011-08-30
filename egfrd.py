@@ -152,10 +152,10 @@ class EGFRDSimulator(ParticleSimulatorBase):
         self.SINGLE_SHELL_FACTOR = 2.0
 	self.MAX_NUM_DT0_STEPS = 10000
         self.user_max_shell_size = numpy.inf	# Note: shell_size is actually the RADIUS of the shell
-	self.SURFACE_BARRIER = 3e-8		# This is the distance that cytosolic shells should at least have
+	self.SURFACE_BARRIER = 1e-8		# This is the distance that cytosolic shells should at least have
 						# when not attempting an interaction with the surface.
 						# This should be at least as big as the largest particle on the surface
-	self.SURFACE_HORIZON = 0		# distance to a surface when it should starting trying to make an interaction
+	self.SURFACE_HORIZON = 3e-8		# distance to a surface when it should starting trying to make an interaction
 
 	# used datastructrures
         self.scheduler = EventScheduler()	# contains the events. Note that every domains has exactly one event
@@ -899,12 +899,12 @@ class EGFRDSimulator(ParticleSimulatorBase):
 	### 1. Process event produced by the single
 	### 1.1 Special cases (shortcuts)
         # In case nothing is scheduled to happen: do nothing; 
-        # results also in disappearance from scheduler.
+        # results also in disappearance from scheduler. (?)
         if single.dt == numpy.inf:
             return 
 	# Else continue
 
-        # check timeline
+        # check timeline (??)
         assert (abs(single.dt + single.last_time - self.t) <= 1e-18 * self.t)
 
         # If the single had a decay reaction.
@@ -962,11 +962,11 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
             return
 
-        singlepos = single.shell.shape.position
-
 
 	### 2. Now make a new domain
         # (2) Clear volume.
+
+        singlepos = single.shell.shape.position
 
 	# 2.1 First check if there are shells with a radius of min_shell
 	#     of the particle (intruders)
@@ -991,13 +991,13 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
 
 
-        # 2.3 Check if there is a surface within min_shell (also returns the closest surface)
+        # 2.3 Check if there is a surface within min_shell 
         # Only relevant when the particle lives in the "world" or other 3D region.
         if isinstance(single.structure, CuboidalRegion):
             closest_surface, surface_distance = \
                 get_closest_surface(self.world, singlepos, ignore=[single.structure.id])
 	    # 2.3.1 If there is a surface within min_shell -> try interaction
-	    if surface_distance < self.SURFACE_HORIZON:
+	    if surface_distance < min_shell:
                 domain = self.form_interaction(single, closest_surface, burst)
                 if domain:
                     return
@@ -1090,7 +1090,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
         return shell_size
 
     def update_single(self, single, closest, distance_to_shell): 
-        assert not isinstance(single, InteractionSingle)
+        assert isinstance(single, NonInteractionSingle)	# This only works for 'simple' Singles
 
         singlepos = single.shell.shape.position
         if isinstance(closest, Single):
@@ -1400,7 +1400,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
         return single1, single2
 
     def form_pair_or_multi(self, single, neighbors):
-    # single is the current single being treated, neighbors is a list (?) of neighboring shells
+    # single is the current single being treated, neighbors is a list of bursted shells
+    # Note! These are not necessarily its neighbors
         assert neighbors
 
         singlepos = single.shell.shape.position
@@ -1413,7 +1414,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
             neighbors = numpy.take(neighbors, n)
 
         # First, try forming a Pair if the neighbor is a single.
-        if isinstance(neighbors[0], Single):
+        if isinstance(neighbors[0], NonInteractionSingle):
             obj = self.form_pair(single, singlepos,
                                  neighbors[0], neighbors[1:])
             if obj:
@@ -1672,7 +1673,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
                            single2.pid_particle_pair[0]))
             return None
 
-        # 1. Determine min shell size.
+        # 1. Determine min shell size for the Pair.
         radius1 = single1.pid_particle_pair[1].radius
         radius2 = single2.pid_particle_pair[1].radius
 
@@ -1703,7 +1704,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
             min_shell_size = shell_size2
             shell_size_margin = shell_size_margin2
 
-        # 2. Check if min shell size not larger than max shell size or 
+        # 2. Check if min shell size for the Pair not larger than max shell size or 
         # sim cell size.
         com = self.world.calculate_pair_CoM(pos1, pos2, D1, D2)
         com = self.world.apply_boundary(com)
@@ -1722,7 +1723,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
                            FORMAT_DOUBLE % max_shell_size))
             return None
 
-        # 3. Check if bursted Singles not too close.
+        # 3. Check if bursted Singles can still make a minimal shell.
         # The simple check for closest below could miss
         # some of them, because sizes of these Singles for this
         # distance check has to include SINGLE_SHELL_FACTOR, while
@@ -2002,9 +2003,9 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
     def get_intruders(self, position, radius, ignore):
 	# gets the intruders in a spherical volume of radius 'radius'?
-        intruders = []   # intruders are domains within radius
-        closest_domain = None   # closest domain, excluding intruders.
-        closest_distance = numpy.inf # distance to the shell of the closest.
+        intruders = []   		# intruders are domains within radius
+        closest_domain = None		# closest domain, excluding intruders.
+        closest_distance = numpy.inf	# distance to the shell of the closest domain.
 
         seen = set(ignore)
         for container in self.containers:

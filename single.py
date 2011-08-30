@@ -10,6 +10,7 @@ __all__ = [
     'PlanarSurfaceSingle',
     'SphericalSingle',
     'Single',
+    'NonInteractionSingle',
     'InteractionSingle',
     'CylindricalSurfaceInteraction',
     'PlanarSurfaceInteraction',
