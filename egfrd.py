@@ -714,9 +714,11 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
         for domain in neighbors:
             if not isinstance(domain, Multi):
-                d = self.burst_domain(domain)
-                bursted.extend(d)
+		# domain is Single or Pair of some subclass
+                single_list = self.burst_domain(domain)
+                bursted.extend(single_list)
             else:
+		# domain is a Multi
                 bursted.append(domain)
 
         return bursted
@@ -985,7 +987,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
         # 2.2 Burst the intruders if present.
         if intruders:
             burst = self.burst_non_multis(intruders)
-	    # burst now contains all the Domains resulting from the burst (singles and multi's)
+	    # burst now contains all the Domains resulting from the burst.
+	    # These are NonInteractionSingles and Multis
         else:
             burst = None
 
@@ -1010,6 +1013,9 @@ class EGFRDSimulator(ParticleSimulatorBase):
 	# 2.4 If there were bursted Domains (intruders),
 	# try making a Pair or Multi
         if burst:
+	    # should first check the new distance to the bursted particles
+	    # If they haven't moved to far away, try pair or multi.
+	    # 
             domain = self.form_pair_or_multi(single, burst)
             if domain:
                 return
@@ -1399,33 +1405,39 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
         return single1, single2
 
-    def form_pair_or_multi(self, single, neighbors):
-    # single is the current single being treated, neighbors is a list of bursted shells
-    # Note! These are not necessarily its neighbors
-        assert neighbors
+    def form_pair_or_multi(self, single, bursted_neighbors):
+    # single is the current single being treated, bursted_neighbors is a list of bursted shells
+    # Note! These are not necessarily its direct neighbors but Pair or Multi can only be made
+    # with Domains that are just bursted.
+        assert bursted_neighbors
 
-        singlepos = single.shell.shape.position
+        #singlepos = single.shell.shape.position
+        singlepos = single.pid_particle_pair[1].position
 
-        # sort burst neighbors by distance
-        dists = self.obj_distance_array(singlepos, neighbors)
+        # sort bursted_neighbors by distance
+        dists = self.obj_distance_array(singlepos, bursted_neighbors)
         if len(dists) >= 2:
             n = dists.argsort()
             dists = dists.take(n)
-            neighbors = numpy.take(neighbors, n)
+            bursted_neighbors = numpy.take(bursted_neighbors, n)
 
-        # First, try forming a Pair if the neighbor is a single.
-        if isinstance(neighbors[0], NonInteractionSingle):
-            obj = self.form_pair(single, singlepos,
-                                 neighbors[0], neighbors[1:])
-            if obj:
-                return obj
+
+	domain = None
+	closest = bursted_neighbors[0]
+	rest = bursted_neighbors[1:]
+        # First, try forming a Pair if the neighbor is a NonInteractionSingle.
+        if isinstance(closest, NonInteractionSingle):
+            domain = self.form_pair(single, singlepos, closest, rest)
+            if domain:
+                return domain
 
         # If a Pair is not formed, then try forming a Multi.
-        obj = self.form_multi(single, neighbors, dists)
-        if obj:
-            return obj
+        domain = self.form_multi(single, bursted_neighbors, dists)
+        if domain:
+            return domain
+#	else:
+#	    raise RuntimeError('All bursted neighbors should be Multis or NonInteractionSingles.')
 
-	
 
     def form_interaction(self, single, surface, burst):
         # Try to form an interaction between the 'single' particle and the 'surface'.
@@ -1865,7 +1877,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
         closest = neighbors[0]
 
         # if the closest to this Single is a Single, create a new Multi
-        if isinstance(closest, Single):
+        if isinstance(closest, NonInteractionSingle):
 
             multi = self.create_multi()
             self.add_to_multi(single, multi)
@@ -1899,7 +1911,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
 
     def add_to_multi_recursive(self, domain, multi):
-        if isinstance(domain, Single):
+        if isinstance(domain, NonInteractionSingle):
             if multi.has_particle(domain.pid_particle_pair[0]):
                 # Already in the Multi.
                 return
