@@ -148,7 +148,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
         self.shell_id_generator = ShellIDGenerator(0)
 
 	# some constants
-        self.MULTI_SHELL_FACTOR = 0.05
+        self.MULTI_SHELL_FACTOR = 1.05
         self.SINGLE_SHELL_FACTOR = 2.0
 	self.MAX_NUM_DT0_STEPS = 10000
         self.user_max_shell_size = numpy.inf	# Note: shell_size is actually the RADIUS of the shell
@@ -1028,11 +1028,13 @@ class EGFRDSimulator(ParticleSimulatorBase):
         self.update_single(single, closest, closest_distance)
         self.add_domain_event(single)
 
-	# Then resize all the bursted domains -> WHY NOT LET THE SCHEDULER HANDLE THIS?
+	# Then resize all the bursted domains. This is done here because
+	# NonInteractionSingles are special. The shell size can be smaller
+	# than min_shell_size
         if burst:
             burst = uniq(burst)
             for s in burst:
-                if not isinstance(s, Single):
+                if not isinstance(s, NonInteractionSingle):
                     continue
 
                 assert s.is_reset()
@@ -1867,7 +1869,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
     def form_multi(self, single, neighbors, dists):
 
         min_shell = single.pid_particle_pair[1].radius * \
-                    (1.0 + self.MULTI_SHELL_FACTOR)
+                    self.MULTI_SHELL_FACTOR
         # Multis shells need to be contiguous.
         if dists[0] > min_shell:
             return None
@@ -1923,7 +1925,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
             self.remove_event(domain)
 
             radius = domain.pid_particle_pair[1].radius * \
-                (1.0 + self.MULTI_SHELL_FACTOR)
+                self.MULTI_SHELL_FACTOR
             neighbors = self.get_neighbors_within_radius_no_sort(
                     objpos, radius, ignore=[domain.domain_id])
 
@@ -1961,7 +1963,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
             multi.domain_id,
             single.pid_particle_pair[1].position,
             single.pid_particle_pair[1].radius * \
-                (1.0 + self.MULTI_SHELL_FACTOR))
+                self.MULTI_SHELL_FACTOR)
         multi.add_shell(sid_shell_pair)
         multi.add_particle(single.pid_particle_pair)
 
