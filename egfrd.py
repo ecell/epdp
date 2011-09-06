@@ -969,18 +969,19 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
 
     def make_new_domain(self, single):
-	### Make a new domain
+	### Make a new domain out of a NonInteractionSingle that was
+	### just fired
 
 	# can only make new domain from NonInteractionSingle
 	assert isinstance(single, NonInteractionSingle)
-
+	
 	# 2.1
 	# We prefer to make NonInteractionSingles for efficiency.
-	# But if objects (Shells and surfaces) get close enough we want to
-	# try Interaction and/or Pairs
+	# But if objects (Shells and surfaces) get close enough (closer than
+	# reaction_threshold) we want to try Interaction and/or Pairs
 
-	# Check if there are shells with the burst radius
-	# of the particle (intruders).
+	# Check if there are shells with the burst radius (reaction_threshold)
+	# of the particle (these are intruders).
         reaction_threshold = single.pid_particle_pair[1].radius * \
                              self.SINGLE_SHELL_FACTOR
 
@@ -1749,8 +1750,6 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
         # 2. Check if min shell size for the Pair not larger than max shell size or 
         # sim cell size.
-        com = self.world.calculate_pair_CoM(pos1, pos2, D1, D2)
-        com = self.world.apply_boundary(com)
         min_shell_size_with_margin = min_shell_size + shell_size_margin
         max_shell_size = min(self.get_max_shell_size(),
                              distance_from_sigma * 100 +
@@ -1766,6 +1765,10 @@ class EGFRDSimulator(ParticleSimulatorBase):
                            FORMAT_DOUBLE % max_shell_size))
             return None
 
+
+	### Now check for the max size of the shell that we can make (dimension dependent)
+
+
         # 3. Check if bursted Singles can still make a minimal shell.
         # The simple check for closest below could miss
         # some of them, because sizes of these Singles for this
@@ -1773,6 +1776,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
         # these burst objects have zero mobility radii.  This is not
         # beautiful, a cleaner framework may be possible.
 
+        com = self.world.calculate_pair_CoM(pos1, pos2, D1, D2)
+        com = self.world.apply_boundary(com)
         closest, closest_shell_distance = None, numpy.inf
         for b in burst:
             if isinstance(b, Single):
