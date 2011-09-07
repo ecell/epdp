@@ -665,9 +665,9 @@ class EGFRDSimulator(ParticleSimulatorBase):
             bursted = [single1, single2]
         else:  # Multi
 #            bursted = self.burst_multi(domain)
-            bursted = self.break_up_multi(domain)	# Multi's can really be 'bursted' since the
+            bursted = self.break_up_multi(domain)	# Multi's can't really be 'bursted' since the
 							# positions of the particles are known. They
-							# are broken up to singles instead.
+							# are broken up to singles with a dt=0 shell instead.
             self.remove_event(domain)
 
         if __debug__:
@@ -981,7 +981,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
 	# reaction_threshold) we want to try Interaction and/or Pairs
 
 	# Check if there are shells with the burst radius (reaction_threshold)
-	# of the particle (these are intruders).
+	# of the particle (intruders). Note that we approximate the reaction_volume
+	# with a sphere (should be cylinder for 2D or 1D particle)
         reaction_threshold = single.pid_particle_pair[1].radius * \
                              self.SINGLE_SHELL_FACTOR
 
@@ -998,15 +999,29 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
         # 2.2 Burst the shells with the following conditions
 	# -shell is in the burst radius (intruder)
-	# -shell is not newly made
 	# -shell is burstable (not Multi)
+	# -shell is not newly made
 	# -shell is not already a zero shell (just bursted)
         if intruders:
-            burst = self.burst_non_multis(intruders)
+#            burst = self.burst_non_multis(intruders)
+	    burst = []
+	    for domain in intruders:
+        	if not isinstance(domain, Multi) and \
+                   not self.t == domain.last_time: # and \
+#		   not domain.dt == 0.0:
+                    # domain is Single or Pair of some subclass
+            	    single_list = self.burst_domain(domain)
+                    burst.extend(single_list)
+                elif isinstance(domain, Multi):
+                    # domain is a Multi
+                    burst.append(domain)
+
 	    # burst now contains all the Domains resulting from the burst.
 	    # These are NonInteractionSingles and Multis
         else:
             burst = None
+
+	# Now compile a list of all potential partners for a Pair or Interaction
 
 
 	# 2.3 get the closest object
@@ -1067,31 +1082,31 @@ class EGFRDSimulator(ParticleSimulatorBase):
 	# it here can result in 'flip-flop'-ing.
 	# The shell size can be smaller
 	# than min_shell_size
-        if burst:
-            burst = uniq(burst)
-            for s in burst:
-                if not isinstance(s, NonInteractionSingle):
-                    continue
+#        if burst:
+#            burst = uniq(burst)
+#            for s in burst:
+#                if not isinstance(s, NonInteractionSingle):
+#                    continue
 
-                assert s.is_reset()
-                closest, closest_distance = self.get_closest_obj(
-                    s.shell.shape.position, ignore=[s.domain_id],
-                    ignores=[s.structure.id])
+#                assert s.is_reset()
+#                closest, closest_distance = self.get_closest_obj(
+#                    s.shell.shape.position, ignore=[s.domain_id],
+#                    ignores=[s.structure.id])
 
-                self.update_single(s, closest, closest_distance)
-                self.update_domain_event(self.t + s.dt, s)
+#                self.update_single(s, closest, closest_distance)
+#                self.update_domain_event(self.t + s.dt, s)
 
-                if __debug__:
-                    log.debug('restore shell %s radius %s dt %s\n'
-                              'closest %s distance %s' %
-                              (s, FORMAT_DOUBLE % s.shell.shape.radius,
-                               FORMAT_DOUBLE % s.dt, closest,
-                               FORMAT_DOUBLE % closest_distance))
+#                if __debug__:
+#                    log.debug('restore shell %s radius %s dt %s\n'
+#                              'closest %s distance %s' %
+#                              (s, FORMAT_DOUBLE % s.shell.shape.radius,
+#                               FORMAT_DOUBLE % s.dt, closest,
+#                               FORMAT_DOUBLE % closest_distance))
             
-        if __debug__:
-            log.info('updated shell: (%s,\n  Shell(%s, %s)' %
-                     (single.shell_id, single.shell.did,
-                      single.shell.shape.show(PRECISION)))
+#        if __debug__:
+#            log.info('updated shell: (%s,\n  Shell(%s, %s)' %
+#                     (single.shell_id, single.shell.did,
+#                      single.shell.shape.show(PRECISION)))
 
         return
 
@@ -1193,7 +1208,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
             else:
                 theothersingle = single1
 
-            self.burst_pair(pair)
+            self.burst_pair(pair)	# TODO this should be a propagate -> cleaner
 
             self.add_domain_event(theothersingle)
 
@@ -1349,6 +1364,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
         return newsingle
 
     def burst_pair(self, pair):
+	# TODO this should also schedule the resulting Singles and remove the
+	# Pair event -> cleaner
         if __debug__:
             log.debug('burst_pair: %s', pair)
 
