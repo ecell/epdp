@@ -1103,81 +1103,6 @@ class EGFRDSimulator(ParticleSimulatorBase):
 	return domain
 
 
-
-
-
-
-        # 2.3 Check if there is a surface within min_shell 
-        # Only relevant when the particle lives in the "world" or other 3D region.
-        if isinstance(single, SphericalSingle):
-	    interaction_horizon = reaction_threshold
-            closest_surface, surface_distance = \
-                get_closest_surface(self.world, single_pos, ignore=[single.structure.id])
-	    # 2.3.1 If there is a surface within the interaction horizon -> try interaction
-	    if surface_distance < interaction_horizon:
-                domain = self.form_interaction(single, closest_surface, burst)
-                if domain:
-                    return
-
-        else:
-            # Surfaces are not allowed to touch or overlap.
-            closest_surface = None
-
-
-	# 2.4 If there were bursted Domains (intruders),
-	# try making a Pair or Multi
-        if burst:
-	    # should first check the new distance to the bursted particles
-	    # If they haven't moved to far away, try pair or multi.
-	    # 
-            domain = self.form_pair_or_multi(single, burst)
-            if domain:
-                return
-
-
-
-
-        # if nothing was formed, resize the Single shell for the 'current'
-	# domain (the domain that started it all).
-        closest, closest_distance = \
-            self.get_closest_obj(single_pos, ignore=[single.domain_id],
-                                 ignores=[single.structure.id])
-        self.update_single(single, closest, closest_distance)
-        self.add_domain_event(single)
-
-	# Then resize all the bursted domains. This is done here because
-	# NonInteractionSingles are special since they can burst. Not doing
-	# it here can result in 'flip-flop'-ing.
-	# The shell size can be smaller
-	# than min_shell_size
-#        if burst:
-#            burst = uniq(burst)
-#            for s in burst:
-#                if not isinstance(s, NonInteractionSingle):
-#                    continue
-
-#                assert s.is_reset()
-#                closest, closest_distance = self.get_closest_obj(
-#                    s.shell.shape.position, ignore=[s.domain_id],
-#                    ignores=[s.structure.id])
-
-#                self.update_single(s, closest, closest_distance)
-#                self.update_domain_event(self.t + s.dt, s)
-
-#                if __debug__:
-#                    log.debug('restore shell %s radius %s dt %s\n'
-#                              'closest %s distance %s' %
-#                              (s, FORMAT_DOUBLE % s.shell.shape.radius,
-#                               FORMAT_DOUBLE % s.dt, closest,
-#                               FORMAT_DOUBLE % closest_distance))
-            
-#        if __debug__:
-#            log.info('updated shell: (%s,\n  Shell(%s, %s)' %
-#                     (single.shell_id, single.shell.did,
-#                      single.shell.shape.show(PRECISION)))
-
-        return
-
     def reject_single_reaction(self, single):
         if __debug__:
             log.info('single reaction; placing product failed.')
@@ -1521,40 +1446,6 @@ class EGFRDSimulator(ParticleSimulatorBase):
         assert self.check_obj(single2)
 
         return single1, single2
-
-    def form_pair_or_multi(self, single, bursted_neighbors):
-    # single is the current single being treated, bursted_neighbors is a list of bursted shells
-    # Note! These are not necessarily its direct neighbors but Pair or Multi can only be made
-    # with Domains that are just bursted.
-        assert bursted_neighbors
-
-        #singlepos = single.shell.shape.position
-        singlepos = single.pid_particle_pair[1].position
-
-        # sort bursted_neighbors by distance
-        dists = self.obj_distance_array(singlepos, bursted_neighbors)
-        if len(dists) >= 2:
-            n = dists.argsort()
-            dists = dists.take(n)			 	 # sort the distances using the index
-            bursted_neighbors = numpy.take(bursted_neighbors, n) # sort the neighbors using the index
-
-
-	domain = None
-	closest = bursted_neighbors[0]
-	rest = bursted_neighbors[1:]
-        # First, try forming a Pair if the neighbor is a NonInteractionSingle.
-        if isinstance(closest, NonInteractionSingle):
-            domain = self.form_pair(single, singlepos, closest, rest)
-            if domain:
-                return domain
-
-        # If a Pair is not formed, then try forming a Multi.
-        domain = self.form_multi(single, bursted_neighbors, dists)
-        if domain:
-            return domain
-#	else:
-#	    raise RuntimeError('All bursted neighbors should be Multis or NonInteractionSingles.')
-
 
     def form_interaction(self, single, surface, burst):
         # Try to form an interaction between the 'single' particle and the 'surface'.
