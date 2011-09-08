@@ -980,14 +980,14 @@ class EGFRDSimulator(ParticleSimulatorBase):
 	# But if objects (Shells and surfaces) get close enough (closer than
 	# reaction_threshold) we want to try Interaction and/or Pairs
 
+	single_pos = single.pid_particle_pair[1].position
+	single_radius = single.pid_particle_pair[1].radius
+
 	# Check if there are shells with the burst radius (reaction_threshold)
 	# of the particle (intruders). Note that we approximate the reaction_volume
 	# with a sphere (should be cylinder for 2D or 1D particle)
         reaction_threshold = single.pid_particle_pair[1].radius * \
                              self.SINGLE_SHELL_FACTOR
-
-	single_pos = single.pid_particle_pair[1].position
-	single_radius = single.pid_particle_pair[1].radius
 
         intruders, closest, closest_distance = \
             self.get_intruders(single_pos, reaction_threshold,
@@ -1037,8 +1037,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
 	    dists = self.obj_distance_array(single_pos, partners)
             if len(dists) >= 2:
         	n = dists.argsort()
-        	dists = dists.take(n)		# sort the distances using the index
-        	partners = numpy.take(partners, n)	# sort the neighbors using the index
+        	partners = numpy.take(partners, n)	# sort the potential partners using the index
+        	dists = dists.take(n)			# sort the distances using the index
 
 	    closest_domain = partners[0]
 	    domain_distance = dists[0]
@@ -1072,7 +1072,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
                        closest_domain.pid_particle_pair[1].radius) * self.SINGLE_SHELL_FACTOR
 		if domain_distance < pair_horizon:
 	            # try making a Pair (can still be Mixed Pair or Normal Pair)
-		    domain = self.form_pair (single, single_pos, closest_domain, rest_domains)
+		    domain = self.form_pair (single, closest_domain, rest_domains)
 		else:
 		    domain = None
 
@@ -1111,6 +1111,173 @@ class EGFRDSimulator(ParticleSimulatorBase):
         self.rejected_moves += 1
         single.initialize(self.t)
         self.add_domain_event(single)
+
+    def calculate_simplepair_shell_size(self, single1, single2, burst):
+        # 1. Determine min shell size for the SimplePair.
+
+	assert single1.structure == single2.structure
+
+        pos1 = single1.pid_particle_pair[1].position
+        pos2 = single2.pid_particle_pair[1].position
+        radius1 = single1.pid_particle_pair[1].radius
+        radius2 = single2.pid_particle_pair[1].radius
+
+        sigma = radius1 + radius2
+
+        D1 = single1.pid_particle_pair[1].D
+        D2 = single2.pid_particle_pair[1].D
+        D12 = D1 + D2
+
+#        assert (pos1 - single1.shell.shape.position).sum() == 0	# TODO Not sure why this is here
+        r0 = self.world.distance(pos1, pos2)
+        distance_from_sigma = r0 - sigma
+        assert distance_from_sigma >= 0, \
+            'distance_from_sigma (pair gap) between %s and %s = %s < 0' % \
+            (single1, single2, FORMAT_DOUBLE % distance_from_sigma)
+
+        shell_size1 = r0 * D1 / D12 + radius1
+        shell_size2 = r0 * D2 / D12 + radius2
+        shell_size_margin1 = radius1 * 2
+        shell_size_margin2 = radius2 * 2
+        shell_size_with_margin1 = shell_size1 + shell_size_margin1
+        shell_size_with_margin2 = shell_size2 + shell_size_margin2
+        if shell_size_with_margin1  >= shell_size_with_margin2:
+            min_shell_size = shell_size1
+            shell_size_margin = shell_size_margin1
+        else:
+            min_shell_size = shell_size2
+            shell_size_margin = shell_size_margin2
+
+        # 2. Check if min shell size for the Pair not larger than max shell size or 
+        # sim cell size.
+        min_shell_size_with_margin = min_shell_size + shell_size_margin
+        max_shell_size = min(self.get_max_shell_size(),
+                             distance_from_sigma * 100 +
+                             sigma + shell_size_margin)
+
+        if min_shell_size_with_margin >= max_shell_size:
+            if __debug__:
+                log.debug('%s not formed: min_shell_size %s >='
+                          'max_shell_size %s' %
+                          ('Pair(%s, %s)' % (single1.pid_particle_pair[0], 
+                                             single2.pid_particle_pair[0]),
+                           FORMAT_DOUBLE % min_shell_size_with_margin,
+                           FORMAT_DOUBLE % max_shell_size))
+            return None, None, None
+
+
+        # 3. Check if bursted Singles can still make a minimal shell.
+	# TODO This should be changed to a more general algorithm
+	# that checks if the closest nearest relevant shell is a
+	# NonInteractionSingle or smt else.
+	# Now it only processes the shells that were actually bursted before.
+	#
+	# In case it's a NonInteractionSingle observe a distance of reaction_radius
+	# In case it's smt else no extra distance has to be held
+
+        com = self.world.calculate_pair_CoM(pos1, pos2, D1, D2)
+        com = self.world.apply_boundary(com)
+        closest, closest_shell_distance = None, numpy.inf
+        for b in burst:
+            if isinstance(b, Single):
+                bpos = b.shell.shape.position
+                d = self.world.distance(com, bpos) - \
+                    b.pid_particle_pair[1].radius * self.SINGLE_SHELL_FACTOR
+                if d < closest_shell_distance:
+                    closest, closest_shell_distance = b, d
+
+        if closest_shell_distance <= min_shell_size_with_margin:
+            if __debug__:
+                log.debug('%s not formed: squeezed by burst neighbor %s' %
+                          ('Pair(%s, %s)' % (single1.pid_particle_pair[0], 
+                                             single2.pid_particle_pair[0]),
+                           closest))
+            return None, None, None
+
+        assert closest_shell_distance > 0
+
+        # 4. Determine shell size and check if closest object not too 
+        # close (squeezing).
+        c, d = self.get_closest_obj(com, ignore=[single1.domain_id,
+                                                 single2.domain_id],
+                                    ignores=[single1.structure.id])
+        if d < closest_shell_distance:
+            closest, closest_shell_distance = c, d
+
+        if __debug__:
+            log.debug('Pair closest neighbor: %s %s, '
+                      'min_shell_with_margin %s' %
+                      (closest, FORMAT_DOUBLE % closest_shell_distance,
+                       FORMAT_DOUBLE % min_shell_size_with_margin))
+
+        assert closest_shell_distance > 0
+
+        if isinstance(closest, Single):
+
+            D_closest = closest.pid_particle_pair[1].D
+            D_tot = D_closest + D12
+            closest_particle_distance = self.world.distance(
+                    com, closest.pid_particle_pair[1].position)
+
+            closest_min_radius = closest.pid_particle_pair[1].radius
+            closest_min_shell = closest_min_radius * self.SINGLE_SHELL_FACTOR
+
+            # options for shell size:
+            # a. ideal shell size
+            # b. closest shell is from a bursted single
+            # c. closest shell is closer than ideal shell size 
+            shell_size = min((D12 / D_tot) *
+                            (closest_particle_distance - min_shell_size 
+                             - closest_min_radius) + min_shell_size,
+                            closest_particle_distance - closest_min_shell,
+                            closest_shell_distance)
+
+            shell_size /= SAFETY
+            assert shell_size < closest_shell_distance
+
+        else:
+            assert isinstance(closest, (Pair, Multi, Surface, None.__class__))
+
+            shell_size = closest_shell_distance / SAFETY
+
+        if shell_size <= min_shell_size_with_margin:
+            if __debug__:
+                log.debug('%s not formed: squeezed by %s' %
+                          ('Pair(%s, %s)' % (single1.pid_particle_pair[0], 
+                                             single2.pid_particle_pair[0]),
+                           closest))
+            return None, None, None
+
+
+        # 5. Check if singles would not be better.
+	# TODO clear this up -> strange rule
+        d1 = self.world.distance(com, pos1)
+        d2 = self.world.distance(com, pos2)
+
+        if shell_size < max(d1 + single1.pid_particle_pair[1].radius *
+                            self.SINGLE_SHELL_FACTOR, \
+                            d2 + single2.pid_particle_pair[1].radius * \
+                            self.SINGLE_SHELL_FACTOR) * 1.3:
+            if __debug__:
+                log.debug('%s not formed: singles are better' %
+                          'Pair(%s, %s)' % (single1.pid_particle_pair[0], 
+                                            single2.pid_particle_pair[0]))
+            return None, None, None
+
+        shell_size = min(shell_size, max_shell_size)
+
+        assert closest_shell_distance == numpy.inf or \
+               shell_size < closest_shell_distance
+        assert shell_size >= min_shell_size_with_margin
+        assert shell_size <= max_shell_size
+
+	if __debug__:
+	    log.info('SimplePair shell made. shell_size=%s, '
+                     'closest_shell_distance=%s,\nclosest = %s' %
+                     (FORMAT_DOUBLE % shell_size, FORMAT_DOUBLE % closest_shell_distance, closest))
+
+	return com, r0, shell_size
+
 
     def calculate_single_shell_size(self, single, closest, 
                                  distance, shell_distance):
@@ -1677,7 +1844,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
         return dr, dz_left, dz_right
 
-    def form_pair(self, single1, pos1, single2, burst):
+    def form_pair(self, single1, single2, burst):
         if __debug__:
            log.debug('trying to form Pair(%s, %s)' %
                      (single1.pid_particle_pair, single2.pid_particle_pair))
@@ -1687,202 +1854,54 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
         # Try forming a Pair only if singles are on same structure.
         if single1.structure != single2.structure:
+	    # TODO implement shell making method for MixedPair
+
             if __debug__:
                 log.debug('Pair(%s, %s) not formed: not on same structure.' %
                           (single1.pid_particle_pair[0],
                            single2.pid_particle_pair[0]))
-            return None
 
-        # 1. Determine min shell size for the Pair.
-        radius1 = single1.pid_particle_pair[1].radius
-        radius2 = single2.pid_particle_pair[1].radius
-
-        sigma = radius1 + radius2
-
-        D1 = single1.pid_particle_pair[1].D
-        D2 = single2.pid_particle_pair[1].D
-        D12 = D1 + D2
-
-        assert (pos1 - single1.shell.shape.position).sum() == 0
-        pos2 = single2.shell.shape.position
-        r0 = self.world.distance(pos1, pos2)
-        distance_from_sigma = r0 - sigma
-        assert distance_from_sigma >= 0, \
-            'distance_from_sigma (pair gap) between %s and %s = %s < 0' % \
-            (single1, single2, FORMAT_DOUBLE % distance_from_sigma)
-
-        shell_size1 = r0 * D1 / D12 + radius1
-        shell_size2 = r0 * D2 / D12 + radius2
-        shell_size_margin1 = radius1 * 2
-        shell_size_margin2 = radius2 * 2
-        shell_size_with_margin1 = shell_size1 + shell_size_margin1
-        shell_size_with_margin2 = shell_size2 + shell_size_margin2
-        if shell_size_with_margin1  >= shell_size_with_margin2:
-            min_shell_size = shell_size1
-            shell_size_margin = shell_size_margin1
-        else:
-            min_shell_size = shell_size2
-            shell_size_margin = shell_size_margin2
-
-        # 2. Check if min shell size for the Pair not larger than max shell size or 
-        # sim cell size.
-        min_shell_size_with_margin = min_shell_size + shell_size_margin
-        max_shell_size = min(self.get_max_shell_size(),
-                             distance_from_sigma * 100 +
-                             sigma + shell_size_margin)
-
-        if min_shell_size_with_margin >= max_shell_size:
-            if __debug__:
-                log.debug('%s not formed: min_shell_size %s >='
-                          'max_shell_size %s' %
-                          ('Pair(%s, %s)' % (single1.pid_particle_pair[0], 
-                                             single2.pid_particle_pair[0]),
-                           FORMAT_DOUBLE % min_shell_size_with_margin,
-                           FORMAT_DOUBLE % max_shell_size))
-            return None
+            center, r0, shell_size = None, None, None
+#	    shell = self.make_mixedpair_shell (single1, single2)
+	else:
+	    # particles are on the same structure
+	    center, r0, shell_size = self.calculate_simplepair_shell_size (single1, single2, burst)
 
 
-	### Now check for the max size of the shell that we can make (dimension dependent)
+	if shell_size:
+            # A shell could be made and makes sense. Create a Pair
+            pair = self.create_pair(single1, single2, center, r0, shell_size)
 
-
-        # 3. Check if bursted Singles can still make a minimal shell.
-        # The simple check for closest below could miss
-        # some of them, because sizes of these Singles for this
-        # distance check has to include SINGLE_SHELL_FACTOR, while
-        # these burst objects have zero mobility radii.  This is not
-        # beautiful, a cleaner framework may be possible.
-
-        com = self.world.calculate_pair_CoM(pos1, pos2, D1, D2)
-        com = self.world.apply_boundary(com)
-        closest, closest_shell_distance = None, numpy.inf
-        for b in burst:
-            if isinstance(b, Single):
-                bpos = b.shell.shape.position
-                d = self.world.distance(com, bpos) - \
-                    b.pid_particle_pair[1].radius * self.SINGLE_SHELL_FACTOR
-                if d < closest_shell_distance:
-                    closest, closest_shell_distance = b, d
-
-        if closest_shell_distance <= min_shell_size_with_margin:
-            if __debug__:
-                log.debug('%s not formed: squeezed by burst neighbor %s' %
-                          ('Pair(%s, %s)' % (single1.pid_particle_pair[0], 
-                                             single2.pid_particle_pair[0]),
-                           closest))
-            return None
-
-        assert closest_shell_distance > 0
-
-        # 4. Determine shell size and check if closest object not too 
-        # close (squeezing).
-        c, d = self.get_closest_obj(com, ignore=[single1.domain_id,
-                                                 single2.domain_id],
-                                    ignores=[single1.structure.id])
-        if d < closest_shell_distance:
-            closest, closest_shell_distance = c, d
-
-        if __debug__:
-            log.debug('Pair closest neighbor: %s %s, '
-                      'min_shell_with_margin %s' %
-                      (closest, FORMAT_DOUBLE % closest_shell_distance,
-                       FORMAT_DOUBLE % min_shell_size_with_margin))
-
-        assert closest_shell_distance > 0
-
-        if isinstance(closest, Single):
-
-            D_closest = closest.pid_particle_pair[1].D
-            D_tot = D_closest + D12
-            closest_particle_distance = self.world.distance(
-                    com, closest.pid_particle_pair[1].position)
-
-            closest_min_radius = closest.pid_particle_pair[1].radius
-            closest_min_shell = closest_min_radius * self.SINGLE_SHELL_FACTOR
-
-            # options for shell size:
-            # a. ideal shell size
-            # b. closest shell is from a bursted single
-            # c. closest shell is closer than ideal shell size 
-            shell_size = min((D12 / D_tot) *
-                            (closest_particle_distance - min_shell_size 
-                             - closest_min_radius) + min_shell_size,
-                            closest_particle_distance - closest_min_shell,
-                            closest_shell_distance)
-
-            shell_size /= SAFETY
-            assert shell_size < closest_shell_distance
-
-        else:
-            assert isinstance(closest, (Pair, Multi, Surface, None.__class__))
-
-            shell_size = closest_shell_distance / SAFETY
-
-        if shell_size <= min_shell_size_with_margin:
-            if __debug__:
-                log.debug('%s not formed: squeezed by %s' %
-                          ('Pair(%s, %s)' % (single1.pid_particle_pair[0], 
-                                             single2.pid_particle_pair[0]),
-                           closest))
-            return None
-
-
-        # 5. Check if singles would not be better.
-        d1 = self.world.distance(com, pos1)
-        d2 = self.world.distance(com, pos2)
-
-        if shell_size < max(d1 + single1.pid_particle_pair[1].radius *
-                            self.SINGLE_SHELL_FACTOR, \
-                            d2 + single2.pid_particle_pair[1].radius * \
-                            self.SINGLE_SHELL_FACTOR) * 1.3:
-            if __debug__:
-                log.debug('%s not formed: singles are better' %
-                          'Pair(%s, %s)' % (single1.pid_particle_pair[0], 
-                                            single2.pid_particle_pair[0]))
-            return None
-
-        # 6. Ok, Pair makes sense. Create one.
-        shell_size = min(shell_size, max_shell_size)
-
-        pair = self.create_pair(single1, single2, com, r0, shell_size)
-
-        pair.dt, pair.event_type, pair.reactingsingle = \
+            pair.dt, pair.event_type, pair.reactingsingle = \
             pair.determine_next_event(r0)
 
-        assert pair.dt >= 0
+            assert pair.dt >= 0
 
-        self.last_time = self.t
+            self.last_time = self.t
 
-        self.remove_domain(single1)
-        self.remove_domain(single2)
+            self.remove_domain(single1)
+            self.remove_domain(single2)
 
-        # single1 will be removed by the scheduler.
-        self.remove_event(single2)
+            # single1 will be removed by the scheduler.
+            self.remove_event(single2)
 
-        assert closest_shell_distance == numpy.inf or \
-               shell_size < closest_shell_distance
-        assert shell_size >= min_shell_size_with_margin
-        assert shell_size <= max_shell_size
+            assert self.check_obj(pair)
+            self.add_domain_event(pair)
 
-        if __debug__:
-            log.info('%s,\ndt=%s, r0=%s, shell_size=%s, '
-                     'closest_shell_distance=%s,\nclosest = %s' %
-                     (pair, FORMAT_DOUBLE % pair.dt, FORMAT_DOUBLE % r0, 
-                      FORMAT_DOUBLE % shell_size, 
-                      FORMAT_DOUBLE % closest_shell_distance, closest))
+            if __debug__:
+                log.info('%s,\ndt=%s, r0=%s, shell_size=%s, ' %
+                         (pair, FORMAT_DOUBLE % pair.dt, FORMAT_DOUBLE % r0, 
+                          FORMAT_DOUBLE % shell_size)) 
 
-        assert self.check_obj(pair)
-        self.add_domain_event(pair)
-
-        return pair
+            return pair
+	else:
+	    return None
     
 
     def form_multi(self, single, neighbors, dists):
-
-        min_shell = single.pid_particle_pair[1].radius * \
-                    self.MULTI_SHELL_FACTOR
-        # Multis shells need to be contiguous.
-        if dists[0] > min_shell:
-            return None
+	# form a Multi with the 'single'
+	# The neighbors are neighboring NonInteractionSingles and Multi which
+	# can be added to the Multi
 
         neighbors = [neighbors[i] for i in (dists <= min_shell).nonzero()[0]]
 
