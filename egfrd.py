@@ -1089,7 +1089,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
 	    # No Pair or Interaction could be formed
 	    # Now choose between NonInteractionSingle and Multi
 
-	    if domain_distance > multi_horizon:
+	    if domain_distance > multi_horizon and \
+	       surface_distance > multi_horizon:
 	        # just make a normal NonInteractionSingle
 	        closest_domain, domain_distance = \
         	    self.get_closest_obj(single_pos, ignore=[single.domain_id],
@@ -1098,7 +1099,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
 	        self.add_domain_event(single)
 	    else:
 		# The closest object was too close to make a NonInteractionSingle
-		    domain = self.form_multi(single, partners, dists)
+		    domain = self.form_multi(single, partners, dists, closest_surface, surface_distance)
 
 	return domain
 
@@ -1898,7 +1899,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
 	    return None
     
 
-    def form_multi(self, single, neighbors, dists):
+    def form_multi(self, single, neighbors, dists, surface, surface_dist):
 	# form a Multi with the 'single'
 	# The neighbors are neighboring NonInteractionSingles and Multi which
 	# can be added to the Multi
