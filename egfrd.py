@@ -1032,6 +1032,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
 	# Potential partners are for now just the bursted domains
 	partners = burst
+
+	dists = []
 	if partners:
             # sort partners by distance
 	    dists = self.obj_distance_array(single_pos, partners)
@@ -1099,7 +1101,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
 	        self.add_domain_event(single)
 	    else:
 		# The closest object was too close to make a NonInteractionSingle
-		    domain = self.form_multi(single, partners, dists, closest_surface, surface_distance)
+		    domain = self.form_multi(single, partners, dists)
 
 	return domain
 
@@ -1899,27 +1901,32 @@ class EGFRDSimulator(ParticleSimulatorBase):
 	    return None
     
 
-    def form_multi(self, single, neighbors, dists, surface, surface_dist):
+    def form_multi(self, single, neighbors, dists):
 	# form a Multi with the 'single'
-	# The neighbors are neighboring NonInteractionSingles and Multi which
+	# The 'neighbors' are neighboring NonInteractionSingles and Multi which
 	# can be added to the Multi
+	# 'dists' are the distances of the 'neighbors'
 
-        neighbors = [neighbors[i] for i in (dists <= min_shell).nonzero()[0]]
-
-	# FIXME What if there are no neighbors but a surface?
-        closest = neighbors[0]
+	# Filter out relevant neighbors if present
+	if neighbors:
+	# only consider neighboring domains that are within the Multi horizon
+	    min_shell = single.pid_particle_pair[1].radius * self.MULTI_SHELL_FACTOR
+            neighbors = [neighbors[i] for i in (dists <= min_shell).nonzero()[0]]
+            closest = neighbors[0]
+	else:
+	    neighbors = []
+	    closest = None
 
 
 	# 1. Make new Multi if Necessary
-        if isinstance(closest, NonInteractionSingle):
-        # if the closest to this Single is a Single, create a new Multi
-            multi = self.create_multi()
-        elif isinstance(closest, Multi):
+        if isinstance(closest, Multi):
         # if the closest to this Single is a Multi, reuse the Multi.
 	    multi = closest
 	    neighbors = neighbors[1:]	# the rest of the neighbors are added
-	else:
-            assert False, 'do not reach here'
+        else: 
+        # the closest is not a Multi. Can be NonInteractionSingle, surface or
+	# nothing. Create new Multi
+            multi = self.create_multi()
 
 
 	# 2. Add the single and neighbors to the Multi
@@ -1931,10 +1938,10 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
 	# 3. Initialize and (re-)schedule
         multi.initialize(self.t)
-        if isinstance(closest, NonInteractionSingle):
-            self.add_domain_event(multi)
-        elif isinstance(closest, Multi):
+        if isinstance(closest, Multi):
             self.update_domain_event(self.t + multi.dt, multi)
+	else:
+            self.add_domain_event(multi)
 
         return multi
 
