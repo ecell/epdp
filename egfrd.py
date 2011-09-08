@@ -1905,41 +1905,37 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
         neighbors = [neighbors[i] for i in (dists <= min_shell).nonzero()[0]]
 
+	# FIXME What if there are no neighbors but a surface?
         closest = neighbors[0]
 
-        # if the closest to this Single is a Single, create a new Multi
-	# TODO code duplication below -> FIXME
+
+	# 1. Make new Multi if Necessary
         if isinstance(closest, NonInteractionSingle):
-
+        # if the closest to this Single is a Single, create a new Multi
             multi = self.create_multi()
-            self.add_to_multi(single, multi)
-            self.remove_domain(single)
-            for neighbor in neighbors:
-                self.add_to_multi_recursive(neighbor, multi)
-
-            multi.initialize(self.t)
-            
-            self.add_domain_event(multi)
-
-            return multi
-
-        # if the closest to this Single is a Multi, reuse the Multi.
         elif isinstance(closest, Multi):
+        # if the closest to this Single is a Multi, reuse the Multi.
+	    multi = closest
+	    neighbors = neighbors[1:]	# the rest of the neighbors are added
+	else:
+            assert False, 'do not reach here'
 
-            multi = closest
-            self.add_to_multi(single, multi)
-            self.remove_domain(single)
-            for neighbor in neighbors[1:]:
-                self.add_to_multi_recursive(neighbor, multi)
 
-            multi.initialize(self.t)
+	# 2. Add the single and neighbors to the Multi
+        self.add_to_multi(single, multi)
+        self.remove_domain(single)
+        for neighbor in neighbors:
+            self.add_to_multi_recursive(neighbor, multi)
 
+
+	# 3. Initialize and (re-)schedule
+        multi.initialize(self.t)
+        if isinstance(closest, NonInteractionSingle):
+            self.add_domain_event(multi)
+        elif isinstance(closest, Multi):
             self.update_domain_event(self.t + multi.dt, multi)
 
-            return multi
-
-
-        assert False, 'do not reach here'
+        return multi
 
 
     def add_to_multi_recursive(self, domain, multi):
