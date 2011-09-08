@@ -1617,7 +1617,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
         return single1, single2
 
-    def form_interaction(self, single, surface, burst):
+    def form_interaction(self, single, surface, neighbors):
         # Try to form an interaction between the 'single' particle and the 'surface'.
 
         particle = single.pid_particle_pair[1]
@@ -1682,7 +1682,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
                                             particle_distance,
                                             orientation_vector,
                                             dr, dz_left, dz_right,
-                                            burst)
+                                            neighbors)
         dr /= SAFETY
         dz_left /= SAFETY
         dz_right /= SAFETY
@@ -1709,12 +1709,12 @@ class EGFRDSimulator(ParticleSimulatorBase):
         radius = dr + particle_distance
 
 
+###
 
-        interaction = self.create_interaction(single, surface,
-                                              projected_point, 
-                                              particle_distance,
-                                              orientation_vector, 
-                                              dr, dz_left, dz_right)
+
+        interaction = self.create_interaction(particle, surface,
+					      origin, radius, half_length,
+					      orientation_vector)
 
         # Below here similar as in fire_pair after creating a pair.
         interaction.dt, interaction.event_type, = \
@@ -1739,7 +1739,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
     def determine_optimal_cylinder(self, single, surface, projected_point, 
                                    particle_distance, orientation_vector,
-                                   dr, dz_left, dz_right, burst):
+                                   dr, dz_left, dz_right, neighbors):
         # Find optimal cylinder around particle and surface, such that 
         # it is not interfering with other shells.
         # Todo. Finding all spheres and cylinders in the matrixspace 
@@ -1846,6 +1846,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
                     dr = dr_i
 
         return dr, dz_left, dz_right
+
 
     def form_pair(self, single1, single2, burst):
         if __debug__:
