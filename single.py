@@ -453,7 +453,7 @@ class PlanarSurfaceInteraction(InteractionSingle):
 	# z0 is the initial position of the particle relative to the center
 	# of the shell in the direction normal to the surface.
 	self.z0 = z0
-	self.shell = self.create_new_shell(self, shell_center, shell_radius, 
+	self.shell = self.create_new_shell(shell_center, shell_radius, 
 					   shell_orientation_vector, shell_half_length)
 
     def get_inner_dz_right(self):
@@ -466,7 +466,7 @@ class PlanarSurfaceInteraction(InteractionSingle):
 	# Note that it is implied that the shell sticks out at the other end
 	# of the planar surface by the particle radius, and that the surface
 	# has no thickness.
-	dist_to_surface = self.shell.half_length - self.pid_particle_pair[1].radius
+	dist_to_surface = self.shell.shape.half_length - self.pid_particle_pair[1].radius
 	return dist_to_surface - self.pid_particle_pair[1].radius
 
     def greens_function(self):
@@ -478,7 +478,9 @@ class PlanarSurfaceInteraction(InteractionSingle):
 	# The green's function that also modelles the association of the particle
 	# with the planar surface.
 	# TODO choose interactionrule
-        return GreensFunction1DRadAbs(self.D, self.interactionrule.k, self.z0,
+#        return GreensFunction1DRadAbs(self.D, self.interactionrule.k, self.z0,
+#				      self.get_inner_dz_left(), self.get_inner_dz_right())
+        return GreensFunction1DRadAbs(self.D, 1e-8, self.z0,
 				      self.get_inner_dz_left(), self.get_inner_dz_right())
 
     def draw_new_position(self, dt, event_type):
@@ -500,8 +502,8 @@ class PlanarSurfaceInteraction(InteractionSingle):
 		gf = self.greens_function()
         	r = draw_r_wrapper(gf, dt, a)
 
-	    x, y = randomVector2D(r)
-	    vector_r = x * self.surface.unitX + y * self.surface.unitY
+	    x, y = random_vector2D(r)
+	    vector_r = x * self.surface.shape.unit_x + y * self.surface.shape.unit_y
 
 	    # calculate z vector
             # Todo. Cartesian coordinate will return absolute position.
@@ -558,7 +560,7 @@ class CylindricalSurfaceInteraction(InteractionSingle):
 	self.unit_r = unit_r	# This is the vector from the cylinder to the particle
 	self.r0 = r0		# r0 is the distance from the center of the cylinder to the
 				# center of the particle
-        self.shell = self.create_new_shell(self, shell_center, shell_radius,
+        self.shell = self.create_new_shell(shell_center, shell_radius,
                                            shell_orientation_vector, shell_half_length)
 
 
