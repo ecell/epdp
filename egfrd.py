@@ -1111,7 +1111,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
                        closest_domain.pid_particle_pair[1].radius) * self.SINGLE_SHELL_FACTOR
 		if domain_distance < pair_horizon:
 	            # try making a Pair (can still be Mixed Pair or Normal Pair)
-		    domain = self.form_pair (single, closest_domain, rest_domains)
+		    domain = self.try_pair (single, closest_domain, rest_domains)
 		else:
 		    domain = None
 
@@ -1119,7 +1119,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
 	     surface_distance < domain_distance and \
 	     surface_distance < surface_horizon:
 		# try making an Interaction
-		domain = self.form_interaction (single, closest_surface, partners)
+		domain = self.try_interaction (single, closest_surface, partners)
 	else:
 		domain = None
 
@@ -1654,7 +1654,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
         return single1, single2
 
-    def form_interaction(self, single, surface, neighbors):
+    def try_interaction(self, single, surface, neighbors):
         # Try to form an interaction between the 'single' particle and the 'surface'.
 
         pid_particle_pair = single.pid_particle_pair
@@ -1676,6 +1676,9 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
         if __debug__:
            log.debug('trying to form Interaction(%s, %s)' % (particle, surface))
+
+
+	### 1. See if there is enough space for the shell
 
         # For an interaction with a PlanarSurface (membrane):
         # * dr is the radius of the cylinder.
@@ -1718,13 +1721,13 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
         # Miedema's algorithm.
         dr, dz_left, dz_right = \
-            self.determine_optimal_cylinder(single, surface,
-                                            projected_point,
-                                            particle_distance,
-                                            orientation_vector,
-                                            dr, dz_left, dz_right)
+            self.calculate_max_cylinder(single, surface,
+                                        projected_point,
+                                        particle_distance,
+                                        orientation_vector,
+                                        dr, dz_left, dz_right)
 
-#	 This will break the conditions below
+#	 This will break the conditions below for membrane interaction
 #        dr /= SAFETY
 #        dz_left /= SAFETY
 #        dz_right /= SAFETY
@@ -1742,8 +1745,11 @@ class EGFRDSimulator(ParticleSimulatorBase):
                            dz_right, min_dz_right))
             return None
 
+
+	### 2. The shell can be made. Now do what's necessary to make it
+	###
         # Compute origin, radius and half_length of cylinder.
-	# TODO slightly change dz, dr framework. See notes.
+	# TODO slightly change dz, dr framework to simplify things. See notes.
         if isinstance(surface, PlanarSurface):
 #            half_length = (dz_left + dz_right) / 2.0
             half_length = (dz_left + particle_distance + dz_right) / 2.0
@@ -1761,7 +1767,6 @@ class EGFRDSimulator(ParticleSimulatorBase):
 					      origin, radius, half_length,
 					      orientation_vector)
 
-        # Below here similar as in fire_pair after creating a pair.
         interaction.dt, interaction.event_type, = \
             interaction.determine_next_event()
         assert interaction.dt >= 0
@@ -1771,18 +1776,19 @@ class EGFRDSimulator(ParticleSimulatorBase):
         self.remove_domain(single)
         # the event associated with the single will be removed by the scheduler.
 
+        assert self.check_obj(interaction)
+        self.add_domain_event(interaction)
+
         if __debug__:
             log.debug('        *create_interaction\n'
                       '            dr = %s. dz_left = %s. dz_right = %s.\n' %
                       (FORMAT_DOUBLE % dr, FORMAT_DOUBLE % dz_left,
                        FORMAT_DOUBLE % dz_right))
 
-        assert self.check_obj(interaction)
-        self.add_domain_event(interaction)
-
         return interaction
 
-    def determine_optimal_cylinder(self, single, surface, projected_point, 
+
+    def calculate_max_cylinder(self, single, surface, projected_point, 
                                    particle_distance, orientation_vector,
                                    dr, dz_left, dz_right):
         # Find optimal cylinder around particle and surface, such that 
@@ -1799,7 +1805,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
         for domain in all_neighbors:
             if isinstance(domain, Multi):
-                for shell in domain.shell_list:
+                for _, shell in domain.shell_list:
                     shell_position = shell.shape.position
                     shell_size = shell.shape.radius
                     dr, dz_left, dz_right = \
@@ -1816,7 +1822,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
                 shell_position = domain.shell.shape.position
                 shell_size = domain.get_shell_size()
 
-                # Make bursted singles look bigger, like in form_pair, 
+                # Make bursted singles look bigger,
                 # because the size of their shell is only 
                 # particle.radius (not yet multiplied by 
                 # SINGLE_SHELL_FACTOR)
@@ -1894,7 +1900,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
         return dr, dz_left, dz_right
 
 
-    def form_pair(self, single1, single2, burst):
+    def try_pair(self, single1, single2, burst):
         if __debug__:
            log.debug('trying to form Pair(%s, %s)' %
                      (single1.pid_particle_pair, single2.pid_particle_pair))
