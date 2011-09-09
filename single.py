@@ -456,38 +456,6 @@ class PlanarSurfaceInteraction(InteractionSingle):
 	self.shell = self.create_new_shell(self, shell_center, shell_radius, 
 					   shell_orientation_vector, shell_half_length)
 
-
-
-#        # Compute from dr, dz_left and dz_right the length of the new 
-#        # domain (only that part of the cylinder where the particle can 
-#        # diffuse to) and the radius and half_length of the new 
-#        # cylinder.
-#
-#        # a
-#        # what is here sigma?
-#        sigma = self.surface.shape.Lz + self.pid_particle_pair[1].radius
-#        # r0
-#        if isinstance(surface, PlanarSurface):
-#            # Heads up: length of domain (the part of the cylinder 
-#            # where the particle can get) is a bit different from the 
-#            # length of the cylinder because of dz_left.
-#            # Assume surface.Lz == 0
-#            length_of_domain = particle_distance + dz_right
-#            radius = dr
-#            half_length = (particle_distance + dz_left + dz_right) / 2
-#
-#        # TODO. This is not correct anymore.
-#        if isinstance(surface, PlanarSurface):
-#            # Compute new particle offset relative to origin of the 
-#            # domain in the z-direction (z=0).
-#            # The surface boundary is at z=-length_of_domain / 2, the 
-#            # other end in the middles*at* the surface boundary. (z=L) 
-#            # is at the end of the cylinder.
-#            # (min_radius correction in the constructor).
-#            particle_offset = [0, particle_distance - length_of_domain.Lz]
-
-
-
     def get_inner_dz_right(self):
 	# This is the distance the particle can travel from its initial position
 	# to the flat boundary away from the surface
@@ -579,8 +547,8 @@ class CylindricalSurfaceInteraction(InteractionSingle):
 
     """
     def __init__(self, domain_id, pid_particle_pair, reactionrules, structure,
-		 shell_id, shell_center, shell_radius, shell_half_length, shell_orientation_vector,
-		 r0, unit_r, interactionrules, surface):
+		 shell_id, shell_center, shell_radius, shell_half_length, shell_orientation_vector, z0,
+		 unit_r, r0, interactionrules, surface):
 
         InteractionSingle.__init__(self, domain_id, pid_particle_pair, reactionrules,
 				   structure, shell_id, interactionrules, surface)
