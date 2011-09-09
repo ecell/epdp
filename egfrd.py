@@ -57,38 +57,38 @@ def create_default_single(domain_id, pid_particle_pair, shell_id, rt, structure)
                                    shell_id, rt, structure)
 
 
-def create_default_interaction(domain_id, pid_particle_pair, reaction_rules, structure,
-                               shell_id, shell_center, shell_radius,
-			       shell_half_length, shell_unit_z,
-                               surface, interaction_rules):
-    # surface is the surface with which the interaction is made
-
-    # These calculation should be closer to the Green's functions, i.e. in the
-    # PlanarSurfaceInteraction constructor but can not be performed there because
-    # it doesn't know about the world size of cyclic boundary conditions.
-    particle_pos = pid_particle_pair[1].position
-
-    if isinstance(surface, CylindricalSurface):
-	particle_pos = self.world.cyclic_transpose(particle_pos, surface.shape.position)
-	projected_point, r0 = surface.projected_point(particle_pos)
-        shell_unit_r = normalize(particle_pos - projected_point)
-
-	z0 = numpy.dot (shell_unit_z, (projected_point - shell_center))
-
-        return CylindricalSurfaceInteraction(domain_id, pid_particle_pair,
-                                             reaction_rules, structure,
-					     shell_id, shell_center, shell_radius,
-					     shell_half_length, shell_unit_z, z0,
-					     shell_unit_r, r0, interaction_rules, surface)
-    elif isinstance(surface, PlanarSurface):
-        particle_pos = self.world.cyclic_transpose(particle_pos, shell_center)
-	z0 = numpy.dot (shell_unit_z, (particle_pos - shell_center))
-
-        return PlanarSurfaceInteraction(domain_id, pid_particle_pair,
-                                        reaction_rules, structure,
-					shell_id, shell_center, shell_radius,
-					shell_half_length, shell_unit_z,
-					z0, interaction_rules, surface)
+#def create_default_interaction(domain_id, pid_particle_pair, reaction_rules, structure,
+#                               shell_id, shell_center, shell_radius,
+#			       shell_half_length, shell_unit_z,
+#                               surface, interaction_rules):
+#    # surface is the surface with which the interaction is made
+#
+#    # These calculation should be closer to the Green's functions, i.e. in the
+#    # PlanarSurfaceInteraction constructor but can not be performed there because
+#    # it doesn't know about the world size of cyclic boundary conditions.
+#    particle_pos = pid_particle_pair[1].position
+#
+#    if isinstance(surface, CylindricalSurface):
+#	particle_pos = self.world.cyclic_transpose(particle_pos, surface.shape.position)
+#	projected_point, r0 = surface.projected_point(particle_pos)
+#        shell_unit_r = normalize(particle_pos - projected_point)
+#
+#	z0 = numpy.dot (shell_unit_z, (projected_point - shell_center))
+#
+#        return CylindricalSurfaceInteraction(domain_id, pid_particle_pair,
+#                                             reaction_rules, structure,
+#					     shell_id, shell_center, shell_radius,
+#					     shell_half_length, shell_unit_z, z0,
+#					     shell_unit_r, r0, interaction_rules, surface)
+#    elif isinstance(surface, PlanarSurface):
+#        particle_pos = self.world.cyclic_transpose(particle_pos, shell_center)
+#	z0 = numpy.dot (shell_unit_z, (particle_pos - shell_center))
+#
+#        return PlanarSurfaceInteraction(domain_id, pid_particle_pair,
+#                                        reaction_rules, structure,
+#					shell_id, shell_center, shell_radius,
+#					shell_half_length, shell_unit_z,
+#					z0, interaction_rules, surface)
 
 
 def create_default_pair(domain_id, com, single1, single2, shell_id, 
@@ -434,7 +434,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
         return single
 
     def create_interaction(self, pid_particle_pair, surface, shell_center,
-			   shell_radius, shell_length, orientation_vector):
+			   shell_radius, shell_half_length, shell_unit_z):
 
 ##        assert single.dt == 0.0 and single.get_mobility_radius() == 0.0
 #	assert that the particle is not already associate with another domain
@@ -447,18 +447,50 @@ class EGFRDSimulator(ParticleSimulatorBase):
         species_id = pid_particle_pair[1].sid
 	species = self.world.get_species(species_id)
 
-        reaction_types = self.network_rules.query_reaction_rule(species_id)
+        reaction_rules = self.network_rules.query_reaction_rule(species_id)
         #interaction_type = self.query_interaction_rule(species_id, surface)
         # TODO.
-        interaction_type = None
+        interaction_rules = None
         structure = self.world.get_structure(species.structure_id)
 
 	# 2. create and register the proper domain object
-        interaction = \
-            create_default_interaction(domain_id, pid_particle_pair, reaction_types,
-                                       structure, shell_id, shell_center,
-				       shell_radius, shell_length, orientation_vector,
-				       surface, interaction_type)
+#        interaction = \
+#            create_default_interaction(domain_id, pid_particle_pair, reaction_types,
+#                                       structure, shell_id, shell_center,
+#				       shell_radius, shell_length, shell_unit_z,
+#				       surface, interaction_type)
+
+
+
+
+	particle_pos = pid_particle_pair[1].position
+
+    	if isinstance(surface, CylindricalSurface):
+            particle_pos = self.world.cyclic_transpose(particle_pos, surface.shape.position)
+            projected_point, r0 = surface.projected_point(particle_pos)
+            shell_unit_r = normalize(particle_pos - projected_point)
+
+            z0 = numpy.dot (shell_unit_z, (projected_point - shell_center))
+
+            interaction = CylindricalSurfaceInteraction(domain_id, pid_particle_pair,
+                                                        reaction_rules, structure,
+                                                        shell_id, shell_center, shell_radius,
+                                                        shell_half_length, shell_unit_z, z0,
+                                                        shell_unit_r, r0, interaction_rules, surface)
+	elif isinstance(surface, PlanarSurface):
+            particle_pos = self.world.cyclic_transpose(particle_pos, shell_center)
+            z0 = numpy.dot (shell_unit_z, (particle_pos - shell_center))
+
+            interaction = PlanarSurfaceInteraction(domain_id, pid_particle_pair,
+                                                   reaction_rules, structure,
+                                                   shell_id, shell_center, shell_radius,
+                                                   shell_half_length, shell_unit_z,
+                                                   z0, interaction_rules, surface)
+
+
+
+
+
         assert isinstance(interaction, InteractionSingle)
         interaction.initialize(self.t)
         self.domains[domain_id] = interaction
@@ -1625,7 +1657,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
     def form_interaction(self, single, surface, neighbors):
         # Try to form an interaction between the 'single' particle and the 'surface'.
 
-        particle = single.pid_particle_pair[1]
+        pid_particle_pair = single.pid_particle_pair
+	particle = pid_particle_pair[1]
 
 	# calculate the Projected_point and distance to the surface
         # Cyclic transpose needed when calling surface.projected_point!
@@ -1690,9 +1723,11 @@ class EGFRDSimulator(ParticleSimulatorBase):
                                             particle_distance,
                                             orientation_vector,
                                             dr, dz_left, dz_right)
-        dr /= SAFETY
-        dz_left /= SAFETY
-        dz_right /= SAFETY
+
+#	 This will break the conditions below
+#        dr /= SAFETY
+#        dz_left /= SAFETY
+#        dz_right /= SAFETY
 
         # Decide if interaction domain is possible.
         if dr < min_dr or dz_left < min_dz_left or dz_right < min_dz_right:
@@ -1722,7 +1757,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
 	    origin = projected_point + ((dz_right - dz_left)/2.0) * orientation_vector
 
 
-        interaction = self.create_interaction(particle, surface,
+        interaction = self.create_interaction(pid_particle_pair, surface,
 					      origin, radius, half_length,
 					      orientation_vector)
 
