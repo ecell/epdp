@@ -1684,23 +1684,25 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
         # Initialize dr, dz_left, dz_right to maximum allowed values.
         # And decide minimal dr, dz_left, dz_right.
+
+	# Make sure the maximal cylinder fits in the maximal sphere. Matrix space
+	# doesn't allow to check for shells outside the maximal sphere.
+	max_cylinder_radius      = self.get_max_shell_size()/math.sqrt(2)
+	max_cylinder_half_length = max_cylinder_radius
         if isinstance(surface, PlanarSurface):
-            dr = self.get_max_shell_size()
+            dr = max_cylinder_radius
             # Leave enough for the particle itself to the left.
             dz_left = particle.radius
-            # Make sure the cylinder stays within 1 cell, note that max length of the
-	    # cylinder is only the radius of a sphere.
-            dz_right = self.get_max_shell_size() # - dz_left
+            dz_right = max_cylinder_half_length * 2 - dz_left
 
             min_dr = particle.radius * self.SINGLE_SHELL_FACTOR
             min_dz_left = dz_left
             min_dz_right = particle_distance + particle.radius * self.SINGLE_SHELL_FACTOR
 
         elif isinstance(surface, CylindricalSurface):
-            # Make sure the cylinder stays within 1 cell.
-            dr = self.get_max_shell_size() 
-            dz_left = self.get_max_shell_size()
-            dz_right = self.get_max_shell_size()
+            dr = max_cylinder_radius
+            dz_left = max_cylinder_half_length
+            dz_right = max_cylinder_half_length
 
             min_dr = particle_distance + particle.radius * self.SINGLE_SHELL_FACTOR
             min_dz_left = particle.radius * self.SINGLE_SHELL_FACTOR
@@ -1715,9 +1717,9 @@ class EGFRDSimulator(ParticleSimulatorBase):
                                         dr, dz_left, dz_right)
 
         dr /= SAFETY
+        dz_right /= SAFETY
 #	 This will break the conditions below for membrane interaction
 #        dz_left /= SAFETY
-        dz_right /= SAFETY
 
         # Decide if interaction domain is possible.
         if dr < min_dr or dz_left < min_dz_left or dz_right < min_dz_right:
@@ -1734,11 +1736,10 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
 
 	### 2. The shell can be made. Now do what's necessary to make it
-	###
         # Compute origin, radius and half_length of cylinder.
+        origin = projected_point + ((dz_right - dz_left)/2.0) * orientation_vector
         half_length = (dz_left + dz_right) / 2.0
         radius = dr
-        origin = projected_point + ((dz_right - dz_left)/2.0) * orientation_vector
 
         interaction = self.create_interaction(pid_particle_pair, surface,
 					      origin, radius, half_length,
@@ -1753,7 +1754,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
         self.remove_domain(single)
         # the event associated with the single will be removed by the scheduler.
 
-#        assert self.check_obj(interaction)
+        assert self.check_obj(interaction)
         self.add_domain_event(interaction)
 
         if __debug__:
@@ -1770,13 +1771,15 @@ class EGFRDSimulator(ParticleSimulatorBase):
                                    dr, dz_left, dz_right):
         # Find optimal cylinder around particle and surface, such that 
         # it is not interfering with other shells.
-        # Todo. Finding all spheres and cylinders in the matrixspace 
-        # should be sufficient, but domain information is now used for 
 	#
         # get_shell_size is overridden for cylindrical singles and 
         # pairs.
+
+	# the search point is the center of the sphere that surrounds the
+	# maximal cylinder
+        search_point = projected_point + ((dz_right - dz_left)/2.0) * orientation_vector
         all_neighbors = \
-            self.get_neighbors_within_radius_no_sort(projected_point, 
+            self.get_neighbors_within_radius_no_sort(search_point, 
                                                      self.get_max_shell_size(),
                                                      ignore=[single.domain_id])
 
