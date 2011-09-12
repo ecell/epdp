@@ -479,9 +479,9 @@ class PlanarSurfaceInteraction(InteractionSingle):
 	# with the planar surface.
 	# TODO choose interactionrule
 #        return GreensFunction1DRadAbs(self.D, self.interactionrule.k, self.z0,
-#				      self.get_inner_dz_left(), self.get_inner_dz_right())
+#				      -self.get_inner_dz_left(), self.get_inner_dz_right())
         return GreensFunction1DRadAbs(self.D, 1e-8, self.z0,
-				      self.get_inner_dz_left(), self.get_inner_dz_right())
+				      -self.get_inner_dz_left(), self.get_inner_dz_right())
 
     def draw_new_position(self, dt, event_type):
 	"""Draws a new position for the particle for a given event type at a given time
@@ -565,10 +565,10 @@ class CylindricalSurfaceInteraction(InteractionSingle):
 
 
     def get_inner_dz_left(self):
-	return self.shell.shape.half_length + self.z0 - self.pid_particle_pair[1].radius
+	return self.shell.shape.half_length - self.pid_particle_pair[1].radius
 
     def get_inner_dz_right(self):
-	return self.get_inner_dz_left()	- self.z0 - self.pid_particle_pair[1].radius
+	return self.get_inner_dz_left()	- self.pid_particle_pair[1].radius
 
     def get_inner_sigma(self):
 	return self.surface.shape.radius + self.pid_particle_pair[1].radius
