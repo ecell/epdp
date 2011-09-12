@@ -2241,13 +2241,17 @@ rejected moves = %d
     def check_obj(self, obj):
         obj.check()
 
+        if isinstance(obj, Multi):
+            # Ignore all surfaces, multi shells can overlap with 
+            # surfaces.
+            ignores = [s.id for s in self.world.structures]
+	elif isinstance(obj, InteractionSingle):
+	    # Ignore surface of the particle and interaction surface
+	    ignores = [obj.structure.id, obj.surface.id]
+        else:
+            ignores = [obj.structure.id]
+
         for shell_id, shell in obj.shell_list:
-            if not isinstance(obj, Multi):
-                ignores = [obj.structure.id]
-            else:
-                # Ignore all surfaces, multi shells can overlap with 
-                # surfaces.
-                ignores = [s.id for s in self.world.structures]
             closest, distance = self.get_closest_obj(shell.shape.position,
                                                      ignore=[obj.domain_id],
                                                      ignores=ignores)
