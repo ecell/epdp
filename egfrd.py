@@ -1702,20 +1702,23 @@ class EGFRDSimulator(ParticleSimulatorBase):
             # Leave enough for the particle itself to the left.
             dz_left = particle.radius
             # Make sure the cylinder stays within 1 cell.
-            dz_right = self.get_max_shell_size() * 2 - \
-                      (particle_distance + dz_left)
+#            dz_right = self.get_max_shell_size() * 2 - (particle_distance + dz_left)
+            dz_right = self.get_max_shell_size() * 2 - dz_left
 
             min_dr = particle.radius * self.SINGLE_SHELL_FACTOR
             min_dz_left = dz_left
-            min_dz_right = particle.radius * self.SINGLE_SHELL_FACTOR
+#            min_dz_right = particle.radius * self.SINGLE_SHELL_FACTOR
+            min_dz_right = particle_distance + particle.radius * self.SINGLE_SHELL_FACTOR
 
         elif isinstance(surface, CylindricalSurface):
             # Make sure the cylinder stays within 1 cell.
-            dr = self.get_max_shell_size() - particle_distance
+#            dr = self.get_max_shell_size() - particle_distance
+            dr = self.get_max_shell_size() 
             dz_left = self.get_max_shell_size()
             dz_right = self.get_max_shell_size()
 
-            min_dr = particle.radius * self.SINGLE_SHELL_FACTOR
+#            min_dr = particle.radius * self.SINGLE_SHELL_FACTOR
+            min_dr = particle_distance + particle.radius * self.SINGLE_SHELL_FACTOR
             min_dz_left = particle.radius * self.SINGLE_SHELL_FACTOR
             min_dz_right = particle.radius * self.SINGLE_SHELL_FACTOR
 
@@ -1727,10 +1730,10 @@ class EGFRDSimulator(ParticleSimulatorBase):
                                         orientation_vector,
                                         dr, dz_left, dz_right)
 
+        dr /= SAFETY
 #	 This will break the conditions below for membrane interaction
-#        dr /= SAFETY
 #        dz_left /= SAFETY
-#        dz_right /= SAFETY
+        dz_right /= SAFETY
 
         # Decide if interaction domain is possible.
         if dr < min_dr or dz_left < min_dz_left or dz_right < min_dz_right:
@@ -1750,17 +1753,18 @@ class EGFRDSimulator(ParticleSimulatorBase):
 	###
         # Compute origin, radius and half_length of cylinder.
 	# TODO slightly change dz, dr framework to simplify things. See notes.
-        if isinstance(surface, PlanarSurface):
-#            half_length = (dz_left + dz_right) / 2.0
-            half_length = (dz_left + particle_distance + dz_right) / 2.0
-            radius = dr
-            origin = projected_point + (half_length - dz_left) * orientation_vector
+#        if isinstance(surface, PlanarSurface):
+        half_length = (dz_left + dz_right) / 2.0
+#            half_length = (dz_left + particle_distance + dz_right) / 2.0
+        radius = dr
+#            origin = projected_point + (half_length - dz_left) * orientation_vector
+        origin = projected_point + ((dz_right - dz_left)/2.0) * orientation_vector
 
-        elif isinstance(surface, CylindricalSurface):
-	    half_length = (dz_left + dz_right) / 2.0
+#        elif isinstance(surface, CylindricalSurface):
+#	    half_length = (dz_left + dz_right) / 2.0
 #            radius = dr 
-            radius = dr + particle_distance
-	    origin = projected_point + ((dz_right - dz_left)/2.0) * orientation_vector
+##            radius = dr + particle_distance
+#	    origin = projected_point + ((dz_right - dz_left)/2.0) * orientation_vector
 
 
         interaction = self.create_interaction(pid_particle_pair, surface,
@@ -1776,7 +1780,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
         self.remove_domain(single)
         # the event associated with the single will be removed by the scheduler.
 
-        assert self.check_obj(interaction)
+#        assert self.check_obj(interaction)
         self.add_domain_event(interaction)
 
         if __debug__:
@@ -1861,11 +1865,17 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
         # Calculate dr_i for this shell.
         dr_i = ri - shell_size
-        if isinstance(surface, CylindricalSurface):
+
+	if isinstance(surface, PlanarSurface):
+	    dz_right -= particle_distance
+        elif isinstance(surface, CylindricalSurface):
             # Run Miedema's algorithm in the r direction 
             # relative to the particle's position, not to 
             # projected point (r=0).
             dr_i -= particle_distance
+	    dr -= particle_distance
+	else:
+	    raise SystemError('Error in Miedema\'s algorithm: surface is not a Surface')
 
         # Calculate dz_left_i or dz_right_i (both will usually 
         # be positive values).
@@ -1896,6 +1906,11 @@ class EGFRDSimulator(ParticleSimulatorBase):
                     dz_right = dz_right_i
                 else:
                     dr = dr_i
+
+	if isinstance(surface, PlanarSurface):
+	    dz_right += particle_distance
+	elif isinstance(surface, CylindricalSurface):
+	    dr += particle_distance
 
         return dr, dz_left, dz_right
 
