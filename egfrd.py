@@ -453,16 +453,6 @@ class EGFRDSimulator(ParticleSimulatorBase):
         interaction_rules = None
         structure = self.world.get_structure(species.structure_id)
 
-	# 2. create and register the proper domain object
-#        interaction = \
-#            create_default_interaction(domain_id, pid_particle_pair, reaction_types,
-#                                       structure, shell_id, shell_center,
-#				       shell_radius, shell_length, shell_unit_z,
-#				       surface, interaction_type)
-
-
-
-
 	particle_pos = pid_particle_pair[1].position
 
     	if isinstance(surface, CylindricalSurface):
@@ -486,9 +476,6 @@ class EGFRDSimulator(ParticleSimulatorBase):
                                                    shell_id, shell_center, shell_radius,
                                                    shell_half_length, shell_unit_z,
                                                    z0, interaction_rules, surface)
-
-
-
 
 
         assert isinstance(interaction, InteractionSingle)
@@ -1703,22 +1690,18 @@ class EGFRDSimulator(ParticleSimulatorBase):
             dz_left = particle.radius
             # Make sure the cylinder stays within 1 cell, note that max length of the
 	    # cylinder is only the radius of a sphere.
-#            dz_right = self.get_max_shell_size() * 2 - (particle_distance + dz_left)
             dz_right = self.get_max_shell_size() # - dz_left
 
             min_dr = particle.radius * self.SINGLE_SHELL_FACTOR
             min_dz_left = dz_left
-#            min_dz_right = particle.radius * self.SINGLE_SHELL_FACTOR
             min_dz_right = particle_distance + particle.radius * self.SINGLE_SHELL_FACTOR
 
         elif isinstance(surface, CylindricalSurface):
             # Make sure the cylinder stays within 1 cell.
-#            dr = self.get_max_shell_size() - particle_distance
             dr = self.get_max_shell_size() 
             dz_left = self.get_max_shell_size()
             dz_right = self.get_max_shell_size()
 
-#            min_dr = particle.radius * self.SINGLE_SHELL_FACTOR
             min_dr = particle_distance + particle.radius * self.SINGLE_SHELL_FACTOR
             min_dz_left = particle.radius * self.SINGLE_SHELL_FACTOR
             min_dz_right = particle.radius * self.SINGLE_SHELL_FACTOR
@@ -1753,20 +1736,9 @@ class EGFRDSimulator(ParticleSimulatorBase):
 	### 2. The shell can be made. Now do what's necessary to make it
 	###
         # Compute origin, radius and half_length of cylinder.
-	# TODO slightly change dz, dr framework to simplify things. See notes.
-#        if isinstance(surface, PlanarSurface):
         half_length = (dz_left + dz_right) / 2.0
-#            half_length = (dz_left + particle_distance + dz_right) / 2.0
         radius = dr
-#            origin = projected_point + (half_length - dz_left) * orientation_vector
         origin = projected_point + ((dz_right - dz_left)/2.0) * orientation_vector
-
-#        elif isinstance(surface, CylindricalSurface):
-#	    half_length = (dz_left + dz_right) / 2.0
-#            radius = dr 
-##            radius = dr + particle_distance
-#	    origin = projected_point + ((dz_right - dz_left)/2.0) * orientation_vector
-
 
         interaction = self.create_interaction(pid_particle_pair, surface,
 					      origin, radius, half_length,
