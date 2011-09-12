@@ -1701,9 +1701,10 @@ class EGFRDSimulator(ParticleSimulatorBase):
             dr = self.get_max_shell_size()
             # Leave enough for the particle itself to the left.
             dz_left = particle.radius
-            # Make sure the cylinder stays within 1 cell.
+            # Make sure the cylinder stays within 1 cell, note that max length of the
+	    # cylinder is only the radius of a sphere.
 #            dz_right = self.get_max_shell_size() * 2 - (particle_distance + dz_left)
-            dz_right = self.get_max_shell_size() * 2 - dz_left
+            dz_right = self.get_max_shell_size() # - dz_left
 
             min_dr = particle.radius * self.SINGLE_SHELL_FACTOR
             min_dz_left = dz_left
