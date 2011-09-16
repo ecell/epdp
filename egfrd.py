@@ -1835,7 +1835,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
         # shell_position and with size (radius or half_length) 
         # shell_size.
 
-	# TODO make cyclic boundary conditions aware
+	shell_position = self.world.cyclic_transpose(shell_position, projected_point)
         shell_vector = shell_position - projected_point
 
         # Calculate zi and ri for this shell.
