@@ -421,7 +421,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
         # CylindricalSurfaceSingle.
         single = create_default_single(domain_id, pid_particle_pair, 
                                        shell_id, rrs, structure)
-#        assert isinstance(single, NonInteractionSingle)
+        assert isinstance(single, NonInteractionSingle)
         single.initialize(self.t)
         self.domains[domain_id] = single
 
@@ -528,6 +528,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
         pair = create_default_pair(domain_id, com, single1, single2, shell_id, 
                                    r0, shell_size, rr, structure)
 
+	assert isinstance(pair, Pair)
         pair.initialize(self.t)
         self.domains[domain_id] = pair
 
@@ -1118,6 +1119,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
 	    if domain_distance > multi_horizon and \
 	       surface_distance > multi_horizon:
 	        # just make a normal NonInteractionSingle
+		# TODO we need the closest RELEVANT domain, i.e. the domain in the
+		# direction in which we can scale the domain
 	        closest_domain, domain_distance = \
         	    self.get_closest_obj(single_pos, ignore=[single.domain_id],
                 	                 ignores=[single.structure.id])
@@ -1125,7 +1128,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
 	        self.add_domain_event(single)
 	    else:
 		# The closest object was too close to make a NonInteractionSingle
-		    domain = self.form_multi(single, partners, dists)
+		domain = self.form_multi(single, partners, dists)
 
 	return domain
 
@@ -1308,7 +1311,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
     def calculate_single_shell_size(self, single, closest, 
                                  distance, shell_distance):
-        assert isinstance(closest, Single)
+	# only if the closest shell is also a 'simple' Single
+        assert isinstance(closest, NonInteractionSingle)
 
         min_radius1 = single.pid_particle_pair[1].radius
         D1 = single.getD()
@@ -1333,7 +1337,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
         assert isinstance(single, NonInteractionSingle)	# This only works for 'simple' Singles
 
         singlepos = single.shell.shape.position
-        if isinstance(closest, Single):
+        if isinstance(closest, NonInteractionSingle):
             closestpos = closest.shell.shape.position
             distance_to_closest = self.world.distance(singlepos, closestpos)
             new_shell_size = self.calculate_single_shell_size(single, closest, 
@@ -1754,7 +1758,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
         self.remove_domain(single)
         # the event associated with the single will be removed by the scheduler.
 
-        assert self.check_obj(interaction)
+#        assert self.check_obj(interaction)
         self.add_domain_event(interaction)
 
         if __debug__:
@@ -1831,6 +1835,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
         # shell_position and with size (radius or half_length) 
         # shell_size.
 
+	# TODO make cyclic boundary conditions aware
         shell_vector = shell_position - projected_point
 
         # Calculate zi and ri for this shell.
