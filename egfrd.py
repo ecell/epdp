@@ -57,40 +57,6 @@ def create_default_single(domain_id, pid_particle_pair, shell_id, rt, structure)
                                    shell_id, rt, structure)
 
 
-#def create_default_interaction(domain_id, pid_particle_pair, reaction_rules, structure,
-#                               shell_id, shell_center, shell_radius,
-#			       shell_half_length, shell_unit_z,
-#                               surface, interaction_rules):
-#    # surface is the surface with which the interaction is made
-#
-#    # These calculation should be closer to the Green's functions, i.e. in the
-#    # PlanarSurfaceInteraction constructor but can not be performed there because
-#    # it doesn't know about the world size of cyclic boundary conditions.
-#    particle_pos = pid_particle_pair[1].position
-#
-#    if isinstance(surface, CylindricalSurface):
-#	particle_pos = self.world.cyclic_transpose(particle_pos, surface.shape.position)
-#	projected_point, r0 = surface.projected_point(particle_pos)
-#        shell_unit_r = normalize(particle_pos - projected_point)
-#
-#	z0 = numpy.dot (shell_unit_z, (projected_point - shell_center))
-#
-#        return CylindricalSurfaceInteraction(domain_id, pid_particle_pair,
-#                                             reaction_rules, structure,
-#					     shell_id, shell_center, shell_radius,
-#					     shell_half_length, shell_unit_z, z0,
-#					     shell_unit_r, r0, interaction_rules, surface)
-#    elif isinstance(surface, PlanarSurface):
-#        particle_pos = self.world.cyclic_transpose(particle_pos, shell_center)
-#	z0 = numpy.dot (shell_unit_z, (particle_pos - shell_center))
-#
-#        return PlanarSurfaceInteraction(domain_id, pid_particle_pair,
-#                                        reaction_rules, structure,
-#					shell_id, shell_center, shell_radius,
-#					shell_half_length, shell_unit_z,
-#					z0, interaction_rules, surface)
-
-
 def create_default_pair(domain_id, com, single1, single2, shell_id, 
                         r0, shell_size, rt, structure):
     if isinstance(structure, CuboidalRegion):
@@ -632,25 +598,6 @@ class EGFRDSimulator(ParticleSimulatorBase):
                       FORMAT_DOUBLE % (event_time)))
         domain.event_id = event_id			# FIXME side effect programming -> unclear!!
 
-#    def add_pair_event(self, pair):
-#        event_id = self.scheduler.add(
-#            DomainEvent(self.t + pair.dt, pair))
-#        if __debug__:
-#            log.info('add_event: %s, event=#%d, t=%s' %
-#                     (pair.domain_id, event_id,
-#                      FORMAT_DOUBLE % (self.t + pair.dt)))
-#        pair.event_id = event_id
-#
-#    def add_multi_event(self, multi):
-#        event_id = self.scheduler.add(
-#            DomainEvent(self.t + multi.dt, multi))
-#
-#        if __debug__:
-#            log.info('add_event: %s, event=#%d, t=%s' %
-#                     (multi.domain_id, event_id,
-#                      FORMAT_DOUBLE % (self.t + multi.dt)))
-#        multi.event_id = event_id
-
     def remove_event(self, event):
         if __debug__:
             log.info('remove_event: event=#%d' % event.event_id)
@@ -661,14 +608,6 @@ class EGFRDSimulator(ParticleSimulatorBase):
             log.info('update_event: %s, event=#%d, t=%s' %
                      (domain.domain_id, domain.event_id, FORMAT_DOUBLE % t))
         self.scheduler.update((domain.event_id, DomainEvent(t, domain)))
-
-#    def update_multi_event(self, t, multi):
-#        if __debug__:
-#            log.info('update_event: %s, event=#%d, t=%s' %
-#                     (multi.domain_id, multi.event_id, FORMAT_DOUBLE % t))
-#        self.scheduler.update((multi.event_id, DomainEvent(t, multi)))
-
-
 
     def burst_domain(self, domain):
     # Reduces and domain (Single, Pair or Multi) to Singles with the zero shell, and dt=0
