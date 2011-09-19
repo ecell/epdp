@@ -510,7 +510,7 @@ class PlanarSurfaceInteraction(InteractionSingle):
             # Heads up. size_of_domain is different from the half_length of 
             # the cylinder, because the domain ends where the surface 
             # starts, while the cylinder is continuing into the surface.
-            z_surface = self.get_inner_dz_left()	# left side of the inner domain
+            z_surface = -self.get_inner_dz_left()	# left side of the inner domain
 	    z_not_surface = self.get_inner_dz_right()	# right side of the inner domain (away from the surface)
 
 	    # If the event was not yet fully specified

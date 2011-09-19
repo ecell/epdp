@@ -1459,8 +1459,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
         assert self.t <= single.last_time + single.dt
 
         # record important single data ~ MW
-        oldpos = single.shell.shape.position
-        old_shell_size = single.get_shell_size()
+#        oldpos = single.shell.shape.position
+#        old_shell_size = single.get_shell_size()
 
         particle_radius = single.pid_particle_pair[1].radius
 
@@ -1472,8 +1472,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
         newpos = newsingle.pid_particle_pair[1].position
         # Check if stays within domain ~MW
-        assert self.world.distance(newpos, oldpos) <= \
-               old_shell_size - particle_radius
+#        assert self.world.distance(newpos, oldpos) <= \
+#               old_shell_size - particle_radius
         # Displacement check is in NonInteractionSingle.draw_new_position.
 
         if isinstance(single, InteractionSingle):
