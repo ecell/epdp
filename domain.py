@@ -1,4 +1,3 @@
-
 class Domain(object):
 # The domain is the main unit of eGFRD. Single, Pairs and Multis are all domains
 # with an own domain_id
@@ -24,6 +23,7 @@ class Domain(object):
 	at a different time.
         '''
 	pass
+
 
 
 class ProtectiveDomain(Domain):
