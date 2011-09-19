@@ -25,7 +25,6 @@ class Domain(object):
 	pass
 
 
-
 class ProtectiveDomain(Domain):
 # Protective Domains are the proper eGFRD domains. The shell associated with a Protective
 # Domains really exclude other particles from the simulation. These Domains are Singles and Pairs
