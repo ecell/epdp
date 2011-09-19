@@ -6,6 +6,7 @@ from utils import *
 import itertools
 
 import _gfrd
+from _gfrd import (SphericalShell, Sphere)
 from constants import EventType
 from domain import Domain
 
@@ -36,6 +37,9 @@ class Multi(Domain):
     def get_multiplicity(self):
         return self.particle_container.num_particles
     multiplicity = property(get_multiplicity)
+
+    def create_new_shell(self, position, radius):
+        return SphericalShell(self.domain_id, Sphere(position, radius))
 
     def within_shell(self, pp):
         return bool(self.sphere_container.get_neighbors_within_radius(pp[1].position, -pp[1].radius))

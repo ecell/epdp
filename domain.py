@@ -24,6 +24,9 @@ class Domain(object):
         '''
 	pass
 
+    def create_new_shell(self):		# needs to be overloaded in subclasses
+	pass				# creates an appropriate shell object
+
 
 class ProtectiveDomain(Domain):
 # Protective Domains are the proper eGFRD domains. The shell associated with a Protective
@@ -51,9 +54,6 @@ class ProtectiveDomain(Domain):
 	return [(self.shell_id, self.shell), ]
 
     shell_list = property(get_shell_list)
-
-    def create_new_shell(self):		# needs to be overloaded in subclasses
-	pass				# creates an appropriate shell object
 
     def get_shell_radius(self):		# returns the radius of the shell
 	return self.shell.shape.radius

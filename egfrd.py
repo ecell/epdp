@@ -1970,23 +1970,25 @@ class EGFRDSimulator(ParticleSimulatorBase):
         else:
             assert False, 'do not reach here.'  # Pairs are burst
 
-    def new_spherical_shell(self, domain_id, pos, size):
-        shell_id_shell_pair = (
-            self.shell_id_generator(),
-            SphericalShell(domain_id, Sphere(pos, size)))
-        self.move_shell(shell_id_shell_pair)
-        return shell_id_shell_pair
+#    def new_spherical_shell(self, domain_id, pos, size):
+#        shell_id_shell_pair = (
+#            self.shell_id_generator(),
+#            SphericalShell(domain_id, Sphere(pos, size)))
+#        self.move_shell(shell_id_shell_pair)
+#        return shell_id_shell_pair
 
     def add_to_multi(self, single, multi):
         if __debug__:
             log.info('add to multi:\n  %s\n  %s' % (single, multi))
 
-        sid_shell_pair = self.new_spherical_shell(
-            multi.domain_id,
-            single.pid_particle_pair[1].position,
-            single.pid_particle_pair[1].radius * \
-                self.MULTI_SHELL_FACTOR)
-        multi.add_shell(sid_shell_pair)
+	shell_id = self.shell_id_generator()
+#        sid_shell_pair = self.new_spherical_shell(
+#            multi.domain_id,
+	shell = multi.create_new_shell(single.pid_particle_pair[1].position,
+                single.pid_particle_pair[1].radius * self.MULTI_SHELL_FACTOR)
+	shell_id_shell_pair = (shell_id, shell)
+        self.move_shell(shell_id_shell_pair)
+        multi.add_shell(shell_id_shell_pair)
         multi.add_particle(single.pid_particle_pair)
 
     def merge_multis(self, multi1, multi2):
