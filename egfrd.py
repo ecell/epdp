@@ -1046,7 +1046,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
 	     surface_distance < domain_distance and \
 	     surface_distance < surface_horizon:
 		# try making an Interaction
-		domain = self.try_interaction (single, closest_surface, partners)
+		domain = self.try_interaction (single, closest_surface)
 	else:
 		domain = None
 
@@ -1585,7 +1585,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
         return single1, single2
 
-    def try_interaction(self, single, surface, neighbors):
+    def try_interaction(self, single, surface):
         # Try to form an interaction between the 'single' particle and the 'surface'.
 
         pid_particle_pair = single.pid_particle_pair
