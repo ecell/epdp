@@ -1058,11 +1058,6 @@ class EGFRDSimulator(ParticleSimulatorBase):
 	    if domain_distance > multi_horizon and \
 	       surface_distance > multi_horizon:
 	        # just make a normal NonInteractionSingle
-		# TODO we need the closest RELEVANT domain, i.e. the domain in the
-		# direction in which we can scale the domain
-	        closest_domain, domain_distance = \
-        	    self.get_closest_obj(single_pos, ignore=[single.domain_id],
-                	                 ignores=[single.structure.id])
 	        self.update_single(single, closest_domain, domain_distance)
 	        self.add_domain_event(single)
 	    else:
@@ -1275,7 +1270,13 @@ class EGFRDSimulator(ParticleSimulatorBase):
     def update_single(self, single, closest, distance_to_shell): 
         assert isinstance(single, NonInteractionSingle)	# This only works for 'simple' Singles
 
-        singlepos = single.shell.shape.position
+	singlepos = single.pid_particle_pair[1].position
+	# TODO we need the closest RELEVANT domain, i.e. the domain in the
+	# direction in which we can scale the domain
+	closest, distance_to_shell = \
+            self.get_closest_obj(singlepos, ignore=[single.domain_id],
+               	                 ignores=[single.structure.id])
+
         if isinstance(closest, NonInteractionSingle):
             closestpos = closest.shell.shape.position
             distance_to_closest = self.world.distance(singlepos, closestpos)
