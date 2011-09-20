@@ -17,8 +17,6 @@ class Multi(Domain):
 	Domain.__init__(self, domain_id)
 
         self.main = ref(main)
-#        self.domain_id = domain_id
-#        self.event_id = None
         self.last_event = None
 	self.event_Type = EventType.MULTI_DIFFUSION
 

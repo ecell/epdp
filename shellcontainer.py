@@ -26,11 +26,12 @@ class ShellContainer(object):
                                                      world.matrix_size)]
 
 	self.world = world
-        self.user_max_shell_size = numpy.inf
+        self.user_max_shell_size = numpy.inf	# Note: shell_size is actually the RADIUS of the shell
 
     def get_matrix_cell_size(self):
 	return self.containers[0].cell_size     # cell_size is the width of the (cubic) cell
 
+    # Here shell_size is actually the shell radius (and not shell diameter)
     def set_user_max_shell_size(self, size):
         self.user_max_shell_size = size
 
@@ -42,7 +43,8 @@ class ShellContainer(object):
                    self.user_max_shell_size)
 
     def get_container(self, shell):
-        # Returns the container that holds 'shell'
+    # Private method
+    # Returns the container that holds 'shell'
         if type(shell) is SphericalShell:
             return self.containers[0]
         elif type(shell) is CylindricalShell:
@@ -130,7 +132,7 @@ class ShellContainer(object):
         #
         # ignore: domain ids.
         #
-        # Only returns neighbors, not the distances towards their 
+        # Only returns neighbor domain_ids, not the distances towards their 
         # shells. Can for example be used to try to clear all objects 
         # from a certain volume.
 

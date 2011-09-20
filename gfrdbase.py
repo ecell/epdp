@@ -27,8 +27,7 @@ __all__ = [
     'NoSpace',
     'create_world',
     'ParticleSimulatorBase',
-    'get_closest_surface'#,
-#    'get_closest_surface_within_radius'
+    'get_closest_surface',
     ]
 
 World = _gfrd.World
@@ -102,18 +101,6 @@ def get_closest_surface(world, pos, ignore):
         return min(surfaces_and_distances_to_surfaces)
     else:
         return None, numpy.inf
-
-#def get_closest_surface_within_radius(world, pos, radius, ignore):
-#    """Return:
-#      - surface within radius or None
-#      - closest surface (regardless of radius)
-#      - distance to closest surface"""
-#
-#    surface, distance = get_closest_surface(world, pos, ignore) 
-#    if distance < radius:
-#        return surface, surface, distance
-#    else:
-#        return None, surface, distance
 
 def create_world(m, matrix_size=10):
     """Create a world object.
