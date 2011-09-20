@@ -1579,28 +1579,14 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
 	### 1. See if there is enough space for the shell
 
-        # For an interaction with a PlanarSurface (membrane):
-        # * dr is the radius of the cylinder.
-        # * dz_left determines how much the cylinder is sticking out on the 
-        # other side of the surface, measured from the projected point.
-        # * dz_right is the distance between the particle position and 
-        # the edge of the cylinder in the direction normal to the membrane.
-        #
-        # For interaction with a CylindricalSurface (dna):
-        # * dr is the distance between the particle position and the 
-        # edge of the cylinder in the r direction.
-        # * dz_left is the distance from the projected point to the left edge 
-        # of the cylinder.
-        # * dz_right is the distance from the projected point to the right edge 
-        # of the cylinder.
-
-        # Initialize dr, dz_left, dz_right to maximum allowed values.
-        # And decide minimal dr, dz_left, dz_right.
 
 	# Make sure the maximal cylinder fits in the maximal sphere. Matrix space
 	# doesn't allow to check for shells outside the maximal sphere.
 	max_cylinder_radius      = self.geometrycontainer.get_max_shell_size()/math.sqrt(2)
 	max_cylinder_half_length = max_cylinder_radius
+
+        # Initialize dr, dz_left, dz_right to maximum allowed values.
+        # And decide minimal dr, dz_left, dz_right.
         if isinstance(surface, PlanarSurface):
             dr = max_cylinder_radius
             # Leave enough for the particle itself to the left.
@@ -1666,7 +1652,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
         self.remove_domain(single)
         # the event associated with the single will be removed by the scheduler.
 
-#        assert self.check_obj(interaction)
+        assert self.check_obj(interaction)
         self.add_domain_event(interaction)
 
         if __debug__:
@@ -1684,8 +1670,20 @@ class EGFRDSimulator(ParticleSimulatorBase):
         # Find optimal cylinder around particle and surface, such that 
         # it is not interfering with other shells.
 	#
-        # get_shell_size is overridden for cylindrical singles and 
-        # pairs.
+	# To determine the maximal cylindrical shell a starting cylinder is defined
+	# * The projected_point is a reference point along the axis of the cylinder,
+	#   the position, z, can be chosen freely
+	# * orientation_vector is a vector along the z-axis providing orientation
+	#   It usually points in the general direction of the particle
+	#
+        # * dr is the radius of the cylinder.
+        # * dz_right is the distance between the projected_point and the face of the
+	#   cylinder on the side of the orientation_vector 
+        # * dz_left is the distance from the projected_point to the face of the cylinder
+	#   on the side oposite of the orientation_vector
+	#
+	# * particle_distance is the distance from the center of the particle to the
+	#   projected_point
 
 	# the search point is the center of the sphere that surrounds the
 	# maximal cylinder
