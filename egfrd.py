@@ -10,9 +10,9 @@ from _gfrd import (
     EventScheduler,
     Particle,
     SphericalShell,
-    SphericalShellContainer,
+#    SphericalShellContainer,
     CylindricalShell,
-    CylindricalShellContainer,
+#    CylindricalShellContainer,
     DomainIDGenerator,
     ShellIDGenerator,
     DomainID,
@@ -125,7 +125,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
 						# NonInteractionSingles to a Pair or Interaction. It also defines
 						# the radius in which the NonInteractionSingle will burst.
 	self.MAX_NUM_DT0_STEPS = 10000
-        self.user_max_shell_size = numpy.inf	# Note: shell_size is actually the RADIUS of the shell
+#        self.user_max_shell_size = numpy.inf	# Note: shell_size is actually the RADIUS of the shell
 
 	# used datastructrures
         self.scheduler = EventScheduler()	# contains the events. Note that every domains has exactly one event
@@ -142,8 +142,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
         self.reset()				# The Simulator is only initialized at the first step, allowing
 						# modifications to the world to be made before simulation starts
 
-    def get_matrix_cell_size(self):
-        return self.containers[0].cell_size	# cell_size is the width of the (cubic) cell
+#    def get_matrix_cell_size(self):
+#        return self.containers[0].cell_size	# cell_size is the width of the (cubic) cell
 
     def get_next_time(self):
         """ 
@@ -156,15 +156,15 @@ class EGFRDSimulator(ParticleSimulatorBase):
             return self.scheduler.top[1].time
 
     # Here shell_size is actually the shell radius (and not shell diameter)
-    def set_user_max_shell_size(self, size):
-        self.user_max_shell_size = size
+#    def set_user_max_shell_size(self, size):
+#        self.user_max_shell_size = size
 
-    def get_user_max_shell_size(self):
-        return self.user_max_shell_size
+#    def get_user_max_shell_size(self):
+#        return self.user_max_shell_size
 
-    def get_max_shell_size(self):
-        return min(self.get_matrix_cell_size() * .5 / SAFETY,
-                   self.user_max_shell_size)
+#    def get_max_shell_size(self):
+#        return min(self.get_matrix_cell_size() * .5 / SAFETY,
+#                   self.user_max_shell_size)
 
     ###
     # The next methods control the general functioning of the simulator
@@ -218,10 +218,12 @@ class EGFRDSimulator(ParticleSimulatorBase):
 	# the containers hold the spherical and cylindrical shells respectively 
 	# the containers is a cache for the shell objects in the domain and is mostly
 	# read only. The only method that writes the containers is self.move_shell
-        self.containers = [SphericalShellContainer(self.world.world_size, 
-                                                   self.world.matrix_size),
-                           CylindricalShellContainer(self.world.world_size, 
-                                                     self.world.matrix_size)]
+#        self.containers = [SphericalShellContainer(self.world.world_size, 
+#                                                   self.world.matrix_size),
+#                           CylindricalShellContainer(self.world.world_size, 
+#                                                     self.world.matrix_size)]
+
+	self.geometrycontainer = ShellContainer(self.world)
 
 	# 2. Couple all the particles in 'world' to a new 'single' in the eGFRD simulator
         # Fix order of adding particles (always, or at least in debug mode).
@@ -393,7 +395,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
         self.domains[domain_id] = single
 
 	# 3. update the proper shell container
-        self.move_shell(single.shell_id_shell_pair)
+        self.geometrycontainer.move_shell(single.shell_id_shell_pair)
 
         if __debug__:
             # Used in __str__.
@@ -450,7 +452,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
         self.domains[domain_id] = interaction
 
 	# 3. update the shell containers 
-        self.move_shell(interaction.shell_id_shell_pair)
+        self.geometrycontainer.move_shell(interaction.shell_id_shell_pair)
 
         if __debug__:
             # Used in __str__.
@@ -500,7 +502,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
         self.domains[domain_id] = pair
 
 	# 3. update the shell containers with the new shell
-        self.move_shell(pair.shell_id_shell_pair)
+        self.geometrycontainer.move_shell(pair.shell_id_shell_pair)
 
         if __debug__:
             # Used in __str__.
@@ -547,7 +549,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
         shell_id_shell_pair = (shell_id, shell) 
 
         single.shell_id_shell_pair = shell_id_shell_pair
-        self.move_shell(shell_id_shell_pair)
+        self.geometrycontainer.move_shell(shell_id_shell_pair)
 
     def move_single_particle(self, single, position):
         new_pid_particle_pair = (single.pid_particle_pair[0],
@@ -559,12 +561,12 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
         self.world.update_particle(new_pid_particle_pair)
 
-    def get_container(self, shell):
-	# Returns the container that holds 'shell'
-        if type(shell) is SphericalShell:
-            return self.containers[0]
-        elif type(shell) is CylindricalShell:
-            return self.containers[1]
+#    def get_container(self, shell):
+#	# Returns the container that holds 'shell'
+#        if type(shell) is SphericalShell:
+#            return self.containers[0]
+#        elif type(shell) is CylindricalShell:
+#            return self.containers[1]
 
     def remove_domain(self, obj):
 	# Removes all the ties to a domain (single, pair, multi) from the system.
@@ -574,15 +576,16 @@ class EGFRDSimulator(ParticleSimulatorBase):
             log.info("remove: %s" % obj)
 	# TODO assert that the domain is not still in the scheduler
         del self.domains[obj.domain_id]
-        for shell_id, shell in obj.shell_list:
-            container = self.get_container(shell)
-            del container[shell_id]
+        for shell_id_shell_pair in obj.shell_list:
+	    self.geometrycontainer.remove_shell(shell_id_shell_pair)
+#            container = self.get_container(shell)
+#            del container[shell_id]
 
-    def move_shell(self, shell_id_shell_pair):
-    # This is the only method that writes to the shell containers
-        shell = shell_id_shell_pair[1]
-        container = self.get_container(shell)
-        container.update(shell_id_shell_pair)
+#    def move_shell(self, shell_id_shell_pair):
+#    # This is the only method that writes to the shell containers
+#        shell = shell_id_shell_pair[1]
+#        container = self.get_container(shell)
+#        container.update(shell_id_shell_pair)
 
 
 ### TODO These methods can be made methods to the scheduler class
@@ -670,8 +673,9 @@ class EGFRDSimulator(ParticleSimulatorBase):
 	# It is inefficient to burst on the 'other' side of the membrane or to
 	# burst in a circle, when you want to make a new shell in the membrane.
 	# Then we may want to burst in a cylindrical volume, not a sphere
-        neighbors = self.get_neighbors_within_radius_no_sort(pos, radius,
-                                                             ignore)
+        neighbor_ids = self.geometrycontainer.get_neighbors_within_radius_no_sort(pos, radius,
+                                                                               ignore)
+	neighbors = [self.domains[domain_id] for domain_id in neighbor_ids]
         return self.burst_objs(neighbors)
 
     def burst_non_multis(self, domains):
@@ -954,9 +958,11 @@ class EGFRDSimulator(ParticleSimulatorBase):
         reaction_threshold = single.pid_particle_pair[1].radius * \
                              self.SINGLE_SHELL_FACTOR
 
-        intruders, closest, closest_distance = \
-            self.get_intruders(single_pos, reaction_threshold,
-                               ignore=[single.domain_id, ])
+        intruder_ids, closest_id, closest_distance = \
+            self.geometrycontainer.get_intruders(single_pos, reaction_threshold,
+                                                 ignore=[single.domain_id, ])
+	intruders = [self.domains[domain_id] for domain_id in intruder_ids]
+	closest = self.domains[closest_id]
 
         if __debug__:
             log.debug("intruders: %s, closest: %s (dist=%s)" %
@@ -1072,7 +1078,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
         if __debug__:
             log.info('single reaction; placing product failed.')
         self.domains[single.domain_id] = single
-        self.move_shell(single.shell_id_shell_pair)
+        self.geometrycontainer.move_shell(single.shell_id_shell_pair)
         self.rejected_moves += 1
         single.initialize(self.t)
         self.add_domain_event(single)
@@ -1116,7 +1122,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
         # 2. Check if min shell size for the Pair not larger than max shell size or 
         # sim cell size.
         min_shell_size_with_margin = min_shell_size + shell_size_margin
-        max_shell_size = min(self.get_max_shell_size(),
+        max_shell_size = min(self.geometrycontainer.get_max_shell_size(),
                              distance_from_sigma * 100 +
                              sigma + shell_size_margin)
 
@@ -1163,9 +1169,10 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
         # 4. Determine shell size and check if closest object not too 
         # close (squeezing).
-        c, d = self.get_closest_obj(com, ignore=[single1.domain_id,
-                                                 single2.domain_id],
-                                    ignores=[single1.structure.id])
+        c, d = self.geometrycontainer.get_closest_obj(com, self.domains, ignore=[single1.domain_id,
+                                                      single2.domain_id],
+                                                      ignores=[single1.structure.id])
+
         if d < closest_shell_distance:
             closest, closest_shell_distance = c, d
 
@@ -1275,8 +1282,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
 	# TODO we need the closest RELEVANT domain, i.e. the domain in the
 	# direction in which we can scale the domain
 	closest, distance_to_shell = \
-            self.get_closest_obj(singlepos, ignore=[single.domain_id],
-               	                 ignores=[single.structure.id])
+            self.geometrycontainer.get_closest_obj(singlepos, self.domains, ignore=[single.domain_id],
+               	                                   ignores=[single.structure.id])
 
         if isinstance(closest, NonInteractionSingle):
             closestpos = closest.shell.shape.position
@@ -1289,7 +1296,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
             new_shell_size = max(new_shell_size,
                                  single.pid_particle_pair[1].radius)
 
-        new_shell_size = min(new_shell_size, self.get_max_shell_size())
+        new_shell_size = min(new_shell_size, self.geometrycontainer.get_max_shell_size())
 
         # Resize shell, don't change position.
         # Note: this should be done before determine_next_event.
@@ -1565,8 +1572,9 @@ class EGFRDSimulator(ParticleSimulatorBase):
         self.move_single(single1, newpos1, particle1[1].radius)
         self.move_single(single2, newpos2, particle2[1].radius)
 
+	# TODO This is not very clear or clean now. Also doesn't support MixedPair
         if __debug__:
-            container = self.get_container(single1.shell)
+            container = self.geometrycontainer.get_container(single1.shell)
             assert container[single1.shell_id].shape.radius == \
                    single1.shell.shape.radius
             assert container[single2.shell_id].shape.radius == \
@@ -1632,7 +1640,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
 	# Make sure the maximal cylinder fits in the maximal sphere. Matrix space
 	# doesn't allow to check for shells outside the maximal sphere.
-	max_cylinder_radius      = self.get_max_shell_size()/math.sqrt(2)
+	max_cylinder_radius      = self.geometrycontainer.get_max_shell_size()/math.sqrt(2)
 	max_cylinder_half_length = max_cylinder_radius
         if isinstance(surface, PlanarSurface):
             dr = max_cylinder_radius
@@ -1723,10 +1731,11 @@ class EGFRDSimulator(ParticleSimulatorBase):
 	# the search point is the center of the sphere that surrounds the
 	# maximal cylinder
         search_point = projected_point + ((dz_right - dz_left)/2.0) * orientation_vector
-        all_neighbors = \
-            self.get_neighbors_within_radius_no_sort(search_point, 
-                                                     self.get_max_shell_size(),
+        all_neighbor_ids = \
+            self.geometrycontainer.get_neighbors_within_radius_no_sort(search_point, 
+                                                     self.geometrycontainer.get_max_shell_size(),
                                                      ignore=[single.domain_id])
+	all_neighbors = [self.domains[domain_id] for domain_id in all_neighbor_ids]
 
         for domain in all_neighbors:
             if isinstance(domain, Multi):
@@ -1950,8 +1959,9 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
             radius = domain.pid_particle_pair[1].radius * \
                 self.MULTI_SHELL_FACTOR
-            neighbors = self.get_neighbors_within_radius_no_sort(
+            neighbor_ids = self.geometrycontainer.get_neighbors_within_radius_no_sort(
                     objpos, radius, ignore=[domain.domain_id])
+	    neighbors = [self.domains[domain_id] for domain_id in neighbor_ids]
 
             burst = self.burst_non_multis(neighbors)
             neighbor_dists = self.obj_distance_array(objpos, burst)
@@ -1989,7 +1999,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
 	shell = multi.create_new_shell(single.pid_particle_pair[1].position,
                 single.pid_particle_pair[1].radius * self.MULTI_SHELL_FACTOR)
 	shell_id_shell_pair = (shell_id, shell)
-        self.move_shell(shell_id_shell_pair)
+        self.geometrycontainer.move_shell(shell_id_shell_pair)
         multi.add_shell(shell_id_shell_pair)
         multi.add_particle(single.pid_particle_pair)
 
@@ -2009,7 +2019,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
         for sid_shell_pair in multi1.shell_list:
             sid_shell_pair[1].did = multi2.domain_id
-            self.move_shell(sid_shell_pair)
+            self.geometrycontainer.move_shell(sid_shell_pair)
             multi2.add_shell(sid_shell_pair)
 
         for pid_particle_pair in multi1.particles:
@@ -2018,90 +2028,90 @@ class EGFRDSimulator(ParticleSimulatorBase):
         del self.domains[multi1.domain_id]
         self.remove_event(multi1)
 
-    def get_neighbors_within_radius_no_sort(self, pos, radius, ignore=[]):
-        # Get neighbor domains within given radius.
-        #
-        # ignore: domain ids.
-        #
-        # Only returns neighbors, not the distances towards their 
-        # shells. Can for example be used to try to clear all objects 
-        # from a certain volume.
-
-        try:
-            for container in self.containers:
-                result = container.get_neighbors_within_radius(pos, radius)
-                # result = [((shell_id_shell_pair), distance), ]
-                # Since a domain can have more than 1 shell (multis for 
-                # example), and for each shell there is an entry in the 
-                # shell container, we make sure each domain occurs only once 
-                # in the returned list here.
-                for did in uniq(s[0][1].did for s in result):
-                    if did not in ignore:
-                        yield self.domains[did]
-        except AttributeError:
-            pass
-
-    def get_intruders(self, position, radius, ignore):
-	# gets the intruders in a spherical volume of radius 'radius'?
-	# TODO make this surface specific -> in 2D only need to check in cylinder,
-	# not in sphere
-        intruders = []   		# intruders are domains within radius
-        closest_domain = None		# closest domain, excluding intruders.
-        closest_distance = numpy.inf	# distance to the shell of the closest domain.
-
-        seen = set(ignore)
-        for container in self.containers:
-            neighbors = container.get_neighbors(position)
-            for n in neighbors:
-                domain_id = n[0][1].did
-                distance = n[1]
-                if distance > radius:
-                    if distance < closest_distance:
-                        # This is domain (the first one for this 
-                        # container) that has a shell that is more than 
-                        # radius away from pos.  If it is closer than 
-                        # the closest such one we found so far: store 
-                        # it. Always break out of the inner for loop and 
-                        # check the other containers.
-                        closest_domain = self.domains[domain_id]
-                        closest_distance = distance
-                        break
-                    else:
-                        break
-                elif domain_id not in seen:
-                    # Since a domain can have more than 1 shell (multis 
-                    # for example), and for each shell there is an entry 
-                    # in the shell container, we make sure each domain 
-                    # occurs only once in the returned list here.
-                    seen.add(domain_id)
-                    intruders.append(self.domains[domain_id])
-
-        return intruders, closest_domain, closest_distance
-
-    def get_closest_obj(self, pos, ignore=[], ignores=[]):
-        # ignore: domain ids.
-        closest_domain = None
-        closest_distance = numpy.inf
-
-        for container in self.containers:
-            result = container.get_neighbors(pos)
-
-            for shell_id_shell_pair, distance in result:
-                domain_id = shell_id_shell_pair[1].did 
-
-                if domain_id not in ignore and distance < closest_distance:
-                    domain = self.domains[domain_id]
-                    closest_domain, closest_distance = domain, distance
-                    # Found yet a closer domain. Break out of inner for 
-                    # loop and check other containers.
-                    break   
-
-        surface, distance = get_closest_surface(self.world, pos, ignores)
-
-        if distance < closest_distance:
-            return surface, distance
-        else:
-            return closest_domain, closest_distance
+#    def get_neighbors_within_radius_no_sort(self, pos, radius, ignore=[]):
+#        # Get neighbor domains within given radius.
+#        #
+#        # ignore: domain ids.
+#        #
+#        # Only returns neighbors, not the distances towards their 
+#        # shells. Can for example be used to try to clear all objects 
+#        # from a certain volume.
+#
+#        try:
+#            for container in self.containers:
+#                result = container.get_neighbors_within_radius(pos, radius)
+#                # result = [((shell_id_shell_pair), distance), ]
+#                # Since a domain can have more than 1 shell (multis for 
+#                # example), and for each shell there is an entry in the 
+#                # shell container, we make sure each domain occurs only once 
+#                # in the returned list here.
+#                for did in uniq(s[0][1].did for s in result):
+#                    if did not in ignore:
+#                        yield self.domains[did]
+#        except AttributeError:
+#            pass
+#
+#    def get_intruders(self, position, radius, ignore):
+#	# gets the intruders in a spherical volume of radius 'radius'?
+#	# TODO make this surface specific -> in 2D only need to check in cylinder,
+#	# not in sphere
+#        intruders = []   		# intruders are domains within radius
+#        closest_domain = None		# closest domain, excluding intruders.
+#        closest_distance = numpy.inf	# distance to the shell of the closest domain.
+#
+#        seen = set(ignore)
+#        for container in self.containers:
+#            neighbors = container.get_neighbors(position)
+#            for n in neighbors:
+#                domain_id = n[0][1].did
+#                distance = n[1]
+#                if distance > radius:
+#                    if distance < closest_distance:
+#                        # This is domain (the first one for this 
+#                        # container) that has a shell that is more than 
+#                        # radius away from pos.  If it is closer than 
+#                        # the closest such one we found so far: store 
+#                        # it. Always break out of the inner for loop and 
+#                        # check the other containers.
+#                        closest_domain = self.domains[domain_id]
+#                        closest_distance = distance
+#                        break
+#                    else:
+#                        break
+#                elif domain_id not in seen:
+#                    # Since a domain can have more than 1 shell (multis 
+#                    # for example), and for each shell there is an entry 
+#                    # in the shell container, we make sure each domain 
+#                    # occurs only once in the returned list here.
+#                    seen.add(domain_id)
+#                    intruders.append(self.domains[domain_id])
+#
+#        return intruders, closest_domain, closest_distance
+#
+#    def get_closest_obj(self, pos, ignore=[], ignores=[]):
+#        # ignore: domain ids.
+#        closest_domain = None
+#        closest_distance = numpy.inf
+#
+#        for container in self.containers:
+#            result = container.get_neighbors(pos)
+#
+#            for shell_id_shell_pair, distance in result:
+#                domain_id = shell_id_shell_pair[1].did 
+#
+#                if domain_id not in ignore and distance < closest_distance:
+#                    domain = self.domains[domain_id]
+#                    closest_domain, closest_distance = domain, distance
+#                    # Found yet a closer domain. Break out of inner for 
+#                    # loop and check other containers.
+#                    break   
+#
+#        surface, distance = get_closest_surface(self.world, pos, ignores)
+#
+#        if distance < closest_distance:
+#            return surface, distance
+#        else:
+#            return closest_domain, closest_distance
 
     def domain_distance(self, pos, domain):
 	# calculates the shortest distance from 'pos' to A shell (a Multi
@@ -2176,9 +2186,10 @@ rejected moves = %d
             ignores = [obj.structure.id]
 
         for shell_id, shell in obj.shell_list:
-            closest, distance = self.get_closest_obj(shell.shape.position,
-                                                     ignore=[obj.domain_id],
-                                                     ignores=ignores)
+            closest, distance = self.geometrycontainer.get_closest_obj(shell.shape.position,
+								       self.domains,
+                                                                       ignore=[obj.domain_id],
+                                                                       ignores=ignores)
             if(type(shell.shape) is Cylinder and
                closest and type(closest.shell.shape) is Sphere):
                 # Note: this case is special.
@@ -2207,11 +2218,11 @@ rejected moves = %d
                     shell_size = shell.shape.radius
                 diff = distance - shell_size
 
-            assert shell_size <= self.get_user_max_shell_size(), \
+            assert shell_size <= self.geometrycontainer.get_user_max_shell_size(), \
                 '%s shell size larger than user-set max shell size' % \
                 str(shell_id)
 
-            assert shell_size <= self.get_max_shell_size(), \
+            assert shell_size <= self.geometrycontainer.get_max_shell_size(), \
                 '%s shell size larger than simulator cell size / 2' % \
                 str(shell_id)
 
@@ -2242,15 +2253,17 @@ rejected moves = %d
                                (world_population, domain_population))
 
     def check_shell_matrix(self):
-        did_map = {}
-        shell_map = {}
-        for container in self.containers:
-            if self.world.world_size != container.world_size:
-                raise RuntimeError('self.world.world_size != '
-                                   'container.world_size')
-            for shell_id, shell in container:
-                did_map.setdefault(shell.did, []).append(shell_id)
-                shell_map[shell_id] = shell
+#        did_map = {}
+#        shell_map = {}
+#        for container in self.containers:
+#            if self.world.world_size != container.world_size:
+#                raise RuntimeError('self.world.world_size != '
+#                                   'container.world_size')
+#            for shell_id, shell in container:
+#                did_map.setdefault(shell.did, []).append(shell_id)
+#                shell_map[shell_id] = shell
+
+	did_map, shell_map = self.geometrycontainer.get_dids_shells()
 
         shell_population = 0
         for id, event in self.scheduler:
@@ -2268,8 +2281,9 @@ rejected moves = %d
                                    (len(shell_ids), domain.num_shells, 
                                     domain.domain_id, diff))
 
-        matrix_population = sum(len(container)
-                                for container in self.containers)
+        matrix_population = self.geometrycontainer.get_total_num_shells()
+#        matrix_population = sum(len(container)
+#                                for container in self.containers)
         if shell_population != matrix_population:
             raise RuntimeError('num shells (%d) != matrix population (%d)' %
                                (shell_population, matrix_population))

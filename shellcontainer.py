@@ -9,6 +9,9 @@ from _gfrd import (
     CylindricalShellContainer
     )
 from utils import *
+from gfrdbase import (
+    get_closest_surface
+    )
 
 class ShellContainer(object):
 
@@ -94,8 +97,10 @@ class ShellContainer(object):
 
         return intruders, closest_domain, closest_distance
 
-    def get_closest_obj(self, pos, ignore=[], ignores=[]):
+    def get_closest_obj(self, pos, domains, ignore=[], ignores=[]):
         # ignore: domain ids.
+	# TODO It's bad to pass the domains to this function, but is currently
+	# only way to be able to return a domain object (instead of domain_id)
         closest_domain = None
         closest_distance = numpy.inf
 
@@ -106,7 +111,8 @@ class ShellContainer(object):
                 domain_id = shell_id_shell_pair[1].did
 
                 if domain_id not in ignore and distance < closest_distance:
-                    closest_domain, closest_distance = domain_id, distance
+		    domain = domains[domain_id]
+                    closest_domain, closest_distance = domain, distance
                     # Found yet a closer domain. Break out of inner for 
                     # loop and check other containers.
                     break
@@ -142,4 +148,19 @@ class ShellContainer(object):
         except AttributeError:
             pass
 
+    def get_dids_shells(self):
+        did_map = {}
+        shell_map = {}
+        for container in self.containers:
+            if self.world.world_size != container.world_size:
+                raise RuntimeError('self.world.world_size != '
+                                   'container.world_size')
+            for shell_id, shell in container:
+                did_map.setdefault(shell.did, []).append(shell_id)
+                shell_map[shell_id] = shell
+
+	return did_map, shell_map
+
+    def get_total_num_shells(self):
+	return sum(len(container) for container in self.containers)
 
