@@ -47,17 +47,20 @@ public:
             rng.normal(0., r));
     }
 
-    virtual length_type drawR_gbd(Real rnd, length_type r01, Real dt, Real D01, Real v) const
+    virtual length_type drawR_gbd(Real const& rnd, length_type const& r01, Real const& dt, 
+                                    Real const& D01, Real const& v) const
     {
          return drawR_gbd_3D(rnd, r01, dt, D01);
     }
 
-    virtual Real p_acceptance(Real k_a, Real dt, length_type r01, position_type ipv, Real D0, Real D1, Real v0, Real v1) const
+    virtual Real p_acceptance(Real const& k_a, Real const& dt, length_type const& r01, position_type const& ipv, 
+                                Real const& D0, Real const& D1, Real const& v0, Real const& v1) const
     {
          return k_a * dt / ((I_bd_3D(r01, dt, D0) + I_bd_3D(r01, dt, D1)) * 4.0 * M_PI);
     }
 
-    virtual position_type dissociation_vector( rng_type& rng, length_type r01, Real dt, Real D01, Real v ) const
+    virtual position_type dissociation_vector( rng_type& rng, length_type const& r01, Real const& dt, 
+                                                Real const& D01, Real const& v ) const
     {
         return random_vector( drawR_gbd(rng(), r01, dt, D01, v ), rng );
     }

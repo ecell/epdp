@@ -71,7 +71,7 @@ GreensFunction1DAbsAbs::p_survival (Real t) const
 	  }
 	  
 	  prev_term = term;
-	  nPI = (double)n*M_PI;
+	  nPI = (Real)n*M_PI;
 	  term = exp(nPI*nPI*expo) * sin(nPI*r0s_L) * (1.0 - cos(nPI)) / nPI;
 	  sum += term;
 	  n++;
@@ -93,7 +93,7 @@ GreensFunction1DAbsAbs::p_survival (Real t) const
 	      break;
 	  }
 	  
-	  nPI = (double)n*M_PI;
+	  nPI = (Real)n*M_PI;
 	  prev_term = term;
 	  term = exp(nPI*nPI*expo) * (exp(sigmav2D) - cos(nPI)*exp(av2D)) * nPI/(Lv2D*Lv2D+nPI*nPI) * sin(nPI*r0s_L);
 	  sum += term;
@@ -343,8 +343,8 @@ GreensFunction1DAbsAbs::drawEventType( Real rnd, Real t ) const
 // the right form and calculates the survival probability from it (and returns it).
 // The routine drawTime uses this one to sample the next-event time from the
 // survival probability using a rootfinder from GSL.
-double
-GreensFunction1DAbsAbs::drawT_f (double t, void *p)
+Real
+GreensFunction1DAbsAbs::drawT_f (Real t, void *p)
 {   
     // casts p to type 'struct drawT_params *'
     struct drawT_params *params = (struct drawT_params *)p;
@@ -556,7 +556,7 @@ GreensFunction1DAbsAbs::drawTime (Real rnd) const
     return t;
 }
 
-Real GreensFunction1DAbsAbs::drawR_free_f(double r, drawR_params const* params)
+Real GreensFunction1DAbsAbs::drawR_free_f(Real r, drawR_params const* params)
 {
     const Real D(params->H[0]);
     const Real vt(params->H[1]*params->H[2]);
@@ -569,14 +569,14 @@ Real GreensFunction1DAbsAbs::drawR_free_f(double r, drawR_params const* params)
 // the right form and calculates the survival probability from it (and returns it).
 // The routine drawR uses this function to sample the exit point, making use of the
 // GSL root finder to draw the random position.
-double
-GreensFunction1DAbsAbs::drawR_f (double r, drawR_params const* params)
+Real
+GreensFunction1DAbsAbs::drawR_f (Real r, drawR_params const* params)
 {   
-    double sum = 0, term = 0, prev_term = 0;
-    double S_Cn_An, n_L;
+    Real sum = 0, term = 0, prev_term = 0;
+    Real S_Cn_An, n_L;
     int    terms = params->terms;
-    double sigma = params->H[0];
-    double v2D = params->H[1];	// =v/(2D)
+    Real sigma = params->H[0];
+    Real v2D = params->H[1];	// =v/(2D)
 
     int n=0;
     do

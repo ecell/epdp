@@ -168,30 +168,30 @@ private:
     struct drawT_params
     {
         // use 10 terms in the summation for now
-        double exponent[MAX_TERMS];
-        double Xn[MAX_TERMS];
-        double prefactor;
+        Real exponent[MAX_TERMS];
+        Real Xn[MAX_TERMS];
+        Real prefactor;
         int    terms;
         Real tscale;
         // random number
-        double rnd;
+        Real rnd;
     };
 
     static double drawT_f (double t, void *p);
 
     struct drawR_params
     {
-        double S_Cn_An[MAX_TERMS];
-        double n_L[MAX_TERMS];
+        Real S_Cn_An[MAX_TERMS];
+        Real n_L[MAX_TERMS];
         // variables H: for additional terms appearing as multiplicative factors etc.
-        double H[5];
+        Real H[5];
         int terms;
         // random number
-        double rnd;
+        Real rnd;
     };
 
-    static double drawR_f (double z, drawR_params const* params);
-    static double drawR_free_f (double z, drawR_params const* params);
+    static Real drawR_f (Real z, drawR_params const* params);
+    static Real drawR_free_f (Real z, drawR_params const* params);
 
 private:
     // The diffusion constant and drift velocity
