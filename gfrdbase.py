@@ -94,8 +94,8 @@ def get_closest_surface(world, pos, ignore):
         if isinstance(surface, _gfrd.Surface) and surface.id not in ignore:
             pos_transposed = \
                 world.cyclic_transpose(pos, surface.shape.position)
-            distance = abs(world.distance(surface.shape, pos_transposed))	# This should not be here but C++ code
-            surfaces_and_distances_to_surfaces.append((surface, distance))
+	    _, distance = surface.projected_point(pos_transposed)	# This should not be here but C++ code
+            surfaces_and_distances_to_surfaces.append((surface, abs(distance)))
 
     if surfaces_and_distances_to_surfaces:
         return min(surfaces_and_distances_to_surfaces)
