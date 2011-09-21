@@ -79,7 +79,7 @@ def p_free(r, t, D):
 
     return p * jacobian
     
-def get_closest_surface(world, pos, ignore):
+def get_closest_surface(world, pos, ignore=[]):
     """Return
       - closest surface
       - distance to closest surface

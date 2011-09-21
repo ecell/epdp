@@ -921,12 +921,10 @@ class EGFRDSimulator(ParticleSimulatorBase):
             self.geometrycontainer.get_intruders(single_pos, reaction_threshold,
                                                  ignore=[single.domain_id, ])
 	intruders = [self.domains[domain_id] for domain_id in intruder_ids]
-	closest = self.domains[closest_id]
 
         if __debug__:
-            log.debug("intruders: %s, closest: %s (dist=%s)" %
-                      (', '.join(str(i) for i in intruders),
-                       closest, FORMAT_DOUBLE % closest_distance))
+            log.debug("intruders: %s" %
+                      (', '.join(str(i) for i in intruders)))
 
 
         # 2.2 Burst the shells with the following conditions
@@ -1652,7 +1650,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
         self.remove_domain(single)
         # the event associated with the single will be removed by the scheduler.
 
-        assert self.check_obj(interaction)
+        #assert self.check_obj(interaction)
         self.add_domain_event(interaction)
 
         if __debug__:
@@ -2053,6 +2051,7 @@ rejected moves = %d
 								       self.domains,
                                                                        ignore=[obj.domain_id],
                                                                        ignores=ignores)
+	#TODO
             if(type(shell.shape) is Cylinder and
                closest and type(closest.shell.shape) is Sphere):
                 # Note: this case is special.
