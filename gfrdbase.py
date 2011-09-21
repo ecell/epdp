@@ -88,17 +88,18 @@ def get_closest_surface(world, pos, ignore):
     origin of the surface would not be in the same or neighboring 
     cells as pos."""
 
-    surfaces_and_distances_to_surfaces = []
+    distances_and_surfaces = []
 
     for surface in world.structures:
         if isinstance(surface, _gfrd.Surface) and surface.id not in ignore:
             pos_transposed = \
                 world.cyclic_transpose(pos, surface.shape.position)
-	    _, distance = surface.projected_point(pos_transposed)	# This should not be here but C++ code
-            surfaces_and_distances_to_surfaces.append((surface, abs(distance)))
+	    distance = world.distance(surface.shape, pos_transposed)
+            distances_and_surfaces.append((distance, surface))
 
-    if surfaces_and_distances_to_surfaces:
-        return min(surfaces_and_distances_to_surfaces)
+    if distances_and_surfaces:
+	distance, surface = min(distances_and_surfaces)
+        return surface, distance
     else:
         return None, numpy.inf
 
