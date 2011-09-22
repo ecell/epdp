@@ -166,6 +166,7 @@ class NonInteractionSingle(Single):
     def get_shell_size(self):
 	# Note: this method only means something for Protective Domains that can
 	# only be sized in one direction
+	# This is predominantly used when making Interaction domains
         return self.shell.shape.radius
 
     def initialize(self, t):
@@ -533,6 +534,12 @@ class PlanarSurfaceInteraction(InteractionSingle):
 
         return newpos
 
+    def get_shell_size(self):
+	# REMOVE this method, it doesn't mean anything here.
+	# THis method is only used for making an Interaction
+        # Heads up. The cylinder's *half_length*, not radius, 
+        # determines the size in case of a cylindrical surface.
+        return self.shell.shape.radius
 
     def __str__(self):
         return 'PlanarSurfaceInteraction' + Single.__str__(self)
@@ -639,11 +646,12 @@ class CylindricalSurfaceInteraction(InteractionSingle):
 
 	return newpos
 
-#    def get_shell_size(self):
-#	# REMOVE this method, it doesn't mean anything here.
-#        # Heads up. The cylinder's *half_length*, not radius, 
-#        # determines the size in case of a cylindrical surface.
-#        return self.shell.shape.half_length
+    def get_shell_size(self):
+	# REMOVE this method, it doesn't mean anything here.
+	# THis method is only used for making an Interaction
+        # Heads up. The cylinder's *half_length*, not radius, 
+        # determines the size in case of a cylindrical surface.
+        return self.shell.shape.half_length
 
     def __str__(self):
         return 'CylindricalSurfaceInteraction' + Single.__str__(self)
