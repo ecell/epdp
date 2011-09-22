@@ -932,9 +932,9 @@ class EGFRDSimulator(ParticleSimulatorBase):
 	# -shell is burstable (not Multi)
 	# -shell is not newly made
 	# -shell is not already a zero shell (just bursted)
+	burst = []
         if intruders:
 #            burst = self.burst_non_multis(intruders)
-	    burst = []
 	    for domain in intruders:
         	if not isinstance(domain, Multi) and \
                    not self.t == domain.last_time: # and \
@@ -948,8 +948,6 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
 	    # burst now contains all the Domains resulting from the burst.
 	    # These are NonInteractionSingles and Multis
-        else:
-            burst = None
 
 
 	# 2.3 get the closest object (a Domain or surface) which can be a
@@ -1858,17 +1856,17 @@ class EGFRDSimulator(ParticleSimulatorBase):
     def form_multi(self, single, neighbors, dists):
 	# form a Multi with the 'single'
 	# The 'neighbors' are neighboring NonInteractionSingles and Multi which
-	# can be added to the Multi
+	# can be added to the Multi (this can also be empty)
 	# 'dists' are the distances of the 'neighbors'
 
 	# Filter out relevant neighbors if present
+	# only consider neighboring bursted domains that are within the Multi horizon
+	min_shell = single.pid_particle_pair[1].radius * self.MULTI_SHELL_FACTOR
+	dists = numpy.array(dists)	# FIXME Not sure why this is necessary, dists should already be array
+        neighbors = [neighbors[i] for i in (dists <= min_shell).nonzero()[0]]
 	if neighbors:
-	# only consider neighboring domains that are within the Multi horizon
-	    min_shell = single.pid_particle_pair[1].radius * self.MULTI_SHELL_FACTOR
-            neighbors = [neighbors[i] for i in (dists <= min_shell).nonzero()[0]]
             closest = neighbors[0]
 	else:
-	    neighbors = []
 	    closest = None
 
 
