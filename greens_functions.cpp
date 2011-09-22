@@ -26,16 +26,21 @@ BOOST_PYTHON_MODULE( _greens_functions )
     def( "p_survival_irr", p_survival_irr );
     def( "p_theta_free", p_theta_free );
     def( "ip_theta_free", ip_theta_free );
-    def( "g_bd", g_bd );
-    def( "I_bd", I_bd );
-    def( "I_bd_r", I_bd_r );
-    def( "drawR_gbd", drawR_gbd );
     def( "p_reaction_irr", __p_reaction_irr );
     def( "p_reaction_irr_t_inf", __p_reaction_irr_t_inf );
+    def( "g_bd_1D", g_bd_1D );
+    def( "I_bd_1D", I_bd_1D );
+    def( "I_bd_r_1D", I_bd_r_1D );
+    def( "drawR_gbd_1D", drawR_gbd_1D );
+    def( "g_bd_3D", g_bd_3D );
+    def( "I_bd_3D", I_bd_3D );
+    def( "I_bd_r_3D", I_bd_r_3D );
+    def( "drawR_gbd_3D", drawR_gbd_3D );
 
     class_<GreensFunction1DAbsAbs>("GreensFunction1DAbsAbs",
                                    init<Real, Real, Real, Real>() )
         .def( init<Real, Real, Real, Real, Real>())
+        .def( "getName", &GreensFunction1DAbsAbs::getName )
         .def( "getD", &GreensFunction1DAbsAbs::getD )
         .def( "getv", &GreensFunction1DAbsAbs::getv )
         .def( "getsigma", &GreensFunction1DAbsAbs::getsigma )
@@ -50,12 +55,13 @@ BOOST_PYTHON_MODULE( _greens_functions )
         .def( "leavea", &GreensFunction1DAbsAbs::leavea )
         .def( "p_survival", &GreensFunction1DAbsAbs::p_survival )
         .def( "calcpcum", &GreensFunction1DAbsAbs::calcpcum )
-        .def( "dump", &GreensFunction1DRadAbs::dump )
+        .def( "dump", &GreensFunction1DAbsAbs::dump )
         ;
 
     class_<GreensFunction1DRadAbs>("GreensFunction1DRadAbs",
                                    init<Real, Real, Real, Real, Real>() )
         .def( init<Real, Real, Real, Real, Real, Real>())
+        .def( "getName", &GreensFunction1DRadAbs::getName )
         .def( "getk", &GreensFunction1DRadAbs::getk )
         .def( "getD", &GreensFunction1DRadAbs::getD )
         .def( "getv", &GreensFunction1DRadAbs::getv )
@@ -116,6 +122,7 @@ BOOST_PYTHON_MODULE( _greens_functions )
 	;
     
     class_<GreensFunction3DSym>("GreensFunction3DSym", init<Real>())
+        .def( "getName", &GreensFunction3DSym::getName )
         .def( "getD", &GreensFunction3DSym::getD )
         .def( "drawTime", &GreensFunction3DSym::drawTime )
         .def( "drawR", &GreensFunction3DSym::drawR )
@@ -126,6 +133,7 @@ BOOST_PYTHON_MODULE( _greens_functions )
 
     class_<GreensFunction3DAbsSym>("GreensFunction3DAbsSym",
                                    init<Real, Real>())
+        .def( "getName", &GreensFunction3DAbsSym::getName )
         .def( "getD", &GreensFunction3DAbsSym::getD )
         .def( "geta", &GreensFunction3DAbsSym::geta )
         .def( "drawTime", &GreensFunction3DAbsSym::drawTime )
@@ -134,10 +142,12 @@ BOOST_PYTHON_MODULE( _greens_functions )
         .def( "p_int_r", &GreensFunction3DAbsSym::p_int_r )
         .def( "p_int_r_free", &GreensFunction3DAbsSym::p_int_r_free )
         //.def( "p_r_fourier", &GreensFunction3DAbsSym::p_r_fourier )
+	    .def( "dump", &GreensFunction3DAbsSym::dump )
         ;
 
     class_<GreensFunction3DRadInf>("GreensFunction3DRadInf",
                                    init<Real, Real, Real, Real>())
+        .def( "getName", &GreensFunction3DRadInf::getName )
         .def( "getD", &GreensFunction3DRadInf::getD )
         .def( "getkf", &GreensFunction3DRadInf::getkf )
         .def( "getSigma", &GreensFunction3DRadInf::getSigma )
@@ -159,6 +169,7 @@ BOOST_PYTHON_MODULE( _greens_functions )
         ;
 
     class_<GreensFunction3D>("GreensFunction3D", init<Real, Real>())
+        .def( "getName", &GreensFunction3D::getName )
         .def( "getD", &GreensFunction3D::getD )
         .def( "getkf", &GreensFunction3D::getkf )
         .def( "getSigma", &GreensFunction3D::getSigma )
@@ -183,6 +194,7 @@ BOOST_PYTHON_MODULE( _greens_functions )
 
     class_<GreensFunction3DRadAbs>("GreensFunction3DRadAbs",
                                    init<Real, Real, Real, Real, Real>() )
+        .def( "getName", &GreensFunction3DRadAbs::getName )
         .def( "geta", &GreensFunction3DRadAbs::geta )
         .def( "getD", &GreensFunction3DRadAbs::getD )
         .def( "getkf", &GreensFunction3DRadInf::getkf )
@@ -224,6 +236,7 @@ BOOST_PYTHON_MODULE( _greens_functions )
 
     class_<GreensFunction3DAbs>("GreensFunction3DAbs",
                                 init<Real, Real, Real>()) 
+        .def( "getName", &GreensFunction3DAbs::getName )
         .def( "geta", &GreensFunction3DAbs::geta )
         .def( "getD", &GreensFunction3DAbs::getD )
         .def( "drawTime", &GreensFunction3DAbs::drawTime )

@@ -166,6 +166,7 @@ class NonInteractionSingle(Single):
     def get_shell_size(self):
 	# Note: this method only means something for Protective Domains that can
 	# only be sized in one direction
+	# This is predominantly used when making Interaction domains
         return self.shell.shape.radius
 
     def initialize(self, t):
@@ -480,7 +481,7 @@ class PlanarSurfaceInteraction(InteractionSingle):
 	# TODO choose interactionrule
 #        return GreensFunction1DRadAbs(self.D, self.interactionrule.k, self.z0,
 #				      -self.get_inner_dz_left(), self.get_inner_dz_right())
-        return GreensFunction1DRadAbs(self.D, 1e-8, self.z0,
+        return GreensFunction1DRadAbs(self.D, 0, self.z0,
 				      -self.get_inner_dz_left(), self.get_inner_dz_right())
 
     def draw_new_position(self, dt, event_type):
@@ -533,6 +534,12 @@ class PlanarSurfaceInteraction(InteractionSingle):
 
         return newpos
 
+    def get_shell_size(self):
+	# REMOVE this method, it doesn't mean anything here.
+	# THis method is only used for making an Interaction
+        # Heads up. The cylinder's *half_length*, not radius, 
+        # determines the size in case of a cylindrical surface.
+        return self.shell.shape.radius
 
     def __str__(self):
         return 'PlanarSurfaceInteraction' + Single.__str__(self)
@@ -556,7 +563,7 @@ class CylindricalSurfaceInteraction(InteractionSingle):
 				   structure, shell_id, interactionrules, surface)
 
 	# z0 is implied to be zero (the particle being in the center of the shell in the z direction)
-	self.z0 = 0
+	self.z0 = z0
 	self.unit_r = unit_r	# This is the vector from the cylinder to the particle
 	self.r0 = r0		# r0 is the distance from the center of the cylinder to the
 				# center of the particle
@@ -568,7 +575,7 @@ class CylindricalSurfaceInteraction(InteractionSingle):
 	return self.shell.shape.half_length - self.pid_particle_pair[1].radius
 
     def get_inner_dz_right(self):
-	return self.get_inner_dz_left()	- self.pid_particle_pair[1].radius
+	return self.shell.shape.half_length - self.pid_particle_pair[1].radius
 
     def get_inner_sigma(self):
 	return self.surface.shape.radius + self.pid_particle_pair[1].radius
@@ -576,7 +583,7 @@ class CylindricalSurfaceInteraction(InteractionSingle):
     def greens_function(self):
 	# The greens function not used for the interaction but for the other coordinate
         # Free diffusion in z direction, drift is zero.
-        return GreensFunction1DAbsAbs(self.D, 0, z0,
+        return GreensFunction1DAbsAbs(self.D, 0.0, self.z0,
                                       -self.get_inner_dz_left(),
                                       self.get_inner_dz_right())
 
@@ -629,7 +636,7 @@ class CylindricalSurfaceInteraction(InteractionSingle):
         	r = sigma
             else:
         	r = draw_r_wrapper(gf_iv, dt, a_r, sigma)
-            theta = draw_theta_wrapper(iv_gf, r, dt)
+            theta = draw_theta_wrapper(gf_iv, r, dt)
 
             r_vector = r * rotate_vector(self.unit_r, self.shell.shape.unit_z,
                                      theta)
@@ -639,11 +646,12 @@ class CylindricalSurfaceInteraction(InteractionSingle):
 
 	return newpos
 
-#    def get_shell_size(self):
-#	# REMOVE this method, it doesn't mean anything here.
-#        # Heads up. The cylinder's *half_length*, not radius, 
-#        # determines the size in case of a cylindrical surface.
-#        return self.shell.shape.half_length
+    def get_shell_size(self):
+	# REMOVE this method, it doesn't mean anything here.
+	# THis method is only used for making an Interaction
+        # Heads up. The cylinder's *half_length*, not radius, 
+        # determines the size in case of a cylindrical surface.
+        return self.shell.shape.half_length
 
     def __str__(self):
         return 'CylindricalSurfaceInteraction' + Single.__str__(self)

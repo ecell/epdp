@@ -921,12 +921,10 @@ class EGFRDSimulator(ParticleSimulatorBase):
             self.geometrycontainer.get_intruders(single_pos, reaction_threshold,
                                                  ignore=[single.domain_id, ])
 	intruders = [self.domains[domain_id] for domain_id in intruder_ids]
-	closest = self.domains[closest_id]
 
         if __debug__:
-            log.debug("intruders: %s, closest: %s (dist=%s)" %
-                      (', '.join(str(i) for i in intruders),
-                       closest, FORMAT_DOUBLE % closest_distance))
+            log.debug("intruders: %s" %
+                      (', '.join(str(i) for i in intruders)))
 
 
         # 2.2 Burst the shells with the following conditions
@@ -934,9 +932,9 @@ class EGFRDSimulator(ParticleSimulatorBase):
 	# -shell is burstable (not Multi)
 	# -shell is not newly made
 	# -shell is not already a zero shell (just bursted)
+	burst = []
         if intruders:
 #            burst = self.burst_non_multis(intruders)
-	    burst = []
 	    for domain in intruders:
         	if not isinstance(domain, Multi) and \
                    not self.t == domain.last_time: # and \
@@ -950,8 +948,6 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
 	    # burst now contains all the Domains resulting from the burst.
 	    # These are NonInteractionSingles and Multis
-        else:
-            burst = None
 
 
 	# 2.3 get the closest object (a Domain or surface) which can be a
@@ -1579,28 +1575,14 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
 	### 1. See if there is enough space for the shell
 
-        # For an interaction with a PlanarSurface (membrane):
-        # * dr is the radius of the cylinder.
-        # * dz_left determines how much the cylinder is sticking out on the 
-        # other side of the surface, measured from the projected point.
-        # * dz_right is the distance between the particle position and 
-        # the edge of the cylinder in the direction normal to the membrane.
-        #
-        # For interaction with a CylindricalSurface (dna):
-        # * dr is the distance between the particle position and the 
-        # edge of the cylinder in the r direction.
-        # * dz_left is the distance from the projected point to the left edge 
-        # of the cylinder.
-        # * dz_right is the distance from the projected point to the right edge 
-        # of the cylinder.
-
-        # Initialize dr, dz_left, dz_right to maximum allowed values.
-        # And decide minimal dr, dz_left, dz_right.
 
 	# Make sure the maximal cylinder fits in the maximal sphere. Matrix space
 	# doesn't allow to check for shells outside the maximal sphere.
 	max_cylinder_radius      = self.geometrycontainer.get_max_shell_size()/math.sqrt(2)
 	max_cylinder_half_length = max_cylinder_radius
+
+        # Initialize dr, dz_left, dz_right to maximum allowed values.
+        # And decide minimal dr, dz_left, dz_right.
         if isinstance(surface, PlanarSurface):
             dr = max_cylinder_radius
             # Leave enough for the particle itself to the left.
@@ -1666,7 +1648,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
         self.remove_domain(single)
         # the event associated with the single will be removed by the scheduler.
 
-#        assert self.check_obj(interaction)
+        #assert self.check_obj(interaction)
         self.add_domain_event(interaction)
 
         if __debug__:
@@ -1684,8 +1666,20 @@ class EGFRDSimulator(ParticleSimulatorBase):
         # Find optimal cylinder around particle and surface, such that 
         # it is not interfering with other shells.
 	#
-        # get_shell_size is overridden for cylindrical singles and 
-        # pairs.
+	# To determine the maximal cylindrical shell a starting cylinder is defined
+	# * The projected_point is a reference point along the axis of the cylinder,
+	#   the position, z, can be chosen freely
+	# * orientation_vector is a vector along the z-axis providing orientation
+	#   It usually points in the general direction of the particle
+	#
+        # * dr is the radius of the cylinder.
+        # * dz_right is the distance between the projected_point and the face of the
+	#   cylinder on the side of the orientation_vector 
+        # * dz_left is the distance from the projected_point to the face of the cylinder
+	#   on the side oposite of the orientation_vector
+	#
+	# * particle_distance is the distance from the center of the particle to the
+	#   projected_point
 
 	# the search point is the center of the sphere that surrounds the
 	# maximal cylinder
@@ -1862,17 +1856,17 @@ class EGFRDSimulator(ParticleSimulatorBase):
     def form_multi(self, single, neighbors, dists):
 	# form a Multi with the 'single'
 	# The 'neighbors' are neighboring NonInteractionSingles and Multi which
-	# can be added to the Multi
+	# can be added to the Multi (this can also be empty)
 	# 'dists' are the distances of the 'neighbors'
 
 	# Filter out relevant neighbors if present
+	# only consider neighboring bursted domains that are within the Multi horizon
+	min_shell = single.pid_particle_pair[1].radius * self.MULTI_SHELL_FACTOR
+	dists = numpy.array(dists)	# FIXME Not sure why this is necessary, dists should already be array
+        neighbors = [neighbors[i] for i in (dists <= min_shell).nonzero()[0]]
 	if neighbors:
-	# only consider neighboring domains that are within the Multi horizon
-	    min_shell = single.pid_particle_pair[1].radius * self.MULTI_SHELL_FACTOR
-            neighbors = [neighbors[i] for i in (dists <= min_shell).nonzero()[0]]
             closest = neighbors[0]
 	else:
-	    neighbors = []
 	    closest = None
 
 
@@ -2055,6 +2049,7 @@ rejected moves = %d
 								       self.domains,
                                                                        ignore=[obj.domain_id],
                                                                        ignores=ignores)
+	#TODO
             if(type(shell.shape) is Cylinder and
                closest and type(closest.shell.shape) is Sphere):
                 # Note: this case is special.
