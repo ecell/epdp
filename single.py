@@ -169,6 +169,55 @@ class NonInteractionSingle(Single):
 	# This is predominantly used when making Interaction domains
         return self.shell.shape.radius
 
+    def calculate_shell_size_to_single(self, closest, distance_to_shell, geometrycontainer):
+        # only if the closest shell is also a 'simple' Single
+        assert isinstance(closest, NonInteractionSingle)
+
+        min_radius1 = self.pid_particle_pair[1].radius
+
+        D1 = self.getD()
+        if D1 == 0:
+            return min_radius1
+
+        min_radius2 = closest.pid_particle_pair[1].radius
+        D2 = closest.getD()
+        min_radius12 = min_radius1 + min_radius2
+        sqrtD1 = math.sqrt(D1)
+
+
+	singlepos = self.pid_particle_pair[1].position
+        closestpos = closest.shell.shape.position
+        distance = geometrycontainer.distance(singlepos, closestpos)
+
+        shell_size = min(sqrtD1 / (sqrtD1 + math.sqrt(D2))
+                        * (distance - min_radius12) + min_radius1,
+                        distance_to_shell / SAFETY)
+        if shell_size < min_radius1:
+            shell_size = min_radius1
+
+        return shell_size
+
+    def get_max_shell_size(self, geometrycontainer, domains):
+	# This calculates the maximum shell size that the single can have in the current
+	# situation.
+	# TODO This is now general for all NonInteractionSingles and should be different
+	# for the different dimensions since they have different domains (spheres vs cylinders)
+	# and scale the domains in different directions (r or z).
+
+	singlepos = self.pid_particle_pair[1].position
+        closest, distance_to_shell = \
+            geometrycontainer.get_closest_obj(singlepos, domains, ignore=[self.domain_id],
+                                              ignores=[self.structure.id])
+
+        if isinstance(closest, NonInteractionSingle):
+            new_shell_size = self.calculate_shell_size_to_single(closest, distance_to_shell,
+						                 geometrycontainer)
+        else:  # Pair or Multi or Surface
+            new_shell_size = distance_to_shell / SAFETY
+
+	return min(new_shell_size, geometrycontainer.get_max_shell_size())
+
+
     def initialize(self, t):
 	# self.shell.shape.radius = self.pid_particle_pair[1].radius
         self.dt = 0.0

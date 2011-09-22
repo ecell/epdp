@@ -1206,55 +1206,17 @@ class EGFRDSimulator(ParticleSimulatorBase):
 	return com, r0, shell_size
 
 
-    def calculate_single_shell_size(self, single, closest, 
-                                 distance, shell_distance):
-	# only if the closest shell is also a 'simple' Single
-        assert isinstance(closest, NonInteractionSingle)
-
-        min_radius1 = single.pid_particle_pair[1].radius
-        D1 = single.getD()
-
-        if D1 == 0:
-            return min_radius1
-
-        D2 = closest.getD()
-        min_radius2 = closest.pid_particle_pair[1].radius
-        min_radius12 = min_radius1 + min_radius2
-        sqrtD1 = math.sqrt(D1)
-            
-        shell_size = min(sqrtD1 / (sqrtD1 + math.sqrt(D2))
-                        * (distance - min_radius12) + min_radius1,
-                        shell_distance / SAFETY)
-        if shell_size < min_radius1:
-            shell_size = min_radius1
-
-        return shell_size
-
     def update_single(self, single): 
         assert isinstance(single, NonInteractionSingle)	# This only works for 'simple' Singles
 
-	singlepos = single.pid_particle_pair[1].position
-	# TODO we need the closest RELEVANT domain, i.e. the domain in the
-	# direction in which we can scale the domain
-	closest, distance_to_shell = \
-            self.geometrycontainer.get_closest_obj(singlepos, self.domains, ignore=[single.domain_id],
-               	                                   ignores=[single.structure.id])
+	new_shell_size = single.get_max_shell_size(self.geometrycontainer, self.domains)
 
-        if isinstance(closest, NonInteractionSingle):
-            closestpos = closest.shell.shape.position
-            distance_to_closest = self.world.distance(singlepos, closestpos)
-            new_shell_size = self.calculate_single_shell_size(single, closest, 
-                                                      distance_to_closest,
-                                                      distance_to_shell)
-        else:  # Pair or Multi or Surface
-            new_shell_size = distance_to_shell / SAFETY
-            new_shell_size = max(new_shell_size,
-                                 single.pid_particle_pair[1].radius)
-
-        new_shell_size = min(new_shell_size, self.geometrycontainer.get_max_shell_size())
+	# Make sure that the new shell size is not too small or big
+        new_shell_size = max(new_shell_size, single.pid_particle_pair[1].radius)
 
         # Resize shell, don't change position.
         # Note: this should be done before determine_next_event.
+	singlepos = single.pid_particle_pair[1].position
         self.move_single_shell(single, singlepos, new_shell_size)        
 
         single.dt, single.event_type = single.determine_next_event()
