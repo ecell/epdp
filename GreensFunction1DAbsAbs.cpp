@@ -523,11 +523,10 @@ GreensFunction1DAbsAbs::drawTime (Real rnd) const
 	    if( fabs( low ) <= t_guess * 1.0e-6 ||
 	        fabs(value-value_prev) < EPSILON*this->t_scale )
 	    {
-		std::cerr << "Couldn't adjust low. F(" << low << ") = "
+		std::cerr << "GF1DAbs::drawTime Couldn't adjust low. F(" << low << ") = "
 		          << value << " t_guess: " << t_guess << " diff: "
 		          << (value - value_prev) << " value: " << value
-		          << " value_prev: " << value_prev << " t_scale: "
-		          << this->t_scale << std::endl;
+		          << " value_prev: " << value_prev << std::endl;
 		return low;
 	    }
 

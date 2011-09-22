@@ -71,7 +71,7 @@ public:
     virtual position_type dissociation_vector( rng_type& rng, length_type const& r01, Real const& dt, 
                                                 Real const& D01, Real const& v ) const
     {
-        return random_vector(drawR_gbd(rng.uniform(), r01, dt, D01, v), rng);
+        return random_vector(drawR_gbd(rng.uniform(0., 1.), r01, dt, D01, v), rng);
     }
 
     virtual length_type minimal_distance(length_type const& radius) const
