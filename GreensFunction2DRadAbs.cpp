@@ -946,16 +946,17 @@ const Real GreensFunction2DRadAbs::p_m_alpha( const unsigned int n,
 	const Real alpha( this->getAlpha( m, n ) ); // get the n-th root using the besselfunctions of order m
 	const Real r0( this->getr0() );
 
+    std::clog << "[r0=" << r0 << "]";
+
 	const Real alpha_sq( alpha * alpha );
 	const Real realm( static_cast<Real>( m ) );
 	const Real msq( realm * realm);
 	const Real ssq( sigma * sigma);
 
-	const Real s_Anm (sigma*alpha);
-	const Real a_Anm (a*alpha);
-	const Real r0Anm (r0*alpha);
-	const Real r_Anm (r*alpha);
-
+	const Real s_Anm (sigma * alpha);
+	const Real a_Anm (a * alpha);
+	const Real r0Anm (r0 * alpha);
+	const Real r_Anm (r * alpha);
 
 //	const CylindricalBesselGenerator& s(CylindricalBesselGenerator::instance());
 
@@ -1093,6 +1094,8 @@ GreensFunction2DRadAbs::dp_m_alpha_at_a( const unsigned int n,
 
         const Real alpha( this->getAlpha( m, n ) ); // get the n-th root using the besselfunctions of order m
 
+        std::clog << "{r0=" << r0 << ", alpha="<< alpha << ", r*alpha="<< r0*alpha << "}";
+
         const Real alpha_sq( alpha * alpha );
         const Real realm( static_cast<Real>( m ) );
         const Real msq( realm * realm);
@@ -1104,13 +1107,19 @@ GreensFunction2DRadAbs::dp_m_alpha_at_a( const unsigned int n,
 
 	std::clog << "|";	// DEBUG
         // calculate the needed bessel functions
+        	std::clog << "1";	// DEBUG
         const Real Jm_sAnm   (gsl_sf_bessel_Jn(m, s_Anm));
+        	std::clog << "2";	// DEBUG
         const Real Jmp1_sAnm (gsl_sf_bessel_Jn(m+1, s_Anm));    // prime
+        	std::clog << "3";	// DEBUG
         const Real Jm_aAnm   (gsl_sf_bessel_Jn(m, a_Anm));
-        const Real Ym_aAnm   (gsl_sf_bessel_Yn(m, a_Anm));
+        	std::clog << "4(" << m << ", " << r0Anm << ")";	// DEBUG
+        const Real Ym_aAnm   (gsl_sf_bessel_Yn(m, a_Anm)); // !GIVES PROBLEMS
 
+        	std::clog << "5";	// DEBUG
         const Real Jm_r0Anm  (gsl_sf_bessel_Jn(m, r0Anm));
-        const Real Ym_r0Anm  (gsl_sf_bessel_Yn(m, r0Anm));
+        	std::clog << "6(" << m << ", " << r0Anm << ")";	// DEBUG
+        const Real Ym_r0Anm  (gsl_sf_bessel_Yn(m, r0Anm)); // !GIVES PROBLEMS
 	std::clog << "_";	// DEBUG
 
         // calculating An,m

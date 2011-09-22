@@ -70,6 +70,8 @@ if __name__=="__main__":
                         print "fail!"
                         print sys.exc_info()
 
+                    print ""
+
                             
 
 
