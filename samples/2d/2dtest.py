@@ -48,7 +48,7 @@ print "(Seed " + str(currenttime) + ")"
 logging = False
 sigma = 1e-9        # Diameter particle
 D = 1e-12           # Diffusion constant
-N = 200             # Number of steps simulation will last
+N = 20000             # Number of steps simulation will last
 world_size = 1e-3   # Lengths of simulation box
 
 
