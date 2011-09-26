@@ -280,6 +280,8 @@ class NonInteractionSingle(Single):
         if isinstance(closest, NonInteractionSingle):
             new_shell_size = self.calculate_shell_size_to_single(closest, distance_to_shell,
 						                 geometrycontainer)
+	# TODO This is incorrect. The closest can be a Pair but still NonInteractionSingles may need
+	# more space
         else:  # Pair or Multi or Surface
             new_shell_size = distance_to_shell / SAFETY
 
