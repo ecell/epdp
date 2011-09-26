@@ -160,6 +160,54 @@ class Pair(ProtectiveDomain):
             name1, name2)
 
 class SimplePair(Pair):
+
+    @staticmethod
+    def get_min_shell_size(single1, single2, geometrycontainer):
+        # 1. Determine min shell size for a putative SimplePair.
+	# TODO Note that the calculation is dimension independent. Alse
+	# 'size' is not the right term here
+
+        assert single1.structure == single2.structure
+
+        pos1 = single1.pid_particle_pair[1].position
+        pos2 = single2.pid_particle_pair[1].position
+        radius1 = single1.pid_particle_pair[1].radius
+        radius2 = single2.pid_particle_pair[1].radius
+
+        sigma = radius1 + radius2
+
+        D1 = single1.pid_particle_pair[1].D
+        D2 = single2.pid_particle_pair[1].D
+        D12 = D1 + D2
+
+#        assert (pos1 - single1.shell.shape.position).sum() == 0        # TODO Not sure why this is here
+        r0 = geometrycontainer.world.distance(pos1, pos2)
+        distance_from_sigma = r0 - sigma        # the distance between the surfaces of the particles
+        assert distance_from_sigma >= 0, \
+            'distance_from_sigma (pair gap) between %s and %s = %s < 0' % \
+            (single1, single2, FORMAT_DOUBLE % distance_from_sigma)
+
+        shell_size1 = r0 * D1 / D12 + radius1
+        shell_size2 = r0 * D2 / D12 + radius2
+        shell_size_margin1 = radius1 * 2
+        shell_size_margin2 = radius2 * 2
+        shell_size_with_margin1 = shell_size1 + shell_size_margin1
+        shell_size_with_margin2 = shell_size2 + shell_size_margin2
+        if shell_size_with_margin1  >= shell_size_with_margin2:
+            min_shell_size = shell_size1
+            shell_size_margin = shell_size_margin1
+        else:
+            min_shell_size = shell_size2
+            shell_size_margin = shell_size_margin2
+
+	return min_shell_size, shell_size_margin
+
+    @staticmethod
+    def get_max_shell_size():
+	pass
+
+
+
     def __init__(self, domain_id, com, single1, single2, shell_id,
                       r0, shell_size, rt, structure):
 	Pair.__init__(self, domain_id, single1, single2, shell_id,

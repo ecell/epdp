@@ -1039,9 +1039,13 @@ class EGFRDSimulator(ParticleSimulatorBase):
         self.add_domain_event(single)
 
     def calculate_simplepair_shell_size(self, single1, single2, burst):
-        # 1. Determine min shell size for the SimplePair.
-
 	assert single1.structure == single2.structure
+
+	# 1. calculate the minimal shell size
+        min_shell_size, shell_size_margin = \
+	    SimplePair.get_min_shell_size(single1, single2, self.geometrycontainer)
+        min_shell_size_with_margin = min_shell_size + shell_size_margin
+
 
         pos1 = single1.pid_particle_pair[1].position
         pos2 = single2.pid_particle_pair[1].position
@@ -1054,32 +1058,13 @@ class EGFRDSimulator(ParticleSimulatorBase):
         D2 = single2.pid_particle_pair[1].D
         D12 = D1 + D2
 
-#        assert (pos1 - single1.shell.shape.position).sum() == 0	# TODO Not sure why this is here
         r0 = self.world.distance(pos1, pos2)
-        distance_from_sigma = r0 - sigma
-        assert distance_from_sigma >= 0, \
-            'distance_from_sigma (pair gap) between %s and %s = %s < 0' % \
-            (single1, single2, FORMAT_DOUBLE % distance_from_sigma)
-
-        shell_size1 = r0 * D1 / D12 + radius1
-        shell_size2 = r0 * D2 / D12 + radius2
-        shell_size_margin1 = radius1 * 2
-        shell_size_margin2 = radius2 * 2
-        shell_size_with_margin1 = shell_size1 + shell_size_margin1
-        shell_size_with_margin2 = shell_size2 + shell_size_margin2
-        if shell_size_with_margin1  >= shell_size_with_margin2:
-            min_shell_size = shell_size1
-            shell_size_margin = shell_size_margin1
-        else:
-            min_shell_size = shell_size2
-            shell_size_margin = shell_size_margin2
+        distance_from_sigma = r0 - sigma	# the distance between the surfaces of the particles
 
         # 2. Check if min shell size for the Pair not larger than max shell size or 
         # sim cell size.
-        min_shell_size_with_margin = min_shell_size + shell_size_margin
         max_shell_size = min(self.geometrycontainer.get_max_shell_size(),
-                             distance_from_sigma * 100 +
-                             sigma + shell_size_margin)
+                             distance_from_sigma * 100 + sigma + shell_size_margin)
 
         if min_shell_size_with_margin >= max_shell_size:
             if __debug__:
@@ -1105,7 +1090,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
         com = self.world.apply_boundary(com)
         closest, closest_shell_distance = None, numpy.inf
         for b in burst:
-            if isinstance(b, Single):
+            if isinstance(b, NonInteractionSingle):
                 bpos = b.shell.shape.position
                 d = self.world.distance(com, bpos) - \
                     b.pid_particle_pair[1].radius * self.SINGLE_SHELL_FACTOR
@@ -1139,7 +1124,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
         assert closest_shell_distance > 0
 
-        if isinstance(closest, Single):
+        if isinstance(closest, NonInteractionSingle):
 
             D_closest = closest.pid_particle_pair[1].D
             D_tot = D_closest + D12
