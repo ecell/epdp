@@ -34,7 +34,7 @@ class Pair(ProtectiveDomain):
     CUTOFF_FACTOR = 5.6
 
     def __init__(self, domain_id, single1, single2, shell_id, r0, 
-                 rt):
+                 rrs):
 	ProtectiveDomain.__init__(self, domain_id)
 
         self.multiplicity = 2
@@ -44,7 +44,8 @@ class Pair(ProtectiveDomain):
 	self.pid_particle_pair1 = single1.pid_particle_pair
 	self.pid_particle_pair2 = single2.pid_particle_pair
 
-        self.rt = rt
+	self.interparticle_rrs = rrs
+	self.interparticle_ktot = self.calc_ktot(rrs)
 
 	self.shell_id = shell_id
 
@@ -282,9 +283,9 @@ class SimplePair(Pair):
 
 
     def __init__(self, domain_id, com, single1, single2, shell_id,
-                      r0, shell_size, rt, structure):
+                      r0, shell_size, rrs, structure):
 	Pair.__init__(self, domain_id, single1, single2, shell_id,
-                      r0, rt)
+                      r0, rrs)
 
         self.structure = structure		# structure on which both particles live
 
@@ -396,9 +397,9 @@ class SphericalPair(SimplePair):
 
     """
     def __init__(self, domain_id, com, single1, single2, shell_id,
-                 r0, shell_size, rt, structure):
+                 r0, shell_size, rrs, structure):
         SimplePair.__init__(self, domain_id, com, single1, single2, shell_id,
-                      r0, shell_size, rt, structure)
+                      r0, shell_size, rrs, structure)
 
     def com_greens_function(self):
         # Green's function for centre of mass inside absorbing sphere.
@@ -407,7 +408,7 @@ class SphericalPair(SimplePair):
     def iv_greens_function(self, r0):
         # Green's function for interparticle vector inside absorbing 
         # sphere.  This exact solution is used for drawing times.
-        return GreensFunction3DRadAbs(self.D_tot, self.rt.ktot, r0,
+        return GreensFunction3DRadAbs(self.D_tot, self.interparticle_ktot, r0,
                                               self.sigma, self.a_r)
 
     def create_new_shell(self, position, radius, domain_id):
@@ -436,7 +437,7 @@ class SphericalPair(SimplePair):
                 # near sigma; use GreensFunction3DRadInf
                 if __debug__:
                     log.debug('GF: only sigma')
-                return GreensFunction3DRadInf(self.D_tot, self.rt.ktot, r0,
+                return GreensFunction3DRadInf(self.D_tot, self.interparticle_ktot, r0,
                                                self.sigma)
 
         # sigma unreachable
@@ -445,8 +446,7 @@ class SphericalPair(SimplePair):
                 # near a;
                 if __debug__:
                     log.debug('GF: only a')
-                return GreensFunction3DAbs(self.D_tot,
-                                                                 r0, self.a_r)
+                return GreensFunction3DAbs(self.D_tot, r0, self.a_r)
                 
             else:
                 # distant from both a and sigma; 
@@ -497,16 +497,16 @@ class PlanarSurfacePair(SimplePair):
 
     """
     def __init__(self, domain_id, com, single1, single2, shell_id,
-                 r0, shell_size, rt, structure):
+                 r0, shell_size, rrs, structure):
         SimplePair.__init__(self, domain_id, com, single1, single2, shell_id,
-                      r0, shell_size, rt, structure)
+                      r0, shell_size, rrs, structure)
 
     def com_greens_function(self):
         return GreensFunction2DAbsSym(self.D_R, self.a_R)
 
     def iv_greens_function(self, r0):
 	# TODO still doesn't work with 2D Green's functions
-        return GreensFunction3DRadAbs(self.D_tot, self.rt.ktot, r0,
+        return GreensFunction3DRadAbs(self.D_tot, self.interparticle_ktot, r0,
                                               self.sigma, self.a_r)
 
     def create_new_shell(self, position, radius, domain_id):
@@ -545,7 +545,7 @@ class PlanarSurfacePair(SimplePair):
                     log.debug('GF2D: only sigma')
                 return self.iv_greens_function(r0)
         	# Todo
-                # return GreensFunction2DRadInf(self.D_tot, self.rt.ktot, r0, self.sigma)
+                # return GreensFunction2DRadInf(self.D_tot, self.interparticle_ktot, r0, self.sigma)
         else:
             if distance_from_shell < threshold_distance:
                 # near a;
@@ -594,9 +594,9 @@ class CylindricalSurfacePair(SimplePair):
 
     """
     def __init__(self, domain_id, com, single1, single2, shell_id,
-                 r0, shell_size, rt, structure):
+                 r0, shell_size, rrs, structure):
         SimplePair.__init__(self, domain_id, com, single1, single2, shell_id,
-                      r0, shell_size, rt, structure)
+                      r0, shell_size, rrs, structure)
 
     def get_v_tot(self):
         return self.pid_particle_pair2[1].v - \
@@ -618,8 +618,8 @@ class CylindricalSurfacePair(SimplePair):
 
     def iv_greens_function(self, r0):
 	# TODO Fix ugly hack to avoid k=0 below
-        #return GreensFunction1DRadAbs(self.D_tot, self.v_r, self.rt.ktot, r0, self.sigma, self.a_r)
-        return GreensFunction1DRadAbs(self.D_tot, self.v_r, self.rt.ktot, r0, self.sigma, self.a_r)
+        #return GreensFunction1DRadAbs(self.D_tot, self.v_r, self.interparticle_ktot, r0, self.sigma, self.a_r)
+        return GreensFunction1DRadAbs(self.D_tot, self.v_r, self.interparticle_ktot, r0, self.sigma, self.a_r)
 
     def create_new_shell(self, position, half_length, domain_id):
         # The radius of a rod is not more than it has to be (namely the 
@@ -658,9 +658,8 @@ class MixedPair(Pair):
 
     def __init__(self, domain_id, single1, single2, shell_id, shell_center, shell_radius,
 		 shell_half_length, shell_orientation_vector,
-		 unit_r, r0, pair_reaction_rules):
-	Pair.__init__(self, domain_id, single1, single2, shell_id, r0, 
-                 pair_reaction_rules)
+		 unit_r, r0, rrs):
+	Pair.__init__(self, domain_id, single1, single2, shell_id, r0, rrs)
 
 
 	self.surface = surface	# the surface on which particle1 lives
@@ -694,7 +693,7 @@ class MixedPair(Pair):
 
     def iv_greensfunction(self):
 	# diffusion of the interparticle vector is three dimensional
-	return GreensFunction3DRadAbs(self.D_tot, self.rt.ktot, r0,
+	return GreensFunction3DRadAbs(self.D_tot, self.interparticle_ktot, r0,
 				      self.sigma, self.a_r)
 
     def create_new_shell(self, position, radius, orientation_vector, half_length):

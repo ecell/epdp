@@ -57,16 +57,16 @@ def create_default_single(domain_id, pid_particle_pair, shell_id, rt, structure)
 
 
 def create_default_pair(domain_id, com, single1, single2, shell_id, 
-                        r0, shell_size, rt, structure):
+                        r0, shell_size, rrs, structure):
     if isinstance(structure, CuboidalRegion):
         return SphericalPair(domain_id, com, single1, single2,
-                             shell_id, r0, shell_size, rt, structure)
+                             shell_id, r0, shell_size, rrs, structure)
     elif isinstance(structure, CylindricalSurface):
         return CylindricalSurfacePair(domain_id, com, single1, single2,
-                                      shell_id, r0, shell_size, rt, structure)
+                                      shell_id, r0, shell_size, rrs, structure)
     elif isinstance(structure, PlanarSurface):
         return PlanarSurfacePair(domain_id, com, single1, single2,
-                                 shell_id, r0, shell_size, rt, structure)
+                                 shell_id, r0, shell_size, rrs, structure)
 
 
 class DomainEvent(Event):
@@ -450,14 +450,14 @@ class EGFRDSimulator(ParticleSimulatorBase):
         rrs = self.network_rules.query_reaction_rule(
                 pid_particle_pair1[1].sid,
                 pid_particle_pair2[1].sid)
-        k_array = numpy.add.accumulate([rr.k for rr in rrs])
-        k_max = k_array[-1]
-        rnd = myrandom.uniform()
-        i = numpy.searchsorted(k_array, rnd * k_max)
-        rr = rrs[i]
+#        k_array = numpy.add.accumulate([rr.k for rr in rrs])
+#        k_max = k_array[-1]
+#        rnd = myrandom.uniform()
+#        i = numpy.searchsorted(k_array, rnd * k_max)
+#        rr = rrs[i]
         # The probability for this reaction to happen is proportional to 
         # the sum of the rates of all the possible reaction types. 
-        rr.ktot = k_max
+#        rr.ktot = k_max
 
         # Get structure (region or surface) where particle1 lives (assuming particle2
 	# also lives here -> TODO).
@@ -470,7 +470,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
         # Either SphericalPair, PlanarSurfacePair, or 
         # CylindricalSurfacePair.
         pair = create_default_pair(domain_id, com, single1, single2, shell_id, 
-                                   r0, shell_size, rr, structure)
+                                   r0, shell_size, rrs, structure)
 
 	assert isinstance(pair, Pair)
         pair.initialize(self.t)
@@ -1206,12 +1206,14 @@ class EGFRDSimulator(ParticleSimulatorBase):
             self.world.remove_particle(single1.pid_particle_pair[0])
             self.world.remove_particle(single2.pid_particle_pair[0])
 
-            if len(pair.rt.products) == 0:
+	    rr = pair.draw_reaction_rule(pair.interparticle_rrs)
+
+            if len(rr.products) == 0:
 		# no product particles, nothing new to be made
                 product = []
 
-	    elif len(pair.rt.products) == 1:
-                species3 = self.world.get_species(pair.rt.products[0])
+	    elif len(rr.products) == 1:
+                species3 = self.world.get_species(rr.products[0])
                 # calculate new position
                 event_type = pair.event_type
                 new_com = pair.draw_new_com(pair.dt, event_type)
@@ -1233,7 +1235,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
 		# update counters
                 self.reaction_events += 1
-                self.last_reaction = (pair.rt, (particle1, particle2),
+                self.last_reaction = (rr, (particle1, particle2),
                                       [particle])
             else:
                 raise NotImplementedError('num products >= 2 not supported.')
