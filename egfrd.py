@@ -661,7 +661,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
         oldpos = single.pid_particle_pair[1].position
         current_structure = single.structure
         
-        rt = single.draw_reaction_rule()
+        rt = single.reactionrule
 
         if len(rt.products) == 0:
             

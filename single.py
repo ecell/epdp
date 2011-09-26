@@ -3,7 +3,10 @@ from _greens_functions import *
 from greens_function_wrapper import *
 from constants import EventType
 import utils
-from domain import *
+
+from domain import (
+    Domain,
+    ProtectiveDomain)
 
 __all__ = [
     'CylindricalSurfaceSingle',
@@ -36,14 +39,19 @@ class Single(ProtectiveDomain):
         self.structure = structure			# the structure in/on which the particle lives
 
         self.reactionrules = reactionrules		# the reaction rules for mono molecular reactions
-	self.reactionrule = None			# with this particle as the reactant
-        self.k_tot = 0
-        self.updatek_tot()				# RENAME to calc_ktot and MOVE to ProtectiveDomain
+	self.rrule = None			# with this particle as the reactant
+        self.k_tot = self.calc_ktot(reactionrules)
+        #self.updatek_tot()				# RENAME to calc_ktot and MOVE to ProtectiveDomain
 
     def getD(self):
         return self.pid_particle_pair[1].D
     D = property(getD)
 
+    def get_reaction_rule(self):
+	if self.rrule == None:
+	    self.rrule = self.draw_reaction_rule(self.reactionrules)
+	return self.rrule
+    reactionrule = property(get_reaction_rule)
 
     def get_inner_a(self):
 	# inner_a is the outer radius of the 'inner shell', which demarkates
@@ -116,16 +124,16 @@ class Single(ProtectiveDomain):
         for rr in self.reactionrules:
             self.k_tot += rr.k
 
-    def draw_reaction_rule(self):
-	# MOVE to ProtectiveDomain class
-        k_array = [rr.k for rr in self.reactionrules]
-        k_array = numpy.add.accumulate(k_array)
-        k_max = k_array[-1]
-
-        rnd = myrandom.uniform()
-        i = numpy.searchsorted(k_array, rnd * k_max)
-
-        return self.reactionrules[i]
+#    def draw_reaction_rule(self):
+#	# MOVE to ProtectiveDomain class
+#        k_array = [rr.k for rr in self.reactionrules]
+#        k_array = numpy.add.accumulate(k_array)
+#        k_max = k_array[-1]
+#
+#        rnd = myrandom.uniform()
+#        i = numpy.searchsorted(k_array, rnd * k_max)
+#
+#        return self.reactionrules[i]
 
     def check(self):
         pass

@@ -1,3 +1,14 @@
+#!/usr/env python
+
+import numpy
+import myrandom
+
+__all__ = [
+    'Domain',
+    'ProtectiveDomain',
+    ]
+
+
 class Domain(object):
 # The domain is the main unit of eGFRD. Single, Pairs and Multis are all domains
 # with an own domain_id
