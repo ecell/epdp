@@ -6,7 +6,7 @@
 #include <boost/foreach.hpp>
 #include <boost/random/mersenne_twister.hpp>
 #include "NetworkRules.hpp"
-#include "BDPropagator.hpp"
+#include "newBDPropagator.hpp"
 #include "World.hpp"
 #include "ParticleSimulator.hpp"
 #include "utils/pair.hpp"
@@ -97,7 +97,7 @@ protected:
     void _step(time_type dt)
     {
         {
-            BDPropagator<traits_type> propagator(
+            newBDPropagator<traits_type> propagator(
                 base_type::world_,
                 base_type::network_rules_,
                 base_type::rng_,

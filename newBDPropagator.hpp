@@ -1,5 +1,5 @@
-#ifndef BD_PROPAGATOR_HPP
-#define BD_PROPAGATOR_HPP
+#ifndef NEW_BD_PROPAGATOR_HPP
+#define NEW_BD_PROPAGATOR_HPP
 
 #include <algorithm>
 #include <boost/bind.hpp>
@@ -21,7 +21,7 @@
 #include "Logger.hpp"
 
 template<typename Ttraits_>
-class BDPropagator
+class newBDPropagator
 {
 public:
     typedef Ttraits_ traits_type;
@@ -50,14 +50,14 @@ public:
 
 public:
     template<typename Trange_>
-    BDPropagator(
+    newBDPropagator(
         particle_container_type& tx, network_rules_type const& rules,
         rng_type& rng, time_type dt, int max_retry_count,
         reaction_recorder_type* rrec, volume_clearer_type* vc,
         Trange_ const& particles)
         : tx_(tx), rules_(rules), rng_(rng), dt_(dt),
           max_retry_count_(max_retry_count), rrec_(rrec), vc_(vc),
-          queue_(), rejected_move_count_(0)
+          queue_(), rejected_move_count_(0), reaction_length_( sqrt( 4 * 1E-12 * dt ) )
     {
         call_with_size_if_randomly_accessible(
             boost::bind(&particle_id_vector_type::reserve, &queue_, _1),
@@ -108,11 +108,10 @@ public:
                     particle_shape_type(new_pos, species.radius()),
                     species.D()));
 
-	/*Use a spherical shape with  radius = particle_radius + reaction_radius.
-	  We use it to check for overlaps with other particels (and surfaces). */
+	    /*Use a spherical shape with radius = particle_radius + reaction_radius.
+	      We use it to check for overlaps with other particels (and surfaces).*/
         boost::scoped_ptr<particle_id_pair_and_distance_list> overlapped(
-            tx_.check_overlap(reaction_shape(new_pos, species.radius() + reaction_radius ),
-			      particle_to_update.first));
+            tx_.check_overlap(particle_shape_type( new_pos, species.radius() + reaction_length_ ), particle_to_update.first));
         switch (overlapped ? overlapped->size(): 0)
         {
         case 0:
@@ -122,10 +121,11 @@ public:
             {
                 particle_id_pair_and_distance const& closest(overlapped->at(0));
 
-		if( closest.second < pp.second.radius() + closest.first.second.radius() ){
-		  ++rejected_move_count_;
-		  return true;
-		}
+                /* Check if we generated an overlap of the particle cores. If so; return. (dist < r01) */
+		        if( closest.second < pp.second.radius() + closest.first.second.radius() ){
+		            ++rejected_move_count_;
+		            return true;
+		        }
 		
                 try
                 {
@@ -251,8 +251,7 @@ private:
                             boost::shared_ptr<structure_type> pp_structure( 
                                 tx_.get_structure( tx_.get_species( pp.second.sid() ).structure_id()) );  
                
-                            position_type m( pp_structure->
-                                        dissociation_vector( rng_, r01, dt_, D01, s0.v() - s1.v() ) );
+                            position_type m( pp_structure->newbd_dissociation_vector( rng_, r01, reaction_length_ ) );
                             
                             np0 = tx_.apply_boundary(pp.second.position()
                                     - m * (s0.D() / D01));
@@ -313,7 +312,7 @@ private:
 
         const species_type s0(tx_.get_species(pp0.second.sid())),
                 s1(tx_.get_species(pp1.second.sid()));
-        length_type r01(s0.radius() + s1.radius());
+        //length_type r01(s0.radius() + s1.radius());
 
         const Real rnd(rng_());
         Real prob = 0;
@@ -326,8 +325,7 @@ private:
             boost::shared_ptr<structure_type> pp_structure( 
                tx_.get_structure( tx_.get_species( pp0.second.sid() ).structure_id()) );  
 
-            const Real p(pp_structure->p_acceptance( r.k(), dt_, r01, subtract( pp1.second.position(), 
-                                                pp0.second.position() ), s0.D(), s1.D(), s0.v(), s1.v() ));
+            const Real p( r.k() * dt_ / pp_structure->reaction_volume( s0.radius(), s1.radius(), reaction_length_ ) );
             BOOST_ASSERT(p >= 0.);
             prob += p;
             if (prob >= 1.)
@@ -431,11 +429,12 @@ private:
     volume_clearer_type* const vc_;
     particle_id_vector_type queue_;
     int rejected_move_count_;
+    Real const reaction_length_;
     static Logger& log_;
 };
 
 template<typename Ttraits_>
-Logger& BDPropagator<Ttraits_>::log_(Logger::get_logger("ecell.BDPropagator"));
+Logger& newBDPropagator<Ttraits_>::log_(Logger::get_logger("ecell.newBDPropagator"));
 
-#endif /* BD_PROPAGATOR_HPP */
+#endif /* NEW_BD_PROPAGATOR_HPP */
 

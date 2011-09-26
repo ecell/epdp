@@ -2,10 +2,9 @@
 #define CYLINDRICAL_SURFACE_HPP
 
 #include <boost/bind.hpp>
-#include <iostream>
 #include "Surface.hpp"
 #include "Cylinder.hpp"
-//#include "freeFunctions.hpp"
+#include "freeFunctions.hpp"
 
 template<typename Ttraits_>
 class CylindricalSurface
@@ -72,6 +71,20 @@ public:
                                                 Real const& D01, Real const& v ) const
     {
         return random_vector(drawR_gbd(rng.uniform(0., 1.), r01, dt, D01, v), rng);
+    }
+
+    virtual Real reaction_volume( length_type const& r0, length_type const& r1, length_type const& rl ) const
+    {
+        return rl;
+    }
+
+    virtual position_type newbd_dissociation_vector( rng_type& rng, length_type const& r01, length_type const& rl ) const
+    {
+        Real X( rng.uniform(0.,1.) );
+        
+        length_type diss_vec_length( X*rl + r01 );
+
+        return random_vector( diss_vec_length, rng );
     }
 
     virtual length_type minimal_distance(length_type const& radius) const

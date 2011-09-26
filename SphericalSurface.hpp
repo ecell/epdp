@@ -3,6 +3,7 @@
 
 #include "Surface.hpp"
 #include "Sphere.hpp"
+#include "freeFunctions.hpp"
 
 template<typename Ttraits_>
 class SphericalSurface
@@ -45,6 +46,16 @@ public:
 
     virtual position_type dissociation_vector( rng_type& rng, length_type const& r01, Real const& dt, 
                                                 Real const& D01, Real const& v ) const
+    {
+        return position_type(); //TODO
+    }
+
+    virtual Real reaction_volume( length_type const& r0, length_type const& r1, length_type const& rl ) const
+    {
+        return length_type(); //TODO
+    }
+
+    virtual position_type newbd_dissociation_vector( rng_type& rng, length_type const& r01, length_type const& rl ) const
     {
         return position_type(); //TODO
     }

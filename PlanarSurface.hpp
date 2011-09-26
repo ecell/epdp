@@ -4,7 +4,7 @@
 #include <boost/bind.hpp>
 #include "Surface.hpp"
 #include "Plane.hpp"
-//#include "freeFunctions.hpp"
+#include "freeFunctions.hpp"
 
 template<typename Ttraits_>
 class PlanarSurface
@@ -45,7 +45,7 @@ public:
 
     virtual length_type drawR_gbd(Real const& rnd, length_type const& r01, Real const& dt, Real const& D01, Real const& v) const
     {
-        //TODO: use the 2D BD function instead of the 3D one.
+        //TODO: use the 2D BD function instead of the 3D one - failed on very hard integral.
         return drawR_gbd_3D(rnd, r01, dt, D01);
     }
 
@@ -60,6 +60,29 @@ public:
                                                 Real const& D01, Real const& v ) const
     {
         return random_vector( drawR_gbd(rng(), r01, dt, D01, v), rng ); 
+    }
+
+    virtual Real reaction_volume( length_type const& r0, length_type const& r1, length_type const& rl ) const
+    {
+        length_type r01( r0 + r1 );
+        length_type r01l( r01 + rl );
+        length_type r01l_sq( r01l * r01l );
+        length_type r01_sq( r01 * r01 );
+
+        return M_PI * ( r01l_sq - r01_sq );
+    }
+
+    virtual position_type newbd_dissociation_vector( rng_type& rng, length_type const& r01, length_type const& rl ) const
+    {
+        Real X( rng.uniform(0.,1.) );
+
+        length_type r01l( r01 + rl );
+        length_type r01l_sq( r01l * r01l );
+        length_type r01_sq( r01 * r01 );
+        
+        length_type diss_vec_length( sqrt( X * (r01l_sq - r01_sq) + r01_sq ) );
+
+        return random_vector( diss_vec_length, rng );
     }
 
     virtual length_type minimal_distance(length_type const& radius) const

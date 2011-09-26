@@ -55,6 +55,10 @@ public:
 
     virtual position_type dissociation_vector(rng_type& rng, length_type const& r01, Real const& dt, Real const& D01, Real const& v) const = 0;
 
+    virtual Real reaction_volume( length_type const& r0, length_type const& r1, length_type const& rl ) const = 0;
+
+    virtual position_type newbd_dissociation_vector( rng_type& rng, length_type const& r01, length_type const& rl ) const = 0;
+
     virtual projected_type projected_point(position_type const& pos) const = 0;
 
     virtual std::size_t hash() const

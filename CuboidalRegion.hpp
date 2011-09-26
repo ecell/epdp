@@ -4,7 +4,7 @@
 #include <boost/bind.hpp>
 #include "Region.hpp"
 #include "Box.hpp"
-//#include "freeFunctions.hpp"
+#include "freeFunctions.hpp"
 
 template<typename Ttraits_>
 class CuboidalRegion
@@ -65,6 +65,28 @@ public:
         return random_vector( drawR_gbd(rng.uniform(0., 1.), r01, dt, D01, v ), rng );
     }
 
+    virtual Real reaction_volume( length_type const& r0, length_type const& r1, length_type const& rl ) const
+    {
+        length_type r01( r0 + r1 );
+        length_type r01l( r01 + rl );
+        length_type r01l_sq( r01l * r01l );
+        length_type r01_sq( r01 * r01 );
+
+        return 4.0/3.0 * M_PI * ( r01l_sq * r01l - r01_sq * r01 );
+    }
+
+    virtual position_type newbd_dissociation_vector( rng_type& rng, length_type const& r01, length_type const& rl ) const
+    {
+        Real X( rng.uniform(0.,1.) );
+
+        length_type r01l( r01 + rl );
+        length_type r01l_sq( r01l * r01l );
+        length_type r01_sq( r01 * r01 );
+        
+        length_type diss_vec_length( cbrt( X * (r01l_sq * r01l - r01_sq * r01) + r01_sq*r01 ) );
+
+        return random_vector( diss_vec_length, rng );
+    }
 
     virtual void accept(ImmutativeStructureVisitor<traits_type> const& visitor) const
     {

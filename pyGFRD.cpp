@@ -28,6 +28,7 @@
 #include "peer/numpy/scalar_converters.hpp"
 
 #include "binding/bd_propagator_class.hpp"
+#include "binding/new_bd_propagator_class.hpp"
 #include "binding/binding_common.hpp"
 #include "binding/box_class.hpp"
 #include "binding/cylinder_class.hpp"
@@ -79,6 +80,7 @@ peer::util::register_exception_translator<PyExc_IndexError, std::out_of_range>()
 
     b::register_model_class();
     b::register_bd_propagator_class();
+    b::register_new_bd_propagator_class();
     b::register_box_class();
     b::register_domain_id_class();
     b::register_domain_classes();
