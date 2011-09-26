@@ -15,6 +15,11 @@ __all__ = [
     'MixedPair',
     ]
 
+if __debug__:
+    PRECISION = 3
+    FORMAT_DOUBLE = '%.' + str(PRECISION) + 'g'
+
+
 class Pair(ProtectiveDomain):
     """There are 3 types of pairs:
         * SphericalPair
@@ -206,58 +211,63 @@ class SimplePair(Pair):
 
 
     @staticmethod
-    def get_max_shell_size(single1, single2, geometrycontainer, domains):
+    def get_max_shell_size(com, single1, single2, geometrycontainer, domains):
 	# returns the maximum shell size based on geometric constraints
 	# It makes sure that surrounding NonInteractionSingles have at least the
 	# 'bursting volume' of space.
 
-        pos1 = single1.pid_particle_pair[1].position
-        pos2 = single2.pid_particle_pair[1].position
-        D1 = single1.pid_particle_pair[1].D
-        D2 = single2.pid_particle_pair[1].D
-        D12 = D1 + D2
+#        pos1 = single1.pid_particle_pair[1].position
+#        pos2 = single2.pid_particle_pair[1].position
+#        D1 = single1.pid_particle_pair[1].D
+#        D2 = single2.pid_particle_pair[1].D
+#        D12 = D1 + D2
 
 	# TODO it makes no sence to calculate the CoM in the world object
-        com = geometrycontainer.world.calculate_pair_CoM(pos1, pos2, D1, D2)
-        com = geometrycontainer.world.apply_boundary(com)
+#        com = geometrycontainer.world.calculate_pair_CoM(pos1, pos2, D1, D2)
+#        com = geometrycontainer.world.apply_boundary(com)
 
 	# TODO get_closest_obj searches the spherical surrounding although this doesn't make sence for
 	# a 2D or 1D pair
         closest, closest_distance = geometrycontainer.get_closest_obj(com, domains, ignore=[single1.domain_id,
                                                                       single2.domain_id],
                                                                       ignores=[single1.structure.id])
-
-#        if __debug__:
-#            log.debug('Pair closest neighbor: %s %s' %
-#                      'min_shell_with_margin %s' %
-#                      (closest, FORMAT_DOUBLE % closest_distance))
-#                       FORMAT_DOUBLE % min_shell_size_with_margin))
+        if __debug__:
+            log.debug('Pair closest neighbor: %s %s' % \
+                      (closest, FORMAT_DOUBLE % closest_distance))
 
         assert closest_distance > 0
 
 
 
+        # 3. Check if bursted Singles can still make a minimal shell.
+        # TODO This should be changed to a more general algorithm
+        # that checks if the closest nearest relevant shell is a
+        # NonInteractionSingle or smt else.
+        # Now it only processes the shells that were actually bursted before.
+
+#        closest, closest_shell_distance = None, numpy.inf
+#        for b in burst:
+#            if isinstance(b, NonInteractionSingle):
+#                bpos = b.shell.shape.position
+#                d = self.world.distance(com, bpos) - \
+#                    b.pid_particle_pair[1].radius * self.SINGLE_SHELL_FACTOR
+#                if d < closest_shell_distance:
+#                    closest, closest_shell_distance = b, d
+#
+
+
         if isinstance(closest, NonInteractionSingle):
-#            D_closest = closest.pid_particle_pair[1].D
-#            D_tot = D_closest + D12
             closest_particle_distance = geometrycontainer.world.distance(
                     com, closest.pid_particle_pair[1].position)
 
             closest_min_radius = closest.pid_particle_pair[1].radius
             closest_min_shell = closest_min_radius * Domain.SINGLE_SHELL_FACTOR
 
-#            # options for shell size:
-#            # a. ideal shell size (there is actuall more space but we don't use it)
-#            # b. The distance to a bursted single including its minimal shell
-#            # c. smaller than the ideal shell size but still bigger than the minimum
-#            shell_size = min((D12 / D_tot) *
-#                            (closest_particle_distance - min_shell_size
-#                             - closest_min_radius) + min_shell_size,
-#                            closest_particle_distance - closest_min_shell,
-#                            closest_distance)
-
+            # options for shell size:
+            # a. upto the closest shell assuming that this shell is bigger than the minimum
+            # b. The distance to a bursted single including its minimal shell
             shell_size = min(closest_distance, closest_particle_distance - closest_min_shell)
-#            assert shell_size < closest_distance
+            assert shell_size <= closest_distance
 
 	# TODO this is not correct. If the closest domain is not a NonInteractionSingle
 	# we still have to make sure that the (non closest) NonInteractionSingles have
