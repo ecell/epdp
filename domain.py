@@ -26,6 +26,23 @@ class Domain(object):
         '''
 	pass
 
+    def calc_ktot(reactionrules):
+	# calculates the total rate for a list of reaction rules
+        for rr in reactionrules:
+            k_tot += rr.k
+	return k_tot
+
+    def draw_reaction_rule(reactionrules):
+	# draws a reaction rules out of a list of reaction rules based on their
+	# relative rates
+        k_array = numpy.add.accumulate([rr.k for rr in reactionrules])
+        k_max = k_array[-1]
+
+        rnd = myrandom.uniform()
+        i = numpy.searchsorted(k_array, rnd * k_max)
+
+        return reactionrules[i]
+
     def create_new_shell(self):		# needs to be overloaded in subclasses
 	pass				# creates an appropriate shell object
 
