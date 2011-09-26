@@ -1129,10 +1129,11 @@ class EGFRDSimulator(ParticleSimulatorBase):
     def update_single(self, single): 
         assert isinstance(single, NonInteractionSingle)	# This only works for 'simple' Singles
 
-	new_shell_size = single.get_max_shell_size(self.geometrycontainer, self.domains)
+	min_shell_size = single.get_min_shell_size()
+	max_shell_size = single.get_max_shell_size(self.geometrycontainer, self.domains)
 
 	# Make sure that the new shell size is not too small or big
-        new_shell_size = max(new_shell_size, single.pid_particle_pair[1].radius)
+        new_shell_size = max(max_shell_size, min_shell_size)
 
         # Resize shell, don't change position.
         # Note: this should be done before determine_next_event.
