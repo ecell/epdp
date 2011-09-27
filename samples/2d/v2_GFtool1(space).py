@@ -36,9 +36,19 @@ sigma =  2e-9
 a =      [10*sigma, 100*sigma]
 r0 =     [1.001*sigma, 3*sigma, 4.999*sigma]
 dt =     [1e-4, 0.03, 0.3, 1, 1e4]
-rnd =    [1e-3, 0.05, 0.1, 0.25, (0.5-1e3)]
+rnd =    [1e-3, 0.05, 0.1, 0.25, (0.5-1e-3)]
 kf =     0; # 2e-12 10 1e10]
 h =      0;
+
+# Convenient for display later on
+# ======================================
+
+codinga = [' - ', ' + ']
+codingr0 = [' - ', ' 0 ', ' + ']
+codingdt = [' --', '  -', ' 0 ', ' + ', ' ++']
+codingrnd = [' --', '  -', ' 0 ', ' + ', ' ++']
+
+resultstable = ['| a | r0| dt|rnd|  -> Result']
 
 # Let's do this the simple way:
 # ======================================
@@ -66,14 +76,24 @@ if __name__=="__main__":
                     try:
                         mygf.drawTheta(rnd[l], r, dt[k])
                         print "succes!"   
+                        succes = True;
                     except:
                         print "fail!"
                         print sys.exc_info()
+                        succes = False;
 
                     print ""
 
-                            
+                    resultstable.append("|"+str(codinga[i])+"|"+
+                                    str(codingr0[i])+"|"+
+                                    str(codingdt[i])+"|"+
+                                    str(codingrnd[i])+
+                                    "|  -> "+str(succes)+"")
 
+print "\n\nRESULTS\n========================\n\n"
+for a in range(len(resultstable)):
+    print str(resultstable[a]);                            
+print "\n\n===========================\n\n"
 
 
 

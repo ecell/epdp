@@ -10,6 +10,7 @@
 
 #include <boost/bind.hpp>
 #include <boost/tuple/tuple.hpp>
+#include <boost/format.hpp>
 
 #include <gsl/gsl_errno.h>
 #include <gsl/gsl_math.h>
@@ -42,6 +43,16 @@ GreensFunction2DRadAbs( const Real D,
     h( kf / (D * 2.0 * M_PI * Sigma) ),
     a( a )
 {
+    // print alphaTable value at construction
+    const Real sigma(this->getSigma());
+
+    if (a < sigma)
+    {
+        throw std::invalid_argument((boost::format("a >= sigma : a=%.16g, sigma=%.16g") % a % sigma).str());
+    }
+    GreensFunction2DRadAbs::clearAlphaTable();
+
+    std::clog << "[alphaoffsettable[0]=" << this->alphaOffsetTable[0] << "]"; //DEBUG
     ; // do nothing
 }
 
@@ -56,12 +67,13 @@ GreensFunction2DRadAbs::~GreensFunction2DRadAbs()
 
 void GreensFunction2DRadAbs::clearAlphaTable() const
 {
+    std::clog << "[clearing..";
     std::for_each( this->alphaTable.begin(), this->alphaTable.end(),
 		   boost::mem_fn( &RealVector::clear ) );
     this->alphaOffsetTable[0] = 0;
     std::fill( this->alphaOffsetTable.begin()+1, this->alphaOffsetTable.end(),
 	       -1 );
-
+    std::clog << " done]";
 }
 
 // The method evaluates the equation for finding the alphas for given alpha. This
@@ -231,7 +243,8 @@ GreensFunction2DRadAbs::alphaOffset( const unsigned int n ) const
 {
     if( this->alphaOffsetTable[n] > 0 )		// if the offset has already been calculated
     {
-	return this->alphaOffsetTable[n];	// don't do all the work again
+    std::clog << "[returning because already calculated;]" ;// DEBUG
+	return this->alphaOffsetTable[n];	// don't do all the work again   
     }
     assert( this->alphaOffsetTable.size() >= n );	// assume the table is large enough to
 							// accomodate the requested index
@@ -239,6 +252,8 @@ GreensFunction2DRadAbs::alphaOffset( const unsigned int n ) const
     const Real sigma( this->getSigma() );
     const Real a( this->geta() );
     const Real interval( M_PI_2 / ( a - sigma ));	// the x-axis of the function scales with a-sigma
+
+    std::clog << "[calculating offset; input={n=" << n << ",sigma="<< sigma <<" , a="<< a <<" , interval="<< interval <<"}]" ;// DEBUG
 
 	Real offset (0);	// by default the offset is zero
 	if (n != 0)
@@ -469,6 +484,60 @@ GreensFunction2DRadAbs::Y0J0J1_constants ( const Real alpha,
 	return boost::make_tuple (Ai0_expT*Y0_aAn, Ai0_expT*J0_aAn, Ai0_expT*Y0J1_J0Y1);
 }
 
+const Real GreensFunction2DRadAbs::getAlpha( size_t n, RealVector::size_type i ) const 
+{
+RealVector& alphaTable( this->alphaTable[n] );		// get the ref to the roots of order n
+    const RealVector::size_type oldSize( alphaTable.size() );	// get it's size
+
+if( i >= oldSize )
+{
+    alphaTable.resize( i+1, 0 );	// resize the vector and fill the empty slots with 0
+}
+
+if (alphaTable[i] == 0)		// if the requested root was not calculated yet
+{
+	if (i==0)		// if the requested root is the first one
+	{	const Real offset (alphaOffset(n));	// The offset is the first root
+        std::clog << "[offset=" << offset << "]";
+		alphaTable[i]= offset;
+	}
+	else			// the requested root is dependent on the previous one
+	{
+		const Real previous (getAlpha(n, i-1));		// get the previous root
+		alphaTable[i] = this->alpha_i( previous , n );	// find the requested root based on
+								// the previous one
+	}
+}
+return alphaTable[i];
+
+}
+
+const Real GreensFunction2DRadAbs::getAlpha0( const RealVector::size_type i ) const
+{
+RealVector& alphaTable( this->alphaTable[0] );
+    const RealVector::size_type oldSize( alphaTable.size() );
+
+if( i >= oldSize )
+{
+    alphaTable.resize( i+1, 0 );// fill the empty spaces with zeros
+}
+
+if (alphaTable[i] == 0)         // if the requested root was not calculated yet
+{
+            if (i==0)               // if the requested root is the first one
+            {       const Real offset (alphaOffset(0));     // The offset is the first root
+                    alphaTable[i]= offset;
+            }
+            else                    // the requested root is dependent on the previous one
+            {
+                    const Real previous (getAlpha0(i-1));		// get the previous root
+                    alphaTable[i] = this->alpha0_i( previous );	// find the requested root based on
+                                                                    // the previous one
+            }
+}
+
+return alphaTable[i];
+}
 
 // calculates the ith term with exponent and time for the survival probability
 const Real 
@@ -1092,8 +1161,9 @@ GreensFunction2DRadAbs::dp_m_alpha_at_a( const unsigned int n,
         const Real D( this->getD() );
         const Real r0( this->getr0() );
 
+        std::clog << "[feed the alpha: (m=" << m << ", n= " << n << ")]";
         const Real alpha( this->getAlpha( m, n ) ); // get the n-th root using the besselfunctions of order m
-
+       
         std::clog << "{r0=" << r0 << ", alpha="<< alpha << ", r*alpha="<< r0*alpha << "}";
 
         const Real alpha_sq( alpha * alpha );

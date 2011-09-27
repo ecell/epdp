@@ -1,6 +1,7 @@
 #if !defined( __FIRSTPASSAGEPAIRGREENSFUNCTION2D_HPP )
 #define __FIRSTPASSAGEPAIRGREENSFUNCTION2D_HPP 
 
+#include <vector>
 #include <boost/tuple/tuple.hpp>
 #include <boost/function.hpp>
 #include <boost/array.hpp>
@@ -15,7 +16,9 @@ class GreensFunction2DRadAbs
     public PairGreensFunction
 {
 
-public: 
+public:
+    // defines vector from template defined in standard template library,
+    // gives it's membervalues type Real. std:: clarifies the std namespace.
     typedef std::vector<Real> RealVector;
 
 private:
@@ -120,59 +123,9 @@ public:
     const boost::tuple<Real,Real,Real> Y0J0J1_constants ( const Real alpha,
                                                           const Real t) const;
 
-    const Real getAlpha( const size_t n, const RealVector::size_type i ) const
-    {
-	RealVector& alphaTable( this->alphaTable[n] );		// get the ref to the roots of order n
-        const RealVector::size_type oldSize( alphaTable.size() );	// get it's size
+    const Real getAlpha( const size_t n, const RealVector::size_type i ) const;
 
-	if( i >= oldSize )
-	{
-	    alphaTable.resize( i+1, 0 );	// resize the vector and fill the empty slots with 0
-	}
-
-	if (alphaTable[i] == 0)		// if the requested root was not calculated yet
-	{
-		if (i==0)		// if the requested root is the first one
-		{	const Real offset (alphaOffset(n));	// The offset is the first root
-			alphaTable[i]= offset;
-		}
-		else			// the requested root is dependent on the previous one
-		{
-			const Real previous (getAlpha(n, i-1));		// get the previous root
-			alphaTable[i] = this->alpha_i( previous , n );	// find the requested root based on
-									// the previous one
-		}
-	}
-	return alphaTable[i];
-
-    }
-
-    const Real getAlpha0( const RealVector::size_type i ) const
-    {
-	RealVector& alphaTable( this->alphaTable[0] );
-        const RealVector::size_type oldSize( alphaTable.size() );
-
-	if( i >= oldSize )
-	{
-	    alphaTable.resize( i+1, 0 );// fill the empty spaces with zeros
-	}
-
-	if (alphaTable[i] == 0)         // if the requested root was not calculated yet
-	{
-                if (i==0)               // if the requested root is the first one
-                {       const Real offset (alphaOffset(0));     // The offset is the first root
-                        alphaTable[i]= offset;
-                }
-                else                    // the requested root is dependent on the previous one
-                {
-                        const Real previous (getAlpha0(i-1));		// get the previous root
-                        alphaTable[i] = this->alpha0_i( previous );	// find the requested root based on
-                                                                        // the previous one
-                }
-	}
-
-	return alphaTable[i];
-    }
+    const Real getAlpha0( const RealVector::size_type i ) const;
 
 protected:
 
