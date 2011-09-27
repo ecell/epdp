@@ -39,6 +39,8 @@ class Domain(object):
 
     def calc_ktot(self, reactionrules):
 	# calculates the total rate for a list of reaction rules
+        # The probability for the reaction to happen is proportional to 
+        # the sum of the rates of all the possible reaction types.
 	k_tot = 0
         for rr in reactionrules:
             k_tot += rr.k
