@@ -124,6 +124,8 @@ class Pair(ProtectiveDomain):
         inter-particle vector.
 
         """
+	# If the two particles have reacted this should return the
+	# new position twice
         new_com = self.draw_new_com(dt, event_type)
         new_iv = self.draw_new_iv(dt, r0, old_iv, event_type)
 
