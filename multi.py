@@ -1,4 +1,3 @@
-import bd
 from weakref import ref
 
 from gfrdbase import *
@@ -30,7 +29,19 @@ class Multi(Domain):
         self.last_time = t
         self.start_time = t
         main = self.main()
-        self.dt = self.dt_factor * bd.calculate_bd_dt(main.world.get_species(sid) for sid in main.world.species)
+        self.dt = self.dt_factor * self.calculate_bd_dt(main.world.get_species(sid) for sid in main.world.species)
+
+    def calculate_bd_dt(species_list):
+        D_list = []
+        radius_list = []
+        D_max = 0.
+        radius_min = numpy.inf
+        for species in species_list:
+            if D_max < species.D:
+                D_max = species.D
+            if radius_min > species.radius:
+                radius_min = species.radius
+        return (radius_min * 2) ** 2 / (D_max * 2)
 
     def get_multiplicity(self):
         return self.particle_container.num_particles

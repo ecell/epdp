@@ -98,40 +98,61 @@ public:
         if (species.D() == 0.)
             return true;
 
-        position_type const displacement(drawR_free(species));
+        /* Make a step, dependent on the surface the particle lives on. */
+        position_type const displacement( tx_.get_structure(species.structure_id())->
+                                            bd_displacement(species.v() * dt_, std::sqrt(2.0 * species.D() * dt_), rng_) );
+
         position_type const new_pos(
             tx_.apply_boundary(
                 add(pp.second.position(), displacement)));
 
-        particle_id_pair particle_to_update(
-                pp.first, particle_type(species.id(),
-                    particle_shape_type(new_pos, species.radius()),
-                    species.D()));
-
-	    /*Use a spherical shape with radius = particle_radius + reaction_radius.
+	    /*Use a spherical shape with radius = particle_radius + reaction_length.
 	      We use it to check for overlaps with other particels (and surfaces).*/
         boost::scoped_ptr<particle_id_pair_and_distance_list> overlapped(
-            tx_.check_overlap(particle_shape_type( new_pos, species.radius() + reaction_length_ ), particle_to_update.first));
+            tx_.check_overlap(particle_shape_type( new_pos, species.radius() + reaction_length_ ), pp.first));
         switch (overlapped ? overlapped->size(): 0)
         {
         case 0:
-            break;
+            {
+                particle_id_pair particle_to_update( pp.first, 
+                        particle_type(species.id(), particle_shape_type(new_pos, species.radius()), species.D()) );    
+
+                if (vc_)
+                {
+                    if (!(*vc_)(particle_to_update.second.shape(), 
+                            particle_to_update.first))
+                    {
+                        log_.info("propagation move rejected.");
+                        return true;
+                    }
+                }
+
+                tx_.update_particle(particle_to_update);
+                return true;
+            }
 
         case 1:
             {
                 particle_id_pair_and_distance const& closest(overlapped->at(0));
+                length_type r01( pp.second.radius() + closest.first.second.radius() );
 
-                /* Check if we generated an overlap of the particle cores. If so; return. (dist < r01) */
-		        if( closest.second < pp.second.radius() + closest.first.second.radius() ){
+                /* Check if we generated an overlap of the particle cores. If so, new_pos -> pp.pos */
+		        if( closest.second < r01)
+                {
+                    LOG_DEBUG(("Hard core collision with a particle %s. particle bounced", boost::lexical_cast<std::string>(closest.first.first).c_str()));
 		            ++rejected_move_count_;
-		            return true;
+
+                    /* If the particle was outside the reation volume before the try move, nothing is to be done and we exit the propagator.*/
+                    if(tx_.distance( pp.second.position(), closest.first.second.position() ) > r01 + reaction_length_ )
+    		            return true;
+
 		        }
-		
+
                 try
                 {
                     if (!attempt_reaction(pp, closest.first))
                     {
-                        LOG_DEBUG(("collision with a nonreactive particle %s. move rejected", boost::lexical_cast<std::string>(closest.first.first).c_str()));
+                        LOG_DEBUG(("Reaction attempt with a nonreactive particle %s.", boost::lexical_cast<std::string>(closest.first.first).c_str()));
                         ++rejected_move_count_;
                     }
                 }
@@ -149,17 +170,6 @@ public:
             ++rejected_move_count_;
             return true;
         }
-        if (vc_)
-        {
-            if (!(*vc_)(particle_to_update.second.shape(), 
-                        particle_to_update.first))
-            {
-                log_.info("propagation move rejected.");
-                return true;
-            }
-        }
-        tx_.update_particle(particle_to_update);
-        return true;
     }
 
     std::size_t get_rejected_move_count() const
@@ -168,10 +178,6 @@ public:
     }
 
 private:
-    position_type drawR_free(species_type const& species)
-    {
-        return tx_.get_structure(species.structure_id())->bd_displacement(species.v() * dt_, std::sqrt(2.0 * species.D() * dt_), rng_);
-    }
 
     bool attempt_reaction(particle_id_pair const& pp)
     {
@@ -388,9 +394,11 @@ private:
                         break;
                     }
                 case 0:
-                    remove_particle(pp0.first);
-                    remove_particle(pp1.first);
-                    break;
+                    {
+                        remove_particle(pp0.first);
+                        remove_particle(pp1.first);
+                        break;
+                    }
                 
                 default:
                     throw not_implemented("bimolecular reactions that produce more than one product are not supported");
