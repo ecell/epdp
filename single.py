@@ -39,7 +39,7 @@ class Single(ProtectiveDomain):
         self.structure = structure			# the structure in/on which the particle lives
 
         self.reactionrules = reactionrules		# the reaction rules for mono molecular reactions
-	self.rrule = None			# with this particle as the reactant
+	self.rrule = None				# the reaction rule of the actual reaction (property reactionrule)
         self.k_tot = self.calc_ktot(reactionrules)
         #self.updatek_tot()				# RENAME to calc_ktot and MOVE to ProtectiveDomain
 
@@ -113,17 +113,17 @@ class Single(ProtectiveDomain):
         event_type = EventType.SINGLE_ESCAPE	# TODO Event is not an ESCAPE when in 1D there is drift
         return dt, event_type
 
-    def updatek_tot(self):
-	# MOVE to ProtectiveDomain class. See also reasoning above for
-	# draw_reaction_time_tuple
-        self.k_tot = 0
-
-        if not self.reactionrules:
-            return
-
-        for rr in self.reactionrules:
-            self.k_tot += rr.k
-
+#    def updatek_tot(self):
+#	# MOVE to ProtectiveDomain class. See also reasoning above for
+#	# draw_reaction_time_tuple
+#        self.k_tot = 0
+#
+#        if not self.reactionrules:
+#            return
+#
+#        for rr in self.reactionrules:
+#            self.k_tot += rr.k
+#
 #    def draw_reaction_rule(self):
 #	# MOVE to ProtectiveDomain class
 #        k_array = [rr.k for rr in self.reactionrules]
@@ -444,8 +444,16 @@ class InteractionSingle(Single):
 
 	self.shell_id = shell_id
         self.interactionrules = interactionrules	# the surface interaction 'reactions'
+	self.intrule = None
+	self.interaction_ktot = self.calc_ktot(interactionrules)
 	self.surface = surface				# The surface with which the particle is
 							# trying to interact
+
+    def get_interaction_rule(self):
+	if self.intrule == []:
+	    self.intrule = self.draw_reaction_rule(self.interactionrules)
+	return self.intrule
+    interactionrule = property(get_interaction_rule)
 
 	# There are defined here but are overloaded later
     def get_inner_dz_left(self):
@@ -547,10 +555,10 @@ class PlanarSurfaceInteraction(InteractionSingle):
 	# The green's function that also modelles the association of the particle
 	# with the planar surface.
 	# TODO choose interactionrule
-#        return GreensFunction1DRadAbs(self.D, self.interactionrule.k, self.z0,
-#				      -self.get_inner_dz_left(), self.get_inner_dz_right())
-        return GreensFunction1DRadAbs(self.D, 0, self.z0,
+        return GreensFunction1DRadAbs(self.D, self.interaction_ktot, self.z0,
 				      -self.get_inner_dz_left(), self.get_inner_dz_right())
+#        return GreensFunction1DRadAbs(self.D, 0, self.z0,
+#				      -self.get_inner_dz_left(), self.get_inner_dz_right())
 
     def draw_new_position(self, dt, event_type):
 	"""Draws a new position for the particle for a given event type at a given time
@@ -658,11 +666,8 @@ class CylindricalSurfaceInteraction(InteractionSingle):
     def iv_greens_function(self):
 	# Green's function used for the interaction
         # Interaction possible in r direction.
-        # TODO.
-        #k = self.interaction_rule.k
-        k = 0
         # TODO 2D.
-        return GreensFunction3DRadAbs(self.D, k, self.r0, self.get_inner_sigma(),
+        return GreensFunction3DRadAbs(self.D, self.interaction_ktot, self.r0, self.get_inner_sigma(),
 				      self.get_inner_a())
 
     def draw_new_position(self, dt, event_type):
