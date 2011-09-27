@@ -124,7 +124,7 @@ class Pair(ProtectiveDomain):
         inter-particle vector.
 
         """
-	# If the two particles have reacted this should return the
+	# TODO If the two particles have reacted this should return the
 	# new position twice
         new_com = self.draw_new_com(dt, event_type)
         new_iv = self.draw_new_iv(dt, r0, old_iv, event_type)
@@ -282,7 +282,7 @@ class SimplePair(Pair):
 	# we still have to make sure that the (non closest) NonInteractionSingles have
 	# the required space
         else:
-            assert isinstance(closest, (Pair, Multi, Surface, None.__class__))
+            assert isinstance(closest, (InteractionSingle, Pair, Multi, Surface, None.__class__))
             shell_size = closest_distance 
 
 
