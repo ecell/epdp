@@ -638,8 +638,14 @@ class EGFRDSimulator(ParticleSimulatorBase):
 	# This takes care of the identity change when a single particle decays into
 	# one or a number of other particles
 	# TODO This can also be used when a particle falls off a surface.
+
+	# THis is supposed to take care of the movement and identity change that
+	# happens when an Interaction event has occurred
         if interaction_flag == True:
             raise NotImplementedError
+	
+
+
         reactant_species_radius = single.pid_particle_pair[1].radius
         oldpos = single.pid_particle_pair[1].position
         current_structure = single.structure
@@ -783,6 +789,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
         if(single.event_type == EventType.SINGLE_REACTION or
            single.event_type == EventType.IV_INTERACTION):
+	    # An identity change of the particle needs to take place
+
             # Single reaction or interaction, and not a burst. Only 
             # update particle, single is removed anyway.
             self.move_single_particle(single, newpos)
@@ -1185,12 +1193,10 @@ class EGFRDSimulator(ParticleSimulatorBase):
             except NoSpace:
                 self.reject_single_reaction(reactingsingle)
 
-            return
-        
         #
         # 2. Pair reaction
         #
-        if pair.event_type == EventType.IV_REACTION:
+        elif pair.event_type == EventType.IV_REACTION:
             self.world.remove_particle(single1.pid_particle_pair[0])
             self.world.remove_particle(single2.pid_particle_pair[0])
 
@@ -1203,15 +1209,17 @@ class EGFRDSimulator(ParticleSimulatorBase):
 	    elif len(rr.products) == 1:
                 species3 = self.world.get_species(rr.products[0])
                 # calculate new position
+		# TODO make this just one of the positions of the particles (they are on top of eachother)
                 event_type = pair.event_type
                 new_com = pair.draw_new_com(pair.dt, event_type)
+                new_com = self.world.apply_boundary(new_com)
 
+		# not sure what this check does 
                 if __debug__:
                     shell_size = pair.get_shell_size()
                     assert self.world.distance(old_com, new_com) < \
                            shell_size - species3.radius
 
-                new_com = self.world.apply_boundary(new_com)
 
 		# make product particle
                 particle = self.world.new_particle(species3.id, new_com)
@@ -1231,8 +1239,6 @@ class EGFRDSimulator(ParticleSimulatorBase):
             if __debug__:
                 log.info('product = %s' % product)
             self.remove_domain(pair)
-
-            return
 
         #
         # 3a. Escaping through a_r.
