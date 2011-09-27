@@ -317,7 +317,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
         # Dispatch is a dictionary (hash) of what function to use to fire
         # different classes of shells (see bottom egfrd.py) 
         # event.data holds the object (Single, Pair, Multi) that is associated with the next event.
-        # e.g. "if class is Single, then fire_single" ~ MW
+        # e.g. "if class is Single, then proc_event_by_single" ~ MW
         for klass, f in self.dispatch:
             if isinstance(domain, klass):
                 f(self, domain)		# fire the correct method for the class (e.g. fire_singel(self, Single))
@@ -577,7 +577,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
             single1, single2 = self.burst_pair(domain)
             # Don't schedule events in burst/propagate_pair, because 
             # scheduling is different after a single reaction in 
-            # fire_pair.
+            # proc_event_by_pair.
             self.add_domain_event(single1)
             self.add_domain_event(single2)
             self.remove_event(domain)
@@ -813,7 +813,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
                                  single.pid_particle_pair[1].radius)
                 return single
 
-    def fire_single(self, single):
+    def proc_event_by_single(self, single):
 	### 1. Process event produced by the single
 	### 1.1 Special cases (shortcuts)
         # In case nothing is scheduled to happen: do nothing; 
@@ -1131,7 +1131,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
         single.dt, single.event_type = single.determine_next_event()
         single.last_time = self.t
 
-    def fire_pair(self, pair):
+    def proc_event_by_pair(self, pair):
         assert self.check_obj(pair)
 
         single1 = pair.single1
@@ -1250,7 +1250,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
         return
 
-    def fire_multi(self, multi):
+    def proc_event_by_multi(self, multi):
         self.multi_steps[3] += 1  # multi_steps[3]: total multi steps
         multi.step()
 
@@ -1384,9 +1384,9 @@ class EGFRDSimulator(ParticleSimulatorBase):
             newpos2 = particle2[1].position
 
         if __debug__:
-            log.debug("fire_pair: #1 { %s: %s => %s }" %
+            log.debug("proc_event_by_pair: #1 { %s: %s => %s }" %
                       (single1, pos1, newpos1))
-            log.debug("fire_pair: #2 { %s: %s => %s }" %
+            log.debug("proc_event_by_pair: #2 { %s: %s => %s }" %
                       (single2, str(pos2), str(newpos2)))
 
         single1.initialize(self.t)
@@ -2113,9 +2113,9 @@ rejected moves = %d
         return (num_singles, num_pairs, num_multis)
 
     dispatch = [
-        (Single, fire_single),
-        (Pair, fire_pair),
-        (Multi, fire_multi)
+        (Single, proc_event_by_single),
+        (Pair, proc_event_by_pair),
+        (Multi, proc_event_by_multi)
         ]
 
 
