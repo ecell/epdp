@@ -365,8 +365,9 @@ class EGFRDSimulator(ParticleSimulatorBase):
         # CylindricalSurfaceSingle.
         single = create_default_single(domain_id, pid_particle_pair, 
                                        shell_id, rrs, structure)
+
         assert isinstance(single, NonInteractionSingle)
-        single.initialize(self.t)
+        single.initialize(self.t)		# set the initial event and event time
         self.domains[domain_id] = single
 
 	# 3. update the proper shell container
@@ -575,12 +576,6 @@ class EGFRDSimulator(ParticleSimulatorBase):
             bursted = [domain, ]
         elif isinstance(domain, Pair):  # Pair
             single1, single2 = self.burst_pair(domain)
-            # Don't schedule events in burst/propagate_pair, because 
-            # scheduling is different after a single reaction in 
-            # proc_event_by_pair.
-            self.add_domain_event(single1)
-            self.add_domain_event(single2)
-            self.remove_event(domain)
             bursted = [single1, single2]
         else:  # Multi
 #            bursted = self.burst_multi(domain)
@@ -1134,6 +1129,10 @@ class EGFRDSimulator(ParticleSimulatorBase):
     def proc_event_by_pair(self, pair):
         assert self.check_obj(pair)
 
+	# check that the time is the currect simulator time 
+        assert self.t >= pair.last_time
+        assert self.t == pair.last_time + pair.dt
+
         single1 = pair.single1
         single2 = pair.single2
         particle1 = single1.pid_particle_pair
@@ -1173,7 +1172,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
             else:
                 theothersingle = single1
 
-            self.burst_pair(pair)	# TODO this should be a propagate -> cleaner
+	    # note method has side effect on single1 and single2
+            self.propagate_pair(pair)
 
             self.add_domain_event(theothersingle)
 
@@ -1240,9 +1240,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
         #
         elif(pair.event_type == EventType.IV_ESCAPE or
              pair.event_type == EventType.COM_ESCAPE):
-            dt = pair.dt
-            event_type = pair.event_type
-            single1, single2 = self.propagate_pair(pair, dt, event_type)
+            single1, single2 = self.propagate_pair(pair)
             self.add_domain_event(single1)
             self.add_domain_event(single2)
         else:
@@ -1287,66 +1285,66 @@ class EGFRDSimulator(ParticleSimulatorBase):
 #        return singles
 
     def burst_single(self, single):
-        # Sets next event time of single domain in such a way it will end 
-        # up at current time if fired, and then outputs newly created 
-        # single that is result of firing old single
+        # Sets next event time of 'single' to current time and event to burst event
+        # returns a new single that is the result of firing the old single
+	# new single also has proper zero shell and is rescheduled
+
+	if __debug__:
+	    log.debug('burst single: %s', single)
 
         # Check correct timeline ~ MW
-        assert self.t >= single.last_time
+        assert single.last_time <= self.t
         assert self.t <= single.last_time + single.dt
 
-        # record important single data ~ MW
-#        oldpos = single.shell.shape.position
-#        old_shell_size = single.get_shell_size()
-
-        particle_radius = single.pid_particle_pair[1].radius
-
         # Override dt, burst happens before single's scheduled event.
+        # Override event_type. 
         single.dt = self.t - single.last_time
-        # Override event_type. Always call gf.drawR on BURST.
         single.event_type = EventType.BURST
+
         newsingle = self.propagate_single(single)
 
         newpos = newsingle.pid_particle_pair[1].position
-        # Check if stays within domain ~MW
-#        assert self.world.distance(newpos, oldpos) <= \
-#               old_shell_size - particle_radius
-        # Displacement check is in NonInteractionSingle.draw_new_position.
+        # TODO? Check if stays within domain ~MW
 
         if isinstance(single, InteractionSingle):
-            # Removing the event has to be done for *bursting* 
-            # *Interaction*Singles, not for propagating 
-            # InteractionSingles nor for bursting 
-            # NonInteractionSingles.
+            # When bursting an InteractionSingle, the domain changes from Interaction
+	    # NonInteraction domain. This needs to be reflected in the event 
             self.remove_event(single)
             self.add_domain_event(newsingle)
         else:
             assert single == newsingle
             self.update_domain_event(self.t, single)
 
+        particle_radius = single.pid_particle_pair[1].radius
         assert newsingle.shell.shape.radius == particle_radius
 
-        # Returned single is different from original single in the case 
-        # of an InteractionSingle only.
         return newsingle
 
     def burst_pair(self, pair):
-	# TODO this should also schedule the resulting Singles and remove the
-	# Pair event -> cleaner
+	# Sets next event time of 'pair' to current time and event to burst event
+	# returns two new singles that are the result of firing the pair
+	# new singles also have proper zero shell and are rescheduled
+
         if __debug__:
             log.debug('burst_pair: %s', pair)
 
-        assert self.t >= pair.last_time
+	# make sure that the current time is between the last time and the event time
+        assert pair.last_time <= self.t
         assert self.t <= pair.last_time + pair.dt
 
-        dt = self.t - pair.last_time 
-        # Override event_type. Always call sgf.drawR and pgf.drawR on BURST.
-        event_type = EventType.BURST
-        single1, single2 = self.propagate_pair(pair, dt, event_type)
+        # Override event time and event_type. 
+        pair.dt = self.t - pair.last_time 
+        pair.event_type = EventType.BURST
+
+        single1, single2 = self.propagate_pair(pair)
+
+        self.remove_event(pair)		# remove the event -> was still in the scheduler
+        self.add_domain_event(single1)
+        self.add_domain_event(single2)
 
         return single1, single2
 
-    def propagate_pair(self, pair, dt, event_type):
+    def propagate_pair(self, pair):
         single1 = pair.single1
         single2 = pair.single2
 
@@ -1356,7 +1354,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
         pos1 = particle1[1].position
         pos2 = particle2[1].position
 
-        if dt > 0.0:
+        if pair.dt > 0.0:
             D1 = particle1[1].D
             D2 = particle2[1].D
 
@@ -1367,9 +1365,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
             old_com = pair.com
 
-            newpos1, newpos2 = pair.draw_new_positions(dt, r0, 
-                                                     old_inter_particle, 
-                                                     event_type)
+            newpos1, newpos2 = pair.draw_new_positions(pair.dt, r0, old_inter_particle, 
+                                                       pair.event_type)
 
             newpos1 = self.world.apply_boundary(newpos1)
             newpos2 = self.world.apply_boundary(newpos2)
@@ -1380,6 +1377,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
             assert self.check_pair_pos(pair, newpos1, newpos2, old_com,
                                        pair.get_shell_size())
         else:
+	# no time has passed
             newpos1 = particle1[1].position
             newpos2 = particle2[1].position
 
