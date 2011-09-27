@@ -124,16 +124,22 @@ class Pair(ProtectiveDomain):
         inter-particle vector.
 
         """
-	# TODO If the two particles have reacted this should return the
+	# If the two particles have reacted this returns the
 	# new position twice
         new_com = self.draw_new_com(dt, event_type)
-        new_iv = self.draw_new_iv(dt, r0, old_iv, event_type)
 
-        D1 = self.pid_particle_pair1[1].D
-        D2 = self.pid_particle_pair2[1].D
+	if event_type == EventType.IV_REACTION:
+	    newpos1 = new_com
+	    newpos2 = new_com
+	else:
+            new_iv = self.draw_new_iv(dt, r0, old_iv, event_type)
 
-        newpos1 = new_com - new_iv * (D1 / self.D_tot)
-        newpos2 = new_com + new_iv * (D2 / self.D_tot)
+            D1 = self.pid_particle_pair1[1].D
+            D2 = self.pid_particle_pair2[1].D
+
+            newpos1 = new_com - new_iv * (D1 / self.D_tot)
+            newpos2 = new_com + new_iv * (D2 / self.D_tot)
+
         return newpos1, newpos2
 
     def draw_new_com(self, dt, event_type):
