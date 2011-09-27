@@ -392,9 +392,10 @@ class EGFRDSimulator(ParticleSimulatorBase):
 	species = self.world.get_species(species_id)
 
         reaction_rules = self.network_rules.query_reaction_rule(species_id)
-        #interaction_type = self.query_interaction_rule(species_id, surface)
         # TODO.
-        interaction_rules = None
+        #interaction_rules = self.network_rules.query_reaction_rule(species_id, surface)
+        interaction_rules = []
+
         structure = self.world.get_structure(species.structure_id)
 
 	particle_pos = pid_particle_pair[1].position
@@ -447,17 +448,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
         shell_id = self.shell_id_generator()
 
         # Select 1 reaction type out of all possible reaction types between the two particles.
-        rrs = self.network_rules.query_reaction_rule(
-                pid_particle_pair1[1].sid,
-                pid_particle_pair2[1].sid)
-#        k_array = numpy.add.accumulate([rr.k for rr in rrs])
-#        k_max = k_array[-1]
-#        rnd = myrandom.uniform()
-#        i = numpy.searchsorted(k_array, rnd * k_max)
-#        rr = rrs[i]
-        # The probability for this reaction to happen is proportional to 
-        # the sum of the rates of all the possible reaction types. 
-#        rr.ktot = k_max
+        rrs = self.network_rules.query_reaction_rule(pid_particle_pair1[1].sid,
+					             pid_particle_pair2[1].sid)
 
         # Get structure (region or surface) where particle1 lives (assuming particle2
 	# also lives here -> TODO).
