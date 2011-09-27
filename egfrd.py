@@ -605,12 +605,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
         return bursted
 
-    def clear_volume(self, pos, radius, ignore=[]):
+    def burst_volume(self, pos, radius, ignore=[]):
         """ Burst domains within a certain volume and give their ids.
-
-        This function actually has a confusing name, as it only bursts 
-        domains within a certain radius, and gives their ids. It doesn't
-        remove the particles or something like that.
 
         (Bursting means it propagates the particles within the domain until
         the current time, and then creates a new, minimum-sized domain.)
@@ -620,7 +616,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
             - radius: radius of area to be "bursted"
             - ignore: domains that should be ignored, none by default.
         """ # ~ MW
-	# TODO clear_volume now always assumes a spherical volume to burst.
+	# TODO burst_volume now always assumes a spherical volume to burst.
 	# It is inefficient to burst on the 'other' side of the membrane or to
 	# burst in a circle, when you want to make a new shell in the membrane.
 	# Then we may want to burst in a cylindrical volume, not a sphere
@@ -667,7 +663,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
             product_species = self.world.get_species(rt.products[0])
 
             if reactant_species_radius < product_species.radius:
-                self.clear_volume(oldpos, product_species.radius)
+                self.burst_volume(oldpos, product_species.radius)
 
             if self.world.check_overlap((oldpos, product_species.radius),
                                         single.pid_particle_pair[0]):
@@ -703,7 +699,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
             rad = max(particle_radius12 * (D1 / D12) + particle_radius1,
                       particle_radius12 * (D2 / D12) + particle_radius2)
 
-            self.clear_volume(oldpos, rad)
+            self.burst_volume(oldpos, rad)
 
             for _ in range(self.dissociation_retry_moves):
                 vector = _random_vector(current_structure, particle_radius12 *
