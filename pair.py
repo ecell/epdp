@@ -2,11 +2,15 @@ from _gfrd import *
 from constants import EventType
 from _greens_functions import *
 from greens_function_wrapper import *
+
 from domain import (
     Domain,
     ProtectiveDomain)
 from single import (
-    NonInteractionSingle)
+    NonInteractionSingle,
+    InteractionSingle)
+from multi import (
+    Multi)
 
 __all__ = [
     'CylindricalSurfacePair',
