@@ -659,6 +659,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
             
         elif len(rt.products) == 1:
+	# TODO product particle can live on different structure
             
             product_species = self.world.get_species(rt.products[0])
 
@@ -684,6 +685,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
             
         elif len(rt.products) == 2:
+	# TODO (one of the) product particles can live on different structure
             product_species1 = self.world.get_species(rt.products[0])
             product_species2 = self.world.get_species(rt.products[1])
             
@@ -815,15 +817,32 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
     def proc_event_by_single(self, single):
 	### 1. Process event produced by the single
+
+        if __debug__:
+            log.info('%s' % single.event_type)
+            log.info('single = %s' % single)
+
 	### 1.1 Special cases (shortcuts)
+
         # In case nothing is scheduled to happen: do nothing; 
-        # results also in disappearance from scheduler. (?)
+        # No event for the single is now in scheduler->FIXME.
         if single.dt == numpy.inf:
             return 
-	# Else continue
 
-        # check timeline (??)
+        # check that the event time of the single (last_time + dt) is equal to the
+	# simulator time
         assert (abs(single.dt + single.last_time - self.t) <= 1e-18 * self.t)
+
+        # Handle immobile case (what event has taken place to get here?!).
+        if single.getD() == 0:
+	    # The domain has not produced an decay reaction event and is immobile
+            # ->no propagation, no other changes just calculate next reaction time
+	    # and reschedule the single. So this also takes care of the domain making part
+            single.dt, single.event_type = single.determine_next_event() 
+            single.last_time = self.t
+            self.add_domain_event(single)
+            return
+
 
         # If the single had a decay reaction.
         if single.event_type == EventType.SINGLE_REACTION:
@@ -843,25 +862,6 @@ class EGFRDSimulator(ParticleSimulatorBase):
                 self.reject_single_reaction(single)
 
             return
-
-	# Else the event was either an ESCAPE (NonInteractionSingle or InteractionSingle),
-	# or IV_EVENT (InteractionSingle only), NO BURST event comes up here!
-
-
-        if __debug__:
-            log.info('%s' % single.event_type)
-            log.info('single = %s' % single)
-
-        # Handle immobile case (what event has taken place to get here?!).
-        if single.getD() == 0:
-	    # The domain has not produced an decay reaction event and is immobile
-            # ->no propagation, no other changes just calculate next reaction time
-	    # and reschedule the single. So this also takes care of the domain making part
-            single.dt, single.event_type = single.determine_next_event() 
-            single.last_time = self.t
-            self.add_domain_event(single)
-            return
-        
 
 	### 1.2 General case
 	# There is a non-trivial event time for the domain
