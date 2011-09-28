@@ -124,6 +124,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
 						# the radius in which the NonInteractionSingle will burst.
 	self.MAX_NUM_DT0_STEPS = 10000
 
+	self.MAX_TIME_STEP = 10
+
 	# used datastructrures
         self.scheduler = EventScheduler()	# contains the events. Note that every domains has exactly one event
 
@@ -301,7 +303,10 @@ class EGFRDSimulator(ParticleSimulatorBase):
 	#
         id, event = self.scheduler.pop()
 	domain = self.domains[event.data]
-        self.t, self.last_event = event.time, event
+	if event.time == numpy.inf:
+	    self.t, self.last_event = self.MAX_TIME_STEP, event
+	else:
+	    self.t, self.last_event = event.time, event
 
         if __debug__:
             domain_counts = self.count_domains()
@@ -819,71 +824,79 @@ class EGFRDSimulator(ParticleSimulatorBase):
                 return single
 
     def proc_event_by_single(self, single):
-	### 1. Process event produced by the single
 
+	### log Single event
         if __debug__:
             log.info('%s' % single.event_type)
             log.info('single = %s' % single)
 
-	### 1.1 Special cases (shortcuts)
-
-        # In case nothing is scheduled to happen: do nothing; 
-        # No event for the single is now in scheduler->FIXME.
-        if single.dt == numpy.inf:
-            return 
-
-        # check that the event time of the single (last_time + dt) is equal to the
-	# simulator time
-        assert (abs(single.dt + single.last_time - self.t) <= 1e-18 * self.t)
-
-        # Handle immobile case (what event has taken place to get here?!).
-        if single.getD() == 0:
-	    # The domain has not produced an decay reaction event and is immobile
-            # ->no propagation, no other changes just calculate next reaction time
-	    # and reschedule the single. So this also takes care of the domain making part
-            single.dt, single.event_type = single.determine_next_event() 
-            single.last_time = self.t
-            self.add_domain_event(single)
-            return
 
 
-        # If the single had a decay reaction.
-        if single.event_type == EventType.SINGLE_REACTION:
-            if __debug__:
-                log.info('%s' % single.event_type)
-                log.info('reactant = %s' % single)
+	if single.is_reset():
+	### If no event event really happened and just need to make new domain
+	    self.make_new_domain(single)
+	    # domain is already scheduled in make_new_domain
 
-            self.single_steps[single.event_type] += 1
+	else:
+	### 1. Process event produced by the single
+
+	    ### 1.1 Special cases (shortcuts)
+            # In case nothing is scheduled to happen: do nothing and just reschedule
+            if single.dt == numpy.inf:
+        	self.add_domain_event(single)
+                return 
+
+            # check that the event time of the single (last_time + dt) is equal to the
+	    # simulator time
+            assert (abs(single.dt + single.last_time - self.t) <= 1e-18 * self.t)
+
+            # Handle immobile case (what event has taken place to get here?!).
+            if single.getD() == 0:
+		# The domain has not produced an decay reaction event and is immobile
+		# ->no propagation, no other changes just calculate next reaction time
+	        # and reschedule the single. So this also takes care of the domain making part
+                single.dt, single.event_type = single.determine_next_event() 
+                single.last_time = self.t
+                self.add_domain_event(single)
+                return
 
 
-            single = self.propagate_single(single)
+            # If the single had a decay reaction.
+            if single.event_type == EventType.SINGLE_REACTION:
+                if __debug__:
+                    log.info('%s' % single.event_type)
+                    log.info('reactant = %s' % single)
 
-            try:
-                self.remove_domain(single)
-                self.fire_single_reaction(single)
-            except NoSpace:
-                self.reject_single_reaction(single)
-
-            return
-
-	### 1.2 General case
-	# There is a non-trivial event time for the domain
-        if single.dt != 0.0:
-            # Propagate this particle to the exit point on the shell.
-            single = self.propagate_single(single)
+                self.single_steps[single.event_type] += 1
 
 
-        # An interaction event is similar to a single reaction.
-        if single.event_type == EventType.IV_INTERACTION:
-            try:
-                self.remove_domain(single)
-                self.fire_single_reaction(single, interaction_flag=True)
-            except NoSpace:
-                self.reject_single_reaction(single)
+                single = self.propagate_single(single)
 
-            return
+                try:
+                    self.remove_domain(single)
+                    self.fire_single_reaction(single)
+                except NoSpace:
+                    self.reject_single_reaction(single)
 
-	self.make_new_domain(single)
+                return
+
+	    ### 1.2 General case
+	    # There is a non-trivial event time for the domain
+            if single.dt != 0.0:
+                # Propagate this particle to the exit point on the shell.
+                single = self.propagate_single(single)
+
+
+            # An interaction event is similar to a single reaction.
+            if single.event_type == EventType.IV_INTERACTION:
+                try:
+                    self.remove_domain(single)
+                    self.fire_single_reaction(single, interaction_flag=True)
+                except NoSpace:
+                    self.reject_single_reaction(single)
+
+                return
+
 	return
 
 
