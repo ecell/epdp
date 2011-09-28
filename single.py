@@ -456,6 +456,8 @@ class InteractionSingle(Single):
     interactionrule = property(get_interaction_rule)
 
 	# There are defined here but are overloaded later
+	# These ProtectiveDomains have a Cylindrical shell that is scaled in r and z
+	# Below methods go together with this property
     def get_inner_dz_left(self):
 	pass
 
