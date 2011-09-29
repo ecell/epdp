@@ -1367,23 +1367,26 @@ class EGFRDSimulator(ParticleSimulatorBase):
         # Override event_type. 
         single.dt = self.t - single.last_time
         single.event_type = EventType.BURST
+	self.remove_event(single)
 
-        newsingle = self.propagate_single(single)
+        newsingle = self.propagate_single(single)	# TODO this can now also just be a proc_event_by_single
+	self.add_domain_event(newsingle)
 
-        newpos = newsingle.pid_particle_pair[1].position
-        # TODO? Check if stays within domain ~MW
-
-        if isinstance(single, InteractionSingle):
-            # When bursting an InteractionSingle, the domain changes from Interaction
-	    # NonInteraction domain. This needs to be reflected in the event 
-            self.remove_event(single)
-            self.add_domain_event(newsingle)
-        else:
-            assert single == newsingle
-            self.update_domain_event(self.t, single)
-
-        particle_radius = single.pid_particle_pair[1].radius
-        assert newsingle.shell.shape.radius == particle_radius
+# NOTE Be inefficient for just now and don't reuse the event in the schedules
+#        newpos = newsingle.pid_particle_pair[1].position
+#        # TODO? Check if stays within domain ~MW
+#
+#        if isinstance(single, InteractionSingle):
+#            # When bursting an InteractionSingle, the domain changes from Interaction
+#	    # NonInteraction domain. This needs to be reflected in the event 
+#            self.remove_event(single)
+#            self.add_domain_event(newsingle)
+#        else:
+#            assert single == newsingle
+#            self.update_domain_event(self.t, single)
+#
+#        particle_radius = single.pid_particle_pair[1].radius
+#        assert newsingle.shell.shape.radius == particle_radius
 
         return newsingle
 
@@ -1402,10 +1405,9 @@ class EGFRDSimulator(ParticleSimulatorBase):
         # Override event time and event_type. 
         pair.dt = self.t - pair.last_time 
         pair.event_type = EventType.BURST
-
-        single1, single2 = self.propagate_pair(pair)
-
         self.remove_event(pair)		# remove the event -> was still in the scheduler
+
+        single1, single2 = self.propagate_pair(pair)	# TODO this can now also just be a proc_event_by_pair
         self.add_domain_event(single1)
         self.add_domain_event(single2)
 
