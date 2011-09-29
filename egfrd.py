@@ -646,12 +646,16 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
 
 	# 0. get reactant info
-        oldpos = single.pid_particle_pair[1].position
+        oldpos        = single.pid_particle_pair[1].position
+	oldspecies_id = single.pid_particle_pair[1].sid
         reactant_species_radius = single.pid_particle_pair[1].radius
         current_structure = single.structure
-        rt = single.reactionrule
+        rr = single.reactionrule
 
-        if len(rt.products) == 0:
+	# 1. remove the particle
+#        self.world.remove_particle(single.pid_particle_pair[0])
+
+        if len(rr.products) == 0:
             
 	    # 1. No products, no info
 	    # 2. No space required
@@ -661,14 +665,14 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
 	    # 5. No new single to be made
 	    # 6. Log the change
-            self.last_reaction = (rt, (single.pid_particle_pair[1], None), [])
+            self.last_reaction = (rr, (single.pid_particle_pair[1], None), [])
 
             
-        elif len(rt.products) == 1:
+        elif len(rr.products) == 1:
 	# TODO product particle can live on different structure
             
 	    # 1. get product info
-            product_species = self.world.get_species(rt.products[0])
+            product_species = self.world.get_species(rr.products[0])
 
             # 2. make space for the products.
             if reactant_species_radius < product_species.radius:
@@ -692,17 +696,17 @@ class EGFRDSimulator(ParticleSimulatorBase):
 	    # 6. Log the change
             if __debug__:
                 log.info('product = %s' % newsingle)
-            self.last_reaction = (rt, (single.pid_particle_pair[1], None),
+            self.last_reaction = (rr, (single.pid_particle_pair[1], None),
                                   [newparticle])
 
 
             
-        elif len(rt.products) == 2:
+        elif len(rr.products) == 2:
 	# TODO (one of the) product particles can live on different structure
 
 	    # 1. get product info
-            product_species1 = self.world.get_species(rt.products[0])
-            product_species2 = self.world.get_species(rt.products[1])
+            product_species1 = self.world.get_species(rr.products[0])
+            product_species2 = self.world.get_species(rr.products[1])
             
             D1 = product_species1.D
             D2 = product_species2.D
@@ -768,7 +772,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
             if __debug__:
                 log.info('product1 = %s\nproduct2 = %s' % 
                      (newsingle1, newsingle2))
-            self.last_reaction = (rt, (single.pid_particle_pair[1], None),
+            self.last_reaction = (rr, (single.pid_particle_pair[1], None),
                                   [pid_particle_pair1, pid_particle_pair2])
 
 
@@ -1169,10 +1173,10 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
         single1 = pair.single1
         single2 = pair.single2
-        particle1 = single1.pid_particle_pair
-        particle2 = single2.pid_particle_pair
-        pos1 = particle1[1].position
-        pos2 = particle2[1].position
+        pid_particle_pair1 = single1.pid_particle_pair
+        pid_particle_pair2 = single2.pid_particle_pair
+        pos1 = pid_particle_pair1[1].position
+        pos2 = pid_particle_pair2[1].position
         
         if pair.event_type == EventType.IV_EVENT:
             # Draw actual pair event for iv at very last minute.
@@ -1223,47 +1227,71 @@ class EGFRDSimulator(ParticleSimulatorBase):
         # 2. Pair reaction
         #
         elif pair.event_type == EventType.IV_REACTION:
-            self.world.remove_particle(single1.pid_particle_pair[0])
-            self.world.remove_particle(single2.pid_particle_pair[0])
 
+            # calculate new position
+            new_com = pair.draw_new_com(pair.dt, pair.event_type)
+            new_com = self.world.apply_boundary(new_com)
+
+	    # 0. get reactant info
 	    rr = pair.draw_reaction_rule(pair.interparticle_rrs)
+	    reactant1_species_id = pid_particle_pair1[1].sid
+	    reactant2_species_id = pid_particle_pair2[1].sid
+
+	    # 1. remove the particles
 
             if len(rr.products) == 0:
-		# no product particles, nothing new to be made
-                product = []
+
+		# 1. no product particles, no info
+		# 2. No space required
+		# 3. No space required
+		# 4. process the change (remove particles, make new ones)
+                self.world.remove_particle(pid_particle_pair1[0])
+                self.world.remove_particle(pid_particle_pair2[0])
+		products = []
+
+		# 5. No new single to be made
+		# 6. Log the change
+                self.last_reaction = (rr, (pid_particle_pair1[1], pid_particle_pair2[1]), products)
 
 	    elif len(rr.products) == 1:
-                species3 = self.world.get_species(rr.products[0])
-                # calculate new position
-		# TODO make this just one of the positions of the particles (they are on top of eachother)
-                event_type = pair.event_type
-                new_com = pair.draw_new_com(pair.dt, event_type)
-                new_com = self.world.apply_boundary(new_com)
 
-		# not sure what this check does 
-                if __debug__:
-                    shell_size = pair.get_shell_size()
-                    assert self.world.distance(old_com, new_com) < \
-                           shell_size - species3.radius
+		# 1. get product info
+                product_species = self.world.get_species(rr.products[0])
 
+		# 1.5 no change in position due to reaction
+		# position = new_com
 
-		# make product particle
-                particle = self.world.new_particle(species3.id, new_com)
+		# 2. make space for products
+		# if the product particle sticks out of the shell
+		if self.world.distance(old_com, new_com) > (pair.get_shell_size() - product_species.radius):
+		    self.burst_volume(new_com, product_species.radius)
 
-		# create a new domain for the new particle
-                product = self.create_single(particle)
-		# schedule domain
-                self.add_domain_event(product)
+		    # 3. check that there is space for the products
+		    if self.world.check_overlap((new_com, product_species.radius), ):
+			if __debug__:
+	                    log.info('no space for product particle.')
+        	        raise NoSpace()
 
-		# update counters
-                self.reaction_events += 1
-                self.last_reaction = (rr, (particle1, particle2),
-                                      [particle])
+		# 4. process the changes (remove particle, make new ones)
+                self.world.remove_particle(pid_particle_pair[0])
+                self.world.remove_particle(pid_particle_pair[0])
+                particle = self.world.new_particle(product_species.id, new_com)
+		products = [particle, ]
+
+		# 5. make a new single and schedule
+                single = self.create_single(particle)
+                self.add_domain_event(single)
+
+		# 6. Log the change
+            	if __debug__:
+                    log.info('product = %s' % single)
+                self.last_reaction = (rr, (pid_particle_pair1, pid_particle_pair2),
+                                      products)
             else:
                 raise NotImplementedError('num products >= 2 not supported.')
 
-            if __debug__:
-                log.info('product = %s' % product)
+	    # 7. update counter
+            self.reaction_events += 1
             self.remove_domain(pair)
 
         #
@@ -1272,9 +1300,14 @@ class EGFRDSimulator(ParticleSimulatorBase):
         #
         elif(pair.event_type == EventType.IV_ESCAPE or
              pair.event_type == EventType.COM_ESCAPE):
+
+	    # get new positions for particles, move them and make singles
             single1, single2 = self.propagate_pair(pair)
+
+	    # reschedule single domains
             self.add_domain_event(single1)
             self.add_domain_event(single2)
+
         else:
             raise SystemError('Bug: invalid event_type.')
 
