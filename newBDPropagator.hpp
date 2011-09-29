@@ -20,6 +20,8 @@
 #include "utils/get_default_impl.hpp"
 #include "Logger.hpp"
 
+#include <iostream>
+
 template<typename Ttraits_>
 class newBDPropagator
 {
@@ -57,7 +59,7 @@ public:
         Trange_ const& particles)
         : tx_(tx), rules_(rules), rng_(rng), dt_(dt),
           max_retry_count_(max_retry_count), rrec_(rrec), vc_(vc),
-          queue_(), rejected_move_count_(0), reaction_length_( sqrt( 4 * 1E-12 * dt ) )
+          queue_(), rejected_move_count_(0), reaction_length_( sqrt( 4000 * 1E-12 * dt ) )
     {
         call_with_size_if_randomly_accessible(
             boost::bind(&particle_id_vector_type::reserve, &queue_, _1),
@@ -102,57 +104,38 @@ public:
         position_type const displacement( tx_.get_structure(species.structure_id())->
                                             bd_displacement(species.v() * dt_, std::sqrt(2.0 * species.D() * dt_), rng_) );
 
-        position_type const new_pos(
-            tx_.apply_boundary(
-                add(pp.second.position(), displacement)));
+        position_type const new_pos(tx_.apply_boundary( add( pp.second.position(), displacement ) ));
 
 	    /*Use a spherical shape with radius = particle_radius + reaction_length.
 	      We use it to check for overlaps with other particels (and surfaces).*/
         boost::scoped_ptr<particle_id_pair_and_distance_list> overlapped(
             tx_.check_overlap(particle_shape_type( new_pos, species.radius() + reaction_length_ ), pp.first));
+                     
         switch (overlapped ? overlapped->size(): 0)
         {
         case 0:
-            {
-                particle_id_pair particle_to_update( pp.first, 
-                        particle_type(species.id(), particle_shape_type(new_pos, species.radius()), species.D()) );    
-
-                if (vc_)
-                {
-                    if (!(*vc_)(particle_to_update.second.shape(), 
-                            particle_to_update.first))
-                    {
-                        log_.info("propagation move rejected.");
-                        return true;
-                    }
-                }
-
-                tx_.update_particle(particle_to_update);
-                return true;
-            }
+            break;
 
         case 1:
+        {
+            particle_id_pair_and_distance const& closest(overlapped->at(0));
+            length_type r01( pp.second.radius() + closest.first.second.radius() );
+            
+            /* If the particle cores overlapped, the move is rejected but the particles can still react. */
+		    if( closest.second < pp.second.radius() )
             {
-                particle_id_pair_and_distance const& closest(overlapped->at(0));
-                length_type r01( pp.second.radius() + closest.first.second.radius() );
+                LOG_DEBUG(("Hard core collision with a particle %s. Particle bounced", boost::lexical_cast<std::string>(closest.first.first).c_str()));
+		        ++rejected_move_count_;
 
-                /* Check if we generated an overlap of the particle cores. If so, new_pos -> pp.pos */
-		        if( closest.second < r01)
-                {
-                    LOG_DEBUG(("Hard core collision with a particle %s. particle bounced", boost::lexical_cast<std::string>(closest.first.first).c_str()));
-		            ++rejected_move_count_;
-
-                    /* If the particle was outside the reation volume before the try move, nothing is to be done and we exit the propagator.*/
-                    if(tx_.distance( pp.second.position(), closest.first.second.position() ) > r01 + reaction_length_ )
-    		            return true;
-
-		        }
-
-                try
+                /* If the particle was outside the reaction volume before the move, nothing is to be done for this particle => return*/
+                if(tx_.distance( pp.second.position(), closest.first.second.position() ) > r01 + reaction_length_ )
+    		        return true;
+    		        
+    		    try
                 {
                     if (!attempt_reaction(pp, closest.first))
                     {
-                        LOG_DEBUG(("Reaction attempt with a nonreactive particle %s.", boost::lexical_cast<std::string>(closest.first.first).c_str()));
+                        LOG_DEBUG(("Bounced particle attempted a reaction with a nonreactive particle %s.", boost::lexical_cast<std::string>(closest.first.first).c_str()));
                         ++rejected_move_count_;
                     }
                 }
@@ -161,15 +144,49 @@ public:
                     log_.info("second-order reaction rejected (reason: %s)", reason.what());
                     ++rejected_move_count_;
                 }
+                /* reject the move even if the reaction has not occurred */    
+                return true;
             }
-            /* reject the move even if the reaction has not occurred */
-            return true;
+            else
+            {
+                
+                try
+                {
+                    if( attempt_reaction(pp, closest.first) )
+                        return true;
+
+                    LOG_DEBUG(("Non-bounced particle attempted a reaction with a nonreactive particle %s.", boost::lexical_cast<std::string>(closest.first.first).c_str()));
+
+                }
+                catch (propagation_error const& reason)
+                {
+                    log_.info("second-order reaction rejected (reason: %s)", reason.what());
+                    ++rejected_move_count_;
+                }                    
+            }
+            break;              
+        }
 
         default:
             log_.info("collision involving two or more particles; move rejected");
             ++rejected_move_count_;
             return true;
         }
+        
+        particle_id_pair particle_to_update( pp.first, 
+                    particle_type(species.id(), particle_shape_type(new_pos, species.radius()), species.D()) );
+                
+        if (vc_)
+        {
+            if (!(*vc_)(particle_to_update.second.shape(), particle_to_update.first))
+            {
+                log_.info("propagation move rejected.");
+                return true;
+            }
+        }
+                
+        tx_.update_particle(particle_to_update);
+        return true;
     }
 
     std::size_t get_rejected_move_count() const

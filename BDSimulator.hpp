@@ -43,7 +43,7 @@ public:
 
     BDSimulator(boost::shared_ptr<world_type> world, 
                 boost::shared_ptr<network_rules_type const> network_rules,
-                rng_type& rng, Real dt_factor = 1.,
+                rng_type& rng, Real dt_factor = 1.0E-5,
                 int dissociation_retry_moves = 1)
         : base_type(world, network_rules, rng),
           dt_factor_(dt_factor), num_retries_(dissociation_retry_moves)
@@ -92,14 +92,20 @@ public:
         }
         return gsl_pow_2(radius_min * 2) / (D_max * 2);
     }
+    
+    static Real determine_reaction_length(world_type const& world, time_type dt)
+    {
+        //TODO
+        return sqrt( 2 * 1E-12 * dt );
+    }
 
 protected:
     void _step(time_type dt)
     {
         {
             newBDPropagator<traits_type> propagator(
-                base_type::world_,
-                base_type::network_rules_,
+                *base_type::world_,
+                *base_type::network_rules_,
                 base_type::rng_,
                 dt, num_retries_,
                 base_type::rrec_.get(), 0,
