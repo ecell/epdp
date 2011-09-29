@@ -598,12 +598,13 @@ class PlanarSurfaceInteraction(InteractionSingle):
 
 
 	    if event_type == EventType.IV_INTERACTION:
-		z = z_surface
+		# also move the particle into the surface
+		z = z_surface - self.pid_particle_pair[1].radius
 	    elif event_type == EventType.IV_ESCAPE:
 		z = z_not_surface
 	    else:
 	        gf_iv = self.iv_greens_function()
-        	z = draw_r_wrapper(gf_iv, dt, z_not_surface, z_surface)
+        	z = draw_r_wrapper(gf_iv, dt, z_not_surface, z_surface)	# last two args= a, sigma
 
 	    vector_z = z * self.shell.shape.unit_z
 
@@ -611,6 +612,7 @@ class PlanarSurfaceInteraction(InteractionSingle):
 	    newpos = self.shell.shape.position + vector_r + vector_z
 
         return newpos
+
 
     def get_shell_size(self):
 	# REMOVE this method, it doesn't mean anything here.
