@@ -1173,8 +1173,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
         single1 = pair.single1
         single2 = pair.single2
-        pid_particle_pair1 = single1.pid_particle_pair
-        pid_particle_pair2 = single2.pid_particle_pair
+        pid_particle_pair1 = pair.pid_particle_pair
+        pid_particle_pair2 = pair.pid_particle_pair
         pos1 = pid_particle_pair1[1].position
         pos2 = pid_particle_pair2[1].position
         
@@ -1261,19 +1261,21 @@ class EGFRDSimulator(ParticleSimulatorBase):
 		# 1.5 no change in position due to reaction
 		# position = new_com
 
-		# 2. make space for products
-		# if the product particle sticks out of the shell
+		# 2.  make space for products
+		# 2.1 if the product particle sticks out of the shell
 		if self.world.distance(old_com, new_com) > (pair.get_shell_size() - product_species.radius):
 		    self.burst_volume(new_com, product_species.radius)
 
-		    # 3. check that there is space for the products
-		    if self.world.check_overlap((new_com, product_species.radius), ):
+		    # 3. check that there is space for the products ignoring the reactants
+		    if self.world.check_overlap((new_com, product_species.radius),
+						pid_particle_pair1[0],
+						pid_particle_pair2[0]):
 			if __debug__:
 	                    log.info('no space for product particle.')
         	        raise NoSpace()
 
 		# 4. process the changes (remove particle, make new ones)
-                self.world.remove_particle(pid_particle_pair[0])
+	        self.world.remove_particle(pid_particle_pair[0])
                 self.world.remove_particle(pid_particle_pair[0])
                 particle = self.world.new_particle(product_species.id, new_com)
 		products = [particle, ]
@@ -1410,60 +1412,67 @@ class EGFRDSimulator(ParticleSimulatorBase):
         return single1, single2
 
     def propagate_pair(self, pair):
-        single1 = pair.single1
-        single2 = pair.single2
+	# takes a pair and returns two singles after propagation
 
-        particle1 = single1.pid_particle_pair
-        particle2 = single2.pid_particle_pair
+        pid_particle_pair1 = pair.pid_particle_pair
+        pid_particle_pair2 = pair.pid_particle_pair
 
-        pos1 = particle1[1].position
-        pos2 = particle2[1].position
+        pos1 = pid_particle_pair1[1].position
+        pos2 = pid_particle_pair2[1].position
 
+	# if time has passed (should be always)
         if pair.dt > 0.0:
-            D1 = particle1[1].D
-            D2 = particle2[1].D
+#            D1 = pid_particle_pair1[1].D
+#            D2 = pid_particle_pair2[1].D
 
+	    # store for later check
+            old_com = pair.com
+
+
+	    # TODO this should be done when the pair is made -> passed to the constructor
             pos2t = self.world.cyclic_transpose(pos2, pos1)
             old_inter_particle = pos2t - pos1
             r0 = self.world.distance(pos1, pos2)
             assert feq(r0, length(old_inter_particle))
 
-            old_com = pair.com
-
+	    # draw the new positions of the particles
             newpos1, newpos2 = pair.draw_new_positions(pair.dt, r0, old_inter_particle, 
                                                        pair.event_type)
-
             newpos1 = self.world.apply_boundary(newpos1)
             newpos2 = self.world.apply_boundary(newpos2)
-            assert not self.world.check_overlap((newpos1, particle1[1].radius),
-                                                particle1[0], particle2[0])
-            assert not self.world.check_overlap((newpos2, particle2[1].radius),
-                                                particle1[0], particle2[0])
+
+	    # check that the particle do not overlap with any other particles in the world
+            assert not self.world.check_overlap((newpos1, pid_particle_pair1[1].radius),
+                                                pid_particle_pair1[0], pid_particle_pair2[0])
+            assert not self.world.check_overlap((newpos2, pid_particle_pair2[1].radius),
+                                                pid_particle_pair1[0], pid_particle_pair2[0])
+
+	    # some more consistency checking of the positions
             assert self.check_pair_pos(pair, newpos1, newpos2, old_com,
                                        pair.get_shell_size())
+
         else:
 	# no time has passed
-            newpos1 = particle1[1].position
-            newpos2 = particle2[1].position
+            newpos1 = pid_particle_pair1[1].position
+            newpos2 = pid_particle_pair2[1].position
 
-        if __debug__:
-            log.debug("proc_event_by_pair: #1 { %s: %s => %s }" %
-                      (single1, pos1, newpos1))
-            log.debug("proc_event_by_pair: #2 { %s: %s => %s }" %
-                      (single2, str(pos2), str(newpos2)))
+
+	# re-use single domains for particles
+        single1 = pair.single1
+        single2 = pair.single2
+
+        assert single1.domain_id not in self.domains
+        assert single2.domain_id not in self.domains
 
         single1.initialize(self.t)
         single2.initialize(self.t)
         
-        self.remove_domain(pair)
-        assert single1.domain_id not in self.domains
-        assert single2.domain_id not in self.domains
         self.domains[single1.domain_id] = single1
         self.domains[single2.domain_id] = single2
-        self.move_single(single1, newpos1, particle1[1].radius)
-        self.move_single(single2, newpos2, particle2[1].radius)
+        self.move_single(single1, newpos1, pid_particle_pair1[1].radius)
+        self.move_single(single2, newpos2, pid_particle_pair2[1].radius)
 
-	# TODO This is not very clear or clean now. Also doesn't support MixedPair
+	# Thoroughly check the sizes of the shells of the singles
         if __debug__:
             container = self.geometrycontainer.get_container(single1.shell)
             assert container[single1.shell_id].shape.radius == \
@@ -1477,11 +1486,22 @@ class EGFRDSimulator(ParticleSimulatorBase):
                 assert container[single2.shell_id].shape.half_length == \
                        single2.shell.shape.half_length
 
-        assert single1.shell.shape.radius == particle1[1].radius
-        assert single2.shell.shape.radius == particle2[1].radius
-
+        assert single1.shell.shape.radius == pid_particle_pair1[1].radius
+        assert single2.shell.shape.radius == pid_particle_pair2[1].radius
+	# even more checking
         assert self.check_obj(single1)
         assert self.check_obj(single2)
+	# Now finally we are convinced that the singles were actually made correctly
+
+	# Log the event
+        if __debug__:
+            log.debug("proc_event_by_pair: #1 { %s: %s => %s }" %
+                      (single1, str(pos1), str(newpos1)))
+            log.debug("proc_event_by_pair: #2 { %s: %s => %s }" %
+                      (single2, str(pos2), str(newpos2)))
+
+	# remove the old domain
+        self.remove_domain(pair)
 
         return single1, single2
 
@@ -2090,8 +2110,8 @@ rejected moves = %d
                                'Event Scheduler: %s' % str(tuple(event_ids)))
 
     def check_pair_pos(self, pair, pos1, pos2, com, radius):
-        particle1 = pair.single1.pid_particle_pair[1]
-        particle2 = pair.single2.pid_particle_pair[1]
+        particle1 = pair.pid_particle_pair[1]
+        particle2 = pair.pid_particle_pair[1]
 
         old_com = com
         
