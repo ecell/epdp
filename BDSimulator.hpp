@@ -25,13 +25,13 @@ public:
     typedef typename world_type::traits_type::rng_type rng_type;
     typedef typename world_type::species_id_type species_id_type;
     typedef typename world_type::species_type species_type;
-    typedef typename traits_type::time_type time_type;
+    typedef typename world_type::length_type length_type;
+    typedef typename traits_type::time_type time_type;  
     typedef typename traits_type::network_rules_type network_rules_type;
     typedef typename traits_type::reaction_rule_type reaction_rule_type;
     typedef typename traits_type::rate_type rate_type;
     typedef typename traits_type::reaction_record_type reaction_record_type;
-    typedef typename traits_type::reaction_recorder_type 
-    reaction_recorder_type;
+    typedef typename traits_type::reaction_recorder_type reaction_recorder_type;
 
 public:
     Real const& dt_factor()
@@ -43,12 +43,14 @@ public:
 
     BDSimulator(boost::shared_ptr<world_type> world, 
                 boost::shared_ptr<network_rules_type const> network_rules,
-                rng_type& rng, Real dt_factor = 1.0E-5,
-                int dissociation_retry_moves = 1)
+                rng_type& rng, Real dt_factor = traits_type::DEFAULT_DT_FACTOR,
+                int dissociation_retry_moves = 1, length_type reaction_length_factor = 1)
         : base_type(world, network_rules, rng),
-          dt_factor_(dt_factor), num_retries_(dissociation_retry_moves)
+          dt_factor_(dt_factor), num_retries_(dissociation_retry_moves), 
+          reaction_length_factor_(reaction_length_factor)
     {
         calculate_dt();
+        reaction_length_ = determine_reaction_length( *world, base_type::dt_, reaction_length_factor_ );
     }
 
     virtual void calculate_dt()
@@ -93,10 +95,21 @@ public:
         return gsl_pow_2(radius_min * 2) / (D_max * 2);
     }
     
-    static Real determine_reaction_length(world_type const& world, time_type dt)
+    static length_type determine_reaction_length(world_type const& world, time_type dt, length_type const& reaction_length_factor)
     {
         //TODO
-        return sqrt( 2 * 1E-12 * dt );
+        return reaction_length_factor * sqrt( 2 * 1E-12 * dt );
+    }
+    
+    Real get_reaction_length() const
+    {
+        return reaction_length_;    
+    }
+    
+    void set_reaction_length_factor(length_type new_reaction_length_factor)
+    {
+        reaction_length_factor_ = new_reaction_length_factor;
+        reaction_length_ = determine_reaction_length( *base_type::world_, base_type::dt_, reaction_length_factor_ );        
     }
 
 protected:
@@ -107,7 +120,7 @@ protected:
                 *base_type::world_,
                 *base_type::network_rules_,
                 base_type::rng_,
-                dt, num_retries_,
+                dt, num_retries_, reaction_length_,
                 base_type::rrec_.get(), 0,
                 make_select_first_range(base_type::world_->
                                         get_particles_range()));
@@ -122,6 +135,8 @@ protected:
 private:
     Real const dt_factor_;
     int const num_retries_;
+    length_type reaction_length_factor_;
+    length_type reaction_length_;
     static Logger& log_;
 };
 

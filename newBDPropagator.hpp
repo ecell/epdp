@@ -54,19 +54,19 @@ public:
     template<typename Trange_>
     newBDPropagator(
         particle_container_type& tx, network_rules_type const& rules,
-        rng_type& rng, time_type dt, int max_retry_count,
+        rng_type& rng, time_type dt, int max_retry_count, length_type reaction_length,
         reaction_recorder_type* rrec, volume_clearer_type* vc,
-        Trange_ const& particles)
+        Trange_ const& particle_ids)
         : tx_(tx), rules_(rules), rng_(rng), dt_(dt),
           max_retry_count_(max_retry_count), rrec_(rrec), vc_(vc),
-          queue_(), rejected_move_count_(0), reaction_length_( sqrt( 4000 * 1E-12 * dt ) )
+          queue_(), rejected_move_count_(0), reaction_length_( reaction_length )
     {
         call_with_size_if_randomly_accessible(
             boost::bind(&particle_id_vector_type::reserve, &queue_, _1),
-            particles);
+            particle_ids);
         for (typename boost::range_const_iterator<Trange_>::type
-                i(boost::begin(particles)),
-                e(boost::end(particles)); i != e; ++i)
+                i(boost::begin(particle_ids)),
+                e(boost::end(particle_ids)); i != e; ++i)
         {
             queue_.push_back(*i);
         }
