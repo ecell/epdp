@@ -639,52 +639,59 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
         return bursted
 
-    def fire_single_reaction(self, single, interaction_flag=False):
+    def fire_single_reaction(self, single):
 	# This takes care of the identity change when a single particle decays into
 	# one or a number of other particles
 	# TODO This can also be used when a particle falls off a surface.
 
-	# THis is supposed to take care of the movement and identity change that
-	# happens when an Interaction event has occurred
-        if interaction_flag == True:
-            raise NotImplementedError
-	
 
-
-        reactant_species_radius = single.pid_particle_pair[1].radius
+	# 0. get reactant info
         oldpos = single.pid_particle_pair[1].position
+        reactant_species_radius = single.pid_particle_pair[1].radius
         current_structure = single.structure
-        
         rt = single.reactionrule
 
         if len(rt.products) == 0:
             
+	    # 1. No products, no info
+	    # 2. No space required
+	    # 3. No space required
+	    # 4. process the changes (remove particle, make new ones)
             self.world.remove_particle(single.pid_particle_pair[0])
 
+	    # 5. No new single to be made
+	    # 6. Log the change
             self.last_reaction = (rt, (single.pid_particle_pair[1], None), [])
 
             
         elif len(rt.products) == 1:
 	# TODO product particle can live on different structure
             
+	    # 1. get product info
             product_species = self.world.get_species(rt.products[0])
 
+            # 2. make space for the products.
             if reactant_species_radius < product_species.radius:
                 self.burst_volume(oldpos, product_species.radius)
 
+	    # 3. check that there is space for the products 
             if self.world.check_overlap((oldpos, product_species.radius),
                                         single.pid_particle_pair[0]):
                 if __debug__:
                     log.info('no space for product particle.')
                 raise NoSpace()
 
+	    # 4. process the changes (remove particle, make new ones)
             self.world.remove_particle(single.pid_particle_pair[0])
             newparticle = self.world.new_particle(product_species.id, oldpos)
+
+	    # 5. make new single and schedule
             newsingle = self.create_single(newparticle)
-            if __debug__:
-                log.info('product = %s' % newsingle)
             self.add_domain_event(newsingle)
 
+	    # 6. Log the change
+            if __debug__:
+                log.info('product = %s' % newsingle)
             self.last_reaction = (rt, (single.pid_particle_pair[1], None),
                                   [newparticle])
 
@@ -692,6 +699,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
             
         elif len(rt.products) == 2:
 	# TODO (one of the) product particles can live on different structure
+
+	    # 1. get product info
             product_species1 = self.world.get_species(rt.products[0])
             product_species2 = self.world.get_species(rt.products[1])
             
@@ -703,12 +712,13 @@ class EGFRDSimulator(ParticleSimulatorBase):
             particle_radius2 = product_species2.radius
             particle_radius12 = particle_radius1 + particle_radius2
 
-            # clean up space.
+            # 2. make space for the products.
             rad = max(particle_radius12 * (D1 / D12) + particle_radius1,
                       particle_radius12 * (D2 / D12) + particle_radius2)
 
             self.burst_volume(oldpos, rad)
 
+	    # 3. check that there is space for the products (try different positions if possible)
             for _ in range(self.dissociation_retry_moves):
                 vector = _random_vector(current_structure, particle_radius12 *
                                         MINIMAL_SEPARATION_FACTOR, self.rng)
@@ -742,22 +752,24 @@ class EGFRDSimulator(ParticleSimulatorBase):
                     log.info('no space for product particles.')
                 raise NoSpace()
 
+	    # 4. process the changes (remove particle, make new ones)
             self.world.remove_particle(single.pid_particle_pair[0])
+            pid_particle_pair1 = self.world.new_particle(product_species1.id, newpos1)
+            pid_particle_pair2 = self.world.new_particle(product_species2.id, newpos2)
 
-            particle1 = self.world.new_particle(product_species1.id, newpos1)
-            particle2 = self.world.new_particle(product_species2.id, newpos2)
-            newsingle1 = self.create_single(particle1)
-            newsingle2 = self.create_single(particle2)
 
-            if __debug__:
-                log.info('product1 = %s\nproduct2 = %s' % 
-                     (newsingle1, newsingle2))
-
+	    # 5. make new singles and schedule
+            newsingle1 = self.create_single(pid_particle_pair1)
+            newsingle2 = self.create_single(pid_particle_pair2)
             self.add_domain_event(newsingle1)
             self.add_domain_event(newsingle2)
 
+	    # 6. Log the change
+            if __debug__:
+                log.info('product1 = %s\nproduct2 = %s' % 
+                     (newsingle1, newsingle2))
             self.last_reaction = (rt, (single.pid_particle_pair[1], None),
-                                  [particle1, particle2])
+                                  [pid_particle_pair1, pid_particle_pair2])
 
 
         else:
@@ -859,6 +871,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
                 single.last_time = self.t
                 self.add_domain_event(single)
                 return
+
 
 
             # If the single had a decay reaction.
