@@ -790,6 +790,9 @@ class EGFRDSimulator(ParticleSimulatorBase):
         # reschedules (update_event) the single, while just calling 
         # propagate does not.  So whoever calls propagate_single 
         # directly should reschedule the single afterwards.
+
+	pid_particle_pair = single.pid_particle_pair
+
         if __debug__:
             log.debug("single.dt=%s, single.last_time=%s, self.t=%s" %
                       (FORMAT_DOUBLE % single.dt,
@@ -801,11 +804,10 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
         if __debug__:
             log.debug("propagate %s: %s => %s" %
-                      (single, single.pid_particle_pair[1].position, newpos))
+                      (single, pid_particle_pair[1].position, newpos))
 
-            if self.world.check_overlap((newpos,
-                                        single.pid_particle_pair[1].radius),
-                                        single.pid_particle_pair[0]):
+            if self.world.check_overlap((newpos, pid_particle_pair[1].radius),
+                                        pid_particle_pair[0]):
                 raise RuntimeError('propagate_single: check_overlap failed.')
 
         if(single.event_type == EventType.SINGLE_REACTION or
@@ -814,7 +816,13 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
             # Single reaction or interaction, and not a burst. Only 
             # update particle, single is removed anyway.
+
+	    # reuse the old single
+	    # 4. process the changes
             self.move_single_particle(single, newpos)
+
+	    # 6. No logging??
+
             return single
         else:
             if isinstance(single, InteractionSingle):
@@ -824,19 +832,30 @@ class EGFRDSimulator(ParticleSimulatorBase):
                 # fire_single_reaction.
                 # For escapes and bursts of interaction singles we do 
                 # it here.
+
+		# 4. process the changes (actually move the particle)
                 self.move_single_particle(single, newpos)
-                newsingle = self.create_single(single.pid_particle_pair)
+
+		# remove the old domain
                 self.remove_domain(single)
+
+		# 5. single domain for the particle (scheduling is done later)
+                newsingle = self.create_single(pid_particle_pair)
+
+		# 6. Log the changes
                 if __debug__:
                     log.debug('    *New %s.\n'
                               '        radius = %.3g. dt = %.3g.' %
                               (newsingle, newsingle.shell.shape.radius,
                                newsingle.dt))
                 return newsingle
+
             else:
+		# reuse the old single
                 single.initialize(self.t)
-                self.move_single(single, newpos,
-                                 single.pid_particle_pair[1].radius)
+
+		# 4. process the changes
+                self.move_single(single, newpos, pid_particle_pair[1].radius)
                 return single
 
     def proc_event_by_single(self, single):
@@ -876,8 +895,6 @@ class EGFRDSimulator(ParticleSimulatorBase):
                 self.add_domain_event(single)
                 return
 
-
-
             # If the single had a decay reaction.
             if single.event_type == EventType.SINGLE_REACTION:
                 if __debug__:
@@ -886,12 +903,31 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
                 self.single_steps[single.event_type] += 1
 
-
+		# get the new position
                 single = self.propagate_single(single)
 
                 try:
                     self.remove_domain(single)
                     self.fire_single_reaction(single)
+                except NoSpace:
+                    self.reject_single_reaction(single)
+
+                return
+
+            # An interaction event is similar to a single reaction.
+            if single.event_type == EventType.IV_INTERACTION:
+                if __debug__:
+                    log.info('%s' % single.event_type)
+                    log.info('reactant = %s' % single)
+
+                self.interaction_steps[single.event_type] += 1
+
+		# get the new position
+                single = self.propagate_single(single)
+
+                try:
+                    self.remove_domain(single)
+                    self.fire_single_reaction(single)	# TODO change to smt Interaction specific?!
                 except NoSpace:
                     self.reject_single_reaction(single)
 
@@ -903,16 +939,9 @@ class EGFRDSimulator(ParticleSimulatorBase):
                 # Propagate this particle to the exit point on the shell.
                 single = self.propagate_single(single)
 
+		# 5. schedule domain
+		self.add_domain_event(single)
 
-            # An interaction event is similar to a single reaction.
-            if single.event_type == EventType.IV_INTERACTION:
-                try:
-                    self.remove_domain(single)
-                    self.fire_single_reaction(single, interaction_flag=True)
-                except NoSpace:
-                    self.reject_single_reaction(single)
-
-                return
 
 	return
 
@@ -1173,8 +1202,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
         single1 = pair.single1
         single2 = pair.single2
-        pid_particle_pair1 = pair.pid_particle_pair
-        pid_particle_pair2 = pair.pid_particle_pair
+        pid_particle_pair1 = pair.pid_particle_pair1
+        pid_particle_pair2 = pair.pid_particle_pair2
         pos1 = pid_particle_pair1[1].position
         pos2 = pid_particle_pair2[1].position
         
@@ -1275,8 +1304,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
         	        raise NoSpace()
 
 		# 4. process the changes (remove particle, make new ones)
-	        self.world.remove_particle(pid_particle_pair[0])
-                self.world.remove_particle(pid_particle_pair[0])
+	        self.world.remove_particle(pid_particle_pair1[0])
+                self.world.remove_particle(pid_particle_pair2[0])
                 particle = self.world.new_particle(product_species.id, new_com)
 		products = [particle, ]
 
@@ -1416,8 +1445,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
     def propagate_pair(self, pair):
 	# takes a pair and returns two singles after propagation
 
-        pid_particle_pair1 = pair.pid_particle_pair
-        pid_particle_pair2 = pair.pid_particle_pair
+        pid_particle_pair1 = pair.pid_particle_pair1
+        pid_particle_pair2 = pair.pid_particle_pair2
 
         pos1 = pid_particle_pair1[1].position
         pos2 = pid_particle_pair2[1].position
@@ -1460,12 +1489,18 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
 
 	# re-use single domains for particles
+	# normally we would take the particles + new positions from the old pair
+	# and use them to make new singles. Now we re-use the singles stored in the
+	# pair
         single1 = pair.single1
         single2 = pair.single2
-
         assert single1.domain_id not in self.domains
         assert single2.domain_id not in self.domains
 
+	# remove the old domain
+        self.remove_domain(pair)
+
+	# 'make' the singles
         single1.initialize(self.t)
         single2.initialize(self.t)
         
@@ -1501,9 +1536,6 @@ class EGFRDSimulator(ParticleSimulatorBase):
                       (single1, str(pos1), str(newpos1)))
             log.debug("proc_event_by_pair: #2 { %s: %s => %s }" %
                       (single2, str(pos2), str(newpos2)))
-
-	# remove the old domain
-        self.remove_domain(pair)
 
         return single1, single2
 
@@ -2112,8 +2144,8 @@ rejected moves = %d
                                'Event Scheduler: %s' % str(tuple(event_ids)))
 
     def check_pair_pos(self, pair, pos1, pos2, com, radius):
-        particle1 = pair.pid_particle_pair[1]
-        particle2 = pair.pid_particle_pair[1]
+        particle1 = pair.pid_particle_pair1[1]
+        particle2 = pair.pid_particle_pair2[1]
 
         old_com = com
         
