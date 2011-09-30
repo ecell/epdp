@@ -24,6 +24,7 @@
 #include "GSLRandomNumberGenerator.hpp"
 #include "Point.hpp" // XXX: workaround. should be removed later.
 #include "utils/pair.hpp"
+#include "utils/range.hpp"
 
 template<typename Tderived_, typename Tlen_, typename TD_>
 struct WorldTraitsBase
@@ -275,7 +276,7 @@ public:
         return (*i).second;
     }
 
-    structures_range get_structures() const
+    virtual structures_range get_structures() const
     {
         return structures_range(
             surface_iterator(structure_map_.begin(), surface_second_selector_type()),

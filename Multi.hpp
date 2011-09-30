@@ -13,9 +13,11 @@
 #include "BDPropagator.hpp"
 #include "Logger.hpp"
 #include "PairGreensFunction.hpp"
+#include "Transaction.hpp"
 #include "VolumeClearer.hpp"
 #include "utils/array_helper.hpp"
 #include "utils/range.hpp"
+
 
 template<typename Ttraits_>
 class MultiParticleContainer
@@ -43,6 +45,16 @@ public:
     typedef std::map<particle_id_type, particle_type> particle_map;
     typedef sized_iterator_range<typename particle_map::const_iterator> particle_id_pair_range;
 
+private:
+    typedef std::map<structure_id_type, boost::shared_ptr<structure_type> > structure_map;
+    typedef select_second<typename structure_map::value_type> surface_second_selector_type;
+
+public:    
+    typedef boost::transform_iterator<surface_second_selector_type,
+            typename structure_map::const_iterator> surface_iterator;
+    typedef sized_iterator_range<surface_iterator> structures_range;
+
+
     virtual ~MultiParticleContainer() {}
 
     virtual size_type num_particles() const
@@ -64,7 +76,12 @@ public:
     {
         return world_.get_structure(id);
     }
-
+    
+    structures_range get_structures() const
+    {
+        return world_.get_structures();
+    }
+        
     virtual particle_id_pair new_particle(species_id_type const& sid,
             position_type const& pos)
     {

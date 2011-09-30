@@ -149,7 +149,6 @@ public:
             }
             else
             {
-                
                 try
                 {
                     if( attempt_reaction(pp, closest.first) )

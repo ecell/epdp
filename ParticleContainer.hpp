@@ -31,6 +31,15 @@ public:
     typedef std::pair<particle_id_pair, length_type> particle_id_pair_and_distance;
     typedef unassignable_adapter<particle_id_pair_and_distance, get_default_impl::std::vector> particle_id_pair_and_distance_list;
 
+private:
+    typedef std::map<structure_id_type, boost::shared_ptr<structure_type> > structure_map;
+    typedef select_second<typename structure_map::value_type> surface_second_selector_type;
+
+public:    
+    typedef boost::transform_iterator<surface_second_selector_type,
+            typename structure_map::const_iterator> surface_iterator;
+    typedef sized_iterator_range<surface_iterator> structures_range;
+
     virtual ~ParticleContainer() {};
 
     virtual size_type num_particles() const = 0;
@@ -40,6 +49,8 @@ public:
     virtual species_type const& get_species(species_id_type const& id) const = 0;
 
     virtual boost::shared_ptr<structure_type> get_structure(structure_id_type const& id) const = 0;
+    
+    virtual structures_range get_structures() const = 0;
 
     virtual particle_id_pair new_particle(species_id_type const& sid,
             position_type const& pos) = 0;
@@ -49,7 +60,7 @@ public:
     virtual bool remove_particle(particle_id_type const& id) = 0;
 
     virtual particle_id_pair get_particle(particle_id_type const& id) const = 0;
-
+    
     virtual bool has_particle(particle_id_type const& id) const = 0;
 
     virtual particle_id_pair_and_distance_list* check_overlap(particle_shape_type const& s) const = 0;
