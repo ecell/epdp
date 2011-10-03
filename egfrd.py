@@ -812,10 +812,11 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
         if(single.event_type == EventType.SINGLE_REACTION or
            single.event_type == EventType.IV_INTERACTION):
-	    # An identity change of the particle needs to take place
+            # Single reaction or interaction, and not a burst.
+	    # domain is removed in proc_event_by_single.
 
-            # Single reaction or interaction, and not a burst. Only 
-            # update particle, single is removed anyway.
+	    # An identity change of the particle needs to take place
+	    # This is done in fire_single_reaction
 
 	    # reuse the old single
 	    # 4. process the changes
@@ -852,10 +853,15 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
             else:
 		# reuse the old single
+		# domain is not removed
                 single.initialize(self.t)
 
 		# 4. process the changes
                 self.move_single(single, newpos, pid_particle_pair[1].radius)
+
+		# 5. No new single is made(reuse), rescheduling is done elsewhere
+		# 6. Logging is done else?
+
                 return single
 
     def proc_event_by_single(self, single):
@@ -885,6 +891,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
 	    # simulator time
             assert (abs(single.dt + single.last_time - self.t) <= 1e-18 * self.t)
 
+	    # FIXME This should be somewhere else, now it doesn't process SINGLE_REACTION
+	    # events.
             # Handle immobile case (what event has taken place to get here?!).
             if single.getD() == 0:
 		# The domain has not produced an decay reaction event and is immobile
@@ -942,6 +950,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
 		# 5. schedule domain
 		self.add_domain_event(single)
 
+		# 6. Logging?
 
 	return
 
@@ -1472,7 +1481,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
             newpos1 = self.world.apply_boundary(newpos1)
             newpos2 = self.world.apply_boundary(newpos2)
 
-	    # check that the particle do not overlap with any other particles in the world
+	    # check that the particles do not overlap with any other particles in the world
             assert not self.world.check_overlap((newpos1, pid_particle_pair1[1].radius),
                                                 pid_particle_pair1[0], pid_particle_pair2[0])
             assert not self.world.check_overlap((newpos2, pid_particle_pair2[1].radius),
