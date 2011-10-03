@@ -669,7 +669,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
 	    # 5. No new single to be made
 	    # 6. Log the change
-            self.last_reaction = (rr, (single.pid_particle_pair[1], None), products)
+#            self.last_reaction = (rr, (single.pid_particle_pair[1], None), products)
 
             
         elif len(rr.products) == 1:
@@ -688,11 +688,11 @@ class EGFRDSimulator(ParticleSimulatorBase):
                 if __debug__:
                     log.info('no space for product particle.')
                 raise NoSpace()
-
-	    # 4. process the changes (remove particle, make new ones)
-            self.world.remove_particle(single.pid_particle_pair[0])
-            newparticle = self.world.new_particle(product_species.id, oldpos)
-	    products = [newparticle]
+	    else:
+	        # 4. process the changes (remove particle, make new ones)
+                self.world.remove_particle(single.pid_particle_pair[0])
+                newparticle = self.world.new_particle(product_species.id, oldpos)
+	        products = [newparticle]
 
 #	    # 5. make new single and schedule
 #            newsingle = self.create_single(newparticle)
@@ -701,8 +701,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
 	    # 6. Log the change
 #            if __debug__:
 #                log.info('product = %s' % newsingle)
-            self.last_reaction = (rr, (single.pid_particle_pair[1], None),
-                                  products)
+#            self.last_reaction = (rr, (single.pid_particle_pair[1], None),
+#                                  products)
 
 
             
@@ -777,14 +777,15 @@ class EGFRDSimulator(ParticleSimulatorBase):
 #            if __debug__:
 #                log.info('product1 = %s\nproduct2 = %s' % 
 #                     (newsingle1, newsingle2))
-            self.last_reaction = (rr, (single.pid_particle_pair[1], None),
-                                  products)
+#            self.last_reaction = (rr, (single.pid_particle_pair[1], None),
+#                                  products)
 
 
         else:
             raise RuntimeError('num products >= 3 not supported.')
 
         self.reaction_events += 1
+        self.last_reaction = (rr, (single.pid_particle_pair[1], None), products)
 	return products
 
 
@@ -928,7 +929,10 @@ class EGFRDSimulator(ParticleSimulatorBase):
 #                        self.remove_domain(single)
                         particles = self.fire_single_reaction(single)
                     except NoSpace:
-                        self.reject_single_reaction(single)	# TODO
+#                        self.reject_single_reaction(single)	# TODO
+        		if __debug__:
+            		    log.info('single reaction; placing product failed.')
+        		self.rejected_moves += 1
 
 		else:
                     self.interaction_steps[single.event_type] += 1
