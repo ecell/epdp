@@ -665,10 +665,11 @@ class EGFRDSimulator(ParticleSimulatorBase):
 	    # 3. No space required
 	    # 4. process the changes (remove particle, make new ones)
             self.world.remove_particle(single.pid_particle_pair[0])
+	    products = []
 
 	    # 5. No new single to be made
 	    # 6. Log the change
-            self.last_reaction = (rr, (single.pid_particle_pair[1], None), [])
+            self.last_reaction = (rr, (single.pid_particle_pair[1], None), products)
 
             
         elif len(rr.products) == 1:
@@ -691,16 +692,17 @@ class EGFRDSimulator(ParticleSimulatorBase):
 	    # 4. process the changes (remove particle, make new ones)
             self.world.remove_particle(single.pid_particle_pair[0])
             newparticle = self.world.new_particle(product_species.id, oldpos)
+	    products = [newparticle]
 
-	    # 5. make new single and schedule
-            newsingle = self.create_single(newparticle)
-            self.add_domain_event(newsingle)
+#	    # 5. make new single and schedule
+#            newsingle = self.create_single(newparticle)
+#            self.add_domain_event(newsingle)
 
 	    # 6. Log the change
-            if __debug__:
-                log.info('product = %s' % newsingle)
+#            if __debug__:
+#                log.info('product = %s' % newsingle)
             self.last_reaction = (rr, (single.pid_particle_pair[1], None),
-                                  [newparticle])
+                                  products)
 
 
             
@@ -763,26 +765,28 @@ class EGFRDSimulator(ParticleSimulatorBase):
             self.world.remove_particle(single.pid_particle_pair[0])
             pid_particle_pair1 = self.world.new_particle(product_species1.id, newpos1)
             pid_particle_pair2 = self.world.new_particle(product_species2.id, newpos2)
+	    products = [pid_particle_pair1, pid_particle_pair2]
 
-
-	    # 5. make new singles and schedule
-            newsingle1 = self.create_single(pid_particle_pair1)
-            newsingle2 = self.create_single(pid_particle_pair2)
-            self.add_domain_event(newsingle1)
-            self.add_domain_event(newsingle2)
+#	    # 5. make new singles and schedule
+#            newsingle1 = self.create_single(pid_particle_pair1)
+#            newsingle2 = self.create_single(pid_particle_pair2)
+#            self.add_domain_event(newsingle1)
+#            self.add_domain_event(newsingle2)
 
 	    # 6. Log the change
-            if __debug__:
-                log.info('product1 = %s\nproduct2 = %s' % 
-                     (newsingle1, newsingle2))
+#            if __debug__:
+#                log.info('product1 = %s\nproduct2 = %s' % 
+#                     (newsingle1, newsingle2))
             self.last_reaction = (rr, (single.pid_particle_pair[1], None),
-                                  [pid_particle_pair1, pid_particle_pair2])
+                                  products)
 
 
         else:
             raise RuntimeError('num products >= 3 not supported.')
 
         self.reaction_events += 1
+	return products
+
 
     def propagate_single(self, single):
         # The difference between a burst and a propagate is that a burst 
@@ -861,7 +865,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
                 single.initialize(self.t)
 
 		# 4. process the changes
-        	single.pid_particle_pair = self.move_particle(pid_particle_pair, newpos)
+        	pid_particle_pair = self.move_particle(pid_particle_pair, newpos)
+		single.pid_particle_pair = pid_particle_pair
         	self.update_single_shell(single, newpos, single.pid_particle_pair[1].radius)
 
 		# 5. No new single is made(reuse) (scheduling is done later)
@@ -896,65 +901,72 @@ class EGFRDSimulator(ParticleSimulatorBase):
 	    # simulator time
             assert (abs(single.dt + single.last_time - self.t) <= 1e-18 * self.t)
 
-	    # FIXME This should be somewhere else, now it doesn't process SINGLE_REACTION
-	    # events.
-            # Handle immobile case (what event has taken place to get here?!).
-            if single.getD() == 0:
-		# The domain has not produced an decay reaction event and is immobile
-		# ->no propagation, no other changes just calculate next reaction time
-	        # and reschedule the single. So this also takes care of the domain making part
-                single.dt, single.event_type = single.determine_next_event() 
-                single.last_time = self.t
-                self.add_domain_event(single)
-                return
+
+	    pid_particle_pair = single.pid_particle_pair
+            self.remove_domain(single)
+
+	    # get the (new) position
+            if single.getD() != 0 and single.dt > 0.0:
+		# If the particle had the possibility to diffuse
+		newpos = single.draw_new_position(single.dt, single.event_type)
+	        newpos = self.world.apply_boundary(newpos)
+	    else:
+		newpos = pid_particle_pair[1].position
+
+
 
             # If the single had a decay reaction.
-            if single.event_type == EventType.SINGLE_REACTION:
+            if single.event_type == EventType.SINGLE_REACTION or \
+	       single.event_type == EventType.IV_INTERACTION:
                 if __debug__:
                     log.info('%s' % single.event_type)
                     log.info('reactant = %s' % single)
 
-                self.single_steps[single.event_type] += 1
+		if single.event_type == EventType.SINGLE_REACTION:
+                    self.single_steps[single.event_type] += 1
+                    try:
+#                        self.remove_domain(single)
+                        particles = self.fire_single_reaction(single)
+                    except NoSpace:
+                        self.reject_single_reaction(single)	# TODO
 
-		# get the new position
-                single = self.propagate_single(single)
+		else:
+                    self.interaction_steps[single.event_type] += 1
+                    try:
+#                        self.remove_domain(single)
+                        particles = self.fire_single_reaction(single)	# TODO change to smt Interaction specific?!
+                    except NoSpace:
+                        self.reject_single_reaction(single)
 
-                try:
-                    self.remove_domain(single)
-                    self.fire_single_reaction(single)
-                except NoSpace:
-                    self.reject_single_reaction(single)
+	    else:
+		# No reactions/Interactions have taken place -> no identity change of the particle
+                if self.world.check_overlap((newpos, pid_particle_pair[1].radius),
+                                            pid_particle_pair[0]):
+                    raise RuntimeError('proc_event_by_single: particle overlap failed.')
+	        particles = [self.move_particle(pid_particle_pair, newpos)]
 
-                return
 
-            # An interaction event is similar to a single reaction.
-            if single.event_type == EventType.IV_INTERACTION:
-                if __debug__:
-                    log.info('%s' % single.event_type)
-                    log.info('reactant = %s' % single)
-
-                self.interaction_steps[single.event_type] += 1
-
-		# get the new position
-                single = self.propagate_single(single)
-
-                try:
-                    self.remove_domain(single)
-                    self.fire_single_reaction(single)	# TODO change to smt Interaction specific?!
-                except NoSpace:
-                    self.reject_single_reaction(single)
-
-                return
-
-	    ### 1.2 General case
-	    # There is a non-trivial event time for the domain
-            if single.dt != 0.0:
-                # Propagate this particle to the exit point on the shell.
-                single = self.propagate_single(single)
-
-		# 5. schedule domain
+	    # Make a new domain (reuse) domain for each particle(s)
+	    for pid_particle_pair in particles:
+#	        single.pid_particle_pair = pid_particle_pair	# reuse single
+		single = self.create_single(pid_particle_pair)
 		self.add_domain_event(single)
+		
 
+#		# get the new position
+#                single = self.propagate_single(single)
+
+
+
+#	    ### 1.2 General case
+#	    # There is a non-trivial event time for the domain
+#            if single.dt != 0.0:
+#                # Propagate this particle to the exit point on the shell.
+#                single = self.propagate_single(single)
+#
+#		# 5. schedule domain
+#		self.add_domain_event(single)
+#
 		# 6. Logging?
 
 	return
@@ -967,13 +979,23 @@ class EGFRDSimulator(ParticleSimulatorBase):
 	# can only make new domain from NonInteractionSingle
 	assert isinstance(single, NonInteractionSingle)
 	
+	# Special case: When D=0, nothing needs to change and only new event
+	# time is drawn
+	# TODO find nicer constructrion than just this if statement
+	if single.getD() == 0:
+            single.dt, single.event_type = single.determine_next_event() 
+            single.last_time = self.t
+            self.add_domain_event(single)
+            return
+
+
+	single_pos = single.pid_particle_pair[1].position
+	single_radius = single.pid_particle_pair[1].radius
+
 	# 2.1
 	# We prefer to make NonInteractionSingles for efficiency.
 	# But if objects (Shells and surfaces) get close enough (closer than
 	# reaction_threshold) we want to try Interaction and/or Pairs
-
-	single_pos = single.pid_particle_pair[1].position
-	single_radius = single.pid_particle_pair[1].radius
 
 	# Check if there are shells with the burst radius (reaction_threshold)
 	# of the particle (intruders). Note that we approximate the reaction_volume
