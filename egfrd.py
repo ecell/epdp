@@ -504,9 +504,9 @@ class EGFRDSimulator(ParticleSimulatorBase):
         return multi
 
 
-    def move_single(self, single, position, radius=None):
-        single.pid_particle_pair = self.move_particle(single.pid_particle_pair, position)
-        self.update_single_shell(single, position, radius)
+#    def move_single(self, single, position, radius=None):
+#        single.pid_particle_pair = self.move_particle(single.pid_particle_pair, position)
+#        self.update_single_shell(single, position, radius)
 
     def update_single_shell(self, single, position, radius=None):
         if radius == None:
@@ -823,7 +823,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
 	    # reuse the old single
 	    # 4. process the changes
-	    single.pid_particle_pair = self.move_particle(pid_particle_pair, newpos)
+	    pid_particle_pair = self.move_particle(pid_particle_pair, newpos)
+	    single.pid_particle_pair = pid_particle_pair
 
 	    # 6. No logging??
 
@@ -863,7 +864,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
         	single.pid_particle_pair = self.move_particle(pid_particle_pair, newpos)
         	self.update_single_shell(single, newpos, single.pid_particle_pair[1].radius)
 
-		# 5. No new single is made(reuse), rescheduling is done elsewhere
+		# 5. No new single is made(reuse) (scheduling is done later)
 		# 6. Logging is done else?
 
                 return single
@@ -1500,6 +1501,9 @@ class EGFRDSimulator(ParticleSimulatorBase):
             newpos1 = pid_particle_pair1[1].position
             newpos2 = pid_particle_pair2[1].position
 
+        pid_particle_pair1 = self.move_particle(pid_particle_pair1, newpos1)
+        pid_particle_pair2 = self.move_particle(pid_particle_pair2, newpos2)
+
 
 	# re-use single domains for particles
 	# normally we would take the particles + new positions from the old pair
@@ -1509,6 +1513,9 @@ class EGFRDSimulator(ParticleSimulatorBase):
         single2 = pair.single2
         assert single1.domain_id not in self.domains
         assert single2.domain_id not in self.domains
+	single1.pid_particle_pair = pid_particle_pair1	# this is probably redundant
+	single2.pid_particle_pair = pid_particle_pair2
+
 
 	# remove the old domain
         self.remove_domain(pair)
@@ -1516,9 +1523,11 @@ class EGFRDSimulator(ParticleSimulatorBase):
 	# 'make' the singles
         single1.initialize(self.t)
         single2.initialize(self.t)
-        self.move_single(single1, newpos1, pid_particle_pair1[1].radius)
-        self.move_single(single2, newpos2, pid_particle_pair2[1].radius)
         
+        self.update_single_shell(single1, newpos1, pid_particle_pair1[1].radius)
+        self.update_single_shell(single2, newpos2, pid_particle_pair2[1].radius)
+
+
         self.domains[single1.domain_id] = single1
         self.domains[single2.domain_id] = single2
 
