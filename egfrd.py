@@ -506,9 +506,9 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
     def move_single(self, single, position, radius=None):
         single.pid_particle_pair = self.move_particle(single.pid_particle_pair, position)
-        self.move_single_shell(single, position, radius)
+        self.update_single_shell(single, position, radius)
 
-    def move_single_shell(self, single, position, radius=None):
+    def update_single_shell(self, single, position, radius=None):
         if radius == None:
             # By default, don't change radius.
             radius = single.shell.shape.radius
@@ -861,7 +861,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
 		# 4. process the changes
         	single.pid_particle_pair = self.move_particle(pid_particle_pair, newpos)
-        	self.move_single_shell(single, newpos, single.pid_particle_pair[1].radius)
+        	self.update_single_shell(single, newpos, single.pid_particle_pair[1].radius)
 
 		# 5. No new single is made(reuse), rescheduling is done elsewhere
 		# 6. Logging is done else?
@@ -1201,7 +1201,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
         # Resize shell, don't change position.
         # Note: this should be done before determine_next_event.
 	singlepos = single.pid_particle_pair[1].position
-        self.move_single_shell(single, singlepos, new_shell_size)        
+        self.update_single_shell(single, singlepos, new_shell_size)        
 
         single.dt, single.event_type = single.determine_next_event()
         single.last_time = self.t
