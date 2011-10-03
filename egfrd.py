@@ -506,7 +506,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
     def move_single(self, single, position, radius=None):
         self.move_single_shell(single, position, radius)
-        self.move_single_particle(single, position)
+        self.move_particle(single, position)
 
     def move_single_shell(self, single, position, radius=None):
         if radius == None:
@@ -524,7 +524,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
         single.shell_id_shell_pair = shell_id_shell_pair
         self.geometrycontainer.move_shell(shell_id_shell_pair)
 
-    def move_single_particle(self, single, position):
+    def move_particle(self, single, position):
         new_pid_particle_pair = (single.pid_particle_pair[0],
                           Particle(position,
                                    single.pid_particle_pair[1].radius,
@@ -820,7 +820,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
 	    # reuse the old single
 	    # 4. process the changes
-            self.move_single_particle(single, newpos)
+            self.move_particle(single, newpos)
 
 	    # 6. No logging??
 
@@ -835,7 +835,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
                 # it here.
 
 		# 4. process the changes (actually move the particle)
-                self.move_single_particle(single, newpos)
+                self.move_particle(single, newpos)
 
 		# remove the old domain
                 self.remove_domain(single)
