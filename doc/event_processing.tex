@@ -1,0 +1,67 @@
+\documentclass[a4paper, 11pt]{article}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+
+\title{Realization of the main eGFRD algorithm in the current python code}
+\author{Laurens Bossen}
+
+\begin{document}
+\maketitle
+
+A number of independent processes or 'coordinates' take place inside a Domain. Independent processes are:
+-Diffusion in a number of dimensions
+-Decay reactions
+
+When one of the processes in the domain has produced the current event, then a fire_domain is executed. However, when an other
+event external to the domain is the current event but the processes need to be propagated anyhow (a burst), then a burst_domain
+is executed.
+Fire happens when the domain produced the top event of the scheduler. A burst event happens when the event associated with the
+domain is still in the scheduler.
+Fire->Event is no longer in scheduler
+Burst->Event is is still in scheduler
+
+
+Fire_Single
+-process event causing coordinate (a coordinate is an independent process in a domain, eg diffusion, decay)
+-process all other coordinates
+
+Burst_Single
+-process all coordinates (event was external)
+
+After a fire or burst the domain is 'reduced' to a default NonInteractionSingle and a new domain (Pair, Interaction,
+NonInteractionSingle) should be made.
+
+Then reschedule the event
+
+
+Note that from a Pair, Interaction (Multi) after a Fire or Burst you always 'go back' to a NonInteractionSingle. This means
+that you change domain.
+A speedup trick for this is to 'save' the original single in the Pair or Interaction domain so that we can potentially reuse
+them when a fire or burst event takes place
+
+
+Processing the event means:
+Test if Single && zero-shell && D != 0 then
+  skip (the single was a special single->zero shell)
+if diffusion == true (D != 0)
+  determine new position(s) of particle(s)
+   -check also if still in shell
+if event is (not Burst, not Escape, Single_Reaction, IV_Reaction, IV_Interaction)
+  get new identity for the resulting particle
+  calculate new position for particles (for example Interaction, Decay reactions)
+apply boundary conditions to new position(s)
+actually move/remove/add the particle (update_world)
+
+determine if we need to make a different domain (for example when bursting an Interaction)
+draw new event time
+reschedule event and domain
+
+
+
+Create a Protective Domain:
+-generate identifiers for domain and shell
+-make domain object (instantiate with particle, shell dimensions, structure/surface, reaction_rules, misc info)
+ -make appropriate shell (done by constructor or later in case of Multi)
+-place shell in container (move_shell)
+-
+\end{document}
