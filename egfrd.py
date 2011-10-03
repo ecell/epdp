@@ -505,8 +505,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
 
     def move_single(self, single, position, radius=None):
-        self.move_single_shell(single, position, radius)
         single.pid_particle_pair = self.move_particle(single.pid_particle_pair, position)
+        self.move_single_shell(single, position, radius)
 
     def move_single_shell(self, single, position, radius=None):
         if radius == None:
@@ -860,7 +860,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
                 single.initialize(self.t)
 
 		# 4. process the changes
-                self.move_single(single, newpos, pid_particle_pair[1].radius)
+        	single.pid_particle_pair = self.move_particle(pid_particle_pair, newpos)
+        	self.move_single_shell(single, newpos, single.pid_particle_pair[1].radius)
 
 		# 5. No new single is made(reuse), rescheduling is done elsewhere
 		# 6. Logging is done else?
@@ -1515,11 +1516,11 @@ class EGFRDSimulator(ParticleSimulatorBase):
 	# 'make' the singles
         single1.initialize(self.t)
         single2.initialize(self.t)
+        self.move_single(single1, newpos1, pid_particle_pair1[1].radius)
+        self.move_single(single2, newpos2, pid_particle_pair2[1].radius)
         
         self.domains[single1.domain_id] = single1
         self.domains[single2.domain_id] = single2
-        self.move_single(single1, newpos1, pid_particle_pair1[1].radius)
-        self.move_single(single2, newpos2, pid_particle_pair2[1].radius)
 
 	# Thoroughly check the sizes of the shells of the singles
         if __debug__:
