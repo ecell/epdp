@@ -532,9 +532,9 @@ class EGFRDSimulator(ParticleSimulatorBase):
                                           pid_particle_pair[1].radius,
                                    	  pid_particle_pair[1].D,
                                    	  pid_particle_pair[1].sid))
-#        single.pid_particle_pair = new_pid_particle_pair
 
         self.world.update_particle(new_pid_particle_pair)
+
 	return new_pid_particle_pair
 
     def remove_domain(self, obj):
@@ -865,7 +865,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
         	self.update_single_shell(single, newpos, single.pid_particle_pair[1].radius)
 
 		# 5. No new single is made(reuse) (scheduling is done later)
-		# 6. Logging is done else?
+		# 6. Logging is done elsewhere?
 
                 return single
 
