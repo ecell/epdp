@@ -506,7 +506,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
     def move_single(self, single, position, radius=None):
         self.move_single_shell(single, position, radius)
-        self.move_particle(single, position)
+        single.pid_particle_pair = self.move_particle(single.pid_particle_pair, position)
 
     def move_single_shell(self, single, position, radius=None):
         if radius == None:
@@ -524,15 +524,18 @@ class EGFRDSimulator(ParticleSimulatorBase):
         single.shell_id_shell_pair = shell_id_shell_pair
         self.geometrycontainer.move_shell(shell_id_shell_pair)
 
-    def move_particle(self, single, position):
-        new_pid_particle_pair = (single.pid_particle_pair[0],
-                          Particle(position,
-                                   single.pid_particle_pair[1].radius,
-                                   single.pid_particle_pair[1].D,
-                                   single.pid_particle_pair[1].sid))
-        single.pid_particle_pair = new_pid_particle_pair
+    def move_particle(self, pid_particle_pair, position):
+	# moves a particle in world based on an existing particle
+
+        new_pid_particle_pair = (pid_particle_pair[0],
+	                         Particle(position,
+                                          pid_particle_pair[1].radius,
+                                   	  pid_particle_pair[1].D,
+                                   	  pid_particle_pair[1].sid))
+#        single.pid_particle_pair = new_pid_particle_pair
 
         self.world.update_particle(new_pid_particle_pair)
+	return new_pid_particle_pair
 
     def remove_domain(self, obj):
 	# Removes all the ties to a domain (single, pair, multi) from the system.
@@ -820,7 +823,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
 	    # reuse the old single
 	    # 4. process the changes
-            self.move_particle(single, newpos)
+	    single.pid_particle_pair = self.move_particle(pid_particle_pair, newpos)
 
 	    # 6. No logging??
 
@@ -835,7 +838,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
                 # it here.
 
 		# 4. process the changes (actually move the particle)
-                self.move_particle(single, newpos)
+                pid_particle_pair = self.move_particle(pid_particle_pair, newpos)
 
 		# remove the old domain
                 self.remove_domain(single)
