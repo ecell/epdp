@@ -914,7 +914,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
 	    else:
 		newpos = pid_particle_pair[1].position
 
-
+	    # if we would here move the particles and make new shells, then it would be similar to a propagate
 
             # If the single had a decay reaction.
             if single.event_type == EventType.SINGLE_REACTION or \
