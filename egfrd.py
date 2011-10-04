@@ -926,6 +926,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
 	    else:
 		newpos = pid_particle_pair[1].position
 
+	    # newpos now hold the new position of the particle (not yet committed to the world)
 	    # if we would here move the particles and make new shells, then it would be similar to a propagate
 
             # If the single had a decay reaction or interaction.
@@ -937,22 +938,11 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
 		if single.event_type == EventType.SINGLE_REACTION:
                     self.single_steps[single.event_type] += 1
-#                    try:
-#                        self.remove_domain(single)
                     particles = self.fire_single_reaction(single, newpos)
-#                    except NoSpace:
-#                        self.reject_single_reaction(single)
-#        		if __debug__:
-#            		    log.info('single reaction; placing product failed.')
-#        		self.rejected_moves += 1
 
 		else:
                     self.interaction_steps[single.event_type] += 1
-#                    try:
-#                        self.remove_domain(single)
                     particles = self.fire_interaction(single, newpos)	# TODO 
-#                    except NoSpace:
-#                        self.reject_single_reaction(single)
 
 	    else:
 		# No reactions/Interactions have taken place -> no identity change of the particle
@@ -962,29 +952,15 @@ class EGFRDSimulator(ParticleSimulatorBase):
 	        particles = [self.move_particle(pid_particle_pair, newpos)]
 
 
-	    # Make a new domain (reuse) domain for each particle(s)
+	    # 5. Make a (new) domain (reuse) domain for each particle(s)
+	    #    (Re)schedule the (new) domain
 	    for pid_particle_pair in particles:
 #	        single.pid_particle_pair = pid_particle_pair	# reuse single
 		single = self.create_single(pid_particle_pair)
 		self.add_domain_event(single)
+
+	    # 6. Log change?
 		
-
-#		# get the new position
-#                single = self.propagate_single(single)
-
-
-
-#	    ### 1.2 General case
-#	    # There is a non-trivial event time for the domain
-#            if single.dt != 0.0:
-#                # Propagate this particle to the exit point on the shell.
-#                single = self.propagate_single(single)
-#
-#		# 5. schedule domain
-#		self.add_domain_event(single)
-#
-		# 6. Logging?
-
 	return
 
 
@@ -1131,14 +1107,14 @@ class EGFRDSimulator(ParticleSimulatorBase):
 	return domain
 
 
-    def reject_single_reaction(self, single):
-        if __debug__:
-            log.info('single reaction; placing product failed.')
-        self.domains[single.domain_id] = single
-        self.geometrycontainer.move_shell(single.shell_id_shell_pair)
-        self.rejected_moves += 1
-        single.initialize(self.t)
-        self.add_domain_event(single)
+#    def reject_single_reaction(self, single):
+#        if __debug__:
+#            log.info('single reaction; placing product failed.')
+#        self.domains[single.domain_id] = single
+#        self.geometrycontainer.move_shell(single.shell_id_shell_pair)
+#        self.rejected_moves += 1
+#        single.initialize(self.t)
+#        self.add_domain_event(single)
 
     def calculate_simplepair_shell_size(self, single1, single2, burst):
 	assert single1.structure == single2.structure
