@@ -580,8 +580,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
         if isinstance(domain, Single):
             # TODO. Compare with gfrd.
-            domain = self.burst_single(domain)
-            bursted = [domain, ]
+            domains = self.burst_single(domain)
+            bursted = domains
         elif isinstance(domain, Pair):  # Pair
             single1, single2 = self.burst_pair(domain)
             bursted = [single1, single2]
@@ -898,7 +898,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
 	if single.is_reset():
 	### If no event event really happened and just need to make new domain
-	    self.make_new_domain(single)
+	    domains = [self.make_new_domain(single)]
 	    # domain is already scheduled in make_new_domain
 
 	else:
@@ -908,7 +908,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
             # In case nothing is scheduled to happen: do nothing and just reschedule
             if single.dt == numpy.inf:
         	self.add_domain_event(single)
-                return 
+                return [single]
 
             # check that the event time of the single (last_time + dt) is equal to the
 	    # simulator time
@@ -954,14 +954,16 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
 	    # 5. Make a (new) domain (reuse) domain for each particle(s)
 	    #    (Re)schedule the (new) domain
+	    domains = []
 	    for pid_particle_pair in particles:
 #	        single.pid_particle_pair = pid_particle_pair	# reuse single
 		single = self.create_single(pid_particle_pair)
 		self.add_domain_event(single)
+		domains.append(single) 
 
 	    # 6. Log change?
 		
-	return
+	return domains
 
 
     def make_new_domain(self, single):
@@ -1429,8 +1431,9 @@ class EGFRDSimulator(ParticleSimulatorBase):
         single.event_type = EventType.BURST
 	self.remove_event(single)
 
-        newsingle = self.propagate_single(single)	# TODO this can now also just be a proc_event_by_single
-	self.add_domain_event(newsingle)
+#        newsingle = self.propagate_single(single)	# TODO this can now also just be a proc_event_by_single
+#	self.add_domain_event(newsingle)
+	newsingles = self.proc_event_by_single(single)
 
 # NOTE Be inefficient for just now and don't reuse the event in the schedules
 #        newpos = newsingle.pid_particle_pair[1].position
@@ -1448,7 +1451,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
 #        particle_radius = single.pid_particle_pair[1].radius
 #        assert newsingle.shell.shape.radius == particle_radius
 
-        return newsingle
+        return newsingles
 
     def burst_pair(self, pair):
 	# Sets next event time of 'pair' to current time and event to burst event
