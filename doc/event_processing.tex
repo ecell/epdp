@@ -64,7 +64,11 @@ facilitate a mixed pair and therefore needs to be generalized to avoid code dupl
 Also the procedures are all very similar and should be easily generalized. This will make the code clearer and easier to understand.
 
 Originally, the pair consists of two singles. These are also used after the propagation and are only removed when a reaction takes
-place. There is in a sence a sort of a cache of the domains from which the pair domain was formed.
+place. There is in a sence a sort of a cache of the domains from which the pair domain was formed. When the event of the pair is then
+processed we can make use of the cached singles to make the domains for the product particles. In the old structure, the singles
+are also used to draw the decay times for single particles.
+In the new framework we can reuse the singles if the particle identity has not changed, otherwise reuse is not possible. The domains
+are coupled to the particles (their size, structure and reactionrules).
 
 
 
@@ -84,7 +88,11 @@ else
     (no diffusion has taken place)
     positions are old position(s)
 
+
   (determine identitie(s))
+  remove old domain (domain should be removed because otherwise it interferes with
+  bursting during the 'reaction process'
+
   if event is Single\_Reaction, IV\_Reaction, IV\_Interaction
     get new identity for the resulting particle
     calculate new position for particles (for example Interaction, Decay reactions)
@@ -104,21 +112,16 @@ else
   (we now have n particles in the world with certain identity and position)
   (In principle all particles should still be in the domain)
 
-  remove old domain 
   for all particles
-    create default NonInteractionSingle for particle
+    if particle\_id is old\_particle\_id
+      NonInteractionSingle = cached NonInteractionSingle
+      re-initialize time and size of NonInteractionSingle(s)
+      add to shell container and domain hash
+      log reused NonInteractionSingle
+    else
+      create default NonInteractionSingle for particle
+      log newly created NonInteractionSingle
     schedule domain
-    log newly created NonInteractionSingle
-
-
-
-    (we now have n particles with certain identity and position)
-    move particles
-    NonInteractionSingle(s) = cached NonInteractionSingle(s)
-    remove old domain
-    re-initialize time and size of NonInteractionSingle(s)
-    add 
-
 
 
 
