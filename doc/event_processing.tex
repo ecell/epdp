@@ -39,6 +39,34 @@ that you change domain.
 A speedup trick for this is to 'save' the original single in the Pair or Interaction domain so that we can potentially reuse
 them when a fire or burst event takes place
 
+In the old code, the processing of the coordinates is dealt with differently. When possible the particles in the domain are
+first 'propagated'. This means that the particles in the domain are propagated to their new positions and that then new
+zero shells are made for the particles. The putative decay reaction is then handled separately after the 'propagation'. In this
+way the processes are modular. Similarly we could perform an interaction reaction after performing the propagation of the particle
+towards the surface.
+Doing a pair reaction however requires a different procedure since the two particles cannot be propagated on top of eachother.
+
+Since the procedures of firing and bursting are similar, the current approach leads to a lot of code duplication. Since we also
+intoduced a great number of new domains with different interactions, the number of combination grow introducing even more code
+duplication.
+To keep the code clear, we chose to generalize the procedure and perform the 'propagation' and 'reaction' steps in one step. In
+this way also the pair reaction fits in the same framework.
+This means that we first calculate the new position(s) of the particle(s) and directly perform the putative identity change. So,
+we do not make new domains after calculating the new positions, but only do this after the putative reaction has taken place.
+
+It is important to note that the reaction can fail because there is no space for the product particles. Currently this is caught
+by an exception (the procedure for the decay reaction fails) and no changes are made to the system. In the new framework we will
+have to handle it differently. We will need to make sure that the positional change still gets processed (the propagation) whereas
+the identity change (the reaction) is not, the identity of the particle(s) stays the same.
+
+A lot of the procedures have to be generalized anyway to facilitate the different dimensions. Also the fire\_pair method needs to
+facilitate a mixed pair and therefore needs to be generalized to avoid code duplication.
+Also the procedures are all very similar and should be easily generalized. This will make the code clearer and easier to understand.
+
+Originally, the pair consists of two singles. These are also used after the propagation and are only removed when a reaction takes
+place. There is in a sence a sort of a cache of the domains from which the pair domain was formed.
+
+
 
 Processing the event means:
 if Single && zero-shell && D != 0 then
