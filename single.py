@@ -598,8 +598,7 @@ class PlanarSurfaceInteraction(InteractionSingle):
 
 
 	    if event_type == EventType.IV_INTERACTION:
-		# also move the particle into the surface
-		z = z_surface - self.pid_particle_pair[1].radius
+		z = z_surface 
 	    elif event_type == EventType.IV_ESCAPE:
 		z = z_not_surface
 	    else:
