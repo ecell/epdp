@@ -399,8 +399,9 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
         reaction_rules = self.network_rules.query_reaction_rule(species_id)
         # TODO.
-        #interaction_rules = self.network_rules.query_reaction_rule(species_id, surface)
-        interaction_rules = []
+#        interaction_rules = self.network_rules.query_reaction_rule(species_id, surface)
+        interaction_rules = self.network_rules.query_reaction_rule(species_id, species_id)
+#        interaction_rules = []
 
         structure = self.world.get_structure(species.structure_id)
 
@@ -690,11 +691,16 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
 	    # 3. check that there is space for the products 
             if self.world.check_overlap((product_pos, product_radius), reactant[0]):
-                if __debug__:
-            	    log.info('single reaction; placing product failed.')
-                products = [reactant]	# no change
+		# 4. Process (the lack of) change
+		moved_reactant = self.move_particle(reactant, reactant_pos)
+                products = [moved_reactant]	# no change
+
+		# 5. update counters
         	self.rejected_moves += 1
 
+		# 6. Log the event
+                if __debug__:
+            	    log.info('single reaction; placing product failed.')
 	    else:
 	        # 4. process the changes (remove particle, make new ones)
                 self.world.remove_particle(reactant[0])
@@ -770,6 +776,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
             	    product2_pair = self.world.new_particle(product_species2.id, newpos2)
 	    	    products = [product1_pair, product2_pair]
 
+		    # 5. update counters
             	    self.reaction_events += 1
             	    self.last_reaction = (rr, (reactant[1], None), products)
 
@@ -781,7 +788,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
             else:
                 if __debug__:
             	    log.info('single reaction; placing products failed.')
-		products = [reactant]
+		moved_reactant = self.move_particle(reactant, reactant_pos)
+		products = [moved_reactant]
         	self.rejected_moves += 1
 #                raise NoSpace()
 
@@ -847,7 +855,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
             if self.world.check_overlap((product_pos, product_radius), reactant[0]):
                 if __debug__:
             	    log.info('interaction; placing product failed.')
-                products = [reactant]	# no change TODO the particle should still be moved!
+		moved_reactant = self.move_particle(reactant, reactant_pos)
+                products = [moved_reactant]	# no change 
         	self.rejected_moves += 1
 
 	    else:
@@ -1008,6 +1017,9 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
 	    # newpos now hold the new position of the particle (not yet committed to the world)
 	    # if we would here move the particles and make new shells, then it would be similar to a propagate
+
+	    if single.event_type == EventType.IV_EVENT:
+		single.event_type = single.draw_iv_event_type()
 
             # If the single had a decay reaction or interaction.
             if single.event_type == EventType.SINGLE_REACTION or \
