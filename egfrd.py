@@ -410,6 +410,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
     	if isinstance(surface, CylindricalSurface):
             particle_pos = self.world.cyclic_transpose(particle_pos, surface.shape.position)
             projected_point, r0 = surface.projected_point(particle_pos)
+	    r0 = abs(r0)
             shell_unit_r = normalize(particle_pos - projected_point)
 
             z0 = numpy.dot (shell_unit_z, (projected_point - shell_center))
@@ -676,15 +677,36 @@ class EGFRDSimulator(ParticleSimulatorBase):
 	    # 1. get product info
             product_species = self.world.get_species(rr.products[0])
 	    product_radius  = product_species.radius
+	    product_structure = self.world.get_structure(product_species.structure_id) 
 
-	    # 1.5 get putative new position of particle
-	    displacement = 0	# TODO for change of structure get displacement
-	    product_pos = reactant_pos + displacement
+	    # 1.5 produce a number of new possible positions for the product particle
+	    # TODO make these generators for efficiency
+	    if product_structure != reactant_structure:
+		if isinstance(reactant_structure, PlanarSurface):
+		    vector_length = (product_radius + 0.0) * MINIMAL_SEPARATION_FACTOR	# the thickness of the membrane is 0.0
+		    product_pos_list = [reactant_pos + vector_length * reactant_structure.shape.unit_z * direction \
+					for direction in [-1,1]]
+
+		elif isinstance(reactant_structure, CylindricalSurface):
+		    vector_length = (product_radius + reactant_structure.shape.radius) * MINIMAL_SEPARATION_FACTOR
+		    product_pos_list = []
+		    for _ in range(self.dissociation_retry_moves):
+			unit_vector3D = random_unit_vector()
+			unit_vector2D = normalize(unit_vector3D - numpy.dot(unit_vector3D, reactant_structure.shape.unit_z))
+			vector = reactant_pos + vector_length * unit_vector2D
+			product_pos_list.append(vector)
+		else:
+		    # raise horrible error
+            	    raise RuntimeError('fire_single_reaction: Can not decay from 3D to other structure')
+	    else:
+	        product_pos_list = [reactant_pos]		# no change of position is required if structure doesn't change
+
+	    product_pos = product_pos_list[0]			# TODO try alternatives
 	    product_pos = self.world.apply_boundary(product_pos)
 
             # 2. make space for the products.
-            if displacement != 0.0 or reactant_radius < product_radius:
-                self.burst_volume(product_pos, product_radius)
+#            if product_pos != reactant_pos or product_radius > reactant_radius:
+            self.burst_volume(product_pos, product_radius)
 
 	    # 3. check that there is space for the products 
             if self.world.check_overlap((product_pos, product_radius), reactant[0]):
@@ -1629,7 +1651,6 @@ class EGFRDSimulator(ParticleSimulatorBase):
                           (single, surface, dr, min_dr, dz_left, min_dz_left, 
                            dz_right, min_dz_right))
             return None
-
 
 	### 2. The shell can be made. Now do what's necessary to make it
         # Compute origin, radius and half_length of cylinder.
