@@ -800,92 +800,169 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
 	return products
 
+    def fire_interaction(self, single, reactant_pos):
+	# This takes care of the identity change when a particle associates with a surface
 
-    def propagate_single(self, single):
-        # The difference between a burst and a propagate is that a burst 
-        # always takes place before the actual scheduled event for the 
-        # single, while propagate_single can be called for an escape event.
+	# 0. get reactant info
+	reactant        = single.pid_particle_pair
+        reactant_radius    = reactant[1].radius
+        rr = single.interactionrule
 
-        # Another subtle difference is that burst_single always 
-        # reschedules (update_event) the single, while just calling 
-        # propagate does not.  So whoever calls propagate_single 
-        # directly should reschedule the single afterwards.
+	# 1. remove the particle
+#        self.world.remove_particle(single.pid_particle_pair[0])
 
-	pid_particle_pair = single.pid_particle_pair
+        if len(rr.products) == 0:
+            
+	    # 1. No products, no info
+	    # 2. No space required
+	    # 3. No space required
+	    # 4. process the changes (remove particle, make new ones)
+            self.world.remove_particle(reactant[0])
+	    products = []
 
-        if __debug__:
-            log.debug("single.dt=%s, single.last_time=%s, self.t=%s" %
-                      (FORMAT_DOUBLE % single.dt,
-                       FORMAT_DOUBLE % single.last_time,
-                       FORMAT_DOUBLE % self.t))
+	    # 5. No new single to be made
+	    # 6. Log the change
+#            self.last_reaction = (rr, (single.pid_particle_pair[1], None), products)
 
-        newpos = single.draw_new_position(single.dt, single.event_type) 
-        newpos = self.world.apply_boundary(newpos)
+            
+        elif len(rr.products) == 1:
+            
+	    # 1. get product info
+            product_species = self.world.get_species(rr.products[0])
+	    product_radius  = product_species.radius
+            product_surface = single.surface
 
-        if __debug__:
-            log.debug("propagate %s: %s => %s" %
-                      (single, pid_particle_pair[1].position, newpos))
+	    # 1.5 get new position of particle
+	    transposed_pos = self.world.cyclic_transpose(reactant_pos, product_surface.shape.position)
+            product_pos, _ = product_surface.projected_point(transposed_pos)
+	    product_pos = self.world.apply_boundary(product_pos)	# not sure this is still necessary
 
-            if self.world.check_overlap((newpos, pid_particle_pair[1].radius),
-                                        pid_particle_pair[0]):
-                raise RuntimeError('propagate_single: check_overlap failed.')
+            # 2. burst the volume that will contain the products.
+            self.burst_volume(product_pos, product_radius)
 
-        if(single.event_type == EventType.SINGLE_REACTION or
-           single.event_type == EventType.IV_INTERACTION):
-            # Single reaction or interaction, and not a burst.
-	    # domain is removed in process_single_event.
-
-	    # An identity change of the particle needs to take place
-	    # This is done in fire_single_reaction
-
-	    # reuse the old single
-	    # 4. process the changes
-	    pid_particle_pair = self.move_particle(pid_particle_pair, newpos)
-	    single.pid_particle_pair = pid_particle_pair
-
-	    # 6. No logging??
-
-            return single
-        else:
-            if isinstance(single, InteractionSingle):
-                # If for an interaction single a single reaction or iv 
-                # interaction occurs, we create a new single and get 
-                # rid of the old interactionSingle in 
-                # fire_single_reaction.
-                # For escapes and bursts of interaction singles we do 
-                # it here.
-
-		# 4. process the changes (actually move the particle)
-                pid_particle_pair = self.move_particle(pid_particle_pair, newpos)
-
-		# remove the old domain
-                self.remove_domain(single)
-
-		# 5. single domain for the particle (scheduling is done later)
-                newsingle = self.create_single(pid_particle_pair)
-
-		# 6. Log the changes
+	    # 3. check that there is space for the products 
+            if self.world.check_overlap((product_pos, product_radius), reactant[0]):
                 if __debug__:
-                    log.debug('    *New %s.\n'
-                              '        radius = %.3g. dt = %.3g.' %
-                              (newsingle, newsingle.shell.shape.radius,
-                               newsingle.dt))
-                return newsingle
+            	    log.info('interaction; placing product failed.')
+                products = [reactant]	# no change TODO the particle should still be moved!
+        	self.rejected_moves += 1
 
-            else:
-		# reuse the old single
-		# domain is not removed
-                single.initialize(self.t)
+	    else:
+	        # 4. process the changes (remove particle, make new ones)
+                self.world.remove_particle(reactant[0])
+                newparticle = self.world.new_particle(product_species.id, product_pos)
+	        products = [newparticle]
 
-		# 4. process the changes
-        	pid_particle_pair = self.move_particle(pid_particle_pair, newpos)
-		single.pid_particle_pair = pid_particle_pair
-        	self.update_single_shell(single, newpos, single.pid_particle_pair[1].radius)
+		# 5. update counters
+        	self.reaction_events += 1
+        	self.last_reaction = (rr, (reactant[1], None), products)
 
-		# 5. No new single is made(reuse) (scheduling is done later)
-		# 6. Logging is done elsewhere?
+	        # 6. Log the change
+                if __debug__:
+                     log.info('product (%s) = %s' % (len(products), products))
 
-                return single
+        else:
+            raise RuntimeError('fire_interaction: num products >= 2 not supported.')
+
+	return products
+
+    def fire_move(self, single, reactant_pos):
+	# No reactions/Interactions have taken place -> no identity change of the particle
+	# Just only move the particles
+
+	reactant = single.pid_particle_pair
+
+        if self.world.check_overlap((reactant_pos, reactant[1].radius),
+                                    reactant[0]):
+            raise RuntimeError('fire_move: particle overlap failed.')
+	moved_reactant = self.move_particle(reactant, reactant_pos)
+	return [moved_reactant]
+
+#    def propagate_single(self, single):
+#        # The difference between a burst and a propagate is that a burst 
+#        # always takes place before the actual scheduled event for the 
+#        # single, while propagate_single can be called for an escape event.
+#
+#        # Another subtle difference is that burst_single always 
+#        # reschedules (update_event) the single, while just calling 
+#        # propagate does not.  So whoever calls propagate_single 
+#        # directly should reschedule the single afterwards.
+#
+#	pid_particle_pair = single.pid_particle_pair
+#
+#        if __debug__:
+#            log.debug("single.dt=%s, single.last_time=%s, self.t=%s" %
+#                      (FORMAT_DOUBLE % single.dt,
+#                       FORMAT_DOUBLE % single.last_time,
+#                       FORMAT_DOUBLE % self.t))
+#
+#        newpos = single.draw_new_position(single.dt, single.event_type) 
+#        newpos = self.world.apply_boundary(newpos)
+#
+#        if __debug__:
+#            log.debug("propagate %s: %s => %s" %
+#                      (single, pid_particle_pair[1].position, newpos))
+#
+#            if self.world.check_overlap((newpos, pid_particle_pair[1].radius),
+#                                        pid_particle_pair[0]):
+#                raise RuntimeError('propagate_single: check_overlap failed.')
+#
+#        if(single.event_type == EventType.SINGLE_REACTION or
+#           single.event_type == EventType.IV_INTERACTION):
+#            # Single reaction or interaction, and not a burst.
+#	    # domain is removed in process_single_event.
+#
+#	    # An identity change of the particle needs to take place
+#	    # This is done in fire_single_reaction
+#
+#	    # reuse the old single
+#	    # 4. process the changes
+#	    pid_particle_pair = self.move_particle(pid_particle_pair, newpos)
+#	    single.pid_particle_pair = pid_particle_pair
+#
+#	    # 6. No logging??
+#
+#            return single
+#        else:
+#            if isinstance(single, InteractionSingle):
+#                # If for an interaction single a single reaction or iv 
+#                # interaction occurs, we create a new single and get 
+#                # rid of the old interactionSingle in 
+#                # fire_single_reaction.
+#                # For escapes and bursts of interaction singles we do 
+#                # it here.
+#
+#		# 4. process the changes (actually move the particle)
+#                pid_particle_pair = self.move_particle(pid_particle_pair, newpos)
+#
+#		# remove the old domain
+#                self.remove_domain(single)
+#
+#		# 5. single domain for the particle (scheduling is done later)
+#                newsingle = self.create_single(pid_particle_pair)
+#
+#		# 6. Log the changes
+#                if __debug__:
+#                    log.debug('    *New %s.\n'
+#                              '        radius = %.3g. dt = %.3g.' %
+#                              (newsingle, newsingle.shell.shape.radius,
+#                               newsingle.dt))
+#                return newsingle
+#
+#            else:
+#		# reuse the old single
+#		# domain is not removed
+#                single.initialize(self.t)
+#
+#		# 4. process the changes
+#        	pid_particle_pair = self.move_particle(pid_particle_pair, newpos)
+#		single.pid_particle_pair = pid_particle_pair
+#        	self.update_single_shell(single, newpos, single.pid_particle_pair[1].radius)
+#
+#		# 5. No new single is made(reuse) (scheduling is done later)
+#		# 6. Logging is done elsewhere?
+#
+#                return single
 
     def process_single_event(self, single):
 
@@ -945,12 +1022,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
                     particles = self.fire_interaction(single, newpos)	# TODO 
 
 	    else:
-		# No reactions/Interactions have taken place -> no identity change of the particle
-                if self.world.check_overlap((newpos, pid_particle_pair[1].radius),
-                                            pid_particle_pair[0]):
-                    raise RuntimeError('process_single_event: particle overlap failed.')
-	        particles = [self.move_particle(pid_particle_pair, newpos)]
-
+		particles = self.fire_move(single, newpos)
 
 	    # 5. Make a (new) domain (reuse) domain for each particle(s)
 	    #    (Re)schedule the (new) domain
