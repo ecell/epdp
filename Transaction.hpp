@@ -168,22 +168,8 @@ public:
         return pc_.get_structures();
     }    
         
-    virtual structure_id_and_distance_pair get_closest_surface(position_type const& pos)
+    virtual structure_id_and_distance_pair get_closest_surface(position_type const& pos) const
     {
-    
-        typedef boost::iterator_range<surface_iterator> base_type;
-        
-        structures_range structures = pc_.get_structures();
-        
-        base_type::size_type size = structures.size();
-
-        boost::shared_ptr<structure_type> structure;
-        
-        /*
-        length_type distance( (*structures)::base_type.distance( pos ) );
-    
-        return structure_id_and_distance_pair( (*structure).id() ,distance );
-        */
         return structure_id_and_distance_pair();
     }
 

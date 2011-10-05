@@ -26,6 +26,7 @@ public:
     typedef typename traits_type::structure_id_type structure_id_type;
     typedef typename traits_type::structure_type structure_type;
     typedef std::pair<const particle_id_type, particle_type> particle_id_pair;
+    typedef std::pair<const structure_id_type, length_type> structure_id_and_distance_pair;
     typedef Transaction<traits_type> transaction_type;
     typedef abstract_limited_generator<particle_id_pair> particle_id_pair_generator;
     typedef std::pair<particle_id_pair, length_type> particle_id_pair_and_distance;
@@ -51,6 +52,8 @@ public:
     virtual boost::shared_ptr<structure_type> get_structure(structure_id_type const& id) const = 0;
     
     virtual structures_range get_structures() const = 0;
+    
+    virtual structure_id_and_distance_pair get_closest_surface(position_type const& pos) const = 0;
 
     virtual particle_id_pair new_particle(species_id_type const& sid,
             position_type const& pos) = 0;

@@ -192,6 +192,7 @@ public:
     typedef typename wrapped_type::transaction_type transaction_type;
     typedef typename wrapped_type::particle_id_pair_generator particle_id_pair_generator;
     typedef typename wrapped_type::particle_id_pair_and_distance_list particle_id_pair_and_distance_list;
+    typedef typename wrapped_type::structure_id_and_distance_pair structure_id_and_distance_pair;
 
 private:
     typedef std::map<structure_id_type, boost::shared_ptr<structure_type> > structure_map;
@@ -237,6 +238,11 @@ public:
     virtual structures_range get_structures() const
     {
         return py_wrapper_type::get_override("get_structures")();
+    }
+
+    virtual structure_id_and_distance_pair get_closest_surface(position_type const& pos) const
+    {
+        return py_wrapper_type::get_override("get_closest_surface")(pos);
     }
 
     virtual particle_id_pair new_particle(species_id_type const& sid,
@@ -339,6 +345,7 @@ inline boost::python::objects::class_base register_particle_container_class(
     using namespace boost::python;
     typedef Timpl impl_type;
     peer::converters::register_tuple_converter<typename impl_type::particle_id_pair>();
+    peer::converters::register_tuple_converter<typename impl_type::structure_id_and_distance_pair>();
     peer::converters::register_tuple_converter<typename impl_type::particle_id_pair_and_distance>();
 
     particle_id_pair_and_distance_list_converter<typename impl_type::particle_id_pair_and_distance_list>::__register();
@@ -352,6 +359,7 @@ inline boost::python::objects::class_base register_particle_container_class(
             return_internal_reference<>())
         .def("get_structure", pure_virtual(&impl_type::get_structure))
         .def("get_structures", pure_virtual(&impl_type::get_structures))
+        .def("get_closest_surface", pure_virtual(&impl_type::get_closest_surface))
         .def("new_particle", pure_virtual(&impl_type::new_particle))
         .def("update_particle", pure_virtual(&impl_type::update_particle))
         .def("remove_particle", pure_virtual(&impl_type::remove_particle))

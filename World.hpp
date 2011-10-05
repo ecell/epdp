@@ -1,6 +1,8 @@
 #ifndef WORLD_HPP
 #define WORLD_HPP
 
+#include <iostream>
+
 #include "ParticleContainerBase.hpp"
 
 #include <map>
@@ -172,6 +174,7 @@ public:
     typedef typename traits_type::structure_id_type structure_id_type;
     typedef typename traits_type::structure_type structure_type;
     typedef std::pair<const particle_id_type, particle_type> particle_id_pair;
+    typedef std::pair<const structure_id_type, length_type> structure_id_and_distance_pair;
 
 protected:
     typedef std::map<species_id_type, species_type> species_map;
@@ -282,6 +285,66 @@ public:
             surface_iterator(structure_map_.begin(), surface_second_selector_type()),
             surface_iterator(structure_map_.end(), surface_second_selector_type()),
             structure_map_.size());
+    }
+    
+    virtual structure_id_and_distance_pair get_closest_surface(position_type const& pos) const
+    {        
+        structures_range structures = get_structures();
+        
+        size_type size ( structures.size() );
+        
+        std::cerr << "# = " << size << std::endl;
+        
+        switch(size)
+        {        
+        case 1:
+            return structure_id_and_distance_pair( NULL , 0 );
+        
+        case 2:
+        {
+            surface_iterator structure = structures.begin();
+            std::pair<position_type, length_type> prj_point( (*structure)->projected_point( pos ) );
+            return structure_id_and_distance_pair( (*structure)->id() , prj_point.second );
+        }
+        
+        default:
+            
+            surface_iterator structure = structures.end();
+        
+            while( structure != structures.begin() ); 
+            {
+                std::cerr << "id = " << (*structure)->id() << std::endl;
+                structure--;
+            }
+   
+            structure = structures.end();
+            structure--;
+            surface_iterator ret_structure( structure );
+        
+            std::pair<position_type, length_type> prj_point( (*structure)->projected_point( pos ) );
+        
+            length_type ret_distance( prj_point.second );
+            length_type distance;    
+            
+            std::cerr << "id = " << (*structure)->id() << ", dist = " << ret_distance << std::endl;
+        
+            structure--;
+            while( structure != structures.begin() ); 
+            {
+                distance = (*structure)->projected_point( pos ).second;
+                
+                if( distance < ret_distance )
+                {
+                    ret_distance = distance;
+                    ret_structure = structure;
+                }
+                std::cerr << "id = " << (*structure)->id() << ", dist = " << distance << std::endl;
+                structure--;
+            }
+        
+            return structure_id_and_distance_pair( (*ret_structure)->id() , ret_distance );
+
+        }
     }
 
     particle_id_set get_particle_ids(species_id_type const& sid) const
