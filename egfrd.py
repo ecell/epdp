@@ -651,13 +651,11 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
 	# 0. get reactant info
 	reactant           = single.pid_particle_pair
-#        reactant_pos       = reactant[1].position
         reactant_radius    = reactant[1].radius
         reactant_structure = single.structure
         rr = single.reactionrule
 
 	# 1. remove the particle
-#        self.world.remove_particle(single.pid_particle_pair[0])
 
         if len(rr.products) == 0:
             
@@ -670,7 +668,6 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
 	    # 5. No new single to be made
 	    # 6. Log the change
-#            self.last_reaction = (rr, (single.pid_particle_pair[1], None), products)
 
             
         elif len(rr.products) == 1:
@@ -714,10 +711,6 @@ class EGFRDSimulator(ParticleSimulatorBase):
 	        # 6. Log the change
                 if __debug__:
                      log.info('product (%s) = %s' % (len(products), products))
-
-#	    # 5. make new single and schedule
-#            newsingle = self.create_single(newparticle)
-#            self.add_domain_event(newsingle)
 
             
         elif len(rr.products) == 2:
@@ -791,17 +784,6 @@ class EGFRDSimulator(ParticleSimulatorBase):
 		moved_reactant = self.move_particle(reactant, reactant_pos)
 		products = [moved_reactant]
         	self.rejected_moves += 1
-#                raise NoSpace()
-
-#	    # 5. make new singles and schedule
-#            newsingle1 = self.create_single(pid_particle_pair1)
-#            newsingle2 = self.create_single(pid_particle_pair2)
-#            self.add_domain_event(newsingle1)
-#            self.add_domain_event(newsingle2)
-
-#            self.last_reaction = (rr, (single.pid_particle_pair[1], None),
-#                                  products)
-
 
         else:
             raise RuntimeError('num products >= 3 not supported.')
@@ -817,7 +799,6 @@ class EGFRDSimulator(ParticleSimulatorBase):
         rr = single.interactionrule
 
 	# 1. remove the particle
-#        self.world.remove_particle(single.pid_particle_pair[0])
 
         if len(rr.products) == 0:
             
@@ -830,7 +811,6 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
 	    # 5. No new single to be made
 	    # 6. Log the change
-#            self.last_reaction = (rr, (single.pid_particle_pair[1], None), products)
 
             
         elif len(rr.products) == 1:
@@ -890,91 +870,6 @@ class EGFRDSimulator(ParticleSimulatorBase):
 	moved_reactant = self.move_particle(reactant, reactant_pos)
 	return [moved_reactant]
 
-#    def propagate_single(self, single):
-#        # The difference between a burst and a propagate is that a burst 
-#        # always takes place before the actual scheduled event for the 
-#        # single, while propagate_single can be called for an escape event.
-#
-#        # Another subtle difference is that burst_single always 
-#        # reschedules (update_event) the single, while just calling 
-#        # propagate does not.  So whoever calls propagate_single 
-#        # directly should reschedule the single afterwards.
-#
-#	pid_particle_pair = single.pid_particle_pair
-#
-#        if __debug__:
-#            log.debug("single.dt=%s, single.last_time=%s, self.t=%s" %
-#                      (FORMAT_DOUBLE % single.dt,
-#                       FORMAT_DOUBLE % single.last_time,
-#                       FORMAT_DOUBLE % self.t))
-#
-#        newpos = single.draw_new_position(single.dt, single.event_type) 
-#        newpos = self.world.apply_boundary(newpos)
-#
-#        if __debug__:
-#            log.debug("propagate %s: %s => %s" %
-#                      (single, pid_particle_pair[1].position, newpos))
-#
-#            if self.world.check_overlap((newpos, pid_particle_pair[1].radius),
-#                                        pid_particle_pair[0]):
-#                raise RuntimeError('propagate_single: check_overlap failed.')
-#
-#        if(single.event_type == EventType.SINGLE_REACTION or
-#           single.event_type == EventType.IV_INTERACTION):
-#            # Single reaction or interaction, and not a burst.
-#	    # domain is removed in process_single_event.
-#
-#	    # An identity change of the particle needs to take place
-#	    # This is done in fire_single_reaction
-#
-#	    # reuse the old single
-#	    # 4. process the changes
-#	    pid_particle_pair = self.move_particle(pid_particle_pair, newpos)
-#	    single.pid_particle_pair = pid_particle_pair
-#
-#	    # 6. No logging??
-#
-#            return single
-#        else:
-#            if isinstance(single, InteractionSingle):
-#                # If for an interaction single a single reaction or iv 
-#                # interaction occurs, we create a new single and get 
-#                # rid of the old interactionSingle in 
-#                # fire_single_reaction.
-#                # For escapes and bursts of interaction singles we do 
-#                # it here.
-#
-#		# 4. process the changes (actually move the particle)
-#                pid_particle_pair = self.move_particle(pid_particle_pair, newpos)
-#
-#		# remove the old domain
-#                self.remove_domain(single)
-#
-#		# 5. single domain for the particle (scheduling is done later)
-#                newsingle = self.create_single(pid_particle_pair)
-#
-#		# 6. Log the changes
-#                if __debug__:
-#                    log.debug('    *New %s.\n'
-#                              '        radius = %.3g. dt = %.3g.' %
-#                              (newsingle, newsingle.shell.shape.radius,
-#                               newsingle.dt))
-#                return newsingle
-#
-#            else:
-#		# reuse the old single
-#		# domain is not removed
-#                single.initialize(self.t)
-#
-#		# 4. process the changes
-#        	pid_particle_pair = self.move_particle(pid_particle_pair, newpos)
-#		single.pid_particle_pair = pid_particle_pair
-#        	self.update_single_shell(single, newpos, single.pid_particle_pair[1].radius)
-#
-#		# 5. No new single is made(reuse) (scheduling is done later)
-#		# 6. Logging is done elsewhere?
-#
-#                return single
 
     def process_single_event(self, single):
 
@@ -1196,15 +1091,6 @@ class EGFRDSimulator(ParticleSimulatorBase):
 	return domain
 
 
-#    def reject_single_reaction(self, single):
-#        if __debug__:
-#            log.info('single reaction; placing product failed.')
-#        self.domains[single.domain_id] = single
-#        self.geometrycontainer.move_shell(single.shell_id_shell_pair)
-#        self.rejected_moves += 1
-#        single.initialize(self.t)
-#        self.add_domain_event(single)
-
     def calculate_simplepair_shell_size(self, single1, single2, burst):
 	assert single1.structure == single2.structure
 
@@ -1363,11 +1249,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
             if __debug__:
                 log.info('reactant = %s' % reactingsingle)
-#            try:
             self.remove_domain(reactingsingle)
             particles = self.fire_single_reaction(reactingsingle)
-#            except NoSpace:
-#                self.reject_single_reaction(reactingsingle)
 	    for pid_particle_pair in particles:
 		single = self.create_single(pid_particle_pair)
 		self.add_domain_event(single)
