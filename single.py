@@ -450,7 +450,7 @@ class InteractionSingle(Single):
 							# trying to interact
 
     def get_interaction_rule(self):
-	if self.intrule == []:
+	if self.intrule == None:
 	    self.intrule = self.draw_reaction_rule(self.interactionrules)
 	return self.intrule
     interactionrule = property(get_interaction_rule)
