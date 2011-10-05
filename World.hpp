@@ -308,28 +308,15 @@ public:
         }
         
         default:
-            
-            surface_iterator structure = structures.end();
-        
-            while( structure != structures.begin() ); 
-            {
-                std::cerr << "id = " << (*structure)->id() << std::endl;
-                structure--;
-            }
-   
-            structure = structures.end();
-            structure--;
+        {   
+            surface_iterator structure = structures.begin();               
             surface_iterator ret_structure( structure );
-        
-            std::pair<position_type, length_type> prj_point( (*structure)->projected_point( pos ) );
-        
-            length_type ret_distance( prj_point.second );
-            length_type distance;    
-            
-            std::cerr << "id = " << (*structure)->id() << ", dist = " << ret_distance << std::endl;
-        
-            structure--;
-            while( structure != structures.begin() ); 
+                
+            length_type distance;  
+            length_type ret_distance( (*structure)->projected_point( pos ).second );              
+                   
+            structure++;
+            for(size_type i = 2; i < size; i++)
             {
                 distance = (*structure)->projected_point( pos ).second;
                 
@@ -338,12 +325,13 @@ public:
                     ret_distance = distance;
                     ret_structure = structure;
                 }
-                std::cerr << "id = " << (*structure)->id() << ", dist = " << distance << std::endl;
-                structure--;
+                //std::cerr << "id = " << (*structure)->id() << ", dist = " << distance << std::endl;
+                structure++;
             }
         
             return structure_id_and_distance_pair( (*ret_structure)->id() , ret_distance );
-
+        }
+        
         }
     }
 
