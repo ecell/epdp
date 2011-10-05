@@ -901,14 +901,14 @@ class EGFRDSimulator(ParticleSimulatorBase):
 	    domains = [self.make_new_domain(single)]
 	    # domain is already scheduled in make_new_domain
 
-	else:
-	### 1. Process event produced by the single
+	### 1.1 Special cases (shortcuts)
+        # In case nothing is scheduled to happen: do nothing and just reschedule
+        elif single.dt == numpy.inf:
+            self.add_domain_event(single)
+            domains = [single]
 
-	    ### 1.1 Special cases (shortcuts)
-            # In case nothing is scheduled to happen: do nothing and just reschedule
-            if single.dt == numpy.inf:
-        	self.add_domain_event(single)
-                return [single]
+	else:
+	### 1. Process 'normal' event produced by the single
 
             # check that the event time of the single (last_time + dt) is equal to the
 	    # simulator time
