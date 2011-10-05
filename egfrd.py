@@ -322,7 +322,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
         # Dispatch is a dictionary (hash) of what function to use to fire
         # different classes of shells (see bottom egfrd.py) 
         # event.data holds the object (Single, Pair, Multi) that is associated with the next event.
-        # e.g. "if class is Single, then proc_event_by_single" ~ MW
+        # e.g. "if class is Single, then process_single_event" ~ MW
         for klass, f in self.dispatch:
             if isinstance(domain, klass):
                 f(self, domain)		# fire the correct method for the class (e.g. fire_singel(self, Single))
@@ -833,7 +833,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
         if(single.event_type == EventType.SINGLE_REACTION or
            single.event_type == EventType.IV_INTERACTION):
             # Single reaction or interaction, and not a burst.
-	    # domain is removed in proc_event_by_single.
+	    # domain is removed in process_single_event.
 
 	    # An identity change of the particle needs to take place
 	    # This is done in fire_single_reaction
@@ -887,7 +887,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
                 return single
 
-    def proc_event_by_single(self, single):
+    def process_single_event(self, single):
 
 	### log Single event
         if __debug__:
@@ -948,7 +948,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
 		# No reactions/Interactions have taken place -> no identity change of the particle
                 if self.world.check_overlap((newpos, pid_particle_pair[1].radius),
                                             pid_particle_pair[0]):
-                    raise RuntimeError('proc_event_by_single: particle overlap failed.')
+                    raise RuntimeError('process_single_event: particle overlap failed.')
 	        particles = [self.move_particle(pid_particle_pair, newpos)]
 
 
@@ -1223,7 +1223,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
         single.dt, single.event_type = single.determine_next_event()
         single.last_time = self.t
 
-    def proc_event_by_pair(self, pair):
+    def process_pair_event(self, pair):
         assert self.check_obj(pair)
 
 	# check that the time is the currect simulator time 
@@ -1377,7 +1377,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
         return
 
-    def proc_event_by_multi(self, multi):
+    def process_multi_event(self, multi):
         self.multi_steps[3] += 1  # multi_steps[3]: total multi steps
         multi.step()
 
@@ -1431,9 +1431,9 @@ class EGFRDSimulator(ParticleSimulatorBase):
         single.event_type = EventType.BURST
 	self.remove_event(single)
 
-#        newsingle = self.propagate_single(single)	# TODO this can now also just be a proc_event_by_single
+#        newsingle = self.propagate_single(single)	# TODO this can now also just be a process_single_event
 #	self.add_domain_event(newsingle)
-	newsingles = self.proc_event_by_single(single)
+	newsingles = self.process_single_event(single)
 
 # NOTE Be inefficient for just now and don't reuse the event in the schedules
 #        newpos = newsingle.pid_particle_pair[1].position
@@ -1470,7 +1470,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
         pair.event_type = EventType.BURST
         self.remove_event(pair)		# remove the event -> was still in the scheduler
 
-        single1, single2 = self.propagate_pair(pair)	# TODO this can now also just be a proc_event_by_pair
+        single1, single2 = self.propagate_pair(pair)	# TODO this can now also just be a process_pair_event
         self.add_domain_event(single1)
         self.add_domain_event(single2)
 
@@ -1574,9 +1574,9 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
 	# Log the event
         if __debug__:
-            log.debug("proc_event_by_pair: #1 { %s: %s => %s }" %
+            log.debug("process_pair_event: #1 { %s: %s => %s }" %
                       (single1, str(pos1), str(newpos1)))
-            log.debug("proc_event_by_pair: #2 { %s: %s => %s }" %
+            log.debug("process_pair_event: #2 { %s: %s => %s }" %
                       (single2, str(pos2), str(newpos2)))
 
         return single1, single2
@@ -2272,9 +2272,9 @@ rejected moves = %d
         return (num_singles, num_pairs, num_multis)
 
     dispatch = [
-        (Single, proc_event_by_single),
-        (Pair, proc_event_by_pair),
-        (Multi, proc_event_by_multi)
+        (Single, process_single_event),
+        (Pair, process_pair_event),
+        (Multi, process_multi_event)
         ]
 
 
