@@ -838,7 +838,10 @@ class EGFRDSimulator(ParticleSimulatorBase):
 	    product_pos = self.world.apply_boundary(product_pos)	# not sure this is still necessary
 
             # 2. burst the volume that will contain the products.
-            self.burst_volume(product_pos, product_radius)
+	    #    Note that an interaction domain is already sized such that it includes the
+	    #    reactant particle moving into the surface.
+	    if product_radius > reactant_radius:
+                self.burst_volume(product_pos, product_radius)
 
 	    # 3. check that there is space for the products 
             if self.world.check_overlap((product_pos, product_radius), reactant[0]):
@@ -862,7 +865,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
                      log.info('product (%s) = %s' % (len(products), products))
 
         else:
-            raise RuntimeError('fire_interaction: num products >= 2 not supported.')
+            raise RuntimeError('fire_interaction: num products > 1 not supported.')
 
 	return products
 
