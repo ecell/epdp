@@ -921,10 +921,10 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
 
 	    pid_particle_pair = single.pid_particle_pair
-            self.remove_domain(single)
-
+	    # in case of an interaction domain: determine real event before doing anything
 	    if single.event_type == EventType.IV_EVENT:
 		single.event_type = single.draw_iv_event_type()
+
 
 	    # get the (new) position
             if single.getD() != 0 and single.dt > 0.0:
@@ -936,6 +936,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
 	    # newpos now hold the new position of the particle (not yet committed to the world)
 	    # if we would here move the particles and make new shells, then it would be similar to a propagate
+
+            self.remove_domain(single)
 
             # If the single had a decay reaction or interaction.
             if single.event_type == EventType.SINGLE_REACTION or \
@@ -950,7 +952,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
 		else:
                     self.interaction_steps[single.event_type] += 1
-                    particles = self.fire_interaction(single, newpos)	# TODO 
+                    particles = self.fire_interaction(single, newpos)
 
 	    else:
 		particles = self.fire_move(single, newpos)
@@ -1038,8 +1040,11 @@ class EGFRDSimulator(ParticleSimulatorBase):
 	# zero-shell NonInteractionSingle -> Pair or Multi
 	# Multi -> Multi
 	# Surface -> Interaction
+	closest_obj, closest_distance = self.geometrycontainer.get_closest_obj(single_pos, self.domains,
+									ignore=[single.domain_id],
+									ignores=[single.structure.id])
 
-	# Potential partners are for now just the bursted domains
+	# TODO Potential partners are for now just the bursted domains
 	partners = burst
 
 	dists = []
@@ -1074,34 +1079,36 @@ class EGFRDSimulator(ParticleSimulatorBase):
 	multi_horizon = single_radius * self.MULTI_SHELL_FACTOR
 
 	# 2.4 check that the object is a potential partner for an
-	# -Interaction 	(a surface)
 	# -Pair		(a zero dt NonInteractionSingle)
+	# -Interaction 	(a surface)
 	# -Multi	(a zero dt NonInteractionSingle or Multi)
-	if isinstance(closest_domain, NonInteractionSingle) and \
-	   closest_domain.is_reset():
+	if isinstance(closest_obj, NonInteractionSingle) and \
+	   closest_obj.is_reset():
 		pair_horizon = (single_radius + \
-                       closest_domain.pid_particle_pair[1].radius) * self.SINGLE_SHELL_FACTOR
-		if domain_distance < pair_horizon:
+                       closest_obj.pid_particle_pair[1].radius) * self.SINGLE_SHELL_FACTOR
+		if closest_distance < pair_horizon:
 	            # try making a Pair (can still be Mixed Pair or Normal Pair)
-		    domain = self.try_pair (single, closest_domain, rest_domains)
+		    domain = self.try_pair (single, closest_obj)
 		else:
 		    domain = None
 
 	elif isinstance(single, SphericalSingle) and \
-	     surface_distance < domain_distance and \
-	     surface_distance < surface_horizon:
+	     (isinstance(closest_obj, CylindricalSurface) or isinstance(closest_obj, PlanarSurface)) and \
+	     closest_distance < surface_horizon:
+#	     surface_distance < domain_distance and \
+#	     surface_distance < surface_horizon:
 		# try making an Interaction
-		domain = self.try_interaction (single, closest_surface)
+	    domain = self.try_interaction (single, closest_obj)
 	else:
-		domain = None
+	    domain = None
 
 
 	if not domain:
 	    # No Pair or Interaction could be formed
 	    # Now choose between NonInteractionSingle and Multi
 
-	    if domain_distance > multi_horizon and \
-	       surface_distance > multi_horizon:
+	    if closest_distance > multi_horizon: # and \
+#	       surface_distance > multi_horizon:
 	        # just make a normal NonInteractionSingle
 	        self.update_single(single)
 	        self.add_domain_event(single)
@@ -1112,7 +1119,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
 	return domain
 
 
-    def calculate_simplepair_shell_size(self, single1, single2, burst):
+    def calculate_simplepair_shell_size(self, single1, single2):
 	assert single1.structure == single2.structure
 
 	# 0. Get some necessary information
@@ -1821,7 +1828,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
         return dr, dz_left, dz_right
 
 
-    def try_pair(self, single1, single2, burst):
+    def try_pair(self, single1, single2):
         if __debug__:
            log.debug('trying to form Pair(%s, %s)' %
                      (single1.pid_particle_pair, single2.pid_particle_pair))
@@ -1842,7 +1849,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
 #	    shell = self.make_mixedpair_shell (single1, single2)
 	else:
 	    # particles are on the same structure
-	    center, r0, shell_size = self.calculate_simplepair_shell_size (single1, single2, burst)
+	    center, r0, shell_size = self.calculate_simplepair_shell_size (single1, single2)
 
 
 	if shell_size:
