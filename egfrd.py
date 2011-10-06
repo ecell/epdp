@@ -410,7 +410,6 @@ class EGFRDSimulator(ParticleSimulatorBase):
     	if isinstance(surface, CylindricalSurface):
             particle_pos = self.world.cyclic_transpose(particle_pos, surface.shape.position)
             projected_point, r0 = surface.projected_point(particle_pos)
-	    r0 = abs(r0)
             shell_unit_r = normalize(particle_pos - projected_point)
 
             z0 = numpy.dot (shell_unit_z, (projected_point - shell_center))
@@ -924,6 +923,9 @@ class EGFRDSimulator(ParticleSimulatorBase):
 	    pid_particle_pair = single.pid_particle_pair
             self.remove_domain(single)
 
+	    if single.event_type == EventType.IV_EVENT:
+		single.event_type = single.draw_iv_event_type()
+
 	    # get the (new) position
             if single.getD() != 0 and single.dt > 0.0:
 		# If the particle had the possibility to diffuse
@@ -934,9 +936,6 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
 	    # newpos now hold the new position of the particle (not yet committed to the world)
 	    # if we would here move the particles and make new shells, then it would be similar to a propagate
-
-	    if single.event_type == EventType.IV_EVENT:
-		single.event_type = single.draw_iv_event_type()
 
             # If the single had a decay reaction or interaction.
             if single.event_type == EventType.SINGLE_REACTION or \

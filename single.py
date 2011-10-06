@@ -594,7 +594,8 @@ class PlanarSurfaceInteraction(InteractionSingle):
 
 	    # If the event was not yet fully specified
 	    if event_type == EventType.IV_EVENT:	
-		event_type = self.draw_iv_event_type()
+		self.event_type = self.draw_iv_event_type()
+		event_type = self.event_type
 
 
 	    if event_type == EventType.IV_INTERACTION:
@@ -700,7 +701,8 @@ class CylindricalSurfaceInteraction(InteractionSingle):
             # 2) Draw r and theta.
 	    # If the event was not yet fully specified
 	    if event_type == EventType.IV_EVENT:	
-		event_type = self.draw_iv_event_type()
+		self.event_type = self.draw_iv_event_type()
+		event_type = self.event_type
 
             sigma = self.get_inner_sigma()
             a_r = self.get_inner_a()
