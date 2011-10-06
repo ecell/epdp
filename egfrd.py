@@ -646,8 +646,10 @@ class EGFRDSimulator(ParticleSimulatorBase):
     def fire_single_reaction(self, single, reactant_pos):
 	# This takes care of the identity change when a single particle decays into
 	# one or a number of other particles
-	# TODO This can also be used when a particle falls off a surface.
-
+	# It performs the reactions:
+	# A(any structure) -> 0
+	# A(any structure) -> B(same structure or 3D)
+	# A(any structure) -> B(same structure) + C(same structure or 3D)
 
 	# 0. get reactant info
 	reactant           = single.pid_particle_pair
@@ -681,6 +683,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
 	    # 1.5 produce a number of new possible positions for the product particle
 	    # TODO make these generators for efficiency
 	    if product_structure != reactant_structure:
+		assert isinstance(product_structure, CuboidalRegion)
+
 		if isinstance(reactant_structure, PlanarSurface):
 		    vector_length = (product_radius + 0.0) * MINIMAL_SEPARATION_FACTOR	# the thickness of the membrane is 0.0
 		    product_pos_list = [reactant_pos + vector_length * reactant_structure.shape.unit_z * direction \
@@ -695,12 +699,14 @@ class EGFRDSimulator(ParticleSimulatorBase):
 			vector = reactant_pos + vector_length * unit_vector2D
 			product_pos_list.append(vector)
 		else:
-		    # raise horrible error
+		    # cannot decay from 3D to other structure
             	    raise RuntimeError('fire_single_reaction: Can not decay from 3D to other structure')
 	    else:
 	        product_pos_list = [reactant_pos]		# no change of position is required if structure doesn't change
 
-	    product_pos = product_pos_list[0]			# TODO try alternatives
+
+	    # TODO try alternatives if surrounding is crowded
+	    product_pos = product_pos_list[0]
 	    product_pos = self.world.apply_boundary(product_pos)
 
             # 2. make space for the products.
@@ -738,15 +744,17 @@ class EGFRDSimulator(ParticleSimulatorBase):
 	# TODO (one of the) product particles can live on different structure
 
 	    # 1. get product info
-            product_species1 = self.world.get_species(rr.products[0])
-            product_species2 = self.world.get_species(rr.products[1])
+            product1_species = self.world.get_species(rr.products[0])
+            product2_species = self.world.get_species(rr.products[1])
+	    product1_structure = self.world.get_structure(product1_species.structure_id) 
+	    product2_structure = self.world.get_structure(product2_species.structure_id) 
             
-            D1 = product_species1.D
-            D2 = product_species2.D
+            D1 = product1_species.D
+            D2 = product2_species.D
             D12 = D1 + D2
             
-            particle_radius1 = product_species1.radius
-            particle_radius2 = product_species2.radius
+            particle_radius1 = product1_species.radius
+            particle_radius2 = product2_species.radius
             particle_radius12 = particle_radius1 + particle_radius2
 
             # 2. make space for the products.
@@ -786,8 +794,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
 		    
 	    	    # 4. process the changes (remove particle, make new ones)
             	    self.world.remove_particle(reactant[0])
-            	    product1_pair = self.world.new_particle(product_species1.id, newpos1)
-            	    product2_pair = self.world.new_particle(product_species2.id, newpos2)
+            	    product1_pair = self.world.new_particle(product1_species.id, newpos1)
+            	    product2_pair = self.world.new_particle(product2_species.id, newpos2)
 	    	    products = [product1_pair, product2_pair]
 
 		    # 5. update counters
@@ -813,6 +821,9 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
     def fire_interaction(self, single, reactant_pos):
 	# This takes care of the identity change when a particle associates with a surface
+	# It performs the reactions:
+	# A(3D) + surface -> 0
+	# A(3D) + surface -> B(surface)
 
 	# 0. get reactant info
 	reactant        = single.pid_particle_pair
@@ -878,6 +889,15 @@ class EGFRDSimulator(ParticleSimulatorBase):
             raise RuntimeError('fire_interaction: num products > 1 not supported.')
 
 	return products
+
+
+    def fire_pair_reaction(self, pair):
+	# This takes care of the identity change when two particles react with each other
+	# It performs the reactions:
+	# A(any structure) + B(same structure) -> 0
+	# A(any structure) + B(same structure or 3D) -> C(same structure)
+	pass
+
 
     def fire_move(self, single, reactant_pos):
 	# No reactions/Interactions have taken place -> no identity change of the particle
