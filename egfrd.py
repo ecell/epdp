@@ -753,43 +753,46 @@ class EGFRDSimulator(ParticleSimulatorBase):
             D2 = product2_species.D
             D12 = D1 + D2
             
-            particle_radius1 = product1_species.radius
-            particle_radius2 = product2_species.radius
-            particle_radius12 = particle_radius1 + particle_radius2
+            product1_radius = product1_species.radius
+            product2_radius = product2_species.radius
+            particle_radius12 = product1_radius + product2_radius
 
-            # 2. make space for the products.
-            rad = max(particle_radius12 * (D1 / D12) + particle_radius1,
-                      particle_radius12 * (D2 / D12) + particle_radius2)
+            # calculate the displace of the particles according to the ratio D1:D2
+            # this way, species with small D only have small displacement from the reaction point.
+	    if D1 == D2:
+	    # special case (this should also catch D1==D2==0.0)
+		product1_displacement = particle_radius12 * 0.5
+		product2_displacement = particle_radius12 * 0.5
+	    else:
+	        product1_displacement = particle_radius12 * (D1 / D12)
+	        product2_displacement = particle_radius12 * (D2 / D12)
 
+	    product1_displacement *= MINIMAL_SEPARATION_FACTOR
+	    product2_displacement *= MINIMAL_SEPARATION_FACTOR
+
+            # 2. make space for the products. 
+	    #    calculate the sphere around the two product particles
+            rad = max(product1_displacement + product1_radius,
+                      product2_displacement + product2_radius)
             self.burst_volume(reactant_pos, rad)
 
 	    # 3. check that there is space for the products (try different positions if possible)
             for _ in range(self.dissociation_retry_moves):
-                vector = _random_vector(reactant_structure, particle_radius12 *
-                                        MINIMAL_SEPARATION_FACTOR, self.rng)
+		# calculate a random vector in the structure with unit length
+                orientation_vector = _random_vector(reactant_structure, 1.0, self.rng)
             
-                # place particles according to the ratio D1:D2
-                # this way, species with D=0 doesn't move.
-                # FIXME: what if D1 == D2 == 0?
+		newpos1 = reactant_pos + product1_displacement * orientation_vector
+		newpos2 = reactant_pos - product2_displacement * orientation_vector
+                newpos1 = self.world.apply_boundary(newpos1)
+                newpos2 = self.world.apply_boundary(newpos2)
 
-                while 1:
-                    newpos1 = reactant_pos + vector * (D1 / D12)
-                    newpos2 = reactant_pos - vector * (D2 / D12)
-                    newpos1 = self.world.apply_boundary(newpos1)
-                    newpos2 = self.world.apply_boundary(newpos2)
-
-                    if(self.world.distance(newpos1, newpos2) >= 
-                       particle_radius12):
-                        break
-
-                    vector *= 1.0 + 1e-7
-
+                assert (self.world.distance(newpos1, newpos2) >= particle_radius12)
 
                 # accept the new positions if there is enough space.
-                if(not self.world.check_overlap((newpos1, particle_radius1),
+                if(not self.world.check_overlap((newpos1, product1_radius),
                                                  reactant[0])
                    and
-                   not self.world.check_overlap((newpos2, particle_radius2),
+                   not self.world.check_overlap((newpos2, product2_radius),
                                                  reactant[0])):
 		    
 	    	    # 4. process the changes (remove particle, make new ones)
@@ -1298,7 +1301,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
             if __debug__:
                 log.info('reactant = %s' % reactingsingle)
             self.remove_domain(reactingsingle)
-            particles = self.fire_single_reaction(reactingsingle)
+            particles = self.fire_single_reaction(reactingsingle, reactingsingle.pid_particle_pair[1].position)
 	    for pid_particle_pair in particles:
 		single = self.create_single(pid_particle_pair)
 		self.add_domain_event(single)
