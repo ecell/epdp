@@ -60,6 +60,8 @@ public:
     virtual position_type newbd_dissociation_vector( rng_type& rng, length_type const& r01, length_type const& rl ) const = 0;
 
     virtual projected_type projected_point(position_type const& pos) const = 0;
+    
+    virtual length_type distance(position_type const& pos) const = 0;
 
     virtual std::size_t hash() const
     {

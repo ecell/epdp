@@ -292,19 +292,19 @@ public:
         structures_range structures = get_structures();
         
         size_type size ( structures.size() );
-        
-        std::cerr << "# = " << size << std::endl;
-        
+                
         switch(size)
-        {        
+        {
+        case 0:
+            throw not_found(std::string("No structures found."));
+                 
         case 1:
-            return structure_id_and_distance_pair( NULL , 0 );
+            return structure_id_and_distance_pair( NULL , 2*base_type::world_size() );
         
         case 2:
         {
             surface_iterator structure = structures.begin();
-            std::pair<position_type, length_type> prj_point( (*structure)->projected_point( pos ) );
-            return structure_id_and_distance_pair( (*structure)->id() , prj_point.second );
+            return structure_id_and_distance_pair( (*structure)->id() , (*structure)->distance( pos ) );
         }
         
         default:
@@ -312,13 +312,13 @@ public:
             surface_iterator structure = structures.begin();               
             surface_iterator ret_structure( structure );
                 
-            length_type distance;  
-            length_type ret_distance( (*structure)->projected_point( pos ).second );              
+            length_type distance;            
+            length_type ret_distance( (*structure)->distance( pos ) );              
                    
             structure++;
             for(size_type i = 2; i < size; i++)
             {
-                distance = (*structure)->projected_point( pos ).second;
+                distance = (*structure)->distance( pos );
                 
                 if( distance < ret_distance )
                 {
