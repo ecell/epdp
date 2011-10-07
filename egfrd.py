@@ -688,7 +688,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
 		if isinstance(reactant_structure, PlanarSurface):
 		    vector_length = (product_radius + 0.0) * MINIMAL_SEPARATION_FACTOR	# the thickness of the membrane is 0.0
 		    product_pos_list = [reactant_pos + vector_length * reactant_structure.shape.unit_z * direction \
-					for direction in [-1,1]]
+					for direction in [-1,1]]	# FIXME the direction should be randomized
 
 		elif isinstance(reactant_structure, CylindricalSurface):
 		    vector_length = (product_radius + reactant_structure.shape.radius) * MINIMAL_SEPARATION_FACTOR
@@ -751,7 +751,6 @@ class EGFRDSimulator(ParticleSimulatorBase):
             
             D1 = product1_species.D
             D2 = product2_species.D
-            D12 = D1 + D2
             
             product1_radius = product1_species.radius
             product2_radius = product2_species.radius
@@ -764,50 +763,131 @@ class EGFRDSimulator(ParticleSimulatorBase):
 		product1_displacement = particle_radius12 * 0.5
 		product2_displacement = particle_radius12 * 0.5
 	    else:
+                D12 = D1 + D2
 	        product1_displacement = particle_radius12 * (D1 / D12)
 	        product2_displacement = particle_radius12 * (D2 / D12)
 
 	    product1_displacement *= MINIMAL_SEPARATION_FACTOR
 	    product2_displacement *= MINIMAL_SEPARATION_FACTOR
 
+
+	    if product1_structure != product2_structure:
+		# make sure that the reactant was on a 2D or 1D surface
+		assert not isinstance(reactant_structure, CuboidalRegion)
+		# make sure that only either one of the target structures is the 3D ('^' is exclusive-OR)
+		assert (isinstance(product1_structure, CuboidalRegion) ^ isinstance(product2_structure, CuboidalRegion))
+
+		# figure out which product stays in the surface and which one goes to 3D
+		if isinstance(product2_structure, CuboidalRegion):
+		    # product2 goes to 3D and is now particleB (product1 is particleA)
+		    productA_displacement = product1_displacement
+		    productB_displacement = product2_displacement
+		    productB_radius = product2_radius
+		    default = True	# we like to think of this as the default
+		else:
+		    # product1 goes to 3D and is now particleB (product2 is particleA)
+		    productA_displacement = product2_displacement
+		    productB_displacement = product1_displacement
+		    productB_radius = product1_radius
+		    default = False
+		# Note that A is a particle in the surface and B is in the 3D
+
+		if isinstance(reactant_structure, PlanarSurface):
+
+		    # draw a number of new positions for the two product particles
+		    # TODO make this into a generator
+		    phi_min = math.asin (productB_radius / particle_radius12)	# we assume the membrane to have zero thickness
+		    phi_min *= MINIMAL_SEPARATION_FACTOR	# make sure that there's some distance from the membrane
+
+		    product_pos_list = []
+		    for _ in range(self.dissociation_retry_moves):
+			# draw the random angle for the 3D particle relative to the particle left in the membrane
+			# not all angles are available because particle cannot intersect with the membrane
+		        phi = myrandom.uniform(phi_min, Pi - phi_min)
+
+		        cos_phi = math.cos(phi) 
+			sin_phi = math.sin(phi)
+
+		        productA_displacement_xy = productA_displacement * cos_phi
+		        productB_displacement_xy = productB_displacement * cos_phi
+			productB_displacement_z  = particle_radius12 * sin_phi
+
+			# pick a random orientation
+			orientation_vector_xy = _random_vector(reactant_structure, 1.0, self.rng)
+			# pick a random side of the membrane
+			orientation_vector_z  = reactant_structure.shape.unit_z * myrandom.choice(-1, 1)
+
+			newposA = reactant_pos + productA_displacement_xy * orientation_vector_xy
+			newposB = reactant_pos - productB_displacement_xy * orientation_vector_xy + \
+						 productB_displacement_z  * orientation_vector_z
+                        newposA = self.world.apply_boundary(newposA)
+                        newposB = self.world.apply_boundary(newposB)
+
+                        assert (self.world.distance(newposA, newposB) >= particle_radius12)
+			assert (self.world.distance(reactant_structure.shape, newposB) >= productB_radius)
+
+			if default:
+			    newpos1, newpos2 = newposA, newposB
+			else:
+			    newpos1, newpos2 = newposB, newposA
+
+			product_pos_list.append((newpos1, newpos2))
+
+		elif isinstance(reactant_structure, CylindricalSurface):
+
+		    # TODO
+		    surface_displace = product3D_radius + reactant_structure.shape.radius
+
+		else:
+		    # cannot decay from 3D to other structure
+            	    raise RuntimeError('fire_single_reaction: Can not decay from 3D to other structure')
+
+	    else:
+		# The two particles stay on the same structure.
+
+		# generate new positions in the structure
+	        # TODO Make this into a generator
+		product_pos_list = []
+                for _ in range(self.dissociation_retry_moves):
+		    # calculate a random vector in the structure with unit length
+		    # FIXME for particles on the cylinder there are only two possibilities
+                    orientation_vector = _random_vector(reactant_structure, 1.0, self.rng)
+            
+		    newpos1 = reactant_pos + product1_displacement * orientation_vector
+		    newpos2 = reactant_pos - product2_displacement * orientation_vector
+                    newpos1 = self.world.apply_boundary(newpos1)
+                    newpos2 = self.world.apply_boundary(newpos2)
+
+                    assert (self.world.distance(newpos1, newpos2) >= particle_radius12)
+		    product_pos_list.append((newpos1, newpos2))
+
             # 2. make space for the products. 
+	    # TODO
 	    #    calculate the sphere around the two product particles
             rad = max(product1_displacement + product1_radius,
                       product2_displacement + product2_radius)
             self.burst_volume(reactant_pos, rad)
 
 	    # 3. check that there is space for the products (try different positions if possible)
-            for _ in range(self.dissociation_retry_moves):
-		# calculate a random vector in the structure with unit length
-                orientation_vector = _random_vector(reactant_structure, 1.0, self.rng)
-            
-		newpos1 = reactant_pos + product1_displacement * orientation_vector
-		newpos2 = reactant_pos - product2_displacement * orientation_vector
-                newpos1 = self.world.apply_boundary(newpos1)
-                newpos2 = self.world.apply_boundary(newpos2)
-
-                assert (self.world.distance(newpos1, newpos2) >= particle_radius12)
-
-                # accept the new positions if there is enough space.
-                if(not self.world.check_overlap((newpos1, product1_radius),
-                                                 reactant[0])
+            # accept the new positions if there is enough space.
+	    for newpos1, newpos2 in product_pos_list:
+                if (not self.world.check_overlap((newpos1, product1_radius), reactant[0])
                    and
-                   not self.world.check_overlap((newpos2, product2_radius),
-                                                 reactant[0])):
+                   not self.world.check_overlap((newpos2, product2_radius), reactant[0])):
 		    
 	    	    # 4. process the changes (remove particle, make new ones)
-            	    self.world.remove_particle(reactant[0])
-            	    product1_pair = self.world.new_particle(product1_species.id, newpos1)
-            	    product2_pair = self.world.new_particle(product2_species.id, newpos2)
-	    	    products = [product1_pair, product2_pair]
+                    self.world.remove_particle(reactant[0])
+                    product1_pair = self.world.new_particle(product1_species.id, newpos1)
+                    product2_pair = self.world.new_particle(product2_species.id, newpos2)
+	            products = [product1_pair, product2_pair]
 
-		    # 5. update counters
-            	    self.reaction_events += 1
-            	    self.last_reaction = (rr, (reactant[1], None), products)
+	            # 5. update counters
+                    self.reaction_events += 1
+                    self.last_reaction = (rr, (reactant[1], None), products)
 
-	    	    # 6. Log the change
-            	    if __debug__:
-                	log.info('products (%s) = %s' % (len(products), products))
+	            # 6. Log the change
+                    if __debug__:
+                        log.info('products (%s) = %s' % (len(products), products))
 
                     break
             else:
