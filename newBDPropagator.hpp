@@ -203,7 +203,7 @@ public:
             tx_.update_particle(particle_to_update);
         }
 
-        return true
+        return true;
         
     }
 
