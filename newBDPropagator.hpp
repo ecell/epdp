@@ -88,11 +88,10 @@ public:
 
         /* Consider decay reactions first. Particles can move after decay, but this is done
            inside the 'attempt_reaction' function; for this particle can only react once . */
-        bool pp_reaction = false;
         try
         {
             if (attempt_reaction(pp))
-                pp_reaction = true;
+                return true;
         }
         catch (propagation_error const& reason)
         {
@@ -182,29 +181,10 @@ public:
             return true;
         }
         
-        //Check for overlap with nearest surface.
-        structure_id_and_distance_pair str_id_distance( tx_.get_closest_surface( new_pos ) );
-        
-        //If surface is within reaction volume, check for reactions
-        if( str_id_distance.second < ( pp.second.radius() + reaction_length_ ) )
-        {
-            if
-            
-            try
-            {
-                if (attempt_reaction(pp, str_id_distance.first))
-                    return true;
-            }
-            catch (propagation_error const& reason)
-            {
-                log_.info("surface interaction rejected (reason: %s)", reason.what());
-                ++rejected_move_count_;
-                return true;
-            }
-            bounced = true;
-        }
-        
-        //if the particle did not bounce, update to new position.
+        //Check for overlap with nearest surface. -NO SURFACES YET.
+        //structure_id_and_distance_pair str_id_distance( tx_.get_closest_surface( new_pos ) );
+                
+        //If the particle did not bounce, update to new position.
         if(!bounced)
         {
                 
@@ -224,6 +204,8 @@ public:
         }
 
         return true
+        
+    }
 
     std::size_t get_rejected_move_count() const
     {
@@ -300,15 +282,16 @@ private:
                         int i = max_retry_count_;
                         position_type np0, np1;
 
+                        boost::shared_ptr<structure_type> pp_structure( 
+                                tx_.get_structure( tx_.get_species( pp.second.sid() ).structure_id()) ); 
+                                
+                        /* Place the two product particles inside the reaction volume and check if the volume is empty. */
                         for (;;)
                         {
                             if (--i < 0)
                             {
                                 throw propagation_error("no space");
-                            }
-
-                            boost::shared_ptr<structure_type> pp_structure( 
-                                tx_.get_structure( tx_.get_species( pp.second.sid() ).structure_id()) );  
+                            } 
                
                             position_type m( pp_structure->newbd_dissociation_vector( rng_, r01, reaction_length_ ) );
                             
@@ -328,6 +311,33 @@ private:
                             if (!(overlapped_s0 && overlapped_s0->size() > 0) && !(overlapped_s1 && overlapped_s1->size() > 0))
                                 break;
                         }
+
+                        /* After dissociation both particles are allowed to move. 
+                           Move particle #0 
+                        position_type displacement( pp_structure->
+                                            bd_displacement(s0.v() * dt_, std::sqrt(2.0 * s0.D() * dt_), rng_) );
+
+                        position_type new_pos(tx_.apply_boundary( add( np0, displacement ) ));
+                        
+                        boost::scoped_ptr<particle_id_pair_and_distance_list> overlapped(
+                                tx_.check_overlap(
+                                    particle_shape_type(new_pos, s0.radius()),
+                                    pp.first));
+                                    
+                        if ( !(overlapped && overlapped->size() > 0) )
+                            np0 = new_pos;
+                        
+                           
+                        displacement( pp_structure->bd_displacement(s1.v() * dt_, std::sqrt(2.0 * s1.D() * dt_), rng_) );
+
+                        new_pos(tx_.apply_boundary( add( np1, displacement ) ));
+                        
+                        overlapped(  tx_.check_overlap( particle_shape_type(new_pos, s0.radius()),pp.first )  );
+                                    
+                        if ( !(overlapped && overlapped->size() > 0) )
+                            np1 = new_pos;
+                            
+                        */
 
                         if (vc_)
                         {
