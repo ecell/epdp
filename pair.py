@@ -130,7 +130,7 @@ class Pair(ProtectiveDomain):
 	# new position twice
 	# TODO move this to SimplePair, this is not applicable to a MixedPair
 	# or make scaling factor in last line a parameter of the class
-        new_com = self.draw_new_com(dt, event_type)
+        new_com = self.com + self.draw_new_com(dt, event_type)
 
 	if event_type == EventType.IV_REACTION:
 	    newpos1 = new_com
@@ -142,25 +142,26 @@ class Pair(ProtectiveDomain):
         return newpos1, newpos2
 
     def draw_new_com(self, dt, event_type):
+	# draws a new coordinate for the CoM in world coordinates
         if event_type == EventType.COM_ESCAPE:
             r = self.a_R
         else:
             gf = self.com_greens_function()
             r = draw_r_wrapper(gf, dt, self.a_R)
 
-        displacement = self.create_com_vector(r)
+        return self.create_com_vector(r)
 
         # Add displacement to old CoM. This assumes (correctly) that 
         # r0=0 for the CoM. Compare this to 1D singles, where r0 is not  
         # necesseraly 0.
-        return self.com + displacement
+#        return displacement
 
     def draw_new_iv(self, dt, r0, old_iv, event_type):
         gf = self.choose_pair_greens_function(r0, dt)
         if event_type == EventType.IV_ESCAPE:
             r = self.a_r
         elif event_type == EventType.IV_REACTION:
-            r = self.sigma
+            r = self.sigma	# maybe this should be zero (product particle is at CoM)
         else:
             r = draw_r_wrapper(gf, dt, self.a_r, self.sigma)
 
@@ -666,6 +667,7 @@ class CylindricalSurfacePair(SimplePair):
             log.debug("create_interparticle_vector: r=%g, dt=%g", r, dt)
         # Note: using self.structure.shape.unit_z here might accidently 
         # interchange the particles.
+	# That's why we would use self.shell.shape.unit_z right?!
         return r * normalize(old_iv)
 
     def get_shell_size(self):
@@ -679,12 +681,11 @@ class CylindricalSurfacePair(SimplePair):
 class MixedPair(Pair):
 
     def __init__(self, domain_id, single1, single2, shell_id, shell_center, shell_radius,
-		 shell_half_length, shell_orientation_vector, com,
+		 shell_half_length, shell_orientation_vector, 
 		 unit_r, r0, rrs):
 	Pair.__init__(self, domain_id, single1, single2, shell_id, r0, rrs)
 
 	self.surface = surface	# the surface on which particle1 lives
-	self.com = com
 	self.r0 = r0	# TODO this needs to be rescaled too
 
     def determine_radii(self):
@@ -694,14 +695,17 @@ class MixedPair(Pair):
 	return 
 
     def get_com(self):
-	# TODO INCORRECT
-	return self.shell.shape.position
+	# Note that it is implied that the center of the shell is chosen such that its projection on the
+	# membrane is the CoM of the particles.
+	dist_to_surface = self.shell.shape.half_length - self.pid_particle_pair1[1].radius
+	return self.shell.shape.position - dist_to_surface * self.shell.shape.unit_z
     com = property(get_com)
 
     def get_scaling_factor(self):
 	D_2 = self.pid_particle_pair2[1].D	# particle 2 is in 3D and is the only contributor to diffusion
 						# normal to the plane
 	return math.sqrt(self.D_r/D_2)
+    z_scaling_factor = property(get_scaling_factor)
 
     def do_back_transform(self, com, iv):
         D1 = self.pid_particle_pair1[1].D
@@ -716,7 +720,7 @@ class MixedPair(Pair):
 
         pos2[0] = com[0] + iv[0] * weight2
         pos2[1] = com[1] + iv[1] * weight2
-        pos2[2] = com[2] + iv[2] / self.get_scaling_factor()	# scale the z component of the 3D particle back
+        pos2[2] = com[2] + iv[2] / self.z_scaling_factor	# scale the z component of the 3D particle back
 
 	return pos1, pos2
 
@@ -724,7 +728,7 @@ class MixedPair(Pair):
 	# rescale sigma to correct for the rescaling of the coordinate system
 	# This is the sigma that is used for the evaluation of the Green's function and is in this case slightly
 	# different than the sums of the radii of the particleso
-	xi = self.get_scaling_factor()
+	xi = self.z_scaling_factor
 	xi_inv = 1/xi
 	alpha = math.acos(xi_inv)
 	sigma = self.pid_particle_pair1[1].radius + self.pid_particle_pair2[1].radius
@@ -752,7 +756,8 @@ class MixedPair(Pair):
 	x, y = random_vector2D(r)
 	return x * self.surface.shape.unit_x + y * self.surface.shape.unit_y
 
-    def create_iv_vector(self, gf, r, dt, r0, old_iv):
+    def create_interparticle_vector(self, gf, r, dt, r0, old_iv):
+	# Note: old_iv is actually the r0_vector
 	# TODO This is not yet correct -> stub
         if __debug__:
             log.debug("create_interparticle_vector: r=%g, dt=%g", r, dt)
@@ -785,7 +790,7 @@ class MixedPair(Pair):
 	# TODO move this to draw_new_positions or method that defines the scaling factor
 	# rescale z component by 1/xi (z component becomes slightly smaller, since D = D_A + D_B
 	# was used for calculation, whereas in reality D is only D_B
-	xi = self.get_scaling_factor()
+	xi = self.z_scaling_factor
 	z /= xi
 	# TODO
 	# position is reflected back in the membrane if necessary
