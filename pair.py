@@ -63,6 +63,7 @@ class Pair(ProtectiveDomain):
         return self.pid_particle_pair1[1].D + \
                self.pid_particle_pair2[1].D
     D_tot = property(get_D_tot)
+    D_r   = property(get_D_tot)
 
     def get_D_R(self):
         return (self.pid_particle_pair1[1].D *
@@ -71,6 +72,7 @@ class Pair(ProtectiveDomain):
 
     def initialize(self, t):
 	# re-initialize the time parameters of the Domain to reuse it.
+	# THIS IS PROBABLY USELESS
         self.last_time = t
         self.dt = 0
         self.event_type = None
@@ -126,6 +128,8 @@ class Pair(ProtectiveDomain):
         """
 	# If the two particles have reacted this returns the
 	# new position twice
+	# TODO move this to SimplePair, this is not applicable to a MixedPair
+	# or make scaling factor in last line a parameter of the class
         new_com = self.draw_new_com(dt, event_type)
 
 	if event_type == EventType.IV_REACTION:
@@ -133,12 +137,7 @@ class Pair(ProtectiveDomain):
 	    newpos2 = new_com
 	else:
             new_iv = self.draw_new_iv(dt, r0, old_iv, event_type)
-
-            D1 = self.pid_particle_pair1[1].D
-            D2 = self.pid_particle_pair2[1].D
-
-            newpos1 = new_com - new_iv * (D1 / self.D_tot)
-            newpos2 = new_com + new_iv * (D2 / self.D_tot)
+	    newpos1, newpos2 = self.do_back_transform(new_com, new_iv)
 
         return newpos1, newpos2
 
@@ -318,6 +317,15 @@ class SimplePair(Pair):
         return self.shell.shape.position
     com = property(get_com)
 
+    def do_back_transform(self, com, iv):
+        D1 = self.pid_particle_pair1[1].D
+        D2 = self.pid_particle_pair2[1].D
+
+        pos1 = com - iv * (D1 / self.D_tot)
+        pos2 = com + iv * (D2 / self.D_tot)
+
+	return pos1, pos2
+
     def get_shell_size(self):
         return self.shell.shape.radius
 
@@ -391,7 +399,7 @@ class SimplePair(Pair):
           log.debug('a %g, r %g, R %g r0 %g' % 
                  (shell_size, a_r, a_R, r0))
         if __debug__:
-            tr = ((a_r - r0)**2) / (6 * self.D_tot)	# the expected escape time of the iv
+            tr = ((a_r - r0)**2) / (6 * self.D_r)	# the expected escape time of the iv
             if self.D_R == 0:
                 tR = numpy.inf 
             else:
@@ -422,7 +430,7 @@ class SphericalPair(SimplePair):
     def iv_greens_function(self, r0):
         # Green's function for interparticle vector inside absorbing 
         # sphere.  This exact solution is used for drawing times.
-        return GreensFunction3DRadAbs(self.D_tot, self.interparticle_ktot, r0,
+        return GreensFunction3DRadAbs(self.D_r, self.interparticle_ktot, r0,
                                               self.sigma, self.a_r)
 
     def create_new_shell(self, position, radius, domain_id):
@@ -435,7 +443,7 @@ class SphericalPair(SimplePair):
         distance_from_shell = self.a_r - r0
 
         threshold_distance = Pair.CUTOFF_FACTOR * \
-            math.sqrt(6.0 * self.D_tot * t)
+            math.sqrt(6.0 * self.D_r * t)
 
         # if sigma reachable
         if distance_from_sigma < threshold_distance:
@@ -451,7 +459,7 @@ class SphericalPair(SimplePair):
                 # near sigma; use GreensFunction3DRadInf
                 if __debug__:
                     log.debug('GF: only sigma')
-                return GreensFunction3DRadInf(self.D_tot, self.interparticle_ktot, r0,
+                return GreensFunction3DRadInf(self.D_r, self.interparticle_ktot, r0,
                                                self.sigma)
 
         # sigma unreachable
@@ -460,13 +468,13 @@ class SphericalPair(SimplePair):
                 # near a;
                 if __debug__:
                     log.debug('GF: only a')
-                return GreensFunction3DAbs(self.D_tot, r0, self.a_r)
+                return GreensFunction3DAbs(self.D_r, r0, self.a_r)
                 
             else:
                 # distant from both a and sigma; 
                 if __debug__:
                     log.debug('GF: free')
-                return GreensFunction3D(self.D_tot, r0)
+                return GreensFunction3D(self.D_r, r0)
 
     def create_com_vector(self, r):
         return random_vector(r)
@@ -520,7 +528,7 @@ class PlanarSurfacePair(SimplePair):
 
     def iv_greens_function(self, r0):
 	# TODO still doesn't work with 2D Green's functions
-        return GreensFunction3DRadAbs(self.D_tot, self.interparticle_ktot, r0,
+        return GreensFunction3DRadAbs(self.D_r, self.interparticle_ktot, r0,
                                               self.sigma, self.a_r)
 
     def create_new_shell(self, position, radius, domain_id):
@@ -543,7 +551,7 @@ class PlanarSurfacePair(SimplePair):
         distance_from_shell = self.a_r - r0
 
         threshold_distance = Pair.CUTOFF_FACTOR * \
-            math.sqrt(4.0 * self.D_tot * t)
+            math.sqrt(4.0 * self.D_r * t)
 
         if distance_from_sigma < threshold_distance:
         
@@ -559,7 +567,7 @@ class PlanarSurfacePair(SimplePair):
                     log.debug('GF2D: only sigma')
                 return self.iv_greens_function(r0)
         	# Todo
-                # return GreensFunction2DRadInf(self.D_tot, self.interparticle_ktot, r0, self.sigma)
+                # return GreensFunction2DRadInf(self.D_r, self.interparticle_ktot, r0, self.sigma)
         else:
             if distance_from_shell < threshold_distance:
                 # near a;
@@ -567,7 +575,7 @@ class PlanarSurfacePair(SimplePair):
                     log.debug('GF2D: only a')
                 return self.iv_greens_function(r0)
 	        # Todo
-                # return GreensFunction2DAbs(self.D_tot, r0, self.a_r)
+                # return GreensFunction2DAbs(self.D_r, r0, self.a_r)
                 
             else:
                 # distant from both a and sigma; 
@@ -575,7 +583,7 @@ class PlanarSurfacePair(SimplePair):
                     log.debug('GF2D: free')
                 return self.iv_greens_function(r0)
         	# Todo
-                # return GreensFunction2D(self.D_tot, r0)
+                # return GreensFunction2D(self.D_r, r0)
 
     def create_com_vector(self, r):
         x, y = random_vector2D(r)
@@ -632,8 +640,8 @@ class CylindricalSurfacePair(SimplePair):
 
     def iv_greens_function(self, r0):
 	# TODO Fix ugly hack to avoid k=0 below
-        #return GreensFunction1DRadAbs(self.D_tot, self.v_r, self.interparticle_ktot, r0, self.sigma, self.a_r)
-        return GreensFunction1DRadAbs(self.D_tot, self.v_r, self.interparticle_ktot, r0, self.sigma, self.a_r)
+        #return GreensFunction1DRadAbs(self.D_r, self.v_r, self.interparticle_ktot, r0, self.sigma, self.a_r)
+        return GreensFunction1DRadAbs(self.D_r, self.v_r, self.interparticle_ktot, r0, self.sigma, self.a_r)
 
     def create_new_shell(self, position, half_length, domain_id):
         # The radius of a rod is not more than it has to be (namely the 
@@ -671,12 +679,13 @@ class CylindricalSurfacePair(SimplePair):
 class MixedPair(Pair):
 
     def __init__(self, domain_id, single1, single2, shell_id, shell_center, shell_radius,
-		 shell_half_length, shell_orientation_vector,
+		 shell_half_length, shell_orientation_vector, com,
 		 unit_r, r0, rrs):
 	Pair.__init__(self, domain_id, single1, single2, shell_id, r0, rrs)
 
-
 	self.surface = surface	# the surface on which particle1 lives
+	self.com = com
+	self.r0 = r0	# TODO this needs to be rescaled too
 
     def determine_radii(self):
 	#TODO INCORRECT
@@ -689,15 +698,37 @@ class MixedPair(Pair):
 	return self.shell.shape.position
     com = property(get_com)
 
+    def get_scaling_factor(self):
+	D_2 = self.pid_particle_pair2[1].D	# particle 2 is in 3D and is the only contributor to diffusion
+						# normal to the plane
+	return math.sqrt(self.D_r/D_2)
+
+    def do_back_transform(self, com, iv):
+        D1 = self.pid_particle_pair1[1].D
+        D2 = self.pid_particle_pair2[1].D
+
+	weight1 = D1 / self.D_tot
+	weight2 = D2 / self.D_tot
+
+        pos1[0] = com[0] - iv[0] * weight1
+        pos1[1] = com[1] - iv[1] * weight1
+        pos1[2] = com[2]
+
+        pos2[0] = com[0] + iv[0] * weight2
+        pos2[1] = com[1] + iv[1] * weight2
+        pos2[2] = com[2] + iv[2] / self.get_scaling_factor()	# scale the z component of the 3D particle back
+
+	return pos1, pos2
+
     def get_sigma(self):
 	# rescale sigma to correct for the rescaling of the coordinate system
-	# TODO check if this is actually correct
-	D_1 = self.pid_particle_pair1[1].D
-	D_2 = self.pid_particle_pair2[1].D
-	xi_inv = math.sqrt(D_2/(D_1 + D_2))
+	# This is the sigma that is used for the evaluation of the Green's function and is in this case slightly
+	# different than the sums of the radii of the particleso
+	xi = self.get_scaling_factor()
+	xi_inv = 1/xi
 	alpha = math.acos(xi_inv)
 	sigma = self.pid_particle_pair1[1].radius + self.pid_particle_pair2[1].radius
-	rho = abs(sigma*math.sqrt(0.5 + (alpha/(2.0*xi_inv*math.sin(alpha)))))
+	rho = abs(sigma*math.sqrt(0.5 + (alpha*xi/(2.0*math.sin(alpha)))))
 	return rho
     sigma = property (get_sigma)
 
@@ -707,7 +738,7 @@ class MixedPair(Pair):
 
     def iv_greensfunction(self):
 	# diffusion of the interparticle vector is three dimensional
-	return GreensFunction3DRadAbs(self.D_tot, self.interparticle_ktot, r0,
+	return GreensFunction3DRadAbs(self.D_r, self.interparticle_ktot, self.r0,
 				      self.sigma, self.a_r)
 
     def create_new_shell(self, position, radius, orientation_vector, half_length):
@@ -751,10 +782,11 @@ class MixedPair(Pair):
         else:
             rotated = numpy.array([new_iv[0], new_iv[1], - new_iv[2]])
         
-	# TODO
+	# TODO move this to draw_new_positions or method that defines the scaling factor
 	# rescale z component by 1/xi (z component becomes slightly smaller, since D = D_A + D_B
 	# was used for calculation, whereas in reality D is only D_B
-	xi_inv = math.sqrt((D_2)/D_1 + D_2)
+	xi = self.get_scaling_factor()
 	z /= xi
+	# TODO
 	# position is reflected back in the membrane if necessary
 	return rotated 
