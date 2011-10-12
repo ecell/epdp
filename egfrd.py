@@ -835,7 +835,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
 		elif isinstance(reactant_structure, CylindricalSurface):
 
-		    # TODO
+		    # TODO insert reverse transformation for 3D/1D here
 		    surface_displace = product3D_radius + reactant_structure.shape.radius
 
 		else:
@@ -1340,10 +1340,10 @@ class EGFRDSimulator(ParticleSimulatorBase):
         pid_particle_pair2 = pair.pid_particle_pair2
         pos1 = pid_particle_pair1[1].position
         pos2 = pid_particle_pair2[1].position
+        r0 = self.world.distance(pos1, pos2)
         
         if pair.event_type == EventType.IV_EVENT:
             # Draw actual pair event for iv at very last minute.
-            r0 = self.world.distance(pos1, pos2)
             pair.event_type = pair.draw_iv_event_type(r0)
 
         self.pair_steps[pair.event_type] += 1
@@ -1392,8 +1392,13 @@ class EGFRDSimulator(ParticleSimulatorBase):
         elif pair.event_type == EventType.IV_REACTION:
 
             # calculate new position
-            new_com = pair.draw_new_com(pair.dt, pair.event_type)
+            pos2t = self.world.cyclic_transpose(pos2, pos1)
+            old_iv = pos2t - pos1
+            new_com, _ = pair.draw_new_positions(pair.dt, r0, old_iv, pair.event_type)
             new_com = self.world.apply_boundary(new_com)
+
+	    # TODO make this a fire_pair_reaction method
+
 
 	    # 0. get reactant info
 	    rr = pair.draw_reaction_rule(pair.interparticle_rrs)

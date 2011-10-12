@@ -128,9 +128,10 @@ class Pair(ProtectiveDomain):
         """
 	# If the two particles have reacted this returns the
 	# new position twice
+	# The positions are relative to the center of the shell
 	# TODO move this to SimplePair, this is not applicable to a MixedPair
 	# or make scaling factor in last line a parameter of the class
-        new_com = self.com + self.draw_new_com(dt, event_type)
+        new_com = self.shell.shape.position + self.draw_new_com(dt, event_type)
 
 	if event_type == EventType.IV_REACTION:
 	    newpos1 = new_com
@@ -226,7 +227,7 @@ class SimplePair(Pair):
 
 
     @staticmethod
-    def get_max_shell_size(com, single1, single2, geometrycontainer, domains):
+    def get_max_shell_size(shell_center, single1, single2, geometrycontainer, domains):
 	# returns the maximum shell size based on geometric constraints
 	# It makes sure that surrounding NonInteractionSingles have at least the
 	# 'bursting volume' of space.
@@ -238,12 +239,12 @@ class SimplePair(Pair):
 #        D12 = D1 + D2
 
 	# TODO it makes no sence to calculate the CoM in the world object
-#        com = geometrycontainer.world.calculate_pair_CoM(pos1, pos2, D1, D2)
-#        com = geometrycontainer.world.apply_boundary(com)
+#        com  = geometrycontainer.world.calculate_pair_CoM(pos1, pos2, D1, D2)
+#        shell_center = geometrycontainer.world.apply_boundary(com)
 
 	# TODO get_closest_obj searches the spherical surrounding although this doesn't make sence for
 	# a 2D or 1D pair
-        closest, closest_distance = geometrycontainer.get_closest_obj(com, domains, ignore=[single1.domain_id,
+        closest, closest_distance = geometrycontainer.get_closest_obj(shell_center, domains, ignore=[single1.domain_id,
                                                                       single2.domain_id],
                                                                       ignores=[single1.structure.id])
         if __debug__:
@@ -264,7 +265,7 @@ class SimplePair(Pair):
 #        for b in burst:
 #            if isinstance(b, NonInteractionSingle):
 #                bpos = b.shell.shape.position
-#                d = self.world.distance(com, bpos) - \
+#                d = self.world.distance(shell_center, bpos) - \
 #                    b.pid_particle_pair[1].radius * self.SINGLE_SHELL_FACTOR
 #                if d < closest_shell_distance:
 #                    closest, closest_shell_distance = b, d
@@ -273,7 +274,7 @@ class SimplePair(Pair):
 
         if isinstance(closest, NonInteractionSingle):
             closest_particle_distance = geometrycontainer.world.distance(
-                    com, closest.pid_particle_pair[1].position)
+                    shell_center, closest.pid_particle_pair[1].position)
 
             closest_min_radius = closest.pid_particle_pair[1].radius
             closest_min_shell = closest_min_radius * Domain.SINGLE_SHELL_FACTOR
@@ -296,7 +297,7 @@ class SimplePair(Pair):
 		   shell_size)
 
 
-    def __init__(self, domain_id, com, single1, single2, shell_id,
+    def __init__(self, domain_id, shell_center, single1, single2, shell_id,
                       r0, shell_size, rrs, structure):
 	Pair.__init__(self, domain_id, single1, single2, shell_id,
                       r0, rrs)
@@ -306,7 +307,7 @@ class SimplePair(Pair):
         self.a_R, self.a_r = self.determine_radii(r0, shell_size)
 	# set the radii of the inner domains as a function of the outer protective domain
 
-        self.shell = self.create_new_shell(com, shell_size, domain_id)
+        self.shell = self.create_new_shell(shell_center, shell_size, domain_id)
 
 
     def getSigma(self):
@@ -419,9 +420,9 @@ class SphericalPair(SimplePair):
     """2 Particles inside a (spherical) shell not on any surface.
 
     """
-    def __init__(self, domain_id, com, single1, single2, shell_id,
+    def __init__(self, domain_id, shell_center, single1, single2, shell_id,
                  r0, shell_size, rrs, structure):
-        SimplePair.__init__(self, domain_id, com, single1, single2, shell_id,
+        SimplePair.__init__(self, domain_id, shell_center, single1, single2, shell_id,
                       r0, shell_size, rrs, structure)
 
     def com_greens_function(self):
@@ -519,9 +520,9 @@ class PlanarSurfacePair(SimplePair):
     (Hockey pucks).
 
     """
-    def __init__(self, domain_id, com, single1, single2, shell_id,
+    def __init__(self, domain_id, shell_center, single1, single2, shell_id,
                  r0, shell_size, rrs, structure):
-        SimplePair.__init__(self, domain_id, com, single1, single2, shell_id,
+        SimplePair.__init__(self, domain_id, shell_center, single1, single2, shell_id,
                       r0, shell_size, rrs, structure)
 
     def com_greens_function(self):
@@ -616,9 +617,9 @@ class CylindricalSurfacePair(SimplePair):
     (Rods).
 
     """
-    def __init__(self, domain_id, com, single1, single2, shell_id,
+    def __init__(self, domain_id, shell_center, single1, single2, shell_id,
                  r0, shell_size, rrs, structure):
-        SimplePair.__init__(self, domain_id, com, single1, single2, shell_id,
+        SimplePair.__init__(self, domain_id, shell_center, single1, single2, shell_id,
                       r0, shell_size, rrs, structure)
 
     def get_v_tot(self):
