@@ -681,6 +681,27 @@ class CylindricalSurfacePair(SimplePair):
 
 class MixedPair(Pair):
 
+    @staticmethod
+    def get_min_shell_dimensions(single1, single2, reference_point, geometrycontainer):
+	# TODO incomplete
+
+	assert isinstance (single1.structure, PlanarSurface)
+	assert isinstance (single2.structure, CuboidalRegion)
+
+	pid_particle_pair1 = single1.pid_particle_pair
+	pid_particle_pair2 = single2.pid_particle_pair
+
+	dz_left = pid_particle_pair1[1].radius
+	dz_right = particle12_dist_z + pid_particle_pair2[1].radius * SINGLE_SHELL_FACTOR
+	dr = max(particle1com_dist_r + radius1 * SINGLE_SHELL_FACTOR,
+		 particle2com_dist_r + radius2 * SINGLE_SHELL_FACTOR)
+
+	return dr, dz_left, dz_right
+
+    @staticmethod
+    def get_max_shell_dimensions(shell_center, single1, single2, geometrycontainer, domains):
+	pass
+
     def __init__(self, domain_id, single1, single2, shell_id, shell_center, shell_radius,
 		 shell_half_length, shell_orientation_vector, 
 		 unit_r, r0, rrs):
