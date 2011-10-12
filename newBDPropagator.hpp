@@ -100,6 +100,7 @@ public:
             return true;
         }
 
+        //TODO Particels D = 0 can still react with particles in their reaction volume.
         const species_type species(tx_.get_species(pp.second.sid()));
         if (species.D() == 0.)
             return true;
@@ -313,31 +314,34 @@ private:
                         }
 
                         /* After dissociation both particles are allowed to move. 
-                           Move particle #0 
+                           Move particle #0 */
                         position_type displacement( pp_structure->
                                             bd_displacement(s0.v() * dt_, std::sqrt(2.0 * s0.D() * dt_), rng_) );
 
                         position_type new_pos(tx_.apply_boundary( add( np0, displacement ) ));
                         
-                        boost::scoped_ptr<particle_id_pair_and_distance_list> overlapped(
+                        boost::scoped_ptr<particle_id_pair_and_distance_list> overlapped1(
                                 tx_.check_overlap(
                                     particle_shape_type(new_pos, s0.radius()),
                                     pp.first));
                                     
-                        if ( !(overlapped && overlapped->size() > 0) )
+                        if ( !(overlapped1 && overlapped1->size() > 0) )
                             np0 = new_pos;
                         
-                           
-                        displacement( pp_structure->bd_displacement(s1.v() * dt_, std::sqrt(2.0 * s1.D() * dt_), rng_) );
+                        //Move particle #1   
+                        displacement = pp_structure->bd_displacement(s1.v() * dt_, std::sqrt(2.0 * s1.D() * dt_), rng_);
 
-                        new_pos(tx_.apply_boundary( add( np1, displacement ) ));
+                        new_pos = tx_.apply_boundary( add( np1, displacement ) );
                         
-                        overlapped(  tx_.check_overlap( particle_shape_type(new_pos, s0.radius()),pp.first )  );
+                        boost::scoped_ptr<particle_id_pair_and_distance_list> overlapped2(
+                                tx_.check_overlap(
+                                    particle_shape_type(new_pos, s1.radius()),
+                                    pp.first ));
                                     
-                        if ( !(overlapped && overlapped->size() > 0) )
+                        if ( !(overlapped2 && overlapped2->size() > 0) )
                             np1 = new_pos;
                             
-                        */
+                        
 
                         if (vc_)
                         {
@@ -393,7 +397,7 @@ private:
             boost::shared_ptr<structure_type> pp_structure( 
                tx_.get_structure( tx_.get_species( pp0.second.sid() ).structure_id()) );  
 
-            const Real p( r.k() * dt_ / pp_structure->reaction_volume( s0.radius(), s1.radius(), reaction_length_ ) );
+            const Real p( r.k() * dt_ / ( 2 * pp_structure->reaction_volume( s0.radius(), s1.radius(), reaction_length_ ) ) );
             BOOST_ASSERT(p >= 0.);
             prob += p;
             if (prob >= 1.)

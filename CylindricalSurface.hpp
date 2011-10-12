@@ -75,7 +75,7 @@ public:
 
     virtual Real reaction_volume( length_type const& r0, length_type const& r1, length_type const& rl ) const
     {
-        return rl;
+        return 2*rl;
     }
 
     virtual position_type newbd_dissociation_vector( rng_type& rng, length_type const& r01, length_type const& rl ) const
