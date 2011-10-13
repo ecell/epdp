@@ -1338,9 +1338,12 @@ class EGFRDSimulator(ParticleSimulatorBase):
         single2 = pair.single2
         pid_particle_pair1 = pair.pid_particle_pair1
         pid_particle_pair2 = pair.pid_particle_pair2
+
         pos1 = pid_particle_pair1[1].position
         pos2 = pid_particle_pair2[1].position
-        r0 = self.world.distance(pos1, pos2)
+        pos2t = self.world.cyclic_transpose(pos2, pos1)
+        old_iv = pos2t - pos1
+        r0 = length (old_iv)
         
         if pair.event_type == EventType.IV_EVENT:
             # Draw actual pair event for iv at very last minute.
@@ -1392,8 +1395,6 @@ class EGFRDSimulator(ParticleSimulatorBase):
         elif pair.event_type == EventType.IV_REACTION:
 
             # calculate new position
-            pos2t = self.world.cyclic_transpose(pos2, pos1)
-            old_iv = pos2t - pos1
             new_com, _ = pair.draw_new_positions(pair.dt, r0, old_iv, pair.event_type)
             new_com = self.world.apply_boundary(new_com)
 
