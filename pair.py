@@ -482,34 +482,55 @@ class SphericalPair(SimplePair):
         return random_vector(r)
 
     def create_interparticle_vector(self, gf, r, dt, r0, old_iv): 
+	# FIXME code doesn't handle r=0 
+
         if __debug__:
             log.debug("create_interparticle_vector: r=%g, dt=%g", r, dt)
         theta = draw_theta_wrapper(gf, r, dt)
 
-        new_inter_particle_s = numpy.array([r, theta, 
-                                         myrandom.uniform() * 2 * Pi])
-        new_iv = spherical_to_cartesian(new_inter_particle_s)
+#        new_inter_particle_s = numpy.array([r, theta, phi])
+#        new_iv = spherical_to_cartesian(new_inter_particle_s)
 
-        #FIXME: need better handling of angles near zero and pi.
+	# calculate the old_iv theta (theta is the angle with the zenith (z-axis) of the system)
+#        old_iv_theta = vector_angle_against_z_axis(old_iv)
+	# the old_iv phi is taken to be zero. This means that the theta is in the plane of
+	# the z-axis and the old_iv
 
-        # I rotate the new interparticle vector along the
-        # rotation axis that is perpendicular to both the
-        # z-axis and the original interparticle vector for
-        # the angle between these.
+            # We now rotate the new interparticle vector in the plane of
+	    # the old_iv and the z axis. This menas along the
+            # rotation axis that is perpendicular to both the
+            # z-axis and the original interparticle vector. The rotation
+            # angle is the angle between the old_iv and z axis.
         
-        # the rotation axis is a normalized cross product of
-        # the z-axis and the original vector.
-        # rotation_axis = crossproduct([0,0,1], inter_particle)
-        angle = vector_angle_against_z_axis(old_iv)
-        if angle % numpy.pi != 0.0:
+            # the rotation axis is a normalized cross product of
+            # the z-axis and the original vector.
+            # rotation_axis = crossproduct([0,0,1], inter_particle)
+
+#            rotation_axis = crossproduct_against_z_axis(old_iv)
+#            rotation_axis = normalize(rotation_axis)
+#            new_iv = rotate_vector(new_iv, rotation_axis, old_iv_theta)
+
+        if theta == 0.0:
+	    # no rotation is necessary -> new_iv = new_iv
+	    new_iv = old_iv
+        elif old_iv_theta % numpy.pi != 0.0:
+	    # alternative calculation
+	    # rotate the old_iv to the new theta
             rotation_axis = crossproduct_against_z_axis(old_iv)
             rotation_axis = normalize(rotation_axis)
-            rotated = rotate_vector(new_iv, rotation_axis, angle)
-        elif angle == 0.0:
-            rotated = new_iv
+            new_iv = rotate_vector(old_iv, rotation_axis, theta)
+
+	    # rotate the new_iv around the old_iv with angle phi and adjust length
+	    phi = myrandom.uniform() * 2 * Pi
+	    old_iv = normalize(old_iv)
+	    new_iv = rotate_vector(new_iv, old_iv, phi)
         else:
-            rotated = numpy.array([new_iv[0], new_iv[1], - new_iv[2]])
-        return rotated
+	    # angle == numpi.pi -> just mirror the old_iv 
+            new_iv = -old_iv
+
+	new_iv = (r/r0) * new_iv
+
+        return new_iv
 
     def __str__(self):
         return 'Spherical' + Pair.__str__(self)
@@ -592,19 +613,26 @@ class PlanarSurfacePair(SimplePair):
         return x * self.structure.shape.unit_x + y * self.structure.shape.unit_y
 
     def create_interparticle_vector(self, gf, r, dt, r0, old_iv): 
+	# note that r0 = length (old_iv)
+
         if __debug__:
             log.debug("create_interparticle_vector: r=%g, dt=%g", r, dt)
         theta = draw_theta_wrapper(gf, r, dt)
 
-        #FIXME: need better handling of angles near zero and pi?
-        unit_x = self.structure.shape.unit_x
-        unit_y = self.structure.shape.unit_y
-        angle = vector_angle(unit_x, old_iv)
+#        unit_x = self.structure.shape.unit_x
+#        unit_y = self.structure.shape.unit_y
+#        angle = vector_angle(unit_x, old_iv)
+	# FIXME THIS IS WRONG: angle returns the angle between the vectors regardsless of order
+	#       now we do not see the different if the old_iv is mirrored in the unit_x
         # Todo. Test if nothing changes when theta == 0.
-        new_angle = angle + theta
+#        new_angle = angle + theta
+#
+#        new_iv = r * math.cos(new_angle) * unit_x + \
+#                 r * math.sin(new_angle) * unit_y
 
-        new_iv = r * math.cos(new_angle) * unit_x + \
-                 r * math.sin(new_angle) * unit_y
+	new_iv = (r/r0) * rotate_vector(old_iv, unit_z, theta)
+	# note that unit_z can point two ways rotating the vector clockwise or counterclockwise
+	# because theta is symmetric this doesn't matter.
 
         return new_iv
 
@@ -664,12 +692,13 @@ class CylindricalSurfacePair(SimplePair):
         return r * self.structure.shape.unit_z
 
     def create_interparticle_vector(self, gf, r, dt, r0, old_iv): 
+	# note that r0 = length (old_iv)
         if __debug__:
             log.debug("create_interparticle_vector: r=%g, dt=%g", r, dt)
         # Note: using self.structure.shape.unit_z here might accidently 
         # interchange the particles.
 	# That's why we would use self.shell.shape.unit_z right?!
-        return r * normalize(old_iv)
+        return (r/r0) * old_iv
 
     def get_shell_size(self):
         # Heads up.
@@ -690,6 +719,8 @@ class MixedPair(Pair):
 
 	pid_particle_pair1 = single1.pid_particle_pair
 	pid_particle_pair2 = single2.pid_particle_pair
+
+	
 
 	dz_left = pid_particle_pair1[1].radius
 	dz_right = particle12_dist_z + pid_particle_pair2[1].radius * SINGLE_SHELL_FACTOR
@@ -736,13 +767,20 @@ class MixedPair(Pair):
 	weight1 = D1 / self.D_tot
 	weight2 = D2 / self.D_tot
 
-        pos1[0] = com[0] - iv[0] * weight1
-        pos1[1] = com[1] - iv[1] * weight1
-        pos1[2] = com[2]
+	# get the coordinates of the iv relative to the system of the surface (or actually the shell)
+	iv_x = self.surface.shape.unit_x * numpy.dot(iv, self.surface.shape.unit_x)
+	iv_y = self.surface.shape.unit_y * numpy.dot(iv, self.surface.shape.unit_y)
+	iv_z = self.shell.shape.unit_z * numpy.dot(iv, self.shell.shape.unit_z)
 
-        pos2[0] = com[0] + iv[0] * weight2
-        pos2[1] = com[1] + iv[1] * weight2
-        pos2[2] = com[2] + iv[2] / self.z_scaling_factor	# scale the z component of the 3D particle back
+	# reflect the coordinates in the unit_z direction back to the side of the membrane
+	# where the domain is. Note that it's implied that the origin of the coordinate system lies in the
+	# plane of the membrane
+	iv_z = abs(iv_z)
+
+	pos1 = com - weight1 * (iv_x + iv_y)
+	pos2 = com + weight2 * (iv_x + iv_y) + \
+               iv_z/self.z_scaling_factor + \
+               self.shell.shape.unit_z * self.pid_particle_pair2[1].radius
 
 	return pos1, pos2
 
@@ -780,40 +818,34 @@ class MixedPair(Pair):
 
     def create_interparticle_vector(self, gf, r, dt, r0, old_iv):
 	# Note: old_iv is actually the r0_vector
-	# TODO This is not yet correct -> stub
+	# FIXME This is actually the same method as for SphericalPair
+
         if __debug__:
             log.debug("create_interparticle_vector: r=%g, dt=%g", r, dt)
-        theta = draw_theta_wrapper(gf, r, dt)
 
-        new_inter_particle_s = numpy.array([r, theta,
-                                         myrandom.uniform() * 2 * Pi])
-        new_iv = spherical_to_cartesian(new_inter_particle_s)
+        theta = draw_theta_wrapper(gf, r, dt)	# draw_theta return a value between -Pi and Pi
 
-        #FIXME: need better handling of angles near zero and pi.
-
-        # I rotate the new interparticle vector along the
-        # rotation axis that is perpendicular to both the
-        # z-axis and the original interparticle vector for
-        # the angle between these.
-
-        # the rotation axis is a normalized cross product of
-        # the z-axis and the original vector.
-        # rotation_axis = crossproduct([0,0,1], inter_particle)
-        angle = vector_angle_against_z_axis(old_iv)
-        if angle % numpy.pi != 0.0:
+        if theta == 0.0:
+            new_iv = old_iv
+        elif theta % numpy.pi != 0.0:
+	    # rotate the old_iv to the new theta
             rotation_axis = crossproduct_against_z_axis(old_iv)
             rotation_axis = normalize(rotation_axis)
-            rotated = rotate_vector(new_iv, rotation_axis, angle)
-        elif angle == 0.0:
-            rotated = new_iv
+            new_iv = rotate_vector(old_iv, rotation_axis, theta)
+
+	    # rotate the new_iv around the old_iv with angle phi
+	    phi = myrandom.uniform() * 2 * Pi
+	    old_iv = normalize(old_iv)
+	    new_iv = rotate_vector(new_iv, old_iv, phi)
         else:
-            rotated = numpy.array([new_iv[0], new_iv[1], - new_iv[2]])
-        
-	# TODO move this to draw_new_positions or method that defines the scaling factor
-	# rescale z component by 1/xi (z component becomes slightly smaller, since D = D_A + D_B
-	# was used for calculation, whereas in reality D is only D_B
-	xi = self.z_scaling_factor
-	z /= xi
-	# TODO
-	# position is reflected back in the membrane if necessary
-	return rotated 
+	    # theta == Pi -> just mirror the old_iv
+            new_iv = -old_iv
+
+	#adjust length of the vector to new r
+        new_iv = (r/r0) * new_iv
+
+	return new_iv
+
+    def __str__(self):
+        return 'Mixed' + Pair.__str__(self)
+
