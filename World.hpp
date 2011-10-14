@@ -174,7 +174,7 @@ public:
     typedef typename traits_type::structure_id_type structure_id_type;
     typedef typename traits_type::structure_type structure_type;
     typedef std::pair<const particle_id_type, particle_type> particle_id_pair;
-    typedef std::pair<const structure_id_type, length_type> structure_id_and_distance_pair;
+    typedef typename particle_container_type::structure_id_and_distance_pair structure_id_and_distance_pair;
 
 protected:
     typedef std::map<species_id_type, species_type> species_map;
@@ -299,7 +299,7 @@ public:
             throw not_found(std::string("No structures found."));
                  
         case 1:
-            return structure_id_and_distance_pair( NULL , 2*base_type::world_size() );
+            return structure_id_and_distance_pair( (*structures.begin())->id() , 2*base_type::world_size() );
         
         case 2:
         {

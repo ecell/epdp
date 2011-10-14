@@ -52,7 +52,7 @@ public:
     virtual Real p_acceptance(Real const& k_a, Real const& dt, length_type const& r01, position_type const& ipv, 
                                 Real const& D0, Real const& D1, Real const& v0, Real const& v1) const
     {
-        //TODO: use the 2D BD function instead of the 3D one.
+        //TODO: use the 2D BD function instead of the 3D one. - Solution known
         return k_a * dt / ((I_bd_3D(r01, dt, D0) + I_bd_3D(r01, dt, D1)) * 4.0 * M_PI);
     }
 

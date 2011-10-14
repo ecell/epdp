@@ -52,6 +52,7 @@ public:
     typedef typename traits_type::reaction_recorder_type reaction_recorder_type;
     typedef typename traits_type::volume_clearer_type volume_clearer_type;
 
+
 public:
     template<typename Trange_>
     newBDPropagator(
@@ -99,98 +100,143 @@ public:
             ++rejected_move_count_;
             return true;
         }
+        
+        species_type const species(tx_.get_species(pp.second.sid()));
+        length_type const r0( species.radius() );
+        boost::shared_ptr<structure_type> const pp_structure( tx_.get_structure( species.structure_id() ) );
+        
+        structure_id_and_distance_pair struct_id_distance_pair;
+        length_type core_surface_distance = 0;
+        position_type new_pos;
+        
+       /* Sample a potential move, and check if the particle _core_ has overlapped with another 
+          particle or surface. If this is the case the particlem bounces, and is returned
+          to it's original position. For a particle with D = 0, new_pos = old_pos */        
+        if (species.D() != 0.)
+        {
 
-        //TODO Particels D = 0 can still react with particles in their reaction volume.
-        const species_type species(tx_.get_species(pp.second.sid()));
-        if (species.D() == 0.)
-            return true;
-
-        /* Make a step, dependent on the surface the particle lives on. */
-        position_type const displacement( tx_.get_structure(species.structure_id())->
+            // Make a step, dependent on the surface the particle lives on.
+            position_type const displacement( tx_.get_structure(species.structure_id())->
                                             bd_displacement(species.v() * dt_, std::sqrt(2.0 * species.D() * dt_), rng_) );
 
-        position_type const new_pos(tx_.apply_boundary( add( pp.second.position(), displacement ) ));
-
-	    /*Use a spherical shape with radius = particle_radius + reaction_length.
-	      We use it to check for overlaps with other particels and surfaces.*/
+            new_pos = tx_.apply_boundary( add( pp.second.position(), displacement ) );
+            
+        }
+        else
+        {
+            new_pos = pp.second.position();
+        }
+        
+        /* Use a spherical shape with radius = particle_radius + reaction_length.
+	       We use it to check for overlaps with other particels. */
         boost::scoped_ptr<particle_id_pair_and_distance_list> overlapped(
-            tx_.check_overlap(particle_shape_type( new_pos, species.radius() + reaction_length_ ), pp.first));
-                  
-        bool bounced = false;      
-        switch (overlapped ? overlapped->size(): 0)
+                tx_.check_overlap(particle_shape_type( new_pos, r0 + reaction_length_ ), pp.first));
+        int particles_in_overlap(overlapped ? overlapped->size(): 0);
+
+        /* Check if the particle at new_pos overlaps with any particle cores. */        
+        bool bounced = false;       
+        for( int i = 0; i < particles_in_overlap; i++ )
+        {
+            if( overlapped->at(i).second < r0 )
+            {
+                bounced = true;
+                break;
+            }
+        }
+        
+        /* If the particle has not bounced with a particle and lives in the bulk: 
+           check for core overlap with a surface. */
+        if(!bounced && pp_structure->id() == "world")
+        {
+            /* Check for overlap with nearest surface. */
+            struct_id_distance_pair = tx_.get_closest_surface( new_pos );
+            core_surface_distance = struct_id_distance_pair.second - r0;
+        
+            if(core_surface_distance < 0)
+                bounced = true;
+        }         
+         
+        /* If particle is bounced, check reaction_volume for reaction parners at old_pos. */     
+        if(bounced)
+        {
+            new_pos = pp.second.position();
+            
+            boost::scoped_ptr<particle_id_pair_and_distance_list> overlapped_after_bounce( 
+                    tx_.check_overlap( particle_shape_type( new_pos, r0 + reaction_length_ ), 
+                            pp.first) );
+                            
+            overlapped.swap( overlapped_after_bounce );
+                                            
+            particles_in_overlap = overlapped ? overlapped->size(): 0; 
+                
+            struct_id_distance_pair = tx_.get_closest_surface( new_pos );
+            core_surface_distance = struct_id_distance_pair.second - r0;  
+        }
+        
+        /* If their is only a surface in the reaction volume, attempt interaction. */
+        if(particles_in_overlap == 0 && core_surface_distance < reaction_length_ && pp_structure->id() == "world")
+        {
+            try
+            {
+                if( false /*attempt_reaction(pp, pp_surface)*/ )
+                    return true;
+                else                
+                {
+                    LOG_DEBUG(("Particle attempted an interaction with the nonreactive surface %s.", 
+                        boost::lexical_cast<std::string>(pp_structure->id()).c_str()));
+                    ++rejected_move_count_;
+                }
+            }
+            catch (propagation_error const& reason)
+            {
+                log_.info("surface interaction rejected (reason: %s)", reason.what());
+                ++rejected_move_count_;
+            }
+        }
+         
+        switch (particles_in_overlap)
         {
         case 0:
             break;
 
         case 1:
         {
-            particle_id_pair_and_distance const& closest(overlapped->at(0));
-            length_type r01( pp.second.radius() + closest.first.second.radius() );
             
-            /* If the particle cores overlapped, the move is rejected (bounced) but the particles can still react. */
-		    if( closest.second < pp.second.radius() )
-            {
-                bounced = true;
-            
-                LOG_DEBUG(("Hard core collision with a particle %s. Particle bounced", boost::lexical_cast<std::string>(closest.first.first).c_str()));
-		        ++rejected_move_count_;
-
-                /* If the particle was outside the reaction volume before the move, nothing is to be done for this particle => break*/
-                if(tx_.distance( pp.second.position(), closest.first.second.position() ) > r01 + reaction_length_ )
-    		        break;
-    		        
-    		    try
-                {
-                    if( attempt_reaction(pp, closest.first) )
-                        return true;
-                    else                
-                    {
-                        LOG_DEBUG(("Bounced particle attempted a reaction with a nonreactive particle %s.", boost::lexical_cast<std::string>(closest.first.first).c_str()));
-                        ++rejected_move_count_;
-                    }
-                }
-                catch (propagation_error const& reason)
-                {
-                    log_.info("second-order reaction rejected (reason: %s)", reason.what());
-                    ++rejected_move_count_;
-                }
-                /* If no reaction has occurred */    
-                break;
-            }
-            else
-            {
-                try
-                {
-                    if( attempt_reaction(pp, closest.first) )
-                        return true;
-
-                    LOG_DEBUG(("Non-bounced particle attempted a reaction with a nonreactive particle %s.", boost::lexical_cast<std::string>(closest.first.first).c_str()));
-
-                }
-                catch (propagation_error const& reason)
-                {
-                    log_.info("second-order reaction rejected (reason: %s)", reason.what());
-                    ++rejected_move_count_;
-                }                    
-            }
-            break;              
-        }
-
-        default:
-            log_.info("collision involving two or more particles; move rejected");
-            ++rejected_move_count_;
-            return true;
-        }
         
-        //Check for overlap with nearest surface. -NO SURFACES YET.
-        //structure_id_and_distance_pair str_id_distance( tx_.get_closest_surface( new_pos ) );
-                
-        //If the particle did not bounce, update to new position.
+            particle_id_pair_and_distance const& closest(overlapped->at(0));
+            //length_type r01( pp.second.radius() + closest.first.second.radius() );
+ 		        
+    		try
+            {
+                if( attempt_reaction(pp, closest.first) )
+                    return true;
+                else                
+                {
+                    LOG_DEBUG(("Particle attempted a reaction with a nonreactive particle %s.", 
+                        boost::lexical_cast<std::string>(closest.first.first).c_str()));
+                    ++rejected_move_count_;
+                }
+            }
+            catch (propagation_error const& reason)
+            {
+                log_.info("second-order reaction rejected (reason: %s)", reason.what());
+                ++rejected_move_count_;
+            }
+            /* If no reaction has occurred */    
+            break;
+        }
+        default:
+            log_.info("Multiple objects (surface and/or particle) in reaction volume; moved but no reaction initiated.");
+            ++rejected_move_count_;
+            break;
+        }
+                       
+        /* If the particle did not bounce, update to new position. */
         if(!bounced)
         {
                 
             particle_id_pair particle_to_update( pp.first, 
-                        particle_type(species.id(), particle_shape_type(new_pos, species.radius()), species.D()) );
+                        particle_type(species.id(), particle_shape_type(new_pos, r0), species.D()) );
                 
             if (vc_)
             {
@@ -214,6 +260,26 @@ public:
     }
 
 private:
+
+    position_type const make_move(species_type const& species, position_type const& np, particle_id_type const& ignore)
+    {
+        boost::shared_ptr<structure_type> pp_structure( tx_.get_structure( species.structure_id() ) );
+    
+        position_type displacement( pp_structure->
+                                        bd_displacement(species.v() * dt_, std::sqrt(2.0 * species.D() * dt_), rng_) );
+
+        position_type new_pos(tx_.apply_boundary( add( np, displacement ) ));
+                        
+        boost::scoped_ptr<particle_id_pair_and_distance_list> overlapped(
+                                    tx_.check_overlap(
+                                    particle_shape_type(new_pos, species.radius()),
+                                    ignore));
+                                    
+        if ( !(overlapped && overlapped->size() > 0) )
+            return new_pos;
+        else
+            return np;    
+    }
 
     bool attempt_reaction(particle_id_pair const& pp)
     {
@@ -286,7 +352,7 @@ private:
                         boost::shared_ptr<structure_type> pp_structure( 
                                 tx_.get_structure( tx_.get_species( pp.second.sid() ).structure_id()) ); 
                                 
-                        /* Place the two product particles inside the reaction volume and check if the volume is empty. */
+                        /* Create an ipv between the products which lies within the reation volume; check for free space. */
                         for (;;)
                         {
                             if (--i < 0)
@@ -313,35 +379,10 @@ private:
                                 break;
                         }
 
-                        /* After dissociation both particles are allowed to move. 
-                           Move particle #0 */
-                        position_type displacement( pp_structure->
-                                            bd_displacement(s0.v() * dt_, std::sqrt(2.0 * s0.D() * dt_), rng_) );
-
-                        position_type new_pos(tx_.apply_boundary( add( np0, displacement ) ));
+                        /* After dissociation both particles are allowed to move. */
+                        np0 = make_move(s0, np0, pp.first);
                         
-                        boost::scoped_ptr<particle_id_pair_and_distance_list> overlapped1(
-                                tx_.check_overlap(
-                                    particle_shape_type(new_pos, s0.radius()),
-                                    pp.first));
-                                    
-                        if ( !(overlapped1 && overlapped1->size() > 0) )
-                            np0 = new_pos;
-                        
-                        //Move particle #1   
-                        displacement = pp_structure->bd_displacement(s1.v() * dt_, std::sqrt(2.0 * s1.D() * dt_), rng_);
-
-                        new_pos = tx_.apply_boundary( add( np1, displacement ) );
-                        
-                        boost::scoped_ptr<particle_id_pair_and_distance_list> overlapped2(
-                                tx_.check_overlap(
-                                    particle_shape_type(new_pos, s1.radius()),
-                                    pp.first ));
-                                    
-                        if ( !(overlapped2 && overlapped2->size() > 0) )
-                            np1 = new_pos;
-                            
-                        
+                        np1 = make_move(s1, np1, pp.first);                      
 
                         if (vc_)
                         {
@@ -477,7 +518,7 @@ private:
     }
     
     /*
-    bool attempt_reaction(particle_id_pair const& pp, structure_id_type const& structure_id)
+    bool attempt_reaction(particle_id_pair const& pp, structure_type const& structure)
     {
         reaction_rules const& rules(rules_.query_reaction_rule(pp0.second.sid(), structure_id));
         if (::size(rules) == 0)
