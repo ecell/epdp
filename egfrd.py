@@ -741,8 +741,6 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
             
         elif len(rr.products) == 2:
-	# TODO (one of the) product particles can live on different structure
-
 	    # 1. get product info
             product1_species = self.world.get_species(rr.products[0])
             product2_species = self.world.get_species(rr.products[1])
@@ -889,6 +887,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
                     if __debug__:
                         log.info('products (%s) = %s' % (len(products), products))
 
+		    # exit the loop, we have found new positions
                     break
             else:
                 if __debug__:

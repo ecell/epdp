@@ -210,9 +210,9 @@ class SimplePair(Pair):
             'distance_from_sigma (pair gap) between %s and %s = %s < 0' % \
             (single1, single2, FORMAT_DOUBLE % distance_from_sigma)
 
-        shell_size1 = r0 * D1 / D12 + radius1
+        shell_size1 = r0 * D1 / D12 + radius1	# distance_from_CoM + particle_radius
         shell_size2 = r0 * D2 / D12 + radius2
-        shell_size_margin1 = radius1 * 2
+        shell_size_margin1 = radius1 * 2	# SINGLE_SHELL_FACTOR??
         shell_size_margin2 = radius2 * 2
         shell_size_with_margin1 = shell_size1 + shell_size_margin1
         shell_size_with_margin2 = shell_size2 + shell_size_margin2
@@ -739,9 +739,9 @@ class MixedPair(Pair):
 	
 
 	dz_left = pid_particle_pair1[1].radius
-	dz_right = particle12_dist_z + pid_particle_pair2[1].radius * SINGLE_SHELL_FACTOR
-	dr = max(particle1com_dist_r + radius1 * SINGLE_SHELL_FACTOR,
-		 particle2com_dist_r + radius2 * SINGLE_SHELL_FACTOR)
+	dz_right = particle12_dist_z + pid_particle_pair2[1].radius * Domain.SINGLE_SHELL_FACTOR
+	dr = max(particle1com_dist_r + radius1 * Domain.SINGLE_SHELL_FACTOR,
+		 particle2com_dist_r + radius2 * Domain.SINGLE_SHELL_FACTOR)
 
 	return dr, dz_left, dz_right
 
