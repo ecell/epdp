@@ -630,7 +630,7 @@ class PlanarSurfacePair(SimplePair):
 #        new_iv = r * math.cos(new_angle) * unit_x + \
 #                 r * math.sin(new_angle) * unit_y
 
-	new_iv = (r/r0) * rotate_vector(old_iv, unit_z, theta)
+	new_iv = (r/r0) * rotate_vector(old_iv, self.structure.shape.unit_z, theta)
 	# note that unit_z can point two ways rotating the vector clockwise or counterclockwise
 	# because theta is symmetric this doesn't matter.
 
@@ -759,6 +759,43 @@ class MixedPair(Pair):
 						# normal to the plane
 	return math.sqrt(self.D_r/D_2)
     z_scaling_factor = property(get_scaling_factor)
+
+    @staticmethod
+    def do_transform(single1, single2, world):
+
+	pos1 = single1.pid_particle_pair[1].position
+	pos2 = single2.pid_particle_pair[1].position
+	D_1 = single1.pid_particle_pair[1].D
+	D_2 = single2.pid_particle_pair[1].D
+
+	surface = single1.structure
+	# we assume that the particle of single1 lives on the membrane
+	assert isinstance(surface, PlanarSurface)
+
+	# the CoM is calculated in a similar way to a normal 3D pair
+	com = (D_2 * pos1 + D_1 * pos) / (D_1 + D_2)
+	# and then projected onto the plane
+	com = world.cyclic_transpose(com, surface.shape.position)
+	com, _ = surface.projected_point (com)
+
+
+	# calculate the interparticle vector
+	pos2t = world.cyclic_transpose(pos2, pos1)
+        iv = pos2t - pos1
+
+	# calculate the scaling factor due to anisotropic diffusion of iv
+	z_scaling_factor = math.sqrt((D_1 + D_2)/D_2)
+
+	# move and recale the iv in the axis normal to the plane
+	iv_z = surface.shape.unit_z * numpy.dot (iv, surface.shape.unit_z)
+	iv_z_length = length(iv_z)
+
+	new_iv_z_length = (iv_z_length - single2.pid_particle_pair[1].radius) * z_scaling_factor
+	new_iv_z = (new_iv_z_length / iv_z_length) * iv_z
+
+	iv = iv - iv_z + new_iv_z
+
+	return com, iv
 
     def do_back_transform(self, com, iv):
         D1 = self.pid_particle_pair1[1].D
