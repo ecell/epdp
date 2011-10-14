@@ -319,6 +319,22 @@ class SimplePair(Pair):
         return self.shell.shape.position
     com = property(get_com)
 
+    @staticmethod
+    def do_transform(single1, single2, world):
+
+	pos1 = single1.pid_particle_pair[1].position
+	pos2 = single2.pid_particle_pair[1].position
+	D1 = single1.pid_particle_pair[1].D
+	D2 = single2.pid_particle_pair[1].D
+
+	com = world.calculate_pair_CoM(pos1, pos2, D1, D2)
+	com = world.apply_boundary(com)
+
+        pos2t = world.cyclic_transpose(pos2, pos1)
+        iv = pos2t - pos1
+
+	return com, iv
+
     def do_back_transform(self, com, iv):
         D1 = self.pid_particle_pair1[1].D
         D2 = self.pid_particle_pair2[1].D
@@ -632,7 +648,7 @@ class PlanarSurfacePair(SimplePair):
 
 	new_iv = (r/r0) * rotate_vector(old_iv, self.structure.shape.unit_z, theta)
 	# note that unit_z can point two ways rotating the vector clockwise or counterclockwise
-	# because theta is symmetric this doesn't matter.
+	# Since theta is symmetric this doesn't matter.
 
         return new_iv
 
@@ -772,12 +788,13 @@ class MixedPair(Pair):
 	# we assume that the particle of single1 lives on the membrane
 	assert isinstance(surface, PlanarSurface)
 
+
 	# the CoM is calculated in a similar way to a normal 3D pair
 	com = (D_2 * pos1 + D_1 * pos) / (D_1 + D_2)
 	# and then projected onto the plane
 	com = world.cyclic_transpose(com, surface.shape.position)
 	com, _ = surface.projected_point (com)
-
+	com = world.apply_boundary(com)
 
 	# calculate the interparticle vector
 	pos2t = world.cyclic_transpose(pos2, pos1)
@@ -826,10 +843,10 @@ class MixedPair(Pair):
 	# This is the sigma that is used for the evaluation of the Green's function and is in this case slightly
 	# different than the sums of the radii of the particleso
 	xi = self.z_scaling_factor
-	xi_inv = 1/xi
+	xi_inv = 1.0/xi
 	alpha = math.acos(xi_inv)
 	sigma = self.pid_particle_pair1[1].radius + self.pid_particle_pair2[1].radius
-	rho = abs(sigma*math.sqrt(0.5 + (alpha*xi/(2.0*math.sin(alpha)))))
+	rho = abs(sigma * math.sqrt(0.5 + (alpha * xi/(2.0*math.sin(alpha)))))
 	return rho
     sigma = property (get_sigma)
 
