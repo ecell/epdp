@@ -67,25 +67,36 @@ public:
 
     virtual Real reaction_volume( length_type const& r0, length_type const& r1, length_type const& rl ) const
     {
-        length_type r01( r0 + r1 );
-        length_type r01l( r01 + rl );
-        length_type r01l_sq( r01l * r01l );
-        length_type r01_sq( r01 * r01 );
+        length_type const r01( r0 + r1 );
+        length_type const r01l( r01 + rl );
+        length_type const r01l_cb( r01l * r01l * r01l );
+        length_type const r01_cb( r01 * r01 * r01 );
 
-        return 4.0/3.0 * M_PI * ( r01l_sq * r01l - r01_sq * r01 );
+        return 4.0/3.0 * M_PI * ( r01l_cb - r01_cb );
     }
 
-    virtual position_type newbd_dissociation_vector( rng_type& rng, length_type const& r01, length_type const& rl ) const
+    virtual position_type surface_dissociation_vector( rng_type& rng, length_type const& r0, length_type const& rl ) const
     {
-        Real X( rng.uniform(0.,1.) );
+        return position_type(); //No dissociation 'from' the bulk
+    }
 
-        length_type r01l( r01 + rl );
-        length_type r01l_sq( r01l * r01l );
-        length_type r01_sq( r01 * r01 );
+    virtual position_type geminate_dissociation_vector( rng_type& rng, length_type const& r01, length_type const& rl ) const
+    {
+        Real const X( rng.uniform(0.,1.) );
+
+        length_type const r01l( r01 + rl );
+        length_type const r01l_cb( r01l * r01l * r01l );
+        length_type const r01_cb( r01 * r01 * r01 );
         
-        length_type diss_vec_length( cbrt( X * (r01l_sq * r01l - r01_sq * r01) + r01_sq*r01 ) );
+        length_type const diss_vec_length( cbrt( X * (r01l_cb - r01_cb ) + r01_cb ) );
 
         return random_vector( diss_vec_length, rng );
+    }
+    
+    virtual position_type special_geminate_dissociation_vector( rng_type& rng, length_type const& r_bulk, length_type const& r_surf, 
+                                                                length_type const& rl ) const
+    {
+        return position_type(); //No dissociation 'from' the bulk
     }
 
     virtual void accept(ImmutativeStructureVisitor<traits_type> const& visitor) const

@@ -204,7 +204,6 @@ public:
             
         
             particle_id_pair_and_distance const& closest(overlapped->at(0));
-            //length_type r01( pp.second.radius() + closest.first.second.radius() );
  		        
     		try
             {
@@ -273,12 +272,18 @@ private:
         boost::scoped_ptr<particle_id_pair_and_distance_list> overlapped(
                                     tx_.check_overlap(
                                     particle_shape_type(new_pos, species.radius()),
-                                    ignore));
+                                    ignore));                            
                                     
-        if ( !(overlapped && overlapped->size() > 0) )
-            return new_pos;
-        else
-            return np;    
+        if ( (overlapped && overlapped->size() > 0) )
+            return np;
+        
+        structure_id_and_distance_pair const struct_id_distance_pair = tx_.get_closest_surface( new_pos );
+        length_type const core_surface_distance = struct_id_distance_pair.second - s0.radius();
+                                    
+        if( core_surface_distance < 0 )
+            return np;
+            
+        return new_pos;
     }
 
     bool attempt_reaction(particle_id_pair const& pp)
@@ -310,11 +315,24 @@ private:
                 case 1:
                     {
                         const species_type s0(tx_.get_species(products[0]));
+                        boost::shared_ptr<structure_type> s0_struct( tx_.get_structure( s0.structure_id() ) );
+                        boost::shared_ptr<structure_type> pp_struct( tx_.get_structure( tx_.get_species(pp.second.sid()).structure_id() ) );
+                        
+                        position_type new_pos = pp.second.position();
+                        /* If the product particle does NOT live of the same structure => surface -> bulk dissociation. */
+                        if( s0_struct->id() != pp_struct->id() )
+                        {
+                            position_type const displacement( pp_struct->surface_dissociation_vector(rng_, s0.radius(), reaction_length_ ) );
+
+                            new_pos = tx_.apply_boundary( add( pp.second.position(), displacement ) );
+                        }
+                      
                         const particle_id_pair new_p(
                             pp.first, particle_type(products[0],
-                                particle_shape_type(pp.second.position(),
+                                particle_shape_type(new_pos,
                                                     s0.radius()),
                                                     s0.D()));
+                                                    
                         boost::scoped_ptr<particle_id_pair_and_distance_list> overlapped(tx_.check_overlap(new_p.second.shape(), new_p.first));
                         if (overlapped && overlapped->size() > 0)
                         {
@@ -349,9 +367,46 @@ private:
                         int i = max_retry_count_;
                         position_type np0, np1;
 
-                        boost::shared_ptr<structure_type> pp_structure( 
-                                tx_.get_structure( tx_.get_species( pp.second.sid() ).structure_id()) ); 
+                        boost::shared_ptr<structure_type> pp_struct( tx_.get_structure( tx_.get_species( pp.second.sid() ).structure_id() ) ); 
+                        boost::shared_ptr<structure_type> s0_struct( tx_.get_structure( s0.structure_id() ) );
+                        boost::shared_ptr<structure_type> s1_struct( tx_.get_structure( s1.structure_id() ) );
+                        
+                        /* If the product particles do NOT live on the same structure => surface -> surface + bulk dissociation. */
+                        if( s0_struct->id() != s1_struct->id() )
+                        {
+                            D0_Dr = s0.D() / ( s0.D() + s1.D() );
+                            D1_Dr = s1.D() / ( s0.D() + s1.D() );                        
+                        
+                            if(s0_struct->id() == "world")
+                            {
+                                position_type m( pp_struct->
+                                    special_geminate_dissociation_vector( rng_, s0.radius(), s1.radius(), reaction_length_ ) );
                                 
+                                
+                                
+                                np0 = tx_.apply_boundary(pp.second.position()
+                                    - m * (s0.D() / D01));
+                                np1 = tx_.apply_boundary(pp.second.position()
+                                    + m * (s1.D() / D01));
+                            }
+                            else
+                            {
+                                position_type m( pp_struct->
+                                    special_geminate_dissociation_vector( rng_, s1.radius(), s0.radius(), reaction_length_ ) );
+                                
+                                np0 = tx_.apply_boundary(pp.second.position()
+                                    - m * (s0.D() / D01));
+                                np1 = tx_.apply_boundary(pp.second.position()
+                                    + m * (s1.D() / D01));
+                            }
+                            
+
+
+                            new_pos = tx_.apply_boundary( add( pp.second.position(), displacement ) );
+                        }
+                        
+                        //Don't forget make_move after dissociation!
+                        
                         /* Create an ipv between the products which lies within the reation volume; check for free space. */
                         for (;;)
                         {
@@ -360,7 +415,7 @@ private:
                                 throw propagation_error("no space");
                             } 
                
-                            position_type m( pp_structure->newbd_dissociation_vector( rng_, r01, reaction_length_ ) );
+                            position_type m( pp_struct->geminate_dissociation_vector( rng_, r01, reaction_length_ ) );
                             
                             np0 = tx_.apply_boundary(pp.second.position()
                                     - m * (s0.D() / D01));
@@ -383,6 +438,8 @@ private:
                         np0 = make_move(s0, np0, pp.first);
                         
                         np1 = make_move(s1, np1, pp.first);                      
+
+			            //Check wether new positions dont overlap.
 
                         if (vc_)
                         {
@@ -438,7 +495,9 @@ private:
             boost::shared_ptr<structure_type> pp_structure( 
                tx_.get_structure( tx_.get_species( pp0.second.sid() ).structure_id()) );  
 
-            const Real p( r.k() * dt_ / ( 2 * pp_structure->reaction_volume( s0.radius(), s1.radius(), reaction_length_ ) ) );
+            Real p( r.k() * dt_ / ( pp_structure->reaction_volume( s0.radius(), s1.radius(), reaction_length_ ) ) );
+	    //TODO: Check if it works.
+	    p /= (2 - p);
             BOOST_ASSERT(p >= 0.);
             prob += p;
             if (prob >= 1.)

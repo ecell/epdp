@@ -71,8 +71,21 @@ public:
 
         return M_PI * ( r01l_sq - r01_sq );
     }
+    
+    virtual position_type surface_dissociation_vector( rng_type& rng, length_type const& r0, length_type const& rl ) const
+    {
+        Real X( rng.uniform(0.,1.) );
+        
+        length_type diss_vec_length( X*rl + r0 );
 
-    virtual position_type newbd_dissociation_vector( rng_type& rng, length_type const& r01, length_type const& rl ) const
+        position_type unit_z( cross_product( base_type::shape().unit_x(), base_type::shape().unit_y() ) );
+
+        unit_z = normalize ( unit_z );
+
+        return multiply( unit_z, (rng.uniform_int(0, 1) * 2 - 1) * diss_vec_length );
+    }
+
+    virtual position_type geminate_dissociation_vector( rng_type& rng, length_type const& r01, length_type const& rl ) const
     {
         Real X( rng.uniform(0.,1.) );
 
@@ -83,6 +96,36 @@ public:
         length_type diss_vec_length( sqrt( X * (r01l_sq - r01_sq) + r01_sq ) );
 
         return random_vector( diss_vec_length, rng );
+    }
+    
+    virtual position_type special_geminate_dissociation_vector( rng_type& rng, length_type const& r_surf, length_type const& r_bulk, 
+                                                                length_type const& rl ) const
+    {
+        length_type const r01( r_bulk + r_surf );
+        
+        Real const theta_max( asin(r_bulk / ( r01 )) );
+        Real const theta( rng.uniform(0.,1.) * theta_max );        
+        Real const phi( rng.uniform(0.,1.) * 2 * M_PI );
+        
+        Real const X( rng.uniform(0.,1.) );
+
+        length_type const r01l( r01 + rl );
+        length_type const r01l_cb( r01l * r01l * r01l );
+        length_type const r01_cb( r01 * r01 * r01 );
+        
+        length_type const diss_vec_length( cbrt( X * (r01l_cb - r01_cb ) + r01_cb ) );
+        
+        position_type unit_z( cross_product( base_type::shape().unit_x(), base_type::shape().unit_y() ) );
+        unit_z = normalize ( unit_z );
+        
+        unit_z = multiply(unit_z, rng.uniform_int(0, 1));
+        
+        length_type const x( diss_vec_length * sin( theta ) * cos( phi ) );
+        length_type const y( diss_vec_length * sin( theta ) * sin( phi ) );
+        length_type const z( diss_vec_length * cos( theta ) );
+                        
+        return position_type diss_vec( add( base_type::shape().unit_x() * x,
+                                        add( base_type::shape().unit_y() * y, unit_z * z ) ) );      
     }
 
     virtual length_type minimal_distance(length_type const& radius) const
