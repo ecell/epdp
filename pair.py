@@ -215,14 +215,13 @@ class SimplePair(Pair):
         iv_shell_size2 = dist_from_com2 + radius2
 
 	# also fix the minimum shellsize for the CoM domain
-	com_shell_size1 = radius1
-	com_shell_size2 = radius2
+	com_shell_size = max(radius1, radius2)
 
 	# calculate total radii including the margin for the burst volume for the particles
-	shell_size1 = iv_shell_size1 + com_shell_size1 + radius1 * (1 - Domain.SINGLE_SHELL_FACTOR)
-	shell_size2 = iv_shell_size2 + com_shell_size2 + radius2 * (1 - Domain.SINGLE_SHELL_FACTOR)
+	shell_size = max(iv_shell_size1 + com_shell_size + radius1 * (1 - Domain.SINGLE_SHELL_FACTOR),
+			 iv_shell_size2 + com_shell_size + radius2 * (1 - Domain.SINGLE_SHELL_FACTOR))
 
-	return max(shell_size1, shell_size2)
+	return shell_size
 
 
     @staticmethod
@@ -727,20 +726,44 @@ class MixedPair(Pair):
 
     @staticmethod
     def get_min_shell_dimensions(single1, single2, reference_point, geometrycontainer):
-	# TODO incomplete
 
 	assert isinstance (single1.structure, PlanarSurface)
 	assert isinstance (single2.structure, CuboidalRegion)
 
-	pid_particle_pair1 = single1.pid_particle_pair
-	pid_particle_pair2 = single2.pid_particle_pair
+	pos1 = single1.pid_particle_pair[1].position
+	pos2 = single2.pid_particle_pair[1].position
+	radius1 = single1.pid_particle_pair[1].radius
+	radius2 = single2.pid_particle_pair[1].radius
+	D1 = single1.pid_particle_pair[1].D
+	D2 = single2.pid_particle_pair[1].D
+	D12 = D1 + D2
 
-	
+	# calculate the interparticle vector and project it onto the coordinate system of the structure
+	# of particle1
+	pos2_t = geometrycontainer.world.cyclic_transpose(pos2, pos1)
+	iv = pos2_t - pos1
+	iv_x = numpy.dot(iv, single1.structure.shape.unit_x)
+	iv_y = numpy.dot(iv, single1.structure.shape.unit_y)
+	iv_z = numpy.dot(iv, single1.structure.shape.unit_z)
 
-	dz_left = pid_particle_pair1[1].radius
-	dz_right = particle12_dist_z + pid_particle_pair2[1].radius * Domain.SINGLE_SHELL_FACTOR
-	dr = max(particle1com_dist_r + radius1 * Domain.SINGLE_SHELL_FACTOR,
-		 particle2com_dist_r + radius2 * Domain.SINGLE_SHELL_FACTOR)
+	# calculate the minimal dimensions of the iv shell (it fits perfectly around the particles)
+	iv_shell_z = abs(iv_z) + radius2
+
+	len_iv_projected = math.sqrt(iv_x*iv_x + iv_y*iv_y)
+	dist_r_from_com1 = len_iv_projected * D1 / D12
+	dist_r_from_com2 = len_iv_projected * D2 / D12
+	iv_shell_radius1 = dist_r_from_com1 + radius1
+	iv_shell_radius2 = dist_r_from_com2 + radius2
+
+	# fix the minimum shell size for the CoM domain
+	com_shell_radius = max(radius1, radius2)
+
+	# calculate the minimal dimensions of the protective domain including space for the
+	# burst volumes of the particles
+	dz_left = radius1
+	dz_right = iv_shell_z + radius2 * (1 - Domain.SINGLE_SHELL_FACTOR)
+	dr = max(iv_shell_radius1 + com_shell_radius + radius1 * (1 - Domain.SINGLE_SHELL_FACTOR),
+		 iv_shell_radius2 + com_shell_radius + radius2 * (1 - Domain.SINGLE_SHELL_FACTOR))
 
 	return dr, dz_left, dz_right
 
