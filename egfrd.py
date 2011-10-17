@@ -1232,27 +1232,24 @@ class EGFRDSimulator(ParticleSimulatorBase):
         radius2 = single2.pid_particle_pair[1].radius
         sigma = radius1 + radius2
 
-        r0 = self.world.distance(pos1, pos2)
+#        r0 = self.world.distance(pos1, pos2)
+
+#        D1 = single1.pid_particle_pair[1].D
+#        D2 = single2.pid_particle_pair[1].D
+#        D12 = D1 + D2
+
+#        com = self.world.calculate_pair_CoM(pos1, pos2, D1, D2)
+#        com = self.world.apply_boundary(com)
+	com, iv = SimplePair.do_transform(single1, single2, self.world)
+	r0 = length (iv)
         distance_from_sigma = r0 - sigma	# the distance between the surfaces of the particles
 
-        D1 = single1.pid_particle_pair[1].D
-        D2 = single2.pid_particle_pair[1].D
-        D12 = D1 + D2
-
-        com = self.world.calculate_pair_CoM(pos1, pos2, D1, D2)
-        com = self.world.apply_boundary(com)
-
-
 	# 1. Get the minimal possible shell size (including margin?)
-        min_shell_size = \
-	    SimplePair.get_min_shell_size(single1, single2, self.geometrycontainer)
-#        min_shell_size_with_margin = min_shell_size + shell_size_margin
-
+        min_shell_size = SimplePair.get_min_shell_size(single1, single2, self.geometrycontainer)
 
 	# 2. Get the maximum possible shell size
 	max_shell_size = SimplePair.get_max_shell_size(com, single1, single2,
 						       self.geometrycontainer, self.domains)
-
 
 	# 3. Calculate the maximum based on some other criterium (convergence?)
 #        convergence_max = distance_from_sigma * 100 + sigma + shell_size_margin		# FIXME

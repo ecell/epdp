@@ -209,16 +209,16 @@ class SimplePair(Pair):
         D1 = single1.pid_particle_pair[1].D
         D2 = single2.pid_particle_pair[1].D
         D12 = D1 + D2
-        dist_from_com1 = r0 * D1 / D12			# distance_from_CoM
+        dist_from_com1 = r0 * D1 / D12			# particle distance from CoM
         dist_from_com2 = r0 * D2 / D12
-        iv_shell_size1 = dist_from_com1 + radius1	# radius surrounds the particles
+        iv_shell_size1 = dist_from_com1 + radius1	# the shell should surround the particles
         iv_shell_size2 = dist_from_com2 + radius2
 
 	# also fix the minimum shellsize for the CoM domain
 	com_shell_size1 = radius1
 	com_shell_size2 = radius2
 
-	# calculate total radii including the minimal shell size for the particles
+	# calculate total radii including the margin for the burst volume for the particles
 	shell_size1 = iv_shell_size1 + com_shell_size1 + radius1 * (1 - Domain.SINGLE_SHELL_FACTOR)
 	shell_size2 = iv_shell_size2 + com_shell_size2 + radius2 * (1 - Domain.SINGLE_SHELL_FACTOR)
 
