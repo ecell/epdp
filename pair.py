@@ -187,7 +187,7 @@ class SimplePair(Pair):
     @staticmethod
     def get_min_shell_size(single1, single2, geometrycontainer):
         # 1. Determine min shell size for a putative SimplePair.
-	# TODO Note that the calculation is dimension independent. Alse
+	# TODO Note that the calculation is dimension independent. Also
 	# 'size' is not the right term here
 
         assert single1.structure == single2.structure
@@ -197,33 +197,32 @@ class SimplePair(Pair):
         radius1 = single1.pid_particle_pair[1].radius
         radius2 = single2.pid_particle_pair[1].radius
 
+#        assert (pos1 - single1.shell.shape.position).sum() == 0        # TODO Not sure why this is here
         sigma = radius1 + radius2
+        r0 = geometrycontainer.world.distance(pos1, pos2)
+#        distance_from_sigma = r0 - sigma        # the distance between the surfaces of the particles
+        assert r0 >= sigma, \
+            'distance_from_sigma (pair gap) between %s and %s = %s < 0' % \
+            (single1, single2, FORMAT_DOUBLE % (r0 - sigma))
 
+	# calculate the minimum shell size for the interparticle domain
         D1 = single1.pid_particle_pair[1].D
         D2 = single2.pid_particle_pair[1].D
         D12 = D1 + D2
+        dist_from_com1 = r0 * D1 / D12			# distance_from_CoM
+        dist_from_com2 = r0 * D2 / D12
+        iv_shell_size1 = dist_from_com1 + radius1	# radius surrounds the particles
+        iv_shell_size2 = dist_from_com2 + radius2
 
-#        assert (pos1 - single1.shell.shape.position).sum() == 0        # TODO Not sure why this is here
-        r0 = geometrycontainer.world.distance(pos1, pos2)
-        distance_from_sigma = r0 - sigma        # the distance between the surfaces of the particles
-        assert distance_from_sigma >= 0, \
-            'distance_from_sigma (pair gap) between %s and %s = %s < 0' % \
-            (single1, single2, FORMAT_DOUBLE % distance_from_sigma)
+	# also fix the minimum shellsize for the CoM domain
+	com_shell_size1 = radius1
+	com_shell_size2 = radius2
 
-        shell_size1 = r0 * D1 / D12 + radius1	# distance_from_CoM + particle_radius
-        shell_size2 = r0 * D2 / D12 + radius2
-        shell_size_margin1 = radius1 * 2	# SINGLE_SHELL_FACTOR??
-        shell_size_margin2 = radius2 * 2
-        shell_size_with_margin1 = shell_size1 + shell_size_margin1
-        shell_size_with_margin2 = shell_size2 + shell_size_margin2
-        if shell_size_with_margin1  >= shell_size_with_margin2:
-            min_shell_size = shell_size1
-            shell_size_margin = shell_size_margin1
-        else:
-            min_shell_size = shell_size2
-            shell_size_margin = shell_size_margin2
+	# calculate total radii including the minimal shell size for the particles
+	shell_size1 = iv_shell_size1 + com_shell_size1 + radius1 * (1 - Domain.SINGLE_SHELL_FACTOR)
+	shell_size2 = iv_shell_size2 + com_shell_size2 + radius2 * (1 - Domain.SINGLE_SHELL_FACTOR)
 
-	return min_shell_size, shell_size_margin
+	return max(shell_size1, shell_size2)
 
 
     @staticmethod

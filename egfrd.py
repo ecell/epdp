@@ -1244,9 +1244,9 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
 
 	# 1. Get the minimal possible shell size (including margin?)
-        min_shell_size, shell_size_margin = \
+        min_shell_size = \
 	    SimplePair.get_min_shell_size(single1, single2, self.geometrycontainer)
-        min_shell_size_with_margin = min_shell_size + shell_size_margin
+#        min_shell_size_with_margin = min_shell_size + shell_size_margin
 
 
 	# 2. Get the maximum possible shell size
@@ -1255,19 +1255,19 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
 
 	# 3. Calculate the maximum based on some other criterium (convergence?)
-        convergence_max = distance_from_sigma * 100 + sigma + shell_size_margin
-	max_shell_size = min(max_shell_size, convergence_max)
+#        convergence_max = distance_from_sigma * 100 + sigma + shell_size_margin		# FIXME
+#	max_shell_size = min(max_shell_size, convergence_max)
 
 
         # 4. Check if min shell size for the Pair not larger than max shell size or 
         # sim cell size.
-        if min_shell_size_with_margin >= max_shell_size:
+        if min_shell_size >= max_shell_size:
             if __debug__:
                 log.debug('%s not formed: min_shell_size %s >='
                           'max_shell_size %s' %
                           ('Pair(%s, %s)' % (single1.pid_particle_pair[0], 
                                              single2.pid_particle_pair[0]),
-                           FORMAT_DOUBLE % min_shell_size_with_margin,
+                           FORMAT_DOUBLE % min_shell_size,
                            FORMAT_DOUBLE % max_shell_size))
             return None, None, None
 
@@ -1298,7 +1298,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
         shell_size = min(shell_size, max_shell_size)
 
-        assert shell_size >= min_shell_size_with_margin
+        assert shell_size >= min_shell_size
         assert shell_size <= max_shell_size
 
 	if __debug__:
