@@ -796,6 +796,18 @@ class MixedPair(Pair):
 			    (D2/D12) * a_r + radius2)
 	a_R = radius - space_for_iv
 
+
+        if __debug__:
+            tr = ((a_r - self.r0)**2) / (6 * self.D_r)	# the expected escape time of the iv
+            if self.D_R == 0:
+                tR = numpy.inf 
+            else:
+                tR = (a_R**2) / (4 * self.D_R)		# the expected escape time of the CoM
+            log.debug('tr %g, tR %g' % (tr, tR))
+
+	assert (self.sigma < a_r) and (a_r < half_length*2)
+	assert (0 < a_R) and (a_R < radius)
+
 	return a_R, a_r
 
     def get_com(self):
