@@ -527,7 +527,7 @@ class SphericalPair(SimplePair):
         if theta == 0.0:
 	    # no rotation is necessary -> new_iv = new_iv
 	    new_iv = old_iv
-        elif old_iv_theta % numpy.pi != 0.0:
+        elif theta % numpy.pi != 0.0:
 	    # alternative calculation
 	    # rotate the old_iv to the new theta
             rotation_axis = crossproduct_against_z_axis(old_iv)
@@ -779,11 +779,24 @@ class MixedPair(Pair):
 	self.surface = surface	# the surface on which particle1 lives
 	self.r0 = r0	# TODO this needs to be rescaled too
 
-    def determine_radii(self):
-	#TODO INCORRECT
-	a_r = self.shell.shape.half_length*2.0 - self.pid_particle_pair1[1].radius
-	a_R = self.shell.shape.radius - a_r*0.5
-	return 
+    def determine_radii(self, half_length, radius):
+	# determines the dimensions of the domains used for the Green's functions from the dimensions
+	# of the cylindrical shell.
+	# Note that the function assumes that the cylinder is dimensioned properly
+	radius1 = self.pid_particle_pair1[1].radius
+	radius2 = self.pid_particle_pair2[1].radius
+	D1 = self.pid_particle_pair1[1].D
+	D2 = self.pid_particle_pair2[1].D
+	D12 = D1 + D2
+
+	a_r = ((half_length * 2) - radius1 - (2 * radius2)) * self.z_scaling_factor
+
+	# calculate the maximal displacement of a particle given an a_r. Also include its radius
+	space_for_iv = max( (D1/D12) * a_r + radius1,
+			    (D2/D12) * a_r + radius2)
+	a_R = radius - space_for_iv
+
+	return a_R, a_r
 
     def get_com(self):
 	# Note that it is implied that the center of the shell is chosen such that its projection on the
