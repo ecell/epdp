@@ -23,7 +23,9 @@ public:
     typedef typename traits_type::structure_id_type identifier_type;
     typedef typename traits_type::length_type length_type;
     typedef typename traits_type::position_type position_type;
+    typedef typename traits_type::base_type::species_type species_type;
     typedef std::pair<position_type, length_type> projected_type;
+    typedef std::pair<position_type, position_type> position_pair_type;
 
 public:
     virtual ~Structure() {}
@@ -59,9 +61,9 @@ public:
     
     virtual position_type surface_dissociation_vector( rng_type& rng, length_type const& r0, length_type const& rl ) const = 0;
     
-    virtual position_type geminate_dissociation_vector( rng_type& rng, length_type const& r01, length_type const& rl ) const = 0;
+    virtual position_pair_type geminate_dissociation_positions( rng_type& rng, species_type const& s0, species_type const& s1, position_type const& op, length_type const& rl ) const = 0;
     
-    virtual position_type special_geminate_dissociation_vector( rng_type& rng, length_type const& r_bulk, length_type const& r_surf, length_type const& rl ) const = 0;
+    virtual position_pair_type special_geminate_dissociation_positions( rng_type& rng, species_type const& s_surf, species_type const& s_bulk, position_type const& op_surf, length_type const& rl ) const = 0;
 
     virtual projected_type projected_point(position_type const& pos) const = 0;
     

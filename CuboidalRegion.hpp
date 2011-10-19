@@ -18,6 +18,8 @@ public:
     typedef typename base_type::rng_type rng_type;
     typedef typename base_type::position_type position_type;
     typedef typename base_type::length_type length_type;
+    typedef typename Ttraits_::world_type::species_type species_type;
+    typedef std::pair<position_type, position_type> position_pair_type;
 
     identifier_type const& id() const
     {
@@ -77,11 +79,15 @@ public:
 
     virtual position_type surface_dissociation_vector( rng_type& rng, length_type const& r0, length_type const& rl ) const
     {
-        return position_type(); //No dissociation 'from' the bulk
+        return position_type(); //No surface dissociation 'from' the bulk
     }
 
-    virtual position_type geminate_dissociation_vector( rng_type& rng, length_type const& r01, length_type const& rl ) const
+    virtual position_pair_type geminate_dissociation_positions( rng_type& rng, species_type const& s0, species_type const& s1, position_type const& op, 
+        length_type const& rl ) const
     {
+        length_type const r01( s0.radius() + s1.radius() );
+        Real const D01( s0.D() + s1.D() );
+
         Real const X( rng.uniform(0.,1.) );
 
         length_type const r01l( r01 + rl );
@@ -90,13 +96,16 @@ public:
         
         length_type const diss_vec_length( cbrt( X * (r01l_cb - r01_cb ) + r01_cb ) );
 
-        return random_vector( diss_vec_length, rng );
+        position_type const m( random_vector( diss_vec_length, rng ) );
+        
+        return position_pair_type( op - m * s0.D() / D01,
+                                    op + m * s1.D() / D01 );
     }
     
-    virtual position_type special_geminate_dissociation_vector( rng_type& rng, length_type const& r_bulk, length_type const& r_surf, 
-                                                                length_type const& rl ) const
+    virtual position_pair_type special_geminate_dissociation_positions( rng_type& rng, species_type const& s_surf, species_type const& s_bulk, 
+        position_type const& op_surf, length_type const& rl ) const
     {
-        return position_type(); //No dissociation 'from' the bulk
+        return position_pair_type(); //No special geminate dissociation 'from' the bulk
     }
 
     virtual void accept(ImmutativeStructureVisitor<traits_type> const& visitor) const

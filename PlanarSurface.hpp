@@ -18,6 +18,8 @@ public:
     typedef typename base_type::rng_type rng_type;
     typedef typename base_type::position_type position_type;
     typedef typename base_type::length_type length_type;
+    typedef typename Ttraits_::world_type::species_type species_type;
+    typedef std::pair<position_type, position_type> position_pair_type;
 
     virtual position_type random_position(rng_type& rng) const
     {
@@ -85,25 +87,35 @@ public:
         return multiply( unit_z, (rng.uniform_int(0, 1) * 2 - 1) * diss_vec_length );
     }
 
-    virtual position_type geminate_dissociation_vector( rng_type& rng, length_type const& r01, length_type const& rl ) const
+    virtual position_pair_type geminate_dissociation_positions( rng_type& rng, species_type const& s0, species_type const& s1, position_type const& op, 
+        length_type const& rl ) const
     {
+        length_type const r01( s0.radius() + s1.radius() );
+        Real const D01( s0.D() + s1.D() );
+    
         Real X( rng.uniform(0.,1.) );
 
-        length_type r01l( r01 + rl );
-        length_type r01l_sq( r01l * r01l );
-        length_type r01_sq( r01 * r01 );
+        length_type const r01l( r01 + rl );
+        length_type const r01l_sq( r01l * r01l );
+        length_type const r01_sq( r01 * r01 );
         
-        length_type diss_vec_length( sqrt( X * (r01l_sq - r01_sq) + r01_sq ) );
+        length_type const diss_vec_length( sqrt( X * (r01l_sq - r01_sq) + r01_sq ) );
 
-        return random_vector( diss_vec_length, rng );
+        position_type const m( random_vector( diss_vec_length, rng ) );
+        
+        return position_pair_type( op - m * s0.D() / D01,
+                                    op + m * s1.D() / D01 );
     }
     
-    virtual position_type special_geminate_dissociation_vector( rng_type& rng, length_type const& r_surf, length_type const& r_bulk, 
-                                                                length_type const& rl ) const
+    virtual position_pair_type special_geminate_dissociation_positions( rng_type& rng, species_type const& s_surf, species_type const& s_bulk, 
+        position_type const& op_surf, length_type const& rl ) const
     {
-        length_type const r01( r_bulk + r_surf );
+        length_type const r01( s_bulk.radius() + s_surf.radius() );
+        Real const D01( s_bulk.D() + s_surf.D() );
+        Real const D_bulk_D01( s_bulk.D() / D01 );
+        Real const D_surf_D01( s_surf.D() / D01 );
         
-        Real const theta_max( asin(r_bulk / ( r01 )) );
+        Real const theta_max( asin(s_bulk.radius() / ( r01 )) );
         Real const theta( rng.uniform(0.,1.) * theta_max );        
         Real const phi( rng.uniform(0.,1.) * 2 * M_PI );
         
@@ -124,8 +136,20 @@ public:
         length_type const y( diss_vec_length * sin( theta ) * sin( phi ) );
         length_type const z( diss_vec_length * cos( theta ) );
                         
-        return position_type diss_vec( add( base_type::shape().unit_x() * x,
-                                        add( base_type::shape().unit_y() * y, unit_z * z ) ) );      
+        position_type const m( add( base_type::shape().unit_x() * x,
+                                        add( base_type::shape().unit_y() * y, unit_z * z ) ) );
+        
+        position_pair_type pp01;
+        
+        pp01.first[0] = op_surf[0] - D_surf_D01 * m[0]; 
+        pp01.first[1] = op_surf[1] - D_surf_D01 * m[1];
+        pp01.first[2] = op_surf[2];
+        
+        pp01.second[0] = op_surf[0] + D_bulk_D01 * m[0]; 
+        pp01.second[1] = op_surf[1] + D_bulk_D01 * m[1];
+        pp01.second[2] = op_surf[2] + m[2];
+        
+        return pp01;
     }
 
     virtual length_type minimal_distance(length_type const& radius) const

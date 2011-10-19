@@ -38,6 +38,7 @@ public:
     typedef typename particle_container_type::particle_id_pair particle_id_pair;
     typedef typename particle_container_type::structure_id_and_distance_pair structure_id_and_distance_pair;
     typedef std::vector<particle_id_type> particle_id_vector_type;
+    typedef std::pair<position_type, position_type> position_pair_type;
     typedef typename particle_container_type::particle_id_pair_generator particle_id_pair_generator;
     typedef typename particle_container_type::particle_id_pair_and_distance particle_id_pair_and_distance;
     typedef typename particle_container_type::particle_id_pair_and_distance_list particle_id_pair_and_distance_list;
@@ -156,7 +157,7 @@ public:
                 bounced = true;
         }         
          
-        /* If particle is bounced, check reaction_volume for reaction parners at old_pos. */     
+        /* If particle is bounced, check reaction_volume for reaction partners at old_pos. */     
         if(bounced)
         {
             new_pos = pp.second.position();
@@ -260,25 +261,58 @@ public:
 
 private:
 
-    position_type const make_move(species_type const& species, position_type const& np, particle_id_type const& ignore)
+    /* Given a position pair and two species, the function generates two new 
+       positions based on two moves drawn from the free propegator. */
+    position_pair_type const make_pair_move(species_type const& s0, species_type const& s1, position_pair_type const& pp01, 
+                                                particle_id_type const& ignore)
     {
-        boost::shared_ptr<structure_type> pp_structure( tx_.get_structure( species.structure_id() ) );
-    
-        position_type displacement( pp_structure->
-                                        bd_displacement(species.v() * dt_, std::sqrt(2.0 * species.D() * dt_), rng_) );
+        boost::shared_ptr<structure_type> s0_struct( tx_.get_structure( s0.structure_id() ) );
+        boost::shared_ptr<structure_type> s1_struct( tx_.get_structure( s1.structure_id() ) );
+
+        length_type const r01( s0.radius() + s1.radius() );
+        
+        position_type temp_pos0, temp_pos1;
+        position_pair_type new_pp01( pp01 );
+        
+        //First step: random between s0 and s1.
+        if( rng_.uniform_int(0, 1) )
+        {
+            temp_pos0 = make_move(s0, pp01.first, ignore);
+            new_pp01.first = tx_.distance(temp_pos0, pp01.second) - r01 < 0 ? pp01.first : temp_pos0;
+        }                       
+        else
+        {
+            temp_pos1 = make_move(s1, pp01.second, ignore);
+            new_pp01.second = tx_.distance(temp_pos1, pp01.first) - r01 < 0 ? pp01.second : temp_pos1;
+        }
+        
+        /* Make a second step only with a certain probability in order for detailed balance to hold.
+           For Pacc << 1, two moves in 50% of the cases. */
+
+        //TODO check what is correct.
+            
+        return new_pp01;
+    }
+
+    position_type const make_move(species_type const& s0, position_type const& np, particle_id_type const& ignore)
+    {
+        boost::shared_ptr<structure_type> s0_struct( tx_.get_structure( s0.structure_id() ) );
+
+        position_type displacement( s0_struct->
+                                        bd_displacement(s0.v() * dt_, std::sqrt(2.0 * s0.D() * dt_), rng_) );
 
         position_type new_pos(tx_.apply_boundary( add( np, displacement ) ));
                         
-        boost::scoped_ptr<particle_id_pair_and_distance_list> overlapped(
+        boost::scoped_ptr<particle_id_pair_and_distance_list> overlapped( 
                                     tx_.check_overlap(
-                                    particle_shape_type(new_pos, species.radius()),
-                                    ignore));                            
-                                    
+                                    particle_shape_type(new_pos, s0.radius()),
+                                    ignore));
+                                                                
         if ( (overlapped && overlapped->size() > 0) )
             return np;
         
-        structure_id_and_distance_pair const struct_id_distance_pair = tx_.get_closest_surface( new_pos );
-        length_type const core_surface_distance = struct_id_distance_pair.second - s0.radius();
+        structure_id_and_distance_pair const struct_id_distance_pair( tx_.get_closest_surface( new_pos ) );
+        length_type const core_surface_distance( struct_id_distance_pair.second - s0.radius() );
                                     
         if( core_surface_distance < 0 )
             return np;
@@ -360,90 +394,67 @@ private:
 
                 case 2:
                     {
-                        const species_type s0(tx_.get_species(products[0])),
+                        species_type s0(tx_.get_species(products[0])),
                                 s1(tx_.get_species(products[1]));
-                        const Real D01(s0.D() + s1.D());
-                        const length_type r01(s0.radius() + s1.radius());
                         int i = max_retry_count_;
-                        position_type np0, np1;
+                        position_pair_type pp01;
 
                         boost::shared_ptr<structure_type> pp_struct( tx_.get_structure( tx_.get_species( pp.second.sid() ).structure_id() ) ); 
                         boost::shared_ptr<structure_type> s0_struct( tx_.get_structure( s0.structure_id() ) );
                         boost::shared_ptr<structure_type> s1_struct( tx_.get_structure( s1.structure_id() ) );
                         
-                        /* If the product particles do NOT live on the same structure => surface -> surface + bulk dissociation. */
-                        if( s0_struct->id() != s1_struct->id() )
-                        {
-                            D0_Dr = s0.D() / ( s0.D() + s1.D() );
-                            D1_Dr = s1.D() / ( s0.D() + s1.D() );                        
-                        
-                            if(s0_struct->id() == "world")
-                            {
-                                position_type m( pp_struct->
-                                    special_geminate_dissociation_vector( rng_, s0.radius(), s1.radius(), reaction_length_ ) );
-                                
-                                
-                                
-                                np0 = tx_.apply_boundary(pp.second.position()
-                                    - m * (s0.D() / D01));
-                                np1 = tx_.apply_boundary(pp.second.position()
-                                    + m * (s1.D() / D01));
-                            }
-                            else
-                            {
-                                position_type m( pp_struct->
-                                    special_geminate_dissociation_vector( rng_, s1.radius(), s0.radius(), reaction_length_ ) );
-                                
-                                np0 = tx_.apply_boundary(pp.second.position()
-                                    - m * (s0.D() / D01));
-                                np1 = tx_.apply_boundary(pp.second.position()
-                                    + m * (s1.D() / D01));
-                            }
-                            
-
-
-                            new_pos = tx_.apply_boundary( add( pp.second.position(), displacement ) );
-                        }
-                        
-                        //Don't forget make_move after dissociation!
-                        
-                        /* Create an ipv between the products which lies within the reation volume; check for free space. */
+                        /* Create positions (np0, np1) for the reaction products. 
+                        The ipv between the products lies within the reation volume. */
                         for (;;)
                         {
                             if (--i < 0)
                             {
                                 throw propagation_error("no space");
-                            } 
-               
-                            position_type m( pp_struct->geminate_dissociation_vector( rng_, r01, reaction_length_ ) );
+                            }
                             
-                            np0 = tx_.apply_boundary(pp.second.position()
-                                    - m * (s0.D() / D01));
-                            np1 = tx_.apply_boundary(pp.second.position()
-                                    + m * (s1.D() / D01));
-                           
+                            /* If the product particles do NOT live on the same structure => surface -> surface + bulk dissociation.
+                               Else, the products live on the same structure AND on the same structure as the reactant. 
+                               => standard geminate dissociation. 
+                               
+                               We set: species 0 lives on the surface; species 1 lives in the bulk. */
+                            if( s0_struct->id() != s1_struct->id() )
+                            {                      
+                        
+                                if(s0_struct->id() == "world")    
+                                     std::swap(s0,s1);
+
+                                pp01 = pp_struct->
+                                        special_geminate_dissociation_positions( rng_, s0, s1, pp.second.position(), reaction_length_ );
+                            
+                            }
+                            else
+                            {
+                                pp01 = pp_struct->
+                                        geminate_dissociation_positions( rng_, s0, s1, pp.second.position(), reaction_length_ );
+                            }
+                            
+                            pp01.first = tx_.apply_boundary( pp01.first );
+                            pp01.second = tx_.apply_boundary( pp01.second );
+                                                                                   
                             boost::scoped_ptr<particle_id_pair_and_distance_list> overlapped_s0(
                                 tx_.check_overlap(
-                                    particle_shape_type(np0, s0.radius()),
+                                    particle_shape_type(pp01.first, s0.radius()),
                                     pp.first));
                             boost::scoped_ptr<particle_id_pair_and_distance_list> overlapped_s1(
                                 tx_.check_overlap(
-                                    particle_shape_type(np1, s1.radius()),
+                                    particle_shape_type(pp01.second, s1.radius()),
                                     pp.first));
+                                    
                             if (!(overlapped_s0 && overlapped_s0->size() > 0) && !(overlapped_s1 && overlapped_s1->size() > 0))
                                 break;
                         }
 
                         /* After dissociation both particles are allowed to move. */
-                        np0 = make_move(s0, np0, pp.first);
-                        
-                        np1 = make_move(s1, np1, pp.first);                      
-
-			            //Check wether new positions dont overlap.
+                        pp01 = make_pair_move(s0, s1, pp01, pp.first);
 
                         if (vc_)
                         {
-                            if (!(*vc_)(particle_shape_type(np0, s0.radius()), pp.first) || !(*vc_)(particle_shape_type(np1, s1.radius()), pp.first))
+                            if (!(*vc_)(particle_shape_type(pp01.first, s0.radius()), pp.first) || !(*vc_)(particle_shape_type(pp01.second, s1.radius()), pp.first))
                             {
                                 throw propagation_error("no space");
                             }
@@ -451,8 +462,8 @@ private:
 
                         tx_.remove_particle(pp.first);
                         const particle_id_pair
-                            npp0(tx_.new_particle(s0.id(), np0)),
-                            npp1(tx_.new_particle(s1.id(), np1));
+                            npp0(tx_.new_particle(s0.id(), pp01.first)),
+                            npp1(tx_.new_particle(s1.id(), pp01.second));
 
                         if (rrec_)
                         {
@@ -496,8 +507,6 @@ private:
                tx_.get_structure( tx_.get_species( pp0.second.sid() ).structure_id()) );  
 
             Real p( r.k() * dt_ / ( pp_structure->reaction_volume( s0.radius(), s1.radius(), reaction_length_ ) ) );
-	    //TODO: Check if it works.
-	    p /= (2 - p);
             BOOST_ASSERT(p >= 0.);
             prob += p;
             if (prob >= 1.)
