@@ -396,14 +396,16 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
         species_id = pid_particle_pair[1].sid
 	species = self.world.get_species(species_id)
-
-        reaction_rules = self.network_rules.query_reaction_rule(species_id)
-        # TODO.
-#        interaction_rules = self.network_rules.query_reaction_rule(species_id, surface)
-        interaction_rules = self.network_rules.query_reaction_rule(species_id, species_id)
-#        interaction_rules = []
-
+	# the structure on which the particle lives
         structure = self.world.get_structure(species.structure_id)
+	# the surface_id if the interaction surface
+	surface_id = surface.sid
+
+	# get unimolecular reaction rules
+        reaction_rules = self.network_rules.query_reaction_rule(species_id)
+	# get reaction rules for interaction
+        interaction_rules = self.network_rules.query_reaction_rule(species_id, surface_id)
+
 
 	particle_pos = pid_particle_pair[1].position
 
