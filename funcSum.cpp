@@ -92,8 +92,8 @@ funcSum(boost::function<Real(unsigned int i)> f, size_t max_i, Real tolerance)
 // funcSum
 // ==
 // Will simply calculate the sum over a certain function f, until it converges
-// (i.e. the sum > tolerance*current_term), or a maximum number of terms is 
-// summed (usually 2000).
+// (i.e. the sum > tolerance*current_term for a CONVERGENCE_CHECK number of 
+// terms), or a maximum number of terms is summed (usually 2000).
 //
 // Input:
 // - f: A       function object

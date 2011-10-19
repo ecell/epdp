@@ -52,7 +52,7 @@ GreensFunction2DRadAbs( const Real D,
     }
     GreensFunction2DRadAbs::clearAlphaTable();
 
-    std::clog << "[alphaoffsettable[0]=" << this->alphaOffsetTable[0] << "]"; //DEBUG
+    // std::clog << "[alphaoffsettable[0]=" << this->alphaOffsetTable[0] << "]"; //DEBUG *REMOVEME*
     ; // do nothing
 }
 
@@ -67,13 +67,13 @@ GreensFunction2DRadAbs::~GreensFunction2DRadAbs()
 
 void GreensFunction2DRadAbs::clearAlphaTable() const
 {
-    std::clog << "[clearing..";
+    // std::clog << "[clearing.."; // DEBUG *REMOVEME*
     std::for_each( this->alphaTable.begin(), this->alphaTable.end(),
 		   boost::mem_fn( &RealVector::clear ) );
     this->alphaOffsetTable[0] = 0;
     std::fill( this->alphaOffsetTable.begin()+1, this->alphaOffsetTable.end(),
 	       -1 );
-    std::clog << " done]";
+    // std::clog << " done]"; // DEBUG *REMOVEME*
 }
 
 // The method evaluates the equation for finding the alphas for given alpha. This
@@ -243,7 +243,7 @@ GreensFunction2DRadAbs::alphaOffset( const unsigned int n ) const
 {
     if( this->alphaOffsetTable[n] > 0 )		// if the offset has already been calculated
     {
-    std::clog << "[returning because already calculated;]" ;// DEBUG
+    // std::clog << "[returning because already calculated;]" ;// DEBUG *REMOVEME*
 	return this->alphaOffsetTable[n];	// don't do all the work again   
     }
     assert( this->alphaOffsetTable.size() >= n );	// assume the table is large enough to
@@ -253,7 +253,7 @@ GreensFunction2DRadAbs::alphaOffset( const unsigned int n ) const
     const Real a( this->geta() );
     const Real interval( M_PI_2 / ( a - sigma ));	// the x-axis of the function scales with a-sigma
 
-    std::clog << "[calculating offset; input={n=" << n << ",sigma="<< sigma <<" , a="<< a <<" , interval="<< interval <<"}]" ;// DEBUG
+    // std::clog << "[calculating offset; input={n=" << n << ",sigma="<< sigma <<" , a="<< a <<" , interval="<< interval <<"}]" ;// DEBUG *REMOVEME*
 
 	Real offset (0);	// by default the offset is zero
 	if (n != 0)
@@ -437,7 +437,7 @@ GreensFunction2DRadAbs::createY0J0Tables( RealVector& Y0_Table,
 
 	boost::tuple<Real,Real,Real> result;
 
-	std::clog << "building Y0J0Tables... ";	// DEBUG
+	// std::clog << "building Y0J0Tables... ";	// DEBUG *REMOVEME*
 	
 	for (unsigned int count = 0; count < alphaTable_0.size(); count++)
 	{	result = Y0J0J1_constants(alphaTable_0[count], t);
@@ -447,7 +447,7 @@ GreensFunction2DRadAbs::createY0J0Tables( RealVector& Y0_Table,
 		Y0J1J0Y1_Table.push_back (result.get<2>());
 	}
 
-	std::clog << "done" << std::endl;	// DEBUG
+	// std::clog << "done" << std::endl;	// DEBUG *REMOVEME*
 }
 
 
@@ -498,7 +498,7 @@ if (alphaTable[i] == 0)		// if the requested root was not calculated yet
 {
 	if (i==0)		// if the requested root is the first one
 	{	const Real offset (alphaOffset(n));	// The offset is the first root
-        std::clog << "[offset=" << offset << "]";
+        // std::clog << "[offset=" << offset << "]"; // DEBUG *REMOVEME*
 		alphaTable[i]= offset;
 	}
 	else			// the requested root is dependent on the previous one
@@ -649,9 +649,9 @@ GreensFunction2DRadAbs::p_survival_table( const Real t,
         if( psurvTable.size() < maxi + 1 )		// if the dimensions are good then this means
         {						// that the table is filled
         	IGNORE_RETURN getAlpha0( maxi );	// this updates the table of roots
-		std::clog << "creating PsurvTable... ";	// DEBUG
+		// std::clog << "creating PsurvTable... ";	// DEBUG *REMOVEME*
                 this->createPsurvTable( psurvTable);	// then the table is filled with data
-		std::clog << "done" << std::endl;	// DEBUG
+		// std::clog << "done" << std::endl;	// DEBUG *REMOVEME*
         }
 //std::cout << "p_survival_2DPair ";
         p = funcSum_all( boost::bind( &GreensFunction2DRadAbs::p_survival_i_exp_table,
@@ -1015,7 +1015,7 @@ const Real GreensFunction2DRadAbs::p_m_alpha( const unsigned int n,
 	const Real alpha( this->getAlpha( m, n ) ); // get the n-th root using the besselfunctions of order m
 	const Real r0( this->getr0() );
 
-    std::clog << "[r0=" << r0 << "]";
+    // std::clog << "[r0=" << r0 << "]"; // DEBUG *REMOVEME*
 
 	const Real alpha_sq( alpha * alpha );
 	const Real realm( static_cast<Real>( m ) );
@@ -1035,12 +1035,12 @@ const Real GreensFunction2DRadAbs::p_m_alpha( const unsigned int n,
 //	const Real Jm_sAnm   (s.J(m, s_Anm));
 //	const Real Jmp1_sAnm (s.J(m+1, s_Anm));	// prime
 
-	std::clog << "|";	// DEBUG
+	// std::clog << "|";	// DEBUG *REMOVEME*
 	const Real Jm_aAnm   (gsl_sf_bessel_Jn(m, a_Anm));
 	const Real Ym_aAnm   (gsl_sf_bessel_Yn(m, a_Anm));
 //	const Real Jm_aAnm   (s.J(m, a_Anm));
 //	const Real Ym_aAnm   (s.Y(m, a_Anm));
-	std::clog << "_";	// DEBUG
+	// std::clog << "_";	// DEBUG *REMOVEME*
 
 	const Real Jm_r0Anm  (gsl_sf_bessel_Jn(m, r0Anm));
 	const Real Ym_r0Anm  (gsl_sf_bessel_Yn(m, r0Anm));
@@ -1070,6 +1070,11 @@ const Real GreensFunction2DRadAbs::p_m_alpha( const unsigned int n,
 	// calculating the result
 	const Real result( A_n_m * B_n_m_r * exp(-D*alpha_sq*t) );
 
+    // DEBUG *REMOVEME*
+    if (result == 0.0) {
+        std::clog << "Ladies and gentlemen, we've got alpha=0.";
+    }
+    // END DEBUG
 	return result;
 }
 
@@ -1099,12 +1104,12 @@ GreensFunction2DRadAbs::makep_mTable( RealVector& p_mTable,
 	const Real p_0 ( this->p_m( 0, r, t ) );	// This is the p_m where m is 0, for the denominator
 	p_mTable.push_back( p_0 );			// put it in the table
 
-	std::clog << "m=0, ";	// DEBUG
+	// std::clog << "m=0, ";	// DEBUG *REMOVEME*
 
 	const Real p_1 ( this->p_m( 1, r, t ) / p_0 );
 	p_mTable.push_back( p_1 );			// put the first result in the table
 
-	std::clog << "m=1, ";	// DEBUG
+	// std::clog << "m=1, ";	// DEBUG *REMOVEME*
 
 	if( p_1 == 0 )
 	{
@@ -1125,12 +1130,12 @@ GreensFunction2DRadAbs::makep_mTable( RealVector& p_mTable,
 			break;
 		}
 
-		std::clog << "m=" << m ;	// DEBUG
+		// std::clog << "m=" << m ;	// DEBUG *REMOVEME*
 
 		p_m_prev_abs = p_m_abs;					// store the previous term
 		const Real p_m( this->p_m( m, r, t ) / p_0 );	// get the next term
 
-		std::clog << ", ";		// DEBUG
+		// std::clog << ", ";		// DEBUG *REMOVEME*
 
 		if( ! std::isfinite( p_m ) )		// if the calculated value is not valid->exit
 		{
@@ -1161,10 +1166,10 @@ GreensFunction2DRadAbs::dp_m_alpha_at_a( const unsigned int n,
         const Real D( this->getD() );
         const Real r0( this->getr0() );
 
-        std::clog << "[feed the alpha: (m=" << m << ", n= " << n << ")]";
+        // std::clog << "[feed the alpha: (m=" << m << ", n= " << n << ")]"; // DEBUG *REMOVEME*
         const Real alpha( this->getAlpha( m, n ) ); // get the n-th root using the besselfunctions of order m
        
-        std::clog << "{r0=" << r0 << ", alpha="<< alpha << ", r*alpha="<< r0*alpha << "}";
+        // std::clog << "{r0=" << r0 << ", alpha="<< alpha << ", r*alpha="<< r0*alpha << "}"; // DEBUG *REMOVEME*
 
         const Real alpha_sq( alpha * alpha );
         const Real realm( static_cast<Real>( m ) );
@@ -1175,34 +1180,47 @@ GreensFunction2DRadAbs::dp_m_alpha_at_a( const unsigned int n,
         const Real a_Anm (a*alpha);
         const Real r0Anm (r0*alpha);
 
-	std::clog << "|";	// DEBUG
+	// std::clog << "|";	// DEBUG *REMOVEME*
         // calculate the needed bessel functions
-        	std::clog << "1";	// DEBUG
+        	// std::clog << "1";	// DEBUG *REMOVEME*
         const Real Jm_sAnm   (gsl_sf_bessel_Jn(m, s_Anm));
-        	std::clog << "2";	// DEBUG
+        	// std::clog << "2";	// DEBUG *REMOVEME*
         const Real Jmp1_sAnm (gsl_sf_bessel_Jn(m+1, s_Anm));    // prime
-        	std::clog << "3";	// DEBUG
+        	// std::clog << "3";	// DEBUG *REMOVEME*
         const Real Jm_aAnm   (gsl_sf_bessel_Jn(m, a_Anm));
-        	std::clog << "4(" << m << ", " << r0Anm << ")";	// DEBUG
+        	// std::clog << "4(" << m << ", " << r0Anm << ")";	// DEBUG *REMOVEME*
         const Real Ym_aAnm   (gsl_sf_bessel_Yn(m, a_Anm)); // !GIVES PROBLEMS
 
-        	std::clog << "5";	// DEBUG
+        	// std::clog << "5";	// DEBUG *REMOVEME*
         const Real Jm_r0Anm  (gsl_sf_bessel_Jn(m, r0Anm));
-        	std::clog << "6(" << m << ", " << r0Anm << ")";	// DEBUG
+        	// std::clog << "6(" << m << ", " << r0Anm << ")";	// DEBUG *REMOVEME*
         const Real Ym_r0Anm  (gsl_sf_bessel_Yn(m, r0Anm)); // !GIVES PROBLEMS
-	std::clog << "_";	// DEBUG
+	// std::clog << "_";	// DEBUG *REMOVEME*
 
         // calculating An,m
         const Real h_ma (h - realm/sigma);
+//        std::clog << "\n[$ h_ma = "<< h_ma <<"$]\n"; // DEBUG *REMOVEME*
         const Real rho (h_ma*Jm_sAnm + alpha*Jmp1_sAnm);
+//        std::clog << "\n[$ rho = "<< rho <<"$]\n"; // DEBUG *REMOVEME*
         const Real rho_sq (rho*rho);
+
         // calculating Bn,m(r')
         const Real B_n_m_r0 (Jm_r0Anm * Ym_aAnm  -  Ym_r0Anm * Jm_aAnm);
+//        std::clog << "\n[$ B_n_m_r0 = "<< B_n_m_r0 <<"$]\n"; // DEBUG *REMOVEME*
 
         const Real A_n_m ((alpha_sq * rho_sq * B_n_m_r0)/( rho_sq - (Jm_aAnm*Jm_aAnm)*(h*h + alpha_sq - msq/ssq)));
+//        std::clog << "\n[$ A_n_m = "<< A_n_m <<"$]\n"; // DEBUG *REMOVEME*
 
         // calculating the result
         const Real result( A_n_m * exp(-D*alpha_sq*t) );
+
+        // DEBUG *REMOVEME*
+        if (result == 0.0) {
+            std::clog << "\nLadies and gentlemen, we've got result=0.";
+            std::clog << "\nShowing add. information:\nInput parameters: {n=" << n << ",m=" << m << ",t=" << t << "}\n"
+                      << "\nObtained parameters {sigma=" << sigma << ", h=" << h << ", a=" << a << ", D=" << D << ", r0=" << r0 << ", alpha="<< alpha <<"}\n";
+        }
+        // END DEBUG
 	return result;
 }
 
@@ -1211,10 +1229,31 @@ const Real
 GreensFunction2DRadAbs::dp_m_at_a( const Integer m,
 					   const Real t ) const
 {
-    const Real p( funcSum( boost::bind( &GreensFunction2DRadAbs::dp_m_alpha_at_a,
-					this,
-					_1, m,t ),
-			   MAX_ALPHA_SEQ, EPSILON ) );
+    
+    // DEBUG *REMOVEME*; seems to be correct
+    // std::clog << "\n[$$$ We're giving funcsum: " << m << ", " << t  << ", " << MAX_ALPHA_SEQ << ","<< EPSILON <<",  $$$]";    
+
+    const Real p( funcSum( 
+                        boost::bind( 
+                            &GreensFunction2DRadAbs::dp_m_alpha_at_a,
+			                    this,
+			                    _1, 
+                                m,
+                                t 
+                        ),
+		                MAX_ALPHA_SEQ, 
+                        EPSILON 
+                  ) 
+                );
+
+               // boost::bind 
+               // explanation by example:
+               // "bind(f, _1, 5)(x)"  is equivalent to "f(x, 5)"
+               // this means funcsum receives f(x, m=.., t=..) as
+               // input, with m and t already determined.
+    
+                // Arguments of dp_m_alpha_at_a:
+                // n, m, t
 
     return p;
 }
@@ -1228,7 +1267,6 @@ GreensFunction2DRadAbs::makedp_m_at_aTable( RealVector& p_mTable,
 
         const Real p_0 ( this->dp_m_at_a( 0, t ) );	// This is the p_m where m is 0, for the denominator
         p_mTable.push_back( p_0 );                      // put it in the table
-
 
         const Real p_1 ( this->dp_m_at_a( 1, t ) / p_0 );
         p_mTable.push_back( p_1 );                      // put the first result in the table
@@ -1257,10 +1295,17 @@ GreensFunction2DRadAbs::makedp_m_at_aTable( RealVector& p_mTable,
                 p_m_prev_abs = p_m_abs;					// store the previous term
                 const Real p_m( this->dp_m_at_a( m, t ) / p_0 );	// get the next term
 
+                // DEBUG 
+                if (p_m_abs == 0) {
+                    std::cerr << "Zero valued term found, but convergence is:" <<
+                        p_mTable[p_mTable.size()-1-1]/p_mTable[p_mTable.size()-2-1];
+                }
+                // END DEBUG
+
                 if( ! std::isfinite( p_m ) )			// if the calculated value is not valid->exit
                 {
                         std::cerr << "makedp_m_at_aTable: invalid value; " <<
-                                p_m << "( m= " << m << ")." << std::endl;
+                                p_m << "( m= " << m << ")." << "( t= " << t << ")."<< "( p_0= " << p_0 << ")." << std::endl;
                         break;
                 }
 
@@ -1346,28 +1391,30 @@ GreensFunction2DRadAbs::drawTheta( const Real rnd,
 	}
 
 	// making the tables with constants
-	std::clog << "Making table p_mTable... ";
+	// std::clog << "Making table p_mTable... "; // DEBUG *REMOVEME*
 
 	RealVector p_mTable;			// a table with constants to make calculations much faster
 	if( fabs(r - a) <= EPSILON*L_TYPICAL )	// If the r is at the outer boundary
 	{
-		std::clog << "at a... ";
+		// std::clog << "at a... "; // DEBUG *REMOVEME*
 		makedp_m_at_aTable( p_mTable, t );	// making the table if particle on the outer boundary
 	}
 	else
 	{
-		std::clog << "NOT at a... ";
+		// std::clog << "NOT at a... "; // DEBUG *REMOVEME*
 		makep_mTable( p_mTable, r, t );	// making the table of constants for the regular case
 	}
 
-	std::clog << "done" << std::endl;
+	// std::clog << "done" << std::endl; // DEBUG *REMOVEME*
 
 	// preparing the function
 	ip_theta_params params = { this, r, t, p_mTable, rnd*0.5 };	// r, r0, t are not required
 	gsl_function F = 
 	{
-	    reinterpret_cast<typeof(F.function)>( &ip_theta_F ),
+	    reinterpret_cast<typeof(F.function)>( &ip_theta_F ),     
 	    &params 
+        // reinterpret_cast converts any pointer type to any other pointer type.
+        // reinterpret_cast<new_type> variable
 	};
 
 	// finding the root
