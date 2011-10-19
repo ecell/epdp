@@ -39,6 +39,7 @@ public:
     typedef typename particle_container_type::structure_id_and_distance_pair structure_id_and_distance_pair;
     typedef std::vector<particle_id_type> particle_id_vector_type;
     typedef std::pair<position_type, position_type> position_pair_type;
+    typedef std::pair<position_type, length_type> projected_type;
     typedef typename particle_container_type::particle_id_pair_generator particle_id_pair_generator;
     typedef typename particle_container_type::particle_id_pair_and_distance particle_id_pair_and_distance;
     typedef typename particle_container_type::particle_id_pair_and_distance_list particle_id_pair_and_distance_list;
@@ -349,12 +350,11 @@ private:
                 case 1:
                     {
                         const species_type s0(tx_.get_species(products[0]));
-                        boost::shared_ptr<structure_type> s0_struct( tx_.get_structure( s0.structure_id() ) );
                         boost::shared_ptr<structure_type> pp_struct( tx_.get_structure( tx_.get_species(pp.second.sid()).structure_id() ) );
                         
                         position_type new_pos = pp.second.position();
                         /* If the product particle does NOT live of the same structure => surface -> bulk dissociation. */
-                        if( s0_struct->id() != pp_struct->id() )
+                        if( s0.structure_id() != pp_struct->id() )
                         {
                             position_type const displacement( pp_struct->surface_dissociation_vector(rng_, s0.radius(), reaction_length_ ) );
 
@@ -399,9 +399,7 @@ private:
                         int i = max_retry_count_;
                         position_pair_type pp01;
 
-                        boost::shared_ptr<structure_type> pp_struct( tx_.get_structure( tx_.get_species( pp.second.sid() ).structure_id() ) ); 
-                        boost::shared_ptr<structure_type> s0_struct( tx_.get_structure( s0.structure_id() ) );
-                        boost::shared_ptr<structure_type> s1_struct( tx_.get_structure( s1.structure_id() ) );
+                        boost::shared_ptr<structure_type> pp_struct( tx_.get_structure( tx_.get_species( pp.second.sid() ).structure_id() ) );
                         
                         /* Create positions (np0, np1) for the reaction products. 
                         The ipv between the products lies within the reation volume. */
@@ -417,10 +415,10 @@ private:
                                => standard geminate dissociation. 
                                
                                We set: species 0 lives on the surface; species 1 lives in the bulk. */
-                            if( s0_struct->id() != s1_struct->id() )
+                            if( s0.structure_id() != s1.structure_id() )
                             {                      
                         
-                                if(s0_struct->id() == "world")    
+                                if(s0.structure_id() == "world")    
                                      std::swap(s0,s1);
 
                                 pp01 = pp_struct->
@@ -492,21 +490,29 @@ private:
             return false;
         }
 
-        const species_type s0(tx_.get_species(pp0.second.sid())),
+        species_type s0(tx_.get_species(pp0.second.sid())),
                 s1(tx_.get_species(pp1.second.sid()));
+        
+        /* If the structures of the reactants do not equal, one of the reactants has to come from the bulk,
+           and we let this be s1, and the particle from the surface s0. */     
+        if(s0.structure_id() != s1.structure_id())
+        {
+            if(s0.structure_id() == "world")
+                std::swap(s0,s1);
+        }
 
         const Real rnd(rng_());
         Real prob = 0;
 
+        boost::shared_ptr<structure_type> s1_struct( tx_.get_structure( s1.structure_id()) );
+
         for (typename boost::range_const_iterator<reaction_rules>::type
                 i(boost::begin(rules)), e(boost::end(rules)); i != e; ++i)
         {
-            reaction_rule_type const& r(*i);
+            reaction_rule_type const& r(*i);  
 
-            boost::shared_ptr<structure_type> pp_structure( 
-               tx_.get_structure( tx_.get_species( pp0.second.sid() ).structure_id()) );  
-
-            Real p( r.k() * dt_ / ( pp_structure->reaction_volume( s0.radius(), s1.radius(), reaction_length_ ) ) );
+            //TODO Do I need special reaction volumes for surface-bulk interaction? Or allways the 3D case?
+            Real p( r.k() * dt_ / ( s1_struct->reaction_volume( s0.radius(), s1.radius(), reaction_length_ ) ) );
             BOOST_ASSERT(p >= 0.);
             prob += p;
             if (prob >= 1.)
@@ -530,15 +536,24 @@ private:
                     {
                         const species_id_type product(products[0]);
                         const species_type sp(tx_.get_species(product));
+                        
+                        position_type new_pos( tx_.apply_boundary(
+                                        divide(
+                                        add(multiply(pp0.second.position(), s1.D()),
+                                            multiply(tx_.cyclic_transpose(
+                                                pp1.second.position(),
+                                                pp0.second.position()), s0.D())),
+                                        (s0.D() + s1.D()))) );
 
-                        const position_type new_pos(
-                            tx_.apply_boundary(
-                                divide(
-                                    add(multiply(pp0.second.position(), s1.D()),
-                                        multiply(tx_.cyclic_transpose(
-                                            pp1.second.position(),
-                                            pp0.second.position()), s0.D())),
-                                    (s0.D() + s1.D()))));
+                        //For unequal structures, project new_pos on surface.
+                        if(sp.structure_id() != s1.structure_id())
+                        {
+                            boost::shared_ptr<structure_type> sp_struct( tx_.get_structure( sp.structure_id() ) );
+                            projected_type position_on_surface sp_struct->projected_point(new_pos);
+                            
+                            new_pos = position_on_surface.first;                                
+                        }
+
                         boost::scoped_ptr<particle_id_pair_and_distance_list> overlapped(
                             tx_.check_overlap(particle_shape_type(new_pos, sp.radius()),
                                               pp0.first, pp1.first));
