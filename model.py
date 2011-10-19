@@ -145,7 +145,7 @@ def Species(name, D, radius=0, structure="world", drift=0):
     return st
 
 
-class ParticleModel(_gfrd.Model):
+class ParticleModel(_gfrd.ParticleModel):
     """
     """
     def __init__(self, world_size):
@@ -162,7 +162,7 @@ class ParticleModel(_gfrd.Model):
         [world_size, world_size, world_size].
 
         """
-        _gfrd.Model.__init__(self)
+        _gfrd.ParticleModel.__init__(self)
         self.world_size = world_size
         self.structures = {}
 
