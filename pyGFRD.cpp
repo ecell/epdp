@@ -62,6 +62,7 @@
 #include "binding/species_type_class.hpp"
 #include "binding/sphere_class.hpp"
 #include "binding/structure_classes.hpp"
+#include "binding/structure_type_class.hpp"
 #include "binding/transaction_classes.hpp"
 #include "binding/world_class.hpp"
 
@@ -113,6 +114,7 @@ BOOST_PYTHON_MODULE(_gfrd)
     b::register_transaction_classes();
     b::register_world_class();
     b::register_structure_classes();
+    b::register_structure_type_class();
     b::register_module_functions();
     b::register_volume_clearer_classes();
     b::register_reaction_record_classes();

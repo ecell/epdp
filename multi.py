@@ -13,7 +13,7 @@ import os
 
 class Multi(Domain):
     def __init__(self, domain_id, main, dt_factor):
-	Domain.__init__(self, domain_id)
+        Domain.__init__(self, domain_id)
 
         self.main = ref(main)
         self.last_event = None
@@ -89,7 +89,7 @@ class Multi(Domain):
                     main = self.outer_.main()
                     if self.outer_.last_event == None:
                         self.outer_.last_event = EventType.MULTI_ESCAPE
-                    main.clear_volume(shape.position, shape.radius, 
+                    main.burst_volume(shape.position, shape.radius, 
                                       ignore=[self.outer_.domain_id, ])
                     if ignore1 is None:
                         return not main.world.check_overlap(

@@ -13,6 +13,7 @@
 #include <sstream>
 #include "Vector3.hpp"
 #include "freeFunctions.hpp"
+#include "SpeciesTypeID.hpp"
 
 template<typename Ttraits_>
 class Structure
@@ -24,6 +25,7 @@ public:
     typedef typename traits_type::length_type length_type;
     typedef typename traits_type::position_type position_type;
     typedef typename traits_type::base_type::species_type species_type;
+    typedef SpeciesTypeID species_id_type;
     typedef std::pair<position_type, length_type> projected_type;
     typedef std::pair<position_type, position_type> position_pair_type;
 
@@ -33,6 +35,20 @@ public:
     identifier_type const& id() const
     {
         return id_;
+    }
+
+    species_id_type const& sid() const
+    {
+        if (!sid_)
+        {
+            throw illegal_state("not bound to SpeciesType");
+        }
+        return sid_;
+    }
+
+    species_id_type& sid()
+    {
+        return sid_;
     }
 
     virtual bool operator==(Structure const& rhs) const
@@ -95,6 +111,7 @@ public:
 
 protected:
     identifier_type id_;
+    species_id_type sid_;
 };
 
 template<typename Tstrm, typename Ttraits, typename T_traits>

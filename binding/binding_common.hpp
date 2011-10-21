@@ -35,6 +35,7 @@
 #include "../AnalyticalPair.hpp"
 #include "../EventScheduler.hpp"
 #include "../Logger.hpp"
+#include "../StructureType.hpp"
 
 #include "peer/wrappers/range/pyiterable_range.hpp"
 
@@ -50,6 +51,7 @@ typedef WorldTraits::structure_id_type StructureID;
 typedef WorldTraits::species_id_type SpeciesID;
 typedef WorldTraits::species_type SpeciesInfo;
 typedef WorldTraits::structure_type Structure;
+typedef StructureType::identifier_type StructureTypeID;
 typedef WorldTraits::length_type Length;
 typedef WorldTraits::position_type Position;
 typedef ::World<WorldTraits> World;
