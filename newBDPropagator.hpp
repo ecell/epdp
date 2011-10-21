@@ -89,8 +89,10 @@ public:
 
         LOG_DEBUG(("propagating particle %s", boost::lexical_cast<std::string>(pp.first).c_str()));
 
-        /* START SOME SAMPLES, after which we return. */
+        /* START SOME SAMPLES, after which we return. 
         position_pair_type pp01;
+        position_pair_type new_pp01;
+        
         species_type const sp(tx_.get_species(pp.second.sid()));
         boost::shared_ptr<structure_type> const pp_struct( tx_.get_structure( sp.structure_id() ) );
         
@@ -102,28 +104,41 @@ public:
         typename reaction_rule_type::species_id_range products(r.get_products());
         
         species_type s0(tx_.get_species(products[0])), s1(tx_.get_species(products[1]));
-        
-        std::cerr<< s0.structure_id() << " " << s1.structure_id() << std::endl;
-        
+              
+        length_type r01( s0.radius() + s1.radius() );
+              
         if(s0.structure_id() == "world")    
             std::swap(s0,s1);
-            
-        std::cerr<< s0.structure_id() << " " << s1.structure_id() << std::endl;
-        
+
         for(int i = 0; i < 2000; i++)
         {
             pp01 = pp_struct->
                 special_geminate_dissociation_positions( rng_, s0, s1, pp.second.position(), reaction_length_ ); 
+            
+            pp01.first = tx_.apply_boundary( pp01.first );
+            pp01.second = tx_.apply_boundary( pp01.second );
+            
+            if( tx_.distance(pp01.first, pp01.second) - r01 < 0 )
+                std::cerr << "Diss pp dist < 0 error" << std::endl;
                 
-            std::cout << pp01.first[0] << " " << pp01.first[1] << " " << pp01.first[2] << " " 
-                      << pp01.second[0] << " " << pp01.second[1] << " " << pp01.second[2] << std::endl;
+            if( tx_.distance( pp_struct->projected_point( pp01.second ).first, pp01.second) - s1.radius() < 0 )
+                std::cerr << "Diss sp dist < 0 error" << std::endl;
+                                
+            new_pp01 = make_pair_move(s0, s1, pp01, pp.first);           
+             
+            std::cout << new_pp01.first[0] << " " << new_pp01.first[1] << " " << new_pp01.first[2] << " " 
+                      << new_pp01.second[0] << " " << new_pp01.second[1] << " " << new_pp01.second[2] << std::endl;
                       
-            //std::cerr << "pp dist: " << tx_.distance(pp01.first, pp01.second) << std::endl;
-            //std::cerr << "ps dist: " << tx_.distance(pp_struct->projected_point( pp01.second ).first, pp01.second) << std::endl;
+            if(tx_.distance(new_pp01.first, new_pp01.second) - r01 < 0)
+                std::cerr << "Move pp dist < 0 error" << std::endl;
+                
+            if(tx_.distance(pp_struct->projected_point( new_pp01.second ).first, new_pp01.second) - s1.radius() < 0)
+                std::cerr << "Move sp dist < 0 error" << std::endl;
         }     
-                    
+                  
         return false;  
-
+        */
+        
         /* Consider decay reactions first. Particles can move after decay, but this is done
            inside the 'attempt_reaction' function; for this particle can only react once . */
         try
@@ -176,7 +191,7 @@ public:
         while(!bounced && j < particles_in_overlap)
             bounced = overlapped->at(j++).second < r0;
         
-        /* If the particle has not bounced with a particle and lives in the bulk: 
+        /* If the particle has not bounced with another particle and lives in the bulk: 
            check for core overlap with a surface. */
         if(!bounced && pp_structure->id() == "world")
         {
@@ -288,65 +303,6 @@ public:
 
 private:
 
-    /* Given a position pair and two species, the function generates two new 
-       positions based on two moves drawn from the free propegator. */
-    position_pair_type const make_pair_move(species_type const& s0, species_type const& s1, position_pair_type const& pp01, 
-                                                particle_id_type const& ignore)
-    {
-        boost::shared_ptr<structure_type> s0_struct( tx_.get_structure( s0.structure_id() ) );
-        boost::shared_ptr<structure_type> s1_struct( tx_.get_structure( s1.structure_id() ) );
-
-        length_type const r01( s0.radius() + s1.radius() );
-        
-        position_type temp_pos0, temp_pos1;
-        position_pair_type new_pp01( pp01 );
-        
-        //First step: random between s0 and s1.
-        if( rng_.uniform_int(0, 1) )
-        {
-            temp_pos0 = make_move(s0, pp01.first, ignore);
-            new_pp01.first = tx_.distance(temp_pos0, pp01.second) - r01 < 0 ? pp01.first : temp_pos0;
-        }                       
-        else
-        {
-            temp_pos1 = make_move(s1, pp01.second, ignore);
-            new_pp01.second = tx_.distance(temp_pos1, pp01.first) - r01 < 0 ? pp01.second : temp_pos1;
-        }
-        
-        /* Make a second step only with a certain probability in order for detailed balance to hold.
-           For Pacc << 1, two moves in 50% of the cases. */
-
-        //TODO check what is correct.
-            
-        return new_pp01;
-    }
-
-    position_type const make_move(species_type const& s0, position_type const& np, particle_id_type const& ignore)
-    {
-        boost::shared_ptr<structure_type> s0_struct( tx_.get_structure( s0.structure_id() ) );
-
-        position_type displacement( s0_struct->
-                                        bd_displacement(s0.v() * dt_, std::sqrt(2.0 * s0.D() * dt_), rng_) );
-
-        position_type new_pos(tx_.apply_boundary( add( np, displacement ) ));
-                        
-        boost::scoped_ptr<particle_id_pair_and_distance_list> overlapped( 
-                                    tx_.check_overlap(
-                                    particle_shape_type(new_pos, s0.radius()),
-                                    ignore));
-                                                                
-        if ( (overlapped && overlapped->size() > 0) )
-            return np;
-        
-        structure_id_and_distance_pair const struct_id_distance_pair( tx_.get_closest_surface( new_pos ) );
-        length_type const core_surface_distance( struct_id_distance_pair.second - s0.radius() );
-                                    
-        if( core_surface_distance < 0 )
-            return np;
-            
-        return new_pos;
-    }
-
     bool attempt_reaction(particle_id_pair const& pp)
     {
         reaction_rules const& rules(rules_.query_reaction_rule(pp.second.sid()));
@@ -377,11 +333,14 @@ private:
                     {
                         const species_type s0(tx_.get_species(products[0]));
                         boost::shared_ptr<structure_type> pp_struct( tx_.get_structure( tx_.get_species(pp.second.sid()).structure_id() ) );
-                        
                         position_type new_pos = pp.second.position();
-                        /* If the product particle does NOT live of the same structure => surface -> bulk dissociation. */
+                        
+                        /* If the product particle does NOT live of the same structure as pp => surface -> bulk dissociation. */
                         if( s0.structure_id() != pp_struct->id() )
                         {
+                            if( s0.structure_id() != "world" )
+                                throw not_implemented("No surface -> surface dissociation allowed");
+                        
                             position_type const displacement( pp_struct->surface_dissociation_vector(rng_, s0.radius(), reaction_length_ ) );
 
                             new_pos = tx_.apply_boundary( add( pp.second.position(), displacement ) );
@@ -451,7 +410,10 @@ private:
                                
                                We set: species 0 lives on the surface; species 1 lives in the bulk. */
                             if( s0.structure_id() != s1.structure_id() )
-                            {                      
+                            {
+                                if( !(s0.structure_id() == "world" || s1.structure_id() == "world")  )
+                                    throw not_implemented("No surface -> surface + surface - dissociation allowed");
+                                                 
                                 if(s0.structure_id() == "world")    
                                      std::swap(s0,s1);
 
@@ -549,6 +511,9 @@ private:
            and we let this be s1, the particle from the surface is named s0. */     
         if(s0.structure_id() != s1.structure_id())
         {
+            if( !(s0.structure_id() == "world" || s1.structure_id() == "world")  )
+                throw not_implemented("No surface -> surface + surface - reactions allowed");
+                
             if(s0.structure_id() == "world")
                 std::swap(s0,s1);
         }
@@ -579,6 +544,7 @@ private:
             if (prob > rnd)
             {
                 LOG_DEBUG(("fire reaction"));
+                std::cerr << "Initiating unequall structure reaction! " << std::endl;
                 const typename reaction_rule_type::species_id_range products(
                     r.get_products());
 
@@ -754,6 +720,72 @@ private:
             }
         }
         return false;
+    }
+    
+    /* Given a position pair and two species, the function generates two new 
+       positions based on two moves drawn from the free propegator. */
+    position_pair_type const make_pair_move(species_type const& s0, species_type const& s1, position_pair_type const& pp01, 
+                                                particle_id_type const& ignore)
+    {
+        boost::shared_ptr<structure_type> s0_struct( tx_.get_structure( s0.structure_id() ) );
+        boost::shared_ptr<structure_type> s1_struct( tx_.get_structure( s1.structure_id() ) );
+
+        length_type const r01( s0.radius() + s1.radius() );
+        
+        position_type temp_pos0, temp_pos1;
+        position_pair_type new_pp01( pp01 );
+        
+        //Randomize which species moves first, and if there will be one or two moves. (50%)
+        bool move_prt0_first( rng_.uniform_int(0, 1) );
+        int move_count( 1 + rng_.uniform_int(0, 1) );
+        while( move_count-- )
+        {
+            if( move_prt0_first )
+            {
+                temp_pos0 = make_move(s0, pp01.first, ignore);
+                new_pp01.first = tx_.distance(temp_pos0, new_pp01.second) - r01 < 0 ? pp01.first : temp_pos0;
+            }                       
+            else
+            {
+                temp_pos1 = make_move(s1, pp01.second, ignore);
+                new_pp01.second = tx_.distance(temp_pos1, new_pp01.first) - r01 < 0 ? pp01.second : temp_pos1;
+            }
+            move_prt0_first = !move_prt0_first;
+        }  
+            
+        return new_pp01;
+    }
+
+    position_type const make_move(species_type const& s0, position_type const& np, particle_id_type const& ignore)
+    {
+        if(s0.D() == 0)
+            return np;
+    
+        boost::shared_ptr<structure_type> s0_struct( tx_.get_structure( s0.structure_id() ) );
+
+        position_type displacement( s0_struct->
+                                        bd_displacement(s0.v() * dt_, std::sqrt(2.0 * s0.D() * dt_), rng_) );
+
+        position_type new_pos(tx_.apply_boundary( add( np, displacement ) ));
+                        
+        boost::scoped_ptr<particle_id_pair_and_distance_list> overlapped( 
+                                    tx_.check_overlap(
+                                    particle_shape_type(new_pos, s0.radius()),
+                                    ignore));
+                                                                
+        if ( (overlapped && overlapped->size() > 0) )
+            return np;
+        
+        if(s0.structure_id() == "world")
+        {
+            structure_id_and_distance_pair const struct_id_distance_pair( tx_.get_closest_surface( new_pos ) );
+            length_type const core_surface_distance( struct_id_distance_pair.second - s0.radius() );
+                                    
+            if( core_surface_distance < 0 )
+                return np;        
+        }
+            
+        return new_pos;
     }
     
     void remove_particle(particle_id_type const& pid)
