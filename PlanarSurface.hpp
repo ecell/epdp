@@ -64,14 +64,18 @@ public:
         return random_vector( drawR_gbd(rng(), r01, dt, D01, v), rng ); 
     }
 
-    virtual Real reaction_volume( length_type const& r0, length_type const& r1, length_type const& rl ) const
+    virtual Real particle_reaction_volume( length_type const& r01, length_type const& rl ) const
     {
-        length_type r01( r0 + r1 );
         length_type r01l( r01 + rl );
         length_type r01l_sq( r01l * r01l );
         length_type r01_sq( r01 * r01 );
 
         return M_PI * ( r01l_sq - r01_sq );
+    }
+    
+    virtual Real surface_reaction_volume( length_type const& r0, length_type const& rl ) const
+    {
+        return 2*rl;
     }
     
     virtual position_type surface_dissociation_vector( rng_type& rng, length_type const& r0, length_type const& rl ) const
@@ -115,7 +119,9 @@ public:
         Real const D_bulk_D01( s_bulk.D() / D01 );
         Real const D_surf_D01( s_surf.D() / D01 );
         
-        Real const theta_max( asin(s_bulk.radius() / ( r01 )) );
+        Real theta_max( M_PI/2 - asin(s_bulk.radius() / ( r01 )) );
+        theta_max = theta_max < 0 ? 0 : theta_max;
+        
         Real const theta( rng.uniform(0.,1.) * theta_max );        
         Real const phi( rng.uniform(0.,1.) * 2 * M_PI );
         
@@ -130,25 +136,23 @@ public:
         position_type unit_z( cross_product( base_type::shape().unit_x(), base_type::shape().unit_y() ) );
         unit_z = normalize ( unit_z );
         
-        unit_z = multiply(unit_z, rng.uniform_int(0, 1));
+        unit_z = multiply(unit_z, rng.uniform_int(0, 1) * 2 - 1);
         
         length_type const x( diss_vec_length * sin( theta ) * cos( phi ) );
         length_type const y( diss_vec_length * sin( theta ) * sin( phi ) );
         length_type const z( diss_vec_length * cos( theta ) );
-                        
-        position_type const m( add( base_type::shape().unit_x() * x,
-                                        add( base_type::shape().unit_y() * y, unit_z * z ) ) );
         
         position_pair_type pp01;
         
-        pp01.first[0] = op_surf[0] - D_surf_D01 * m[0]; 
-        pp01.first[1] = op_surf[1] - D_surf_D01 * m[1];
-        pp01.first[2] = op_surf[2];
+        pp01.first = subtract( op_surf, 
+                       add( base_type::shape().unit_x() * (x * D_surf_D01),
+                              base_type::shape().unit_y() * (y * D_surf_D01) ) );
         
-        pp01.second[0] = op_surf[0] + D_bulk_D01 * m[0]; 
-        pp01.second[1] = op_surf[1] + D_bulk_D01 * m[1];
-        pp01.second[2] = op_surf[2] + m[2];
-        
+        pp01.second = add( op_surf, 
+                       add( base_type::shape().unit_x() * (x * D_bulk_D01),
+                         add( base_type::shape().unit_y() * (y * D_bulk_D01),
+                                unit_z * z ) ) );
+
         return pp01;
     }
 

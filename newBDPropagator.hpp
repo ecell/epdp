@@ -81,13 +81,48 @@ public:
     bool operator()()
     {
         if (queue_.empty())
-            return false;
+            return false;        
 
         particle_id_type pid(queue_.back());
         queue_.pop_back();
         particle_id_pair pp(tx_.get_particle(pid));
 
         LOG_DEBUG(("propagating particle %s", boost::lexical_cast<std::string>(pp.first).c_str()));
+
+        /* START SOME SAMPLES, after which we return. */
+        position_pair_type pp01;
+        species_type const sp(tx_.get_species(pp.second.sid()));
+        boost::shared_ptr<structure_type> const pp_struct( tx_.get_structure( sp.structure_id() ) );
+        
+        reaction_rules const& rules(rules_.query_reaction_rule(pp.second.sid()));
+
+        typename boost::range_const_iterator<reaction_rules>::type i(boost::begin(rules));
+        reaction_rule_type const& r(*i);
+        
+        typename reaction_rule_type::species_id_range products(r.get_products());
+        
+        species_type s0(tx_.get_species(products[0])), s1(tx_.get_species(products[1]));
+        
+        std::cerr<< s0.structure_id() << " " << s1.structure_id() << std::endl;
+        
+        if(s0.structure_id() == "world")    
+            std::swap(s0,s1);
+            
+        std::cerr<< s0.structure_id() << " " << s1.structure_id() << std::endl;
+        
+        for(int i = 0; i < 2000; i++)
+        {
+            pp01 = pp_struct->
+                special_geminate_dissociation_positions( rng_, s0, s1, pp.second.position(), reaction_length_ ); 
+                
+            std::cout << pp01.first[0] << " " << pp01.first[1] << " " << pp01.first[2] << " " 
+                      << pp01.second[0] << " " << pp01.second[1] << " " << pp01.second[2] << std::endl;
+                      
+            //std::cerr << "pp dist: " << tx_.distance(pp01.first, pp01.second) << std::endl;
+            //std::cerr << "ps dist: " << tx_.distance(pp_struct->projected_point( pp01.second ).first, pp01.second) << std::endl;
+        }     
+                    
+        return false;  
 
         /* Consider decay reactions first. Particles can move after decay, but this is done
            inside the 'attempt_reaction' function; for this particle can only react once . */
@@ -111,9 +146,9 @@ public:
         length_type core_surface_distance = 0;
         position_type new_pos;
         
-       /* Sample a potential move, and check if the particle _core_ has overlapped with another 
-          particle or surface. If this is the case the particlem bounces, and is returned
-          to it's original position. For a particle with D = 0, new_pos = old_pos */        
+        /* Sample a potential move, and check if the particle _core_ has overlapped with another 
+           particle or surface. If this is the case the particlem bounces, and is returned
+           to it's original position. For a particle with D = 0, new_pos = old_pos */        
         if (species.D() != 0.)
         {
 
@@ -136,15 +171,10 @@ public:
         int particles_in_overlap(overlapped ? overlapped->size(): 0);
 
         /* Check if the particle at new_pos overlaps with any particle cores. */        
-        bool bounced = false;       
-        for( int i = 0; i < particles_in_overlap; i++ )
-        {
-            if( overlapped->at(i).second < r0 )
-            {
-                bounced = true;
-                break;
-            }
-        }
+        bool bounced = false;
+        int j = 0;
+        while(!bounced && j < particles_in_overlap)
+            bounced = overlapped->at(j++).second < r0;
         
         /* If the particle has not bounced with a particle and lives in the bulk: 
            check for core overlap with a surface. */
@@ -180,7 +210,7 @@ public:
         {
             try
             {
-                if( false /*attempt_reaction(pp, pp_surface)*/ )
+                if( false /*attempt_interaction(pp, pp_surface)*/ )
                     return true;
                 else                
                 {
@@ -203,8 +233,6 @@ public:
 
         case 1:
         {
-            
-        
             particle_id_pair_and_distance const& closest(overlapped->at(0));
  		        
     		try
@@ -234,8 +262,7 @@ public:
                        
         /* If the particle did not bounce, update to new position. */
         if(!bounced)
-        {
-                
+        {   
             particle_id_pair particle_to_update( pp.first, 
                         particle_type(species.id(), particle_shape_type(new_pos, r0), species.D()) );
                 
@@ -252,7 +279,6 @@ public:
         }
 
         return true;
-        
     }
 
     std::size_t get_rejected_move_count() const
@@ -370,15 +396,24 @@ private:
                         boost::scoped_ptr<particle_id_pair_and_distance_list> overlapped(tx_.check_overlap(new_p.second.shape(), new_p.first));
                         if (overlapped && overlapped->size() > 0)
                         {
-                            throw propagation_error("no space");
+                            throw propagation_error("no space due to particle");
                         }
 
                         if (vc_)
                         {
                             if (!(*vc_)(new_p.second.shape(), pp.first))
                             {
-                                throw propagation_error("no space");
+                                throw propagation_error("no space due to particle");
                             }
+                        }
+
+                        if( s0.structure_id() == "world" )
+                        {
+                            structure_id_and_distance_pair const struct_id_distance_pair( tx_.get_closest_surface( new_pos ) );
+                            length_type const core_surface_distance( struct_id_distance_pair.second - s0.radius() );
+                                    
+                            if( core_surface_distance < 0 )
+                                throw propagation_error("no space due to surface");
                         }
 
                         tx_.update_particle(new_p);
@@ -417,13 +452,11 @@ private:
                                We set: species 0 lives on the surface; species 1 lives in the bulk. */
                             if( s0.structure_id() != s1.structure_id() )
                             {                      
-                        
                                 if(s0.structure_id() == "world")    
                                      std::swap(s0,s1);
 
                                 pp01 = pp_struct->
                                         special_geminate_dissociation_positions( rng_, s0, s1, pp.second.position(), reaction_length_ );
-                            
                             }
                             else
                             {
@@ -443,7 +476,26 @@ private:
                                     particle_shape_type(pp01.second, s1.radius()),
                                     pp.first));
                                     
-                            if (!(overlapped_s0 && overlapped_s0->size() > 0) && !(overlapped_s1 && overlapped_s1->size() > 0))
+                            //Only when both products live in the bulk, check for possible overlap with a surface.
+                            bool surface_overlap = false;
+                            if( s0.structure_id() == "world" && s1.structure_id() == "world" )
+                            {
+                                structure_id_and_distance_pair struct_id_distance_pair( tx_.get_closest_surface( pp01.first ) );
+                                length_type core_surface_distance( struct_id_distance_pair.second - s0.radius() );
+                                    
+                                if( core_surface_distance < 0 )
+                                {
+                                    surface_overlap = true;
+                                }
+                                    
+                                struct_id_distance_pair = tx_.get_closest_surface( pp01.second );
+                                core_surface_distance = struct_id_distance_pair.second - s1.radius();
+
+                                if( core_surface_distance < 0 )
+                                    surface_overlap = true;                                
+                            }
+                                    
+                            if (!(overlapped_s0 && overlapped_s0->size() > 0) && !(overlapped_s1 && overlapped_s1->size() > 0) && !surface_overlap)
                                 break;
                         }
 
@@ -494,7 +546,7 @@ private:
                 s1(tx_.get_species(pp1.second.sid()));
         
         /* If the structures of the reactants do not equal, one of the reactants has to come from the bulk,
-           and we let this be s1, and the particle from the surface s0. */     
+           and we let this be s1, the particle from the surface is named s0. */     
         if(s0.structure_id() != s1.structure_id())
         {
             if(s0.structure_id() == "world")
@@ -512,7 +564,7 @@ private:
             reaction_rule_type const& r(*i);  
 
             //TODO Do I need special reaction volumes for surface-bulk interaction? Or allways the 3D case?
-            Real p( r.k() * dt_ / ( s1_struct->reaction_volume( s0.radius(), s1.radius(), reaction_length_ ) ) );
+            Real p( r.k() * dt_ / ( s1_struct->particle_reaction_volume( s0.radius() + s1.radius(), reaction_length_ ) ) );
             BOOST_ASSERT(p >= 0.);
             prob += p;
             if (prob >= 1.)
@@ -549,9 +601,9 @@ private:
                         if(sp.structure_id() != s1.structure_id())
                         {
                             boost::shared_ptr<structure_type> sp_struct( tx_.get_structure( sp.structure_id() ) );
-                            projected_type position_on_surface sp_struct->projected_point(new_pos);
+                            projected_type const position_on_surface( sp_struct->projected_point(new_pos) );
                             
-                            new_pos = position_on_surface.first;                                
+                            new_pos = tx_.apply_boundary( position_on_surface.first );
                         }
 
                         boost::scoped_ptr<particle_id_pair_and_distance_list> overlapped(
@@ -570,6 +622,15 @@ private:
                             {
                                 throw propagation_error("no space");
                             }
+                        }
+                        
+                        if( sp.structure_id() == "world" )
+                        {
+                            structure_id_and_distance_pair const struct_id_distance_pair( tx_.get_closest_surface( new_pos ) );
+                            length_type const core_surface_distance( struct_id_distance_pair.second - sp.radius() );
+                                    
+                            if( core_surface_distance < 0 )
+                                throw propagation_error("no space due to surface");     
                         }
 
                         remove_particle(pp0.first);
@@ -600,29 +661,31 @@ private:
         return false;
     }
     
-    /*
-    bool attempt_reaction(particle_id_pair const& pp, structure_type const& structure)
+    
+    bool attempt_interaction(particle_id_pair const& pp, boost::shared_ptr<structure_type> const& structure)
     {
-        reaction_rules const& rules(rules_.query_reaction_rule(pp0.second.sid(), structure_id));
+        reaction_rules const& rules(rules_.query_reaction_rule(pp.second.sid(), structure->sid() ));
         if (::size(rules) == 0)
         {
             return false;
         }
+        
+        const species_type s0(tx_.get_species(pp.second.sid()));
+        
+        boost::shared_ptr<structure_type> pp_structure( tx_.get_structure( s0.structure_id() ) ); 
 
-        const species_type s0(tx_.get_species(pp0.second.sid()));
-
+        if(pp_structure->id() != "world")
+            throw not_implemented("only particles living in the bulk are allowed to interact with surfaces");
+        
         const Real rnd(rng_());
         Real prob = 0;
 
         for (typename boost::range_const_iterator<reaction_rules>::type
                 i(boost::begin(rules)), e(boost::end(rules)); i != e; ++i)
         {
-            reaction_rule_type const& r(*i);
+            reaction_rule_type const& r(*i); 
 
-            boost::shared_ptr<structure_type> pp_structure( 
-               tx_.get_structure( tx_.get_species( pp0.second.sid() ).structure_id()) );  
-
-            const Real p( r.k() * dt_ / pp_structure->reaction_volume( s0.radius(), s1.radius(), reaction_length_ ) );
+            const Real p( r.k() * dt_ / structure->surface_reaction_volume( s0.radius(), reaction_length_ ) );
             BOOST_ASSERT(p >= 0.);
             prob += p;
             if (prob >= 1.)
@@ -636,7 +699,7 @@ private:
             }
             if (prob > rnd)
             {
-                LOG_DEBUG(("fire reaction"));
+                LOG_DEBUG(("fire surface interaction"));
                 const typename reaction_rule_type::species_id_range products(
                     r.get_products());
 
@@ -647,17 +710,11 @@ private:
                         const species_id_type product(products[0]);
                         const species_type sp(tx_.get_species(product));
 
-                        const position_type new_pos(
-                            tx_.apply_boundary(
-                                divide(
-                                    add(multiply(pp0.second.position(), s1.D()),
-                                        multiply(tx_.cyclic_transpose(
-                                            pp1.second.position(),
-                                            pp0.second.position()), s0.D())),
-                                    (s0.D() + s1.D()))));
+                        const position_type new_pos( tx_.apply_boundary( structure->projected_point( pp.second.position() ) ) );
+                            
                         boost::scoped_ptr<particle_id_pair_and_distance_list> overlapped(
                             tx_.check_overlap(particle_shape_type(new_pos, sp.radius()),
-                                              pp0.first, pp1.first));
+                                              pp.first));
                         if (overlapped && overlapped->size() > 0)
                         {
                             throw propagation_error("no space");
@@ -667,7 +724,7 @@ private:
                         {
                             if (!(*vc_)(
                                     particle_shape_type(new_pos, sp.radius()), 
-                                    pp0.first, pp1.first))
+                                    pp.first))
                             {
                                 throw propagation_error("no space");
                             }
@@ -679,7 +736,7 @@ private:
                         {
                             (*rrec_)(
                                 reaction_record_type(
-                                    r.id(), array_gen(npp.first), pp0.first, pp1.first));
+                                    r.id(), array_gen(npp.first), pp.first));
                         }
                         break;
                     }
@@ -698,7 +755,6 @@ private:
         }
         return false;
     }
-    */
     
     void remove_particle(particle_id_type const& pid)
     {

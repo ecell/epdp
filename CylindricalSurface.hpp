@@ -75,9 +75,19 @@ public:
         return random_vector(drawR_gbd(rng.uniform(0., 1.), r01, dt, D01, v), rng);
     }
 
-    virtual Real reaction_volume( length_type const& r0, length_type const& r1, length_type const& rl ) const
+    virtual Real particle_reaction_volume( length_type const& r01, length_type const& rl ) const
     {
         return 2*rl;
+    }
+
+    virtual Real surface_reaction_volume( length_type const& r0, length_type const& rl ) const
+    {
+        length_type r01( r0 + base_type::shape().radius() );
+        length_type r01l( r01 + rl );
+        length_type r01l_sq( r01l * r01l );
+        length_type r01_sq( r01 * r01 );
+
+        return M_PI * ( r01l_sq - r01_sq );
     }
     
     virtual position_type surface_dissociation_vector( rng_type& rng, length_type const& r0, length_type const& rl ) const
@@ -144,19 +154,15 @@ public:
         length_type const x( diss_vec_length * sin( theta ) * cos( phi ) );
         length_type const y( diss_vec_length * sin( theta ) * sin( phi ) );
         length_type const z( diss_vec_length * cos( theta ) );
-                        
-        position_type const m( add( unit_x * x, 
-                                        add( unit_y * y, unit_z * z ) ) ); 
-        
+                                
         position_pair_type pp01;
-                                        
-        pp01.first[0] = op_surf[0] - D_surf_D01 * m[0]; 
-        pp01.first[1] = op_surf[1];
-        pp01.first[2] = op_surf[2];
         
-        pp01.second[0] = op_surf[0] + D_bulk_D01 * m[0]; 
-        pp01.second[1] = op_surf[1] + m[1];
-        pp01.second[2] = op_surf[2] + m[2];                          
+        pp01.first = subtract( op_surf, unit_z * (z * D_surf_D01) );
+        
+        pp01.second = add( op_surf, 
+                        add( unit_x * x,
+                          add( unit_y * y, 
+                                 unit_z * (z * D_bulk_D01) ) ) );
         
         return pp01;
     }

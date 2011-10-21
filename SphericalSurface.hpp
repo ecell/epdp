@@ -52,24 +52,29 @@ public:
         return position_type(); //TODO
     }
 
-    virtual Real reaction_volume( length_type const& r0, length_type const& r1, length_type const& rl ) const
+    virtual Real particle_reaction_volume( length_type const& r01, length_type const& rl ) const
     {
-        return length_type(); //TODO
+        return Real(); //TODO
+    }
+    
+    virtual Real surface_reaction_volume( length_type const& r0, length_type const& rl ) const
+    {
+        return Real(); //TODO
     }
 
     virtual position_type surface_dissociation_vector( rng_type& rng, length_type const& r0, length_type const& rl ) const
     {
-        return position_type();       
+        return position_type(); //TODO  
     }
     
     virtual position_pair_type geminate_dissociation_positions( rng_type& rng, species_type const& s0, species_type const& s1, position_type const& op, length_type const& rl ) const
     {
-        return position_pair_type();
+        return position_pair_type(); //TODO
     }
     
     virtual position_pair_type special_geminate_dissociation_positions( rng_type& rng, species_type const& s_surf, species_type const& s_bulk, position_type const& op_surf, length_type const& rl ) const
     {
-        return position_pair_type();    
+        return position_pair_type(); //TODO
     }
 
     virtual length_type minimal_distance(length_type const& radius) const

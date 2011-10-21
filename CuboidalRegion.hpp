@@ -67,14 +67,18 @@ public:
         return random_vector( drawR_gbd(rng.uniform(0., 1.), r01, dt, D01, v ), rng );
     }
 
-    virtual Real reaction_volume( length_type const& r0, length_type const& r1, length_type const& rl ) const
+    virtual Real particle_reaction_volume( length_type const& r01, length_type const& rl ) const
     {
-        length_type const r01( r0 + r1 );
         length_type const r01l( r01 + rl );
         length_type const r01l_cb( r01l * r01l * r01l );
         length_type const r01_cb( r01 * r01 * r01 );
 
         return 4.0/3.0 * M_PI * ( r01l_cb - r01_cb );
+    }
+    
+    virtual Real surface_reaction_volume( length_type const& r0, length_type const& rl ) const
+    {
+        return Real(); //No surface interaction with the bulk
     }
 
     virtual position_type surface_dissociation_vector( rng_type& rng, length_type const& r0, length_type const& rl ) const
