@@ -281,10 +281,10 @@ def create_creation_reaction_rule(product, k):
     """Example: 0 -> A.
 
     Arguments:
-	- product
-	    a Species
-	- k
-	    reaction rate. Units: per second.
+        - product
+            a Species
+        - k
+            reaction rate. Units: per second.
 
     A creation reaction rule defines a Poissonian process.
 
