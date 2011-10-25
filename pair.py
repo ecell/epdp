@@ -769,7 +769,106 @@ class MixedPair(Pair):
 
     @staticmethod
     def get_max_shell_dimensions(shell_center, single1, single2, geometrycontainer, domains):
-        pass
+        # Properties of the MixedPair system
+        phi = MixedPair.calc_shell_scalingangle(D1, D2)
+        tan_phi = math.tan(phi)
+        cos_phi = math.cos(phi)
+        shell_scalecenter_z = MixedPair.z_right(single1, single2, r0, 0.0)
+
+
+        theta = 
+        psi = theta - phi
+        sin_psi = math.sin(psi)
+        cos_psi = math.cos(psi)
+
+        if psi <= 0:
+            a_crit = shell_scalecenter_z - shell_scalecenter_xy * tan_phi
+        else
+            a_crit = shell_scalecenter_xy - shell_scalecenter_z/tan_phi
+
+        if a_shell <= a_crit and psi <= 0:
+            dr = shell_scalecenter_xy - a_shell
+            dz_right = MixedPair.z_right(dr)
+
+        elif a_shell <= a_crit and psi > 0:
+            dz_right = shell_scalecenter_z + h0 - a_shell
+            dr = MixedPair.r(dz_right)
+
+        else:
+            assert a_shell > a_crit
+            a_sq = a_shell*a_shell
+            ss_sq = shell_scalecenter*shell_scalecenter
+            dr = cos_phi * (shell_scalecenter * cos_phi - math.sqrt(a_sq - ss_sq*sin_psi*sin_psi) )
+            dz_right = MixedPair.z_right(dr)
+
+
+        dz_left = single1.pid_particle_pair[1].radius
+        return dr, dz_left, dz_right
+
+    @staticmetod
+    def z_right(single1, single2, r0, r):
+        # if the radius is known and we want to determine the height z_right
+        radius1 = single1.pid_particle_pair[1].radius
+        radius2 = single2.pid_particle_pair[1].radius
+        D1 = single1.pid_particle_pair[1].D
+        D2 = single2.pid_particle_pair[1].D
+        D_r = D1 + D2
+        D_R = (D1*D2)/(D1 + D2)
+
+        # calculate a_r such that the expected first-passage for the CoM and IV are equal
+        sqrt_DRDr = math.sqrt((2*D_R)/(3*D_r))
+        a_r1 = (r - radius1 + r0*sqrt_DRDr ) / (sqrt_DRDr + (D1/D_r) )
+        a_r2 = (r - radius2 + r0*sqrt_DRDr ) / (sqrt_DRDr + (D2/D_r) )
+        # take the smallest that, if entered in the function for r below, would lead to this z_right
+        a_r = min (a_r1, a_r2)
+
+        z_scaling_factor = MixedPair.calc_z_scaling_factor(D1, D2)
+        z_right = (a_r/z_scaling_factor) + (2*radius2)
+
+        return z_right
+
+    @staticmethod
+    def r(single1, single2, r0, z_right):
+        # if the z_right is known and we want to know the radius r
+        radius1 = single1.pid_particle_pair[1].radius
+        radius2 = single2.pid_particle_pair[1].radius
+        D1 = single1.pid_particle_pair[1].D
+        D2 = single2.pid_particle_pair[1].D
+        D_r = D1 + D2
+        D_R = (D1*D2)/(D1 + D2)
+
+        # we first calculate the a_r, since it is the only radius that depends on z_right only.
+        z_scaling_factor = MixedPair.calc_z_scaling_factor(D1, D2)
+        a_r = (z_right - (2*radius2)) * z_scaling_factor
+
+        # We equalize the estimated first passage time for the CoM (2D) and IV (3D) for a given a_r
+        # Note that for the IV we only take the distance to the outer boundary into account.
+        a_R = (a_r - r0)*math.sqrt((2*D_R)/(3*D_r))
+
+        # We calculate the maximum space needed for particles A and B based on maximum IV displacement
+        iv_max = max( (D1/D_r * a_r + radius1),
+                      (D2/D_r * a_r + radius2))
+
+        r = a_R + iv_max
+        return r
+
+    @staticmethod
+    def calc_shell_scalingangle(D1, D2):
+        D_r = D1 + D2
+        D_R = (D1*D2)/(D1 + D2)
+
+        z_scaling_factor = MixedPair.calc_z_scaling_factor(D1, D2)
+
+        angle = math.atan( 1 / ( z_scaling_factor * ( math.sqrt( (2*D_R)/(3*D_r) ) + \
+                                                      max( D1/D_r, D2/D_r )
+                                                    )))
+        return angle
+
+    @staticmethod
+    def calc_z_scaling_factor(D2d, D3d):
+        # calculates the scaling factor to make the anisotropic diffusion problem into a isotropic one
+        return math.sqrt( (D2d + D3d) / D3d)
+
 
     def __init__(self, domain_id, single1, single2, shell_id, shell_center, shell_radius,
                  shell_half_length, shell_orientation_vector, 
