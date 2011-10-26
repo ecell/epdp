@@ -222,34 +222,41 @@ public:
             core_surface_distance = struct_id_distance_pair.second - r0;  
         }
         
-        /* Attempt a reaction or interaction with all the particles (and/or a surface) that 
-           are inside the reaction volume */
+        /* Attempt a reaction (and/or interaction) with all the particles (and/or a surface) that 
+           are inside the reaction volume. */
         Real accumulated_prob = 0;
+        Real const rnd( rng_() );
         
         /* First, if a surface is near, attempt an interaction.  */
         if(core_surface_distance < reaction_length_ && pp_structure->id() == "world")
         {
-            try
+            boost::shared_ptr<structure_type> const closest_surf( tx_.get_structure(struct_id_distance_pair.first) );
+            accumulated_prob += accumulated_reaction_probability( pp.second.sid(), closest_surf->sid() );
+        
+            if( accumulated_prob > rnd )
             {
-                const Real prob( attempt_interaction(pp, tx_.get_structure(struct_id_distance_pair.first) ) );
+                try
+                {
+                    const Real prob( attempt_interaction(pp, closest_surf ) );
                 
-                if(prob < 0)
+                    if(prob < 0)
+                    {
+                        //An interaction occured.
+                        return true;                                 
+                    }
+                    else                
+                    {
+                        LOG_DEBUG(("Particle attempted an interaction with the noninteractive surface %s.", 
+                            boost::lexical_cast<std::string>(struct_id_distance_pair.first).c_str()));
+                        accumulated_prob += prob;
+                        ++rejected_move_count_;
+                    }
+                }   
+                catch (propagation_error const& reason)
                 {
-                    //An interaction occured.
-                    return true;                                 
-                }
-                else                
-                {
-                    LOG_DEBUG(("Particle attempted an interaction with the noninteractive surface %s.", 
-                        boost::lexical_cast<std::string>(struct_id_distance_pair.first).c_str()));
-                    accumulated_prob += prob;
+                    log_.info("surface interaction rejected (reason: %s)", reason.what());
                     ++rejected_move_count_;
                 }
-            }
-            catch (propagation_error const& reason)
-            {
-                log_.info("surface interaction rejected (reason: %s)", reason.what());
-                ++rejected_move_count_;
             }
         }
         
@@ -258,26 +265,41 @@ public:
         while(j < particles_in_overlap)
         {
             particle_id_pair_and_distance const& closest( overlapped->at(j) );
- 		        
-    		try
-            {
-                const Real prob( attempt_reaction(pp, closest.first) );
             
-                if( prob < 0 )
-                    //A reaction occured.
-                    return true;
-                else                
+            accumulated_prob += accumulated_reaction_probability( pp.second.sid(), closest.first.second.sid() );
+            
+            if (accumulated_prob >= 1.)
+            {
+                throw propagation_error(
+                    "the accumulated acceptance probability for a reaction volume with multiple overlaps exeeded one; "
+                    + boost::lexical_cast<std::string>(accumulated_prob)
+                    + ".");
+            }   
+            
+            if(accumulated_prob > rnd)
+            {
+    		    try
                 {
-                    LOG_DEBUG(("Particle attempted a reaction with a nonreactive particle %s.", 
-                        boost::lexical_cast<std::string>(closest.first.first).c_str()));
-                    accumulated_prob += prob;
+                    const Real prob( attempt_reaction(pp, closest.first) );
+            
+                    if( prob < 0 )
+                    {
+                        //A reaction occured.
+                        return true;
+                    }
+                    else                
+                    {
+                        LOG_DEBUG(("Particle attempted a reaction with a nonreactive particle %s.", 
+                            boost::lexical_cast<std::string>(closest.first.first).c_str()));
+                        accumulated_prob += prob;
+                        ++rejected_move_count_;
+                    }
+                }
+                catch (propagation_error const& reason)
+                {
+                    log_.info("second-order reaction rejected (reason: %s)", reason.what());
                     ++rejected_move_count_;
                 }
-            }
-            catch (propagation_error const& reason)
-            {
-                log_.info("second-order reaction rejected (reason: %s)", reason.what());
-                ++rejected_move_count_;
             }
             
             j++;
@@ -543,17 +565,7 @@ private:
             /* NOTE: multiplying reaction volume with 2 because a reaction between a pair of particles is
                attempted twice (at max). This only holds for small Pacc. */
             const Real p( r.k() * dt_ / ( 2 * reaction_volume ) );
-            BOOST_ASSERT(p >= 0.);
             prob += p;
-            if (prob >= 1.)
-            {
-                throw propagation_error(
-                    "invalid acceptance ratio ("
-                    + boost::lexical_cast<std::string>(p)
-                    + ") for reaction rate "
-                    + boost::lexical_cast<std::string>(r.k())
-                    + ".");
-            }
             if (prob > rnd)
             {
                 LOG_DEBUG(("fire reaction"));
@@ -637,6 +649,56 @@ private:
             }
         }
         return prob;
+    }
+    
+     /* Function returns the accumulated acceptance probability of the two reacting particles. */
+    Real accumulated_reaction_probability(species_id_type const& sid0, species_id_type const& sid1)
+    {
+        reaction_rules const& rules(rules_.query_reaction_rule(sid0, sid1));
+        if (::size(rules) == 0)
+        {
+            return 0;
+        }
+
+        species_type s0(tx_.get_species(sid0)),
+                s1(tx_.get_species(sid1));
+        
+        /* If the structures of the reactants do not equal, one of the reactants has to come from the bulk,
+           and we let this be s1, the particle from the surface is named s0. */     
+        if(s0.structure_id() != s1.structure_id())
+        {
+            if( !(s0.structure_id() == "world" || s1.structure_id() == "world")  )
+                throw not_implemented("No surface -> surface + surface - reactions allowed");
+                
+            if(s0.structure_id() == "world")
+                std::swap(s0,s1);
+        }
+
+        Real k_tot = 0;
+
+        boost::shared_ptr<structure_type> s1_struct( tx_.get_structure( s1.structure_id()) );
+        const Real reaction_volume( s1_struct->particle_reaction_volume( s0.radius() + s1.radius(), reaction_length_ ) );
+        
+        for (typename boost::range_const_iterator<reaction_rules>::type
+                i(boost::begin(rules)), e(boost::end(rules)); i != e; ++i)
+        {
+            reaction_rule_type const& r(*i);  
+            k_tot += r.k();
+        }
+        
+        Real const accumulated_prob( k_tot * dt_ / (2 * reaction_volume) );
+        
+        if (accumulated_prob >= 1.)
+        {
+            throw propagation_error(
+               "invalid accumulated probability calculated ("
+               + boost::lexical_cast<std::string>(accumulated_prob)
+               + ") for the accumulated reaction rate "
+               + boost::lexical_cast<std::string>(k_tot)
+               + ".");
+        }        
+        
+        return accumulated_prob;
     }
     
     /* Function returns the accumulated acceptance probability of the reacting particles if no
