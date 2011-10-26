@@ -90,6 +90,11 @@ public:
     {
         return ::distance(shape(), pos);
     }
+    
+    virtual position_type const& structure_position() const
+    {
+        return shape_.position();
+    }
 
     BasicSurfaceImpl(identifier_type const& id, shape_type const& shape)
         : base_type(id), shape_(shape) {}

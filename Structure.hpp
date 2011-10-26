@@ -86,6 +86,8 @@ public:
     virtual projected_type projected_point(position_type const& pos) const = 0;
     
     virtual length_type distance(position_type const& pos) const = 0;
+    
+    virtual position_type const& structure_position() const = 0;
 
     virtual std::size_t hash() const
     {

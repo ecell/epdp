@@ -87,7 +87,9 @@ public:
         queue_.pop_back();
         particle_id_pair pp(tx_.get_particle(pid));
 
-        LOG_DEBUG(("propagating particle %s", boost::lexical_cast<std::string>(pp.first).c_str()));
+        //LOG_DEBUG(("propagating particle %s", boost::lexical_cast<std::string>(pp.first).c_str()));
+
+
 
         /* START SOME SAMPLES, after which we return. 
         position_pair_type pp01;
@@ -168,7 +170,7 @@ public:
         {
 
             // Make a step, dependent on the surface the particle lives on.
-            position_type const displacement( tx_.get_structure(species.structure_id())->
+            position_type const displacement( pp_structure->
                                             bd_displacement(species.v() * dt_, std::sqrt(2.0 * species.D() * dt_), rng_) );
 
             new_pos = tx_.apply_boundary( add( pp.second.position(), displacement ) );
@@ -225,12 +227,12 @@ public:
         {
             try
             {
-                if( false /*attempt_interaction(pp, pp_surface)*/ )
+                if( attempt_interaction(pp, tx_.get_structure(struct_id_distance_pair.first) ) )
                     return true;
                 else                
                 {
-                    LOG_DEBUG(("Particle attempted an interaction with the nonreactive surface %s.", 
-                        boost::lexical_cast<std::string>(pp_structure->id()).c_str()));
+                    LOG_DEBUG(("Particle attempted an interaction with the noninteractive surface %s.", 
+                        boost::lexical_cast<std::string>(struct_id_distance_pair.first).c_str()));
                     ++rejected_move_count_;
                 }
             }
@@ -529,7 +531,9 @@ private:
             reaction_rule_type const& r(*i);  
 
             //TODO Do I need special reaction volumes for surface-bulk interaction? Or allways the 3D case?
-            Real p( r.k() * dt_ / ( s1_struct->particle_reaction_volume( s0.radius() + s1.radius(), reaction_length_ ) ) );
+            /* NOTE: multiplying reaction volume with 2 because a reaction between a pair of particles is
+               attempted twice (at max). This only holds for small Pacc. */
+            Real p( r.k() * dt_ / ( 2 * s1_struct->particle_reaction_volume( s0.radius() + s1.radius(), reaction_length_ ) ) );
             BOOST_ASSERT(p >= 0.);
             prob += p;
             if (prob >= 1.)
@@ -544,7 +548,6 @@ private:
             if (prob > rnd)
             {
                 LOG_DEBUG(("fire reaction"));
-                std::cerr << "Initiating unequall structure reaction! " << std::endl;
                 const typename reaction_rule_type::species_id_range products(
                     r.get_products());
 
@@ -676,7 +679,7 @@ private:
                         const species_id_type product(products[0]);
                         const species_type sp(tx_.get_species(product));
 
-                        const position_type new_pos( tx_.apply_boundary( structure->projected_point( pp.second.position() ) ) );
+                        const position_type new_pos( tx_.apply_boundary( structure->projected_point( pp.second.position() ).first ) );
                             
                         boost::scoped_ptr<particle_id_pair_and_distance_list> overlapped(
                             tx_.check_overlap(particle_shape_type(new_pos, sp.radius()),

@@ -51,6 +51,7 @@ public:
     {
         calculate_dt();
         reaction_length_ = determine_reaction_length( *world, base_type::dt_, reaction_length_factor_ );
+        bound_time = 0;
     }
 
     virtual void calculate_dt()
@@ -78,6 +79,10 @@ public:
             _step(lt);
             base_type::t_ = upto;
         }
+        
+        if(base_type::world_->num_particles() == 1)
+            bound_time += base_type::dt_;
+        
         return true;
     }
 
@@ -97,7 +102,6 @@ public:
     
     static length_type determine_reaction_length(world_type const& world, time_type dt, length_type const& reaction_length_factor)
     {
-        //TODO
         return reaction_length_factor * sqrt( 2 * 1E-12 * dt );
     }
     
@@ -106,10 +110,14 @@ public:
         return reaction_length_;    
     }
     
-    void set_reaction_length_factor(length_type new_reaction_length_factor)
+    double set_reaction_length_factor(length_type new_reaction_length_factor)
     {
+        double old_bound_time = bound_time;
+        bound_time = 0;
+        
         reaction_length_factor_ = new_reaction_length_factor;
-        reaction_length_ = determine_reaction_length( *base_type::world_, base_type::dt_, reaction_length_factor_ );        
+        reaction_length_ = determine_reaction_length( *base_type::world_, base_type::dt_, reaction_length_factor_ );
+        return old_bound_time;        
     }
 
 protected:
@@ -125,8 +133,8 @@ protected:
                 make_select_first_range(base_type::world_->
                                         get_particles_range()));
             while (propagator());
-            LOG_DEBUG(("%d: t=%lg, dt=%lg", base_type::num_steps_, 
-                       base_type::t_, dt));
+            //LOG_DEBUG(("%d: t=%lg, dt=%lg", base_type::num_steps_, 
+            //           base_type::t_, dt));
         }
         ++base_type::num_steps_;
         base_type::t_ += dt;
@@ -138,6 +146,7 @@ private:
     length_type reaction_length_factor_;
     length_type reaction_length_;
     static Logger& log_;
+    Real bound_time;
 };
 
 template<typename Ttraits_>

@@ -217,7 +217,7 @@ distance(Plane<T_> const& obj, typename Plane<T_>::position_type const& pos)
 
     if (dx < 0 && dy < 0) {
         // pos is positioned over the plane (projected point is in the plane and
-	// not next to it).
+	    // not next to it).
         return abs(x_y_z[2]);
     }
 

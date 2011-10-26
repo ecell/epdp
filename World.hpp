@@ -293,33 +293,42 @@ public:
         structures_range structures = get_structures();
         
         size_type size ( structures.size() );
-                
+        
+        length_type const world_size( base_type::world_size() );
+        
         switch(size)
         {
         case 0:
             throw not_found(std::string("No structures found."));
                  
-        case 1:
-            return structure_id_and_distance_pair( (*structures.begin())->id() , 2*base_type::world_size() );
+        case 1:   
+            return structure_id_and_distance_pair( (*structures.begin())->id() , 2*world_size );
         
         case 2:
         {
             surface_iterator structure = structures.begin();
-            return structure_id_and_distance_pair( (*structure)->id() , (*structure)->distance( pos ) );
+            position_type pos_transposed = 
+                cyclic_transpose( pos, (*structure)->structure_position(), world_size );
+            return structure_id_and_distance_pair( (*structure)->id() , 
+                (*structure)->distance( pos_transposed ) );
         }
         
         default:
         {   
             surface_iterator structure = structures.begin();               
             surface_iterator ret_structure( structure );
-                
-            length_type distance;            
-            length_type ret_distance( (*structure)->distance( pos ) );              
+            
+            position_type pos_transposed = cyclic_transpose( pos, 
+                (*structure)->structure_position(), world_size );
+            
+            length_type distance;
+            length_type ret_distance( (*structure)->distance( pos_transposed ) );              
                    
             structure++;
             for(size_type i = 2; i < size; i++)
             {
-                distance = (*structure)->distance( pos );
+                pos_transposed = cyclic_transpose( pos, (*structure)->structure_position(), world_size );
+                distance = (*structure)->distance( pos_transposed );
                 
                 if( distance < ret_distance )
                 {
