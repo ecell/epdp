@@ -770,20 +770,48 @@ class MixedPair(Pair):
     @staticmethod
     def get_max_shell_dimensions(shell_center, single1, single2, geometrycontainer, domains):
         # Properties of the MixedPair system
-        phi = MixedPair.calc_shell_scalingangle(D1, D2)
-        tan_phi = math.tan(phi)
-        cos_phi = math.cos(phi)
-        shell_scalecenter_z = MixedPair.z_right(single1, single2, r0, 0.0)
 
 
-        theta = 
+
+
+        return dr, dz_left, dz_right
+
+    @staticmethod
+    def laurens_algorithm(shell_position, shell_size, reference_point,
+                          orientation_vector, dr, dz_left, dz_right, surface)
+
+        # determine on what side the midpoint of the shell is relative to the reference_point
+        # Maybe do cyclic_transpose here
+        direction = math.dot(shell_position-reference_point, orientation_vector)
+
+        # if the shell is on the side of orientation_vector -> use z_right
+        # also use this one if the shell is in plane with the reference_point
+        if direction >= 0:
+            phi = MixedPair.calc_right_scalingangle(D1, D2)
+            h0 = MixedPair.z_right(single1, single2, r0, 0.0)
+        # else -> use z_left
+        else:
+            phi = MixedPair.calc_left_scaling(D1, D2)
+            h0 = MixedPair.z_left(single1, single2, r0, 0.0)
+
+        # calculate the center from which linear scaling will take place
+        scale_center = h0 * (direction/abs(direction)) * orientation_vector
+
+        # calculate the vector from the scale center to the center of the shell
+        shell_scale_center = shell_position_scale_center
+        # calculate the angle theta of the vector from the scale center to the shell with the vector
+        # to the scale center
+        theta = vector_angle (shell_scale_center, scale_center)
+
         psi = theta - phi
         sin_psi = math.sin(psi)
         cos_psi = math.cos(psi)
 
+
+        # TODO TODO TODO
         if psi <= 0:
             a_crit = shell_scalecenter_z - shell_scalecenter_xy * tan_phi
-        else
+        else:
             a_crit = shell_scalecenter_xy - shell_scalecenter_z/tan_phi
 
         if a_shell <= a_crit and psi <= 0:
@@ -802,10 +830,11 @@ class MixedPair(Pair):
             dz_right = MixedPair.z_right(dr)
 
 
-        dz_left = single1.pid_particle_pair[1].radius
-        return dr, dz_left, dz_right
+        tan_phi = math.tan(phi)
+        cos_phi = math.cos(phi)
 
-    @staticmetod
+
+    @staticmethod
     def z_right(single1, single2, r0, r):
         # if the radius is known and we want to determine the height z_right
         radius1 = single1.pid_particle_pair[1].radius
@@ -826,6 +855,10 @@ class MixedPair(Pair):
         z_right = (a_r/z_scaling_factor) + (2*radius2)
 
         return z_right
+
+    @staticmethod
+    def z_left(single1, single2, r0, r):
+        return single1.pid_particle_pair[1].radius
 
     @staticmethod
     def r(single1, single2, r0, z_right):
@@ -853,13 +886,13 @@ class MixedPair(Pair):
         return r
 
     @staticmethod
-    def calc_shell_scalingangle(D1, D2):
+    def calc_right_scalingangle(D1, D2):
         D_r = D1 + D2
         D_R = (D1*D2)/(D1 + D2)
 
         z_scaling_factor = MixedPair.calc_z_scaling_factor(D1, D2)
 
-        angle = math.atan( 1 / ( z_scaling_factor * ( math.sqrt( (2*D_R)/(3*D_r) ) + \
+        angle = math.atan( ( z_scaling_factor * ( math.sqrt( (2*D_R)/(3*D_r) ) + \
                                                       max( D1/D_r, D2/D_r )
                                                     )))
         return angle
