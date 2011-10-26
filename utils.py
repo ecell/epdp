@@ -198,7 +198,7 @@ def normalize(a, l=1):
     return _gfrd.normalize(a, l)
 
 def vector_angle(a, b):
-    # returns the angle tussen vector a en b
+    # returns the angle between vector a en b
     # the range of the angle is (0 - Pi)
     cosangle = numpy.dot(a, b) / (length(a) * length(b))
     return math.acos(cosangle)
