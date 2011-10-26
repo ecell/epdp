@@ -288,6 +288,7 @@ public:
             structure_map_.size());
     }
     
+    //TODO remove call to cyclic_transpose, sice world could be non cyclic.
     virtual structure_id_and_distance_pair get_closest_surface(position_type const& pos) const
     {        
         structures_range structures = get_structures();
@@ -335,7 +336,6 @@ public:
                     ret_distance = distance;
                     ret_structure = structure;
                 }
-                //std::cerr << "id = " << (*structure)->id() << ", dist = " << distance << std::endl;
                 structure++;
             }
         

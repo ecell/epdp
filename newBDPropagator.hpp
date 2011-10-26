@@ -222,17 +222,27 @@ public:
             core_surface_distance = struct_id_distance_pair.second - r0;  
         }
         
-        /* If their is only a surface in the reaction volume, attempt interaction. */
-        if(particles_in_overlap == 0 && core_surface_distance < reaction_length_ && pp_structure->id() == "world")
+        /* Attempt a reaction or interaction with all the particles (and/or a surface) that 
+           are inside the reaction volume */
+        Real accumulated_prob = 0;
+        
+        /* First, if a surface is near, attempt an interaction.  */
+        if(core_surface_distance < reaction_length_ && pp_structure->id() == "world")
         {
             try
             {
-                if( attempt_interaction(pp, tx_.get_structure(struct_id_distance_pair.first) ) )
-                    return true;
+                const Real prob( attempt_interaction(pp, tx_.get_structure(struct_id_distance_pair.first) ) );
+                
+                if(prob < 0)
+                {
+                    //An interaction occured.
+                    return true;                                 
+                }
                 else                
                 {
                     LOG_DEBUG(("Particle attempted an interaction with the noninteractive surface %s.", 
                         boost::lexical_cast<std::string>(struct_id_distance_pair.first).c_str()));
+                    accumulated_prob += prob;
                     ++rejected_move_count_;
                 }
             }
@@ -242,24 +252,25 @@ public:
                 ++rejected_move_count_;
             }
         }
-         
-        switch (particles_in_overlap)
+        
+        /* Now attempt reaction with all particles inside the reaction volume. */
+        j = 0;
+        while(j < particles_in_overlap)
         {
-        case 0:
-            break;
-
-        case 1:
-        {
-            particle_id_pair_and_distance const& closest(overlapped->at(0));
+            particle_id_pair_and_distance const& closest( overlapped->at(j) );
  		        
     		try
             {
-                if( attempt_reaction(pp, closest.first) )
+                const Real prob( attempt_reaction(pp, closest.first) );
+            
+                if( prob < 0 )
+                    //A reaction occured.
                     return true;
                 else                
                 {
                     LOG_DEBUG(("Particle attempted a reaction with a nonreactive particle %s.", 
                         boost::lexical_cast<std::string>(closest.first.first).c_str()));
+                    accumulated_prob += prob;
                     ++rejected_move_count_;
                 }
             }
@@ -268,16 +279,11 @@ public:
                 log_.info("second-order reaction rejected (reason: %s)", reason.what());
                 ++rejected_move_count_;
             }
-            /* If no reaction has occurred */    
-            break;
-        }
-        default:
-            log_.info("Multiple objects (surface and/or particle) in reaction volume; moved but no reaction initiated.");
-            ++rejected_move_count_;
-            break;
+            
+            j++;
         }
                        
-        /* If the particle did not bounce, update to new position. */
+        /* If the particle did neither react, interact or bounce, update it to it's new position. */
         if(!bounced)
         {   
             particle_id_pair particle_to_update( pp.first, 
@@ -498,12 +504,14 @@ private:
         return false;
     }
 
-    bool attempt_reaction(particle_id_pair const& pp0, particle_id_pair const& pp1)
+    /* Function returns the accumulated acceptance probability of the reacting particles if no
+       reaction occured. If a reaction has happened, it returns -1 and if no rules exist it returns 0. */
+    Real attempt_reaction(particle_id_pair const& pp0, particle_id_pair const& pp1)
     {
         reaction_rules const& rules(rules_.query_reaction_rule(pp0.second.sid(), pp1.second.sid()));
         if (::size(rules) == 0)
         {
-            return false;
+            return 0;
         }
 
         species_type s0(tx_.get_species(pp0.second.sid())),
@@ -524,7 +532,8 @@ private:
         Real prob = 0;
 
         boost::shared_ptr<structure_type> s1_struct( tx_.get_structure( s1.structure_id()) );
-
+        const Real reaction_volume( s1_struct->particle_reaction_volume( s0.radius() + s1.radius(), reaction_length_ ) );
+        
         for (typename boost::range_const_iterator<reaction_rules>::type
                 i(boost::begin(rules)), e(boost::end(rules)); i != e; ++i)
         {
@@ -533,7 +542,7 @@ private:
             //TODO Do I need special reaction volumes for surface-bulk interaction? Or allways the 3D case?
             /* NOTE: multiplying reaction volume with 2 because a reaction between a pair of particles is
                attempted twice (at max). This only holds for small Pacc. */
-            Real p( r.k() * dt_ / ( 2 * s1_struct->particle_reaction_volume( s0.radius() + s1.radius(), reaction_length_ ) ) );
+            const Real p( r.k() * dt_ / ( 2 * reaction_volume ) );
             BOOST_ASSERT(p >= 0.);
             prob += p;
             if (prob >= 1.)
@@ -623,20 +632,21 @@ private:
                 default:
                     throw not_implemented("bimolecular reactions that produce more than one product are not supported");
                 }
-
-                return true;
+                
+                return -1;
             }
         }
-        return false;
+        return prob;
     }
     
-    
-    bool attempt_interaction(particle_id_pair const& pp, boost::shared_ptr<structure_type> const& structure)
+    /* Function returns the accumulated acceptance probability of the reacting particles if no
+       reaction occured. If a reaction has happened, it returns -1 and if no rules exist it returns 0. */
+    Real attempt_interaction(particle_id_pair const& pp, boost::shared_ptr<structure_type> const& structure)
     {
         reaction_rules const& rules(rules_.query_reaction_rule(pp.second.sid(), structure->sid() ));
         if (::size(rules) == 0)
         {
-            return false;
+            return 0;
         }
         
         const species_type s0(tx_.get_species(pp.second.sid()));
@@ -719,10 +729,10 @@ private:
                     throw not_implemented("surface interactions that produce more than one product are not supported");
                 }
 
-                return true;
+                return -1;
             }
         }
-        return false;
+        return prob;
     }
     
     /* Given a position pair and two species, the function generates two new 
