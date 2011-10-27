@@ -237,26 +237,21 @@ public:
             {
                 try
                 {
-                    const Real prob( attempt_interaction(pp, closest_surf ) );
-                
-                    if(prob < 0)
-                    {
-                        //An interaction occured.
+                    LOG_DEBUG(("fire interaction"));
+                    if(fire_interaction(pp, closest_surf ))
                         return true;                                 
-                    }
-                    else                
-                    {
-                        LOG_DEBUG(("Particle attempted an interaction with the noninteractive surface %s.", 
-                            boost::lexical_cast<std::string>(struct_id_distance_pair.first).c_str()));
-                        accumulated_prob += prob;
-                        ++rejected_move_count_;
-                    }
                 }   
                 catch (propagation_error const& reason)
                 {
                     log_.info("surface interaction rejected (reason: %s)", reason.what());
                     ++rejected_move_count_;
                 }
+            }
+            else                
+            {
+                LOG_DEBUG(("Particle attempted an interaction with the non-interactive surface %s.", 
+                    boost::lexical_cast<std::string>(closest_surf->id()).c_str()));
+                ++rejected_move_count_;
             }
         }
         
@@ -271,35 +266,30 @@ public:
             if (accumulated_prob >= 1.)
             {
                 throw propagation_error(
-                    "the accumulated acceptance probability for a reaction volume with multiple overlaps exeeded one; "
+                    "the accumulated acceptance probability for a reaction volume exeeded one; "
                     + boost::lexical_cast<std::string>(accumulated_prob)
                     + ".");
             }   
             
             if(accumulated_prob > rnd)
             {
+                LOG_DEBUG(("fire reaction"));
     		    try
                 {
-                    const Real prob( attempt_reaction(pp, closest.first) );
-            
-                    if( prob < 0 )
-                    {
-                        //A reaction occured.
+                    if( fire_reaction(pp, closest.first) )
                         return true;
-                    }
-                    else                
-                    {
-                        LOG_DEBUG(("Particle attempted a reaction with a nonreactive particle %s.", 
-                            boost::lexical_cast<std::string>(closest.first.first).c_str()));
-                        accumulated_prob += prob;
-                        ++rejected_move_count_;
-                    }
                 }
                 catch (propagation_error const& reason)
                 {
                     log_.info("second-order reaction rejected (reason: %s)", reason.what());
                     ++rejected_move_count_;
                 }
+            }
+            else                
+            {
+                LOG_DEBUG(("Particle attempted a reaction with a non-reactive particle %s.", 
+                    boost::lexical_cast<std::string>(closest.first.first).c_str()));
+                ++rejected_move_count_;
             }
             
             j++;
@@ -365,7 +355,7 @@ private:
                         boost::shared_ptr<structure_type> pp_struct( tx_.get_structure( tx_.get_species(pp.second.sid()).structure_id() ) );
                         position_type new_pos = pp.second.position();
                         
-                        /* If the product particle does NOT live of the same structure as pp => surface -> bulk dissociation. */
+                        /* If the product particle does NOT live of the same structure as the reactant => surface -> bulk dissociation. */
                         if( s0.structure_id() != pp_struct->id() )
                         {
                             if( s0.structure_id() != "world" )
@@ -374,6 +364,9 @@ private:
                             position_type const displacement( pp_struct->surface_dissociation_vector(rng_, s0.radius(), reaction_length_ ) );
 
                             new_pos = tx_.apply_boundary( add( pp.second.position(), displacement ) );
+                            
+                            //Particle is allowed to move after dissociation from surface.
+                            new_pos = make_move(s0, new_pos, pp.first);
                         }
                       
                         const particle_id_pair new_p(
@@ -385,14 +378,14 @@ private:
                         boost::scoped_ptr<particle_id_pair_and_distance_list> overlapped(tx_.check_overlap(new_p.second.shape(), new_p.first));
                         if (overlapped && overlapped->size() > 0)
                         {
-                            throw propagation_error("no space due to particle");
+                            throw propagation_error("no space due to other particle");
                         }
 
                         if (vc_)
                         {
                             if (!(*vc_)(new_p.second.shape(), pp.first))
                             {
-                                throw propagation_error("no space due to particle");
+                                throw propagation_error("no space due to other particle");
                             }
                         }
 
@@ -402,7 +395,7 @@ private:
                             length_type const core_surface_distance( struct_id_distance_pair.second - s0.radius() );
                                     
                             if( core_surface_distance < 0 )
-                                throw propagation_error("no space due to surface");
+                                throw propagation_error("no space due to near surface");
                         }
 
                         tx_.update_particle(new_p);
@@ -525,16 +518,63 @@ private:
         }
         return false;
     }
-
-    /* Function returns the accumulated acceptance probability of the reacting particles if no
-       reaction occured. If a reaction has happened, it returns -1 and if no rules exist it returns 0. */
-    Real attempt_reaction(particle_id_pair const& pp0, particle_id_pair const& pp1)
+    
+    
+     /* Function returns the accumulated acceptance probability of the two reacting particles. */
+    Real accumulated_reaction_probability(species_id_type const& sid0, species_id_type const& sid1)
     {
-        reaction_rules const& rules(rules_.query_reaction_rule(pp0.second.sid(), pp1.second.sid()));
+        reaction_rules const& rules(rules_.query_reaction_rule(sid0, sid1));
         if (::size(rules) == 0)
         {
             return 0;
         }
+
+        species_type s0(tx_.get_species(sid0)),
+                s1(tx_.get_species(sid1));
+        
+        /* If the structures of the reactants do not equal, one of the reactants has to come from the bulk,
+           and we let this be s1, the particle from the surface is named s0. */     
+        if(s0.structure_id() != s1.structure_id())
+        {
+            if( !(s0.structure_id() == "world" || s1.structure_id() == "world")  )
+                throw not_implemented("No surface -> surface + surface - reactions allowed");
+                
+            if(s0.structure_id() == "world")
+                std::swap(s0,s1);
+        }
+
+        Real k_tot = 0;
+
+        boost::shared_ptr<structure_type> s1_struct( tx_.get_structure( s1.structure_id()) );
+        const Real reaction_volume( s1_struct->particle_reaction_volume( s0.radius() + s1.radius(), reaction_length_ ) );
+        
+        for (typename boost::range_const_iterator<reaction_rules>::type
+                i(boost::begin(rules)), e(boost::end(rules)); i != e; ++i)
+        {
+            k_tot += (*i).k();
+        }
+        
+        Real const accumulated_prob( k_tot * dt_ / (2 * reaction_volume) );
+        
+        if (accumulated_prob >= 1.)
+        {
+            throw propagation_error(
+               "invalid accumulated probability calculated ("
+               + boost::lexical_cast<std::string>(accumulated_prob)
+               + ") for the total reaction rate is "
+               + boost::lexical_cast<std::string>(k_tot)
+               + ".");
+        }        
+        
+        return accumulated_prob;
+    }
+    
+    
+    bool fire_reaction(particle_id_pair const& pp0, particle_id_pair const& pp1)
+    {
+        reaction_rules const& rules(rules_.query_reaction_rule(pp0.second.sid(), pp1.second.sid()));
+        if(::size(rules) == 0)
+            throw propagation_error("trying to fire a reaction between non-reactive particles");
 
         species_type s0(tx_.get_species(pp0.second.sid())),
                 s1(tx_.get_species(pp1.second.sid()));
@@ -550,25 +590,25 @@ private:
                 std::swap(s0,s1);
         }
 
-        const Real rnd(rng_());
-        Real prob = 0;
-
         boost::shared_ptr<structure_type> s1_struct( tx_.get_structure( s1.structure_id()) );
-        const Real reaction_volume( s1_struct->particle_reaction_volume( s0.radius() + s1.radius(), reaction_length_ ) );
+        
+        Real k_tot = 0;
+        for (typename boost::range_const_iterator<reaction_rules>::type
+                i(boost::begin(rules)), e(boost::end(rules)); i != e; ++i)
+        {
+            k_tot += (*i).k();            
+        }
+
+        const Real rnd( k_tot * rng_() );
+        Real prob = 0;    
         
         for (typename boost::range_const_iterator<reaction_rules>::type
                 i(boost::begin(rules)), e(boost::end(rules)); i != e; ++i)
         {
             reaction_rule_type const& r(*i);  
-
-            //TODO Do I need special reaction volumes for surface-bulk interaction? Or allways the 3D case?
-            /* NOTE: multiplying reaction volume with 2 because a reaction between a pair of particles is
-               attempted twice (at max). This only holds for small Pacc. */
-            const Real p( r.k() * dt_ / ( 2 * reaction_volume ) );
-            prob += p;
+            prob += r.k();
             if (prob > rnd)
             {
-                LOG_DEBUG(("fire reaction"));
                 const typename reaction_rule_type::species_id_range products(
                     r.get_products());
 
@@ -620,7 +660,7 @@ private:
                             length_type const core_surface_distance( struct_id_distance_pair.second - sp.radius() );
                                     
                             if( core_surface_distance < 0 )
-                                throw propagation_error("no space due to surface");     
+                                throw propagation_error("no space due to near surface");     
                         }
 
                         remove_particle(pp0.first);
@@ -645,71 +685,19 @@ private:
                     throw not_implemented("bimolecular reactions that produce more than one product are not supported");
                 }
                 
-                return -1;
+                return true;
             }
         }
-        return prob;
+        //Should not reach here.
+        return false;
     }
-    
-     /* Function returns the accumulated acceptance probability of the two reacting particles. */
-    Real accumulated_reaction_probability(species_id_type const& sid0, species_id_type const& sid1)
-    {
-        reaction_rules const& rules(rules_.query_reaction_rule(sid0, sid1));
-        if (::size(rules) == 0)
-        {
-            return 0;
-        }
 
-        species_type s0(tx_.get_species(sid0)),
-                s1(tx_.get_species(sid1));
         
-        /* If the structures of the reactants do not equal, one of the reactants has to come from the bulk,
-           and we let this be s1, the particle from the surface is named s0. */     
-        if(s0.structure_id() != s1.structure_id())
-        {
-            if( !(s0.structure_id() == "world" || s1.structure_id() == "world")  )
-                throw not_implemented("No surface -> surface + surface - reactions allowed");
-                
-            if(s0.structure_id() == "world")
-                std::swap(s0,s1);
-        }
-
-        Real k_tot = 0;
-
-        boost::shared_ptr<structure_type> s1_struct( tx_.get_structure( s1.structure_id()) );
-        const Real reaction_volume( s1_struct->particle_reaction_volume( s0.radius() + s1.radius(), reaction_length_ ) );
-        
-        for (typename boost::range_const_iterator<reaction_rules>::type
-                i(boost::begin(rules)), e(boost::end(rules)); i != e; ++i)
-        {
-            reaction_rule_type const& r(*i);  
-            k_tot += r.k();
-        }
-        
-        Real const accumulated_prob( k_tot * dt_ / (2 * reaction_volume) );
-        
-        if (accumulated_prob >= 1.)
-        {
-            throw propagation_error(
-               "invalid accumulated probability calculated ("
-               + boost::lexical_cast<std::string>(accumulated_prob)
-               + ") for the accumulated reaction rate "
-               + boost::lexical_cast<std::string>(k_tot)
-               + ".");
-        }        
-        
-        return accumulated_prob;
-    }
-    
-    /* Function returns the accumulated acceptance probability of the reacting particles if no
-       reaction occured. If a reaction has happened, it returns -1 and if no rules exist it returns 0. */
-    Real attempt_interaction(particle_id_pair const& pp, boost::shared_ptr<structure_type> const& structure)
+    bool fire_interaction(particle_id_pair const& pp, boost::shared_ptr<structure_type> const& structure)
     {
         reaction_rules const& rules(rules_.query_reaction_rule(pp.second.sid(), structure->sid() ));
         if (::size(rules) == 0)
-        {
-            return 0;
-        }
+            throw propagation_error("trying to fire an interaction with a non-interactive surface");
         
         const species_type s0(tx_.get_species(pp.second.sid()));
         
@@ -718,29 +706,24 @@ private:
         if(pp_structure->id() != "world")
             throw not_implemented("only particles living in the bulk are allowed to interact with surfaces");
         
-        const Real rnd(rng_());
-        Real prob = 0;
+        Real k_tot = 0;
+        for (typename boost::range_const_iterator<reaction_rules>::type
+                i(boost::begin(rules)), e(boost::end(rules)); i != e; ++i)
+        {
+            k_tot += (*i).k();            
+        }
+
+        const Real rnd( k_tot * rng_() );
+        Real prob = 0;  
 
         for (typename boost::range_const_iterator<reaction_rules>::type
                 i(boost::begin(rules)), e(boost::end(rules)); i != e; ++i)
         {
             reaction_rule_type const& r(*i); 
+            prob += r.k();
 
-            const Real p( r.k() * dt_ / structure->surface_reaction_volume( s0.radius(), reaction_length_ ) );
-            BOOST_ASSERT(p >= 0.);
-            prob += p;
-            if (prob >= 1.)
-            {
-                throw propagation_error(
-                    "invalid acceptance ratio ("
-                    + boost::lexical_cast<std::string>(p)
-                    + ") for reaction rate "
-                    + boost::lexical_cast<std::string>(r.k())
-                    + ".");
-            }
             if (prob > rnd)
             {
-                LOG_DEBUG(("fire surface interaction"));
                 const typename reaction_rule_type::species_id_range products(
                     r.get_products());
 
@@ -791,10 +774,11 @@ private:
                     throw not_implemented("surface interactions that produce more than one product are not supported");
                 }
 
-                return -1;
+                return true;
             }
         }
-        return prob;
+        //should not reach here.
+        return false;
     }
     
     /* Given a position pair and two species, the function generates two new 
@@ -810,7 +794,7 @@ private:
         position_type temp_pos0, temp_pos1;
         position_pair_type new_pp01( pp01 );
         
-        //Randomize which species moves first, and if there will be one or two moves. (50%)
+        //Randomize which species moves first, and if there will be one or two moves. (50% of the cases)
         bool move_prt0_first( rng_.uniform_int(0, 1) );
         int move_count( 1 + rng_.uniform_int(0, 1) );
         while( move_count-- )
