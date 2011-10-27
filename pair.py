@@ -781,57 +781,98 @@ class MixedPair(Pair):
                           orientation_vector, dr, dz_left, dz_right, surface)
 
         # determine on what side the midpoint of the shell is relative to the reference_point
-        # Maybe do cyclic_transpose here
+        # TODO do cyclic_transpose of shell_position
         direction = math.dot(shell_position-reference_point, orientation_vector)
 
         # if the shell is on the side of orientation_vector -> use z_right
         # also use this one if the shell is in plane with the reference_point
         if direction >= 0:
             phi = MixedPair.calc_right_scalingangle(D1, D2)
-            h0 = MixedPair.z_right(single1, single2, r0, 0.0)
+            h0 = MixedPair.z_right(single1, single2, r0, 0.0)   # r = 0.0
         # else -> use z_left
         else:
-            phi = MixedPair.calc_left_scaling(D1, D2)
-            h0 = MixedPair.z_left(single1, single2, r0, 0.0)
+            phi = MixedPair.calc_left_scalingangle(D1, D2)
+            h0 = MixedPair.z_left(single1, single2, r0, 0.0)    # r = 0.0
 
         # calculate the center from which linear scaling will take place
+        # TODO this should be generalized to accomodate scaling in just z
         scale_center = h0 * (direction/abs(direction)) * orientation_vector
 
         # calculate the vector from the scale center to the center of the shell
-        shell_scale_center = shell_position_scale_center
+        # TODO cyclic transpose of shell_position
+        shell_scale_center = shell_position-scale_center
+        shell_scalecenter_z = 
+        shell_scalecenter_r =
         # calculate the angle theta of the vector from the scale center to the shell with the vector
-        # to the scale center
+        # to the scale center (which is +- the orientation_vector)
         theta = vector_angle (shell_scale_center, scale_center)
 
         psi = theta - phi
-        sin_psi = math.sin(psi)
-        cos_psi = math.cos(psi)
 
 
-        # TODO TODO TODO
-        if psi <= 0:
-            a_crit = shell_scalecenter_z - shell_scalecenter_xy * tan_phi
+        ### check what situation arrises
+        # The shell can hit the cylinder on the flat side (situation 1),
+        #                                on the edge (situation 2),
+        #                                or on the round side (situation 3).
+        # I think this works for phi == 0 and phi == Pi/2
+        if psi <= -phi:
+        # The midpoint of the shell lies on the axis of the cylinder
+            situation = 1
+
+        elif -phi < psi and psi < 0:
+        # The (spherical) shell can touch the cylinder on its flat side or its edge
+            if phi == Pi/2:
+                r_tan_phi = 0
+            else:
+                r_tan_phi = shell_scalecenter_r/math.tan(phi)   # phi == 0 should not get here
+
+            a_thres = shell_scalecenter_z - r_tan_phi
+            if shell_size < a_thres:
+                situation = 1
+            else:
+                situation = 2
+
+        elif 0 <= psi and psi < (Pi/2 - phi):
+        # The (spherical) shell can touch the cylinder on its edge or its radial side
+            tan_phi = math.tan(phi)                             # phi == Pi/2 should not get here
+            a_thres = shell_scalecenter_r - shell_scalecenter_z * tan_phi
+            if shell_size > a_thres:
+                situation = 2
+            else:
+                situation = 3
+
+        elif (Pi/2 - phi) <= psi:
+        # The shell is always only on the radial side of the cylinder
+                situation = 3
+
         else:
-            a_crit = shell_scalecenter_xy - shell_scalecenter_z/tan_phi
+        # Don't know how we would get here, but it shouldn't happen
+            raise RuntimeError('psi was not in valid range')
 
-        if a_shell <= a_crit and psi <= 0:
-            dr = shell_scalecenter_xy - a_shell
-            dz_right = MixedPair.z_right(dr)
+        # TODO fix the situation where r and z are actually independent
+        ### Get the right values for z and r for the given situation
+        if situation == 1:      # shell hits on the flat side
+            z = shell_scalecenter_z + h0 - a_shell
+            r = MixedPair.r(z)
+        elif situation == 2:    # shell hits on the edge
+            a_sq = shell_size*shell_size
+            shell_scalecenter_len = length(shell_scalecenter)
+            ss_sq = shell_scalecenter_len*shell_scalecenter_len
+            sin_phi = math.sin(phi)
+            sin_psi = math.sin(psi)
+            cos_psi = math.cos(psi)
 
-        elif a_shell <= a_crit and psi > 0:
-            dz_right = shell_scalecenter_z + h0 - a_shell
-            dr = MixedPair.r(dz_right)
-
+            r = sin_phi * (shell_scalecenter_len * cos_psi - math.sqrt(a_sq - ss_sq*sin_psi*sin_psi) )
+            z = MixedPair.z_right(r)
+        elif situation == 3:    # shell hits on the round side
+            r = shell_scalecenter_r - a_shell
+            z = MixedPair.z_right(r)
         else:
-            assert a_shell > a_crit
-            a_sq = a_shell*a_shell
-            ss_sq = shell_scalecenter*shell_scalecenter
-            dr = cos_phi * (shell_scalecenter * cos_phi - math.sqrt(a_sq - ss_sq*sin_psi*sin_psi) )
-            dz_right = MixedPair.z_right(dr)
+            raise RuntimeError('Bad situation for MixedPair shell making')
 
+        
 
-        tan_phi = math.tan(phi)
-        cos_phi = math.cos(phi)
+        return r, z_right, z_left
 
 
     @staticmethod
