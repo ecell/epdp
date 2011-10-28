@@ -175,6 +175,7 @@ public:
     typedef typename traits_type::structure_id_type structure_id_type;
     typedef typename traits_type::structure_type structure_type;
     typedef std::pair<const particle_id_type, particle_type> particle_id_pair;
+    typedef std::pair<position_type, length_type> projected_type;
     typedef typename particle_container_type::structure_id_and_distance_pair structure_id_and_distance_pair;
 
 protected:
@@ -288,13 +289,11 @@ public:
             structure_map_.size());
     }
     
-    //TODO remove call to cyclic_transpose, sice world could be non cyclic.
     virtual structure_id_and_distance_pair get_closest_surface(position_type const& pos) const
     {        
         structures_range structures = get_structures();
-        
-        size_type size ( structures.size() );
-        
+        size_type const size ( structures.size() );
+               
         length_type const world_size( base_type::world_size() );
         
         switch(size)
@@ -303,15 +302,18 @@ public:
             throw not_found(std::string("No structures found."));
                  
         case 1:   
-            return structure_id_and_distance_pair( (*structures.begin())->id() , 2*world_size );
+            return structure_id_and_distance_pair( (*structures.begin())->id() , std::numeric_limits<length_type>::max() );
         
         case 2:
         {
             surface_iterator structure = structures.begin();
-            position_type pos_transposed = 
-                cyclic_transpose( pos, (*structure)->structure_position(), world_size );
-            return structure_id_and_distance_pair( (*structure)->id() , 
-                (*structure)->distance( pos_transposed ) );
+                                              
+            position_type const cyc_pos( cyclic_transpose(pos, (*structure)->structure_position(), world_size) );
+                                              
+            position_type nearest_point_on_surface( (*structure)->projected_point( cyc_pos ).first );
+
+            return structure_id_and_distance_pair( (*structure)->id(), 
+                 traits_type::distance( nearest_point_on_surface, pos, world_size ) );
         }
         
         default:
@@ -319,27 +321,26 @@ public:
             surface_iterator structure = structures.begin();               
             surface_iterator ret_structure( structure );
             
-            position_type pos_transposed = cyclic_transpose( pos, 
-                (*structure)->structure_position(), world_size );
+            position_type cyc_pos( cyclic_transpose(pos, (*structure)->structure_position(), world_size) );
             
-            length_type distance;
-            length_type ret_distance( (*structure)->distance( pos_transposed ) );              
+            length_type ret_dist( (*structure)->projected_point_on_surface( cyc_pos ).second );
+            length_type dist;
                    
             structure++;
             for(size_type i = 2; i < size; i++)
             {
-                pos_transposed = cyclic_transpose( pos, (*structure)->structure_position(), world_size );
-                distance = (*structure)->distance( pos_transposed );
+                cyc_pos = cyclic_transpose(pos, (*structure)->structure_position(), world_size);                
+                dist = (*structure)->projected_point_on_surface( cyc_pos ).second;
                 
-                if( distance < ret_distance )
+                if( dist < ret_dist )
                 {
-                    ret_distance = distance;
+                    ret_dist = dist;
                     ret_structure = structure;
                 }
                 structure++;
             }
         
-            return structure_id_and_distance_pair( (*ret_structure)->id() , ret_distance );
+            return structure_id_and_distance_pair( (*ret_structure)->id() , ret_dist );
         }
         
         }

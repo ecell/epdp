@@ -87,62 +87,10 @@ public:
         queue_.pop_back();
         particle_id_pair pp(tx_.get_particle(pid));
 
-        //LOG_DEBUG(("propagating particle %s", boost::lexical_cast<std::string>(pp.first).c_str()));
-
-
-
-        /* START SOME SAMPLES, after which we return. 
-        position_pair_type pp01;
-        position_pair_type new_pp01;
-        
-        species_type const sp(tx_.get_species(pp.second.sid()));
-        boost::shared_ptr<structure_type> const pp_struct( tx_.get_structure( sp.structure_id() ) );
-        
-        reaction_rules const& rules(rules_.query_reaction_rule(pp.second.sid()));
-
-        typename boost::range_const_iterator<reaction_rules>::type i(boost::begin(rules));
-        reaction_rule_type const& r(*i);
-        
-        typename reaction_rule_type::species_id_range products(r.get_products());
-        
-        species_type s0(tx_.get_species(products[0])), s1(tx_.get_species(products[1]));
-              
-        length_type r01( s0.radius() + s1.radius() );
-              
-        if(s0.structure_id() == "world")    
-            std::swap(s0,s1);
-
-        for(int i = 0; i < 2000; i++)
-        {
-            pp01 = pp_struct->
-                special_geminate_dissociation_positions( rng_, s0, s1, pp.second.position(), reaction_length_ ); 
-            
-            pp01.first = tx_.apply_boundary( pp01.first );
-            pp01.second = tx_.apply_boundary( pp01.second );
-            
-            if( tx_.distance(pp01.first, pp01.second) - r01 < 0 )
-                std::cerr << "Diss pp dist < 0 error" << std::endl;
-                
-            if( tx_.distance( pp_struct->projected_point( pp01.second ).first, pp01.second) - s1.radius() < 0 )
-                std::cerr << "Diss sp dist < 0 error" << std::endl;
-                                
-            new_pp01 = make_pair_move(s0, s1, pp01, pp.first);           
-             
-            std::cout << new_pp01.first[0] << " " << new_pp01.first[1] << " " << new_pp01.first[2] << " " 
-                      << new_pp01.second[0] << " " << new_pp01.second[1] << " " << new_pp01.second[2] << std::endl;
-                      
-            if(tx_.distance(new_pp01.first, new_pp01.second) - r01 < 0)
-                std::cerr << "Move pp dist < 0 error" << std::endl;
-                
-            if(tx_.distance(pp_struct->projected_point( new_pp01.second ).first, new_pp01.second) - s1.radius() < 0)
-                std::cerr << "Move sp dist < 0 error" << std::endl;
-        }     
-                  
-        return false;  
-        */
+        LOG_DEBUG(("propagating particle %s", boost::lexical_cast<std::string>(pp.first).c_str()));
         
         /* Consider decay reactions first. Particles can move after decay, but this is done
-           inside the 'attempt_reaction' function; for this particle can only react once . */
+           inside the 'attempt_reaction' function. */
         try
         {
             if (attempt_reaction(pp))
@@ -155,9 +103,9 @@ public:
             return true;
         }
         
-        species_type const species(tx_.get_species(pp.second.sid()));
-        length_type const r0( species.radius() );
-        boost::shared_ptr<structure_type> const pp_structure( tx_.get_structure( species.structure_id() ) );
+        species_type const pp_species(tx_.get_species(pp.second.sid()));
+        length_type const r0( pp_species.radius() );
+        boost::shared_ptr<structure_type> const pp_structure( tx_.get_structure( pp_species.structure_id() ) );
         
         structure_id_and_distance_pair struct_id_distance_pair;
         length_type core_surface_distance = 0;
@@ -166,15 +114,13 @@ public:
         /* Sample a potential move, and check if the particle _core_ has overlapped with another 
            particle or surface. If this is the case the particlem bounces, and is returned
            to it's original position. For a particle with D = 0, new_pos = old_pos */        
-        if (species.D() != 0.)
+        if (pp_species.D() != 0.)
         {
-
             // Make a step, dependent on the surface the particle lives on.
             position_type const displacement( pp_structure->
-                                            bd_displacement(species.v() * dt_, std::sqrt(2.0 * species.D() * dt_), rng_) );
+                                            bd_displacement(pp_species.v() * dt_, std::sqrt(2.0 * pp_species.D() * dt_), rng_) );
 
             new_pos = tx_.apply_boundary( add( pp.second.position(), displacement ) );
-            
         }
         else
         {
@@ -217,9 +163,12 @@ public:
             overlapped.swap( overlapped_after_bounce );
                                             
             particles_in_overlap = overlapped ? overlapped->size(): 0; 
-                
-            struct_id_distance_pair = tx_.get_closest_surface( new_pos );
-            core_surface_distance = struct_id_distance_pair.second - r0;  
+            
+            if(pp_structure->id() == "world")
+            {
+                struct_id_distance_pair = tx_.get_closest_surface( new_pos );
+                core_surface_distance = struct_id_distance_pair.second - r0;  
+            }
         }
         
         /* Attempt a reaction (and/or interaction) with all the particles (and/or a surface) that 
@@ -227,19 +176,30 @@ public:
         Real accumulated_prob = 0;
         Real const rnd( rng_() );
         
-        /* First, if a surface is near, attempt an interaction.  */
+        /* First, if a surface is near, attempt an interaction. */
         if(core_surface_distance < reaction_length_ && pp_structure->id() == "world")
-        {
+        {        
             boost::shared_ptr<structure_type> const closest_surf( tx_.get_structure(struct_id_distance_pair.first) );
-            accumulated_prob += accumulated_reaction_probability( pp.second.sid(), closest_surf->sid() );
+            
+            accumulated_prob += k_tot( pp.second.sid(), closest_surf->sid() ) * dt_ / 
+                closest_surf->surface_reaction_volume( r0, reaction_length_ );
+        
+            if(accumulated_prob >= 1.)
+            {
+                LOG_WARNING((
+                    "The accumulated acceptance probability for a reaction volume exeeded one; %f.",
+                    accumulated_prob));
+            } 
         
             if( accumulated_prob > rnd )
-            {
+            {            
                 try
                 {
-                    LOG_DEBUG(("fire interaction"));
+                    LOG_DEBUG(("fire surface interaction"));
                     if(fire_interaction(pp, closest_surf ))
-                        return true;                                 
+                        return true;
+                    else
+                        std::cerr << "zou niet moeten gebeuren (surf)" << std::endl;
                 }   
                 catch (propagation_error const& reason)
                 {
@@ -255,21 +215,35 @@ public:
             }
         }
         
-        /* Now attempt reaction with all particles inside the reaction volume. */
+        /* Now attempt a reaction with all particles inside the reaction volume. */
         j = 0;
         while(j < particles_in_overlap)
         {
             particle_id_pair_and_distance const& closest( overlapped->at(j) );
+
+            species_type s0(pp_species),s1(tx_.get_species(closest.first.second.sid()));
+                
+            /* If the structures of the reactants do not equal, one of the reactants has to come from the bulk,
+               and we let this be s1, the particle from the surface is named s0. */
+            if(s0.structure_id() != s1.structure_id())
+            {
+                if( !(s0.structure_id() == "world" || s1.structure_id() == "world")  )
+                    throw not_implemented("No surface -> surface + surface - reactions allowed");
+                
+                if(s0.structure_id() == "world")
+                    std::swap(s0,s1);
+            }
             
-            accumulated_prob += accumulated_reaction_probability( pp.second.sid(), closest.first.second.sid() );
+            boost::shared_ptr<structure_type> s1_struct( tx_.get_structure( s1.structure_id()) );
+            const Real reaction_volume( s1_struct->particle_reaction_volume( s0.radius() + s1.radius(), reaction_length_ ) );
+            accumulated_prob += k_tot(s0.id(), s1.id() ) * dt_ / ( 2 * reaction_volume ); 
             
             if (accumulated_prob >= 1.)
             {
-                throw propagation_error(
-                    "the accumulated acceptance probability for a reaction volume exeeded one; "
-                    + boost::lexical_cast<std::string>(accumulated_prob)
-                    + ".");
-            }   
+                LOG_WARNING((
+                    "the accumulated acceptance probability for a reaction volume exeeded one; %f.",
+                    accumulated_prob));
+            } 
             
             if(accumulated_prob > rnd)
             {
@@ -278,6 +252,8 @@ public:
                 {
                     if( fire_reaction(pp, closest.first) )
                         return true;
+                    else
+                        std::cerr << "zou niet moeten gebeuren (pp)" << std::endl;
                 }
                 catch (propagation_error const& reason)
                 {
@@ -299,7 +275,7 @@ public:
         if(!bounced)
         {   
             particle_id_pair particle_to_update( pp.first, 
-                        particle_type(species.id(), particle_shape_type(new_pos, r0), species.D()) );
+                        particle_type(pp_species.id(), particle_shape_type(new_pos, r0), pp_species.D()) );
                 
             if (vc_)
             {
@@ -518,55 +494,24 @@ private:
         }
         return false;
     }
-    
-    
-     /* Function returns the accumulated acceptance probability of the two reacting particles. */
-    Real accumulated_reaction_probability(species_id_type const& sid0, species_id_type const& sid1)
-    {
-        reaction_rules const& rules(rules_.query_reaction_rule(sid0, sid1));
+        
+    /* Function returns the accumulated intrinsic reaction rate. */
+    Real k_tot(species_id_type const& s0_id, species_id_type const& s1_id)
+    {   
+        reaction_rules const& rules(rules_.query_reaction_rule(s0_id, s1_id));
         if (::size(rules) == 0)
         {
             return 0;
         }
 
-        species_type s0(tx_.get_species(sid0)),
-                s1(tx_.get_species(sid1));
-        
-        /* If the structures of the reactants do not equal, one of the reactants has to come from the bulk,
-           and we let this be s1, the particle from the surface is named s0. */     
-        if(s0.structure_id() != s1.structure_id())
-        {
-            if( !(s0.structure_id() == "world" || s1.structure_id() == "world")  )
-                throw not_implemented("No surface -> surface + surface - reactions allowed");
-                
-            if(s0.structure_id() == "world")
-                std::swap(s0,s1);
-        }
-
         Real k_tot = 0;
-
-        boost::shared_ptr<structure_type> s1_struct( tx_.get_structure( s1.structure_id()) );
-        const Real reaction_volume( s1_struct->particle_reaction_volume( s0.radius() + s1.radius(), reaction_length_ ) );
-        
         for (typename boost::range_const_iterator<reaction_rules>::type
                 i(boost::begin(rules)), e(boost::end(rules)); i != e; ++i)
         {
             k_tot += (*i).k();
         }
         
-        Real const accumulated_prob( k_tot * dt_ / (2 * reaction_volume) );
-        
-        if (accumulated_prob >= 1.)
-        {
-            throw propagation_error(
-               "invalid accumulated probability calculated ("
-               + boost::lexical_cast<std::string>(accumulated_prob)
-               + ") for the total reaction rate is "
-               + boost::lexical_cast<std::string>(k_tot)
-               + ".");
-        }        
-        
-        return accumulated_prob;
+        return k_tot;
     }
     
     
@@ -579,26 +524,9 @@ private:
         species_type s0(tx_.get_species(pp0.second.sid())),
                 s1(tx_.get_species(pp1.second.sid()));
         
-        /* If the structures of the reactants do not equal, one of the reactants has to come from the bulk,
-           and we let this be s1, the particle from the surface is named s0. */     
-        if(s0.structure_id() != s1.structure_id())
-        {
-            if( !(s0.structure_id() == "world" || s1.structure_id() == "world")  )
-                throw not_implemented("No surface -> surface + surface - reactions allowed");
-                
-            if(s0.structure_id() == "world")
-                std::swap(s0,s1);
-        }
-
-        boost::shared_ptr<structure_type> s1_struct( tx_.get_structure( s1.structure_id()) );
+        boost::shared_ptr<structure_type> s1_struct( tx_.get_structure( s1.structure_id() ) );
         
-        Real k_tot = 0;
-        for (typename boost::range_const_iterator<reaction_rules>::type
-                i(boost::begin(rules)), e(boost::end(rules)); i != e; ++i)
-        {
-            k_tot += (*i).k();            
-        }
-
+        const Real k_tot( k_tot(s0.sid(), s1.sid()) );
         const Real rnd( k_tot * rng_() );
         Real prob = 0;    
         
@@ -702,17 +630,8 @@ private:
         const species_type s0(tx_.get_species(pp.second.sid()));
         
         boost::shared_ptr<structure_type> pp_structure( tx_.get_structure( s0.structure_id() ) ); 
-
-        if(pp_structure->id() != "world")
-            throw not_implemented("only particles living in the bulk are allowed to interact with surfaces");
         
-        Real k_tot = 0;
-        for (typename boost::range_const_iterator<reaction_rules>::type
-                i(boost::begin(rules)), e(boost::end(rules)); i != e; ++i)
-        {
-            k_tot += (*i).k();            
-        }
-
+        const Real k_tot( k_tot(s0.sid(), s1.sid()) );
         const Real rnd( k_tot * rng_() );
         Real prob = 0;  
 

@@ -204,6 +204,16 @@ projected_point(Plane<T_> const& obj, typename Plane<T_>::position_type const& p
 }
 
 template<typename T_>
+inline std::pair<typename Plane<T_>::position_type,
+                 typename Plane<T_>::length_type>
+projected_point_on_surface(Plane<T_> const& obj, typename Plane<T_>::position_type const& pos)
+// Since the projected point on the plane, is already on the surface of the plane,
+// this function is just a wrapper of projected point.
+{
+    return projected_point(obj, pos);
+}
+
+template<typename T_>
 inline typename Plane<T_>::length_type
 distance(Plane<T_> const& obj, typename Plane<T_>::position_type const& pos)
 // Calculates the distance from 'pos' to plane 'obj' Note that when the plane is finite,

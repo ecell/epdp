@@ -80,6 +80,11 @@ public:
         return ::projected_point(shape(), pos);
     }
     
+    virtual std::pair<position_type, length_type> projected_point_on_surface(position_type const& pos) const
+    {
+        return ::projected_point(shape(), pos);
+    }
+    
     virtual length_type distance(position_type const& pos) const
     {
         return ::distance(shape(), pos);
