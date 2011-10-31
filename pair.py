@@ -771,38 +771,54 @@ class MixedPair(Pair):
     def get_max_shell_dimensions(shell_center, single1, single2, geometrycontainer, domains):
         # Properties of the MixedPair system
 
+        world = geometrycontainer.world
+        r, z_left, z_right = MixedPair.laurens_algorithm(single1, single2, r0, shell_position, shell_size, reference_point,
+                                                         orientation_vector, r, z_left, z_right, surface, world)
 
 
-
-        return dr, dz_left, dz_right
+        return r, z_left, z_right
 
     @staticmethod
-    def laurens_algorithm(shell_position, shell_size, reference_point,
-                          orientation_vector, dr, dz_left, dz_right, surface)
+    def laurens_algorithm(single1, single2, r0, shell_position, shell_size, reference_point,
+                          orientation_vector, r, z_left, z_right, surface, world)
 
         # determine on what side the midpoint of the shell is relative to the reference_point
-        # TODO do cyclic_transpose of shell_position
-        direction = math.dot(shell_position-reference_point, orientation_vector)
+        shell_position_t = world.cyclic_transpose (shell_position, reference_point)
+        direction = math.dot(shell_position_t - reference_point, orientation_vector)
 
         # if the shell is on the side of orientation_vector -> use z_right
         # also use this one if the shell is in plane with the reference_point
         if direction >= 0:
             phi = MixedPair.calc_right_scalingangle(D1, D2)
-            h0 = MixedPair.z_right(single1, single2, r0, 0.0)   # r = 0.0
+            scalecenter_h0 = MixedPair.z_right(single1, single2, r0, 0.0)   # r = 0.0
+            r1_function =  MixedPair.r_right
+            z1_function = MixedPair.z_right
+            z2_function = MixedPair.z_left
+            z1 = z_right
+            z2 = z_left
         # else -> use z_left
         else:
             phi = MixedPair.calc_left_scalingangle(D1, D2)
-            h0 = MixedPair.z_left(single1, single2, r0, 0.0)    # r = 0.0
+            scalecenter_h0 = MixedPair.z_left(single1, single2, r0, 0.0)    # r = 0.0
+            r1_function =  MixedPair.r_left
+            z1_function = MixedPair.z_left
+            z2_function = MixedPair.z_right
+            z1 = z_left
+            z2 = z_right
 
         # calculate the center from which linear scaling will take place
         # TODO this should be generalized to accomodate scaling in just z
-        scale_center = h0 * (direction/abs(direction)) * orientation_vector
+        if phi == 0.0:
+            scalecenter_r0 = r
+        else:
+            scalecenter_r0 = 0
+        scale_center = scale_center_h0 * (direction/abs(direction)) * orientation_vector
 
         # calculate the vector from the scale center to the center of the shell
-        # TODO cyclic transpose of shell_position
-        shell_scale_center = shell_position-scale_center
-        shell_scalecenter_z = 
-        shell_scalecenter_r =
+        shell_position_t = world.cyclic_transpose (shell_position, scale_center)
+        shell_scale_center = shell_position_t - scale_center
+        shell_scalecenter_z = math.dot( shell_scale_center, orientation_vector * (direction/abs(direction)) )
+        shell_scalecenter_r = shell_scale_center - shell_scalecenter_z
         # calculate the angle theta of the vector from the scale center to the shell with the vector
         # to the scale center (which is +- the orientation_vector)
         theta = vector_angle (shell_scale_center, scale_center)
@@ -814,7 +830,7 @@ class MixedPair(Pair):
         # The shell can hit the cylinder on the flat side (situation 1),
         #                                on the edge (situation 2),
         #                                or on the round side (situation 3).
-        # I think this works for phi == 0 and phi == Pi/2
+        # I think this also works for phi == 0 and phi == Pi/2
         if psi <= -phi:
         # The midpoint of the shell lies on the axis of the cylinder
             situation = 1
@@ -849,11 +865,13 @@ class MixedPair(Pair):
         # Don't know how we would get here, but it shouldn't happen
             raise RuntimeError('psi was not in valid range')
 
-        # TODO fix the situation where r and z are actually independent
+
         ### Get the right values for z and r for the given situation
         if situation == 1:      # shell hits on the flat side
-            z = shell_scalecenter_z + h0 - a_shell
-            r = MixedPair.r(z)
+            z1_new = min(z1, shell_scalecenter_z + scalecenter_h0 - a_shell)
+            r_new  = min(r,  r1_function(single1, single2, r0, z1_new))
+            z2_new = min(z2, z2_function(single1, single2, r0, r_new))
+
         elif situation == 2:    # shell hits on the edge
             a_sq = shell_size*shell_size
             shell_scalecenter_len = length(shell_scalecenter)
@@ -861,16 +879,32 @@ class MixedPair(Pair):
             sin_phi = math.sin(phi)
             sin_psi = math.sin(psi)
             cos_psi = math.cos(psi)
+            scalecenter_shell_dist = (shell_scalecenter_len * cos_psi - math.sqrt(a_sq - ss_sq*sin_psi*sin_psi) )
 
-            r = sin_phi * (shell_scalecenter_len * cos_psi - math.sqrt(a_sq - ss_sq*sin_psi*sin_psi) )
-            z = MixedPair.z_right(r)
+            if phi <= Pi/4:
+                z1_new = min(z1, scalecenter_h0 + cos_phi * scalecenter_shell_dist)
+                r_new  = min(r, r1_function(single1, single2, r0, z1_new))
+                z2_new = min(z2, z2_function(single1, single2, r0, r_new))
+            else:
+                r_new = min(r, scalecenter_r0 + sin_phi * scalecenter_shell_dist)
+                z1_new = min(z1, z1_function(single1, single2, r0, r_new))
+                z2_new = min(z2, z2_function(single1, single2, r0, r_new))
+
         elif situation == 3:    # shell hits on the round side
-            r = shell_scalecenter_r - a_shell
-            z = MixedPair.z_right(r)
+            r_new = min(r, shell_scalecenter_r - a_shell)
+            z1_new = min(z1, z1_function(single1, single2, r0, r_new))
+            z2_new = min(z2, z2_function(single1, single2, r0, r_new))
         else:
             raise RuntimeError('Bad situation for MixedPair shell making')
 
-        
+        # switch the z values in case it's necessary. r doesn't have to be switched.
+        r = r_new
+        if direction >= 0.0:
+            z_right = z1_new
+            z_left  = z2_new
+        else:
+            z_right = z2_new
+            z_left  = z1_new
 
         return r, z_right, z_left
 
@@ -902,7 +936,7 @@ class MixedPair(Pair):
         return single1.pid_particle_pair[1].radius
 
     @staticmethod
-    def r(single1, single2, r0, z_right):
+    def r_right(single1, single2, r0, z_right):
         # if the z_right is known and we want to know the radius r
         radius1 = single1.pid_particle_pair[1].radius
         radius2 = single2.pid_particle_pair[1].radius
@@ -925,6 +959,11 @@ class MixedPair(Pair):
 
         r = a_R + iv_max
         return r
+
+    @staticmethod
+    def r_left(single1, single2, r0, z_left):
+        # FIXME this should return the maximum of the shell container
+        return numpy.inf
 
     @staticmethod
     def calc_right_scalingangle(D1, D2):
