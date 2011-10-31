@@ -771,16 +771,60 @@ class MixedPair(Pair):
     def get_max_shell_dimensions(shell_center, single1, single2, geometrycontainer, domains):
         # Properties of the MixedPair system
 
+        com, iv = MixedPair.do_transform(single1, single2, geometrycontainer.world)
+        reference_point = com
+        orientation_vector = normalize(single1.structure.shape.unit_z * numpy.dot (iv, single1.structure.shape.unit_z))
+        r0 = length(iv)
+
+        # Make sure the maximal cylinder fits in the maximal sphere. Matrix space
+        # doesn't allow to check for shells outside the maximal sphere.
+        max_cylinder_radius      = geometrycontainer.get_max_shell_size()/math.sqrt(2)
+        max_cylinder_half_length = max_cylinder_radius
+
+        # set initial values of shell dimensions
+        z_left = single1.pid_particle_pair[1].radius
+        z_right = max_cylinder_half_length * 2 - z_left
+        r = max_cylinder_radius
+        
+        # get all the domains in the neighborhood
+        search_point = reference_point + ((z_right - z_left)/2.0) * orientation_vector
+        all_neighbor_ids = \
+            geometrycontainer.get_neighbors_within_radius_no_sort(search_point,
+                                                     geometrycontainer.get_max_shell_size(),
+                                                     ignore=[single1.domain_id, single2.domain_id])
+        all_neighbors = [domains[domain_id] for domain_id in all_neighbor_ids]
+
         world = geometrycontainer.world
-        r, z_left, z_right = MixedPair.laurens_algorithm(single1, single2, r0, shell_position, shell_size, reference_point,
-                                                         orientation_vector, r, z_left, z_right, surface, world)
+
+        # adjust the maximal shell dimensions for every shell in the neighborhood
+        for domain in all_neighbors:
+            if isinstance(domain, Multi):
+                for _, shell in domain.shell_list:
+                    shell_position = shell.shape.position
+                    shell_size = shell.shape.radius
+                    r, z_left, z_right = MixedPair.laurens_algorithm(single1, single2, r0, shell_position, shell_size,
+                                                                     reference_point, orientation_vector, r, z_left,
+                                                                     z_right, world)
+            else:
+                shell_position = domain.shell.shape.position
+                shell_size = domain.get_shell_size()
+
+                if domain.dt == 0.0 and domain.getD() > 0:
+                    # This is one of the bursted singles.
+                    # Or a particle that just escaped it's multi.
+                    shell_size *= Domain.SINGLE_SHELL_FACTOR
+
+                r, z_left, z_right = MixedPair.laurens_algorithm(single1, single2, r0, shell_position, shell_size,
+                                                                 reference_point, orientation_vector, r, z_left,
+                                                                 z_right, world)
+
 
 
         return r, z_left, z_right
 
     @staticmethod
     def laurens_algorithm(single1, single2, r0, shell_position, shell_size, reference_point,
-                          orientation_vector, r, z_left, z_right, surface, world)
+                          orientation_vector, r, z_left, z_right, world):
 
         # determine on what side the midpoint of the shell is relative to the reference_point
         shell_position_t = world.cyclic_transpose (shell_position, reference_point)
@@ -808,10 +852,12 @@ class MixedPair(Pair):
 
         # calculate the center from which linear scaling will take place
         # TODO this should be generalized to accomodate scaling in just z
+        # TODO Also the scale center is still strangly defined.
         if phi == 0.0:
-            scalecenter_r0 = r
-        else:
+            scalecenter_r0 = r  # This is an approximation, since the h0 is infinitely far away of phi == 0,
+        else:                   # we introduce an r0
             scalecenter_r0 = 0
+        # TODO check this
         scale_center = scale_center_h0 * (direction/abs(direction)) * orientation_vector
 
         # calculate the vector from the scale center to the center of the shell
@@ -908,6 +954,18 @@ class MixedPair(Pair):
 
         return r, z_right, z_left
 
+    ### class methods that are for the right side of the cylindrical shell
+    @staticmethod
+    def calc_right_scalingangle(D1, D2):
+        D_r = D1 + D2
+        D_R = (D1*D2)/(D1 + D2)
+
+        z_scaling_factor = MixedPair.calc_z_scaling_factor(D1, D2)
+
+        angle = math.atan( ( z_scaling_factor * ( math.sqrt( (2*D_R)/(3*D_r) ) + \
+                                                      max( D1/D_r, D2/D_r )
+                                                    )))
+        return angle
 
     @staticmethod
     def z_right(single1, single2, r0, r):
@@ -930,10 +988,6 @@ class MixedPair(Pair):
         z_right = (a_r/z_scaling_factor) + (2*radius2)
 
         return z_right
-
-    @staticmethod
-    def z_left(single1, single2, r0, r):
-        return single1.pid_particle_pair[1].radius
 
     @staticmethod
     def r_right(single1, single2, r0, z_right):
@@ -960,28 +1014,28 @@ class MixedPair(Pair):
         r = a_R + iv_max
         return r
 
+    ### class methods for the left side of the cylindrical shell
+    @staticmethod
+    def calc_left_scalingangle(D1, D2):
+        return Pi/2
+
+    @staticmethod
+    def z_left(single1, single2, r0, r):
+        return single1.pid_particle_pair[1].radius
+
     @staticmethod
     def r_left(single1, single2, r0, z_left):
         # FIXME this should return the maximum of the shell container
         return numpy.inf
 
-    @staticmethod
-    def calc_right_scalingangle(D1, D2):
-        D_r = D1 + D2
-        D_R = (D1*D2)/(D1 + D2)
 
-        z_scaling_factor = MixedPair.calc_z_scaling_factor(D1, D2)
-
-        angle = math.atan( ( z_scaling_factor * ( math.sqrt( (2*D_R)/(3*D_r) ) + \
-                                                      max( D1/D_r, D2/D_r )
-                                                    )))
-        return angle
-
+    ### class methods that are general
     @staticmethod
     def calc_z_scaling_factor(D2d, D3d):
         # calculates the scaling factor to make the anisotropic diffusion problem into a isotropic one
         return math.sqrt( (D2d + D3d) / D3d)
 
+    ################
 
     def __init__(self, domain_id, single1, single2, shell_id, shell_center, shell_radius,
                  shell_half_length, shell_orientation_vector, 
@@ -1049,7 +1103,7 @@ class MixedPair(Pair):
 
 
         # the CoM is calculated in a similar way to a normal 3D pair
-        com = (D_2 * pos1 + D_1 * pos) / (D_1 + D_2)
+        com = (D_2 * pos1 + D_1 * pos2) / (D_1 + D_2)
         # and then projected onto the plane
         com = world.cyclic_transpose(com, surface.shape.position)
         com, _ = surface.projected_point (com)
