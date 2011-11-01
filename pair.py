@@ -450,7 +450,7 @@ class SphericalPair(SimplePair):
                                               self.sigma, self.a_r)
 
     def create_new_shell(self, position, radius, domain_id):
-        return SphericalShell(self.domain_id, Sphere(position, radius))
+        return SphericalShell(domain_id, Sphere(position, radius))
 
     # selects between the full solution or an approximation where one of
     # the boundaries is ignored
@@ -1042,13 +1042,17 @@ class MixedPair(Pair):
                  unit_r, r0, rrs):
         Pair.__init__(self, domain_id, single1, single2, shell_id, r0, rrs)
 
-        self.surface = surface  # the surface on which particle1 lives
-        self.r0 = r0    # TODO this needs to be rescaled too
+        self.surface = single1.structure    # the surface on which particle1 lives
+        self.r0 = r0                        # TODO this needs to be rescaled too
+
+        self.shell = self.create_new_shell (shell_center, shell_radius, shell_half_length, shell_orientation_vector,
+                                            domain_id)
 
     def determine_radii(self, half_length, radius):
         # determines the dimensions of the domains used for the Green's functions from the dimensions
         # of the cylindrical shell.
         # Note that the function assumes that the cylinder is dimensioned properly
+        # TODO use class methods to check dimensions of the cylinder
         radius1 = self.pid_particle_pair1[1].radius
         radius2 = self.pid_particle_pair2[1].radius
         D1 = self.pid_particle_pair1[1].D
@@ -1172,12 +1176,12 @@ class MixedPair(Pair):
         return GreensFunction3DRadAbs(self.D_r, self.interparticle_ktot, self.r0,
                                       self.sigma, self.a_r)
 
-    def create_new_shell(self, position, radius, orientation_vector, half_length):
+    def create_new_shell(self, position, radius, half_length, orientation_vector, domain_id):
         # It is assumed that the parameter are correct -> the 'bottom' of the cylinder
         # sticks through the membrane enough to accomodate the particle in the membrane
         # assert that orientation_vector is on same line as surface.shape.unit_z
-        return CylindricalShell(self.domain_id, Cylinder(position, radius, orientation_vector,
-                                                         half_length))
+        return CylindricalShell(domain_id, Cylinder(position, radius, orientation_vector,
+                                                    half_length))
 
     def create_com_vector(self, r):
         x, y = random_vector2D(r)
