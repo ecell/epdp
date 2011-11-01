@@ -1314,6 +1314,45 @@ class EGFRDSimulator(ParticleSimulatorBase):
         return com, r0, shell_size
 
 
+
+    def calculate_mixedpair_shell_dimensions (self, single2D, single3D):
+
+
+        # 1. Get the minimal possible shell size (including margin?)
+        r_min, z_left_min, z_right_min = SimplePair.get_min_shell_size(single1, single2, self.geometrycontainer)
+
+        # 2. Get the maximum possible shell size
+        r, z_left, z_right = SimplePair.get_max_shell_size(single1, single2, self.geometrycontainer, self.domains)
+
+        # Decide if MixedPair domain is possible.
+        if r < r_min or z_left < z_left_min or z_right < z_right_min:
+            if __debug__:
+                log.debug('        *MixedPair not possible:\n'
+                          '            %s +\n'
+                          '            %s.\n'
+                          '            r = %.3g. r_min = %.3g.\n'
+                          '            z_left = %.3g. z_left_min = %.3g.\n'
+                          '            z_right = %.3g. z_right_min = %.3g.' %
+                          (single2D, single3D, r, r_min, z_left, z_left_min, 
+                           z_right, z_right_min))
+            return None, None, None, None, None
+        else:
+
+            # Compute origin, radius and half_length of cylinder.
+            com, iv = MixedPair.do_transform(single2D, single3D, self.geometrycontainer.world)
+            reference_point = com
+            orientation_vector = normalize(single2D.structure.shape.unit_z * numpy.dot (iv, single2D.structure.shape.unit_z))
+            r0 = length(iv)
+
+            center = reference_point + ((z_right - z_left)/2.0) * orientation_vector
+            center = self.world.apply_boundary(center)
+            shell_half_length = (z_left + z_right) / 2.0
+            shell_radius = r
+
+            return center, shell_radius, shell_half_length, r0, orientation_vector
+
+
+
     def update_single(self, single): 
         assert isinstance(single, NonInteractionSingle) # This only works for 'simple' Singles
 
@@ -1774,6 +1813,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
         ### 2. The shell can be made. Now do what's necessary to make it
         # Compute origin, radius and half_length of cylinder.
         origin = projected_point + ((dz_right - dz_left)/2.0) * orientation_vector
+        origin = self.world.apply_boundary(origin)
         half_length = (dz_left + dz_right) / 2.0
         radius = dr
 
@@ -1943,31 +1983,62 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
     def try_pair(self, single1, single2):
         if __debug__:
-           log.debug('trying to form Pair(%s, %s)' %
-                     (single1.pid_particle_pair, single2.pid_particle_pair))
+            log.debug('trying to form Pair(%s, %s)' %
+                (single1.pid_particle_pair, single2.pid_particle_pair))
 
         assert single1.is_reset()
         assert single2.is_reset()
 
+
         # Try forming a Pair only if singles are on same structure.
-        if single1.structure != single2.structure:
-            # TODO implement shell making method for MixedPair
+        if single1.structure == single2.structure:
+            # particles are on the same structure
 
             if __debug__:
-                log.debug('Pair(%s, %s) not formed: not on same structure.' %
+                log.debug('Simple pair')
+
+            center, r0, shell_size = self.calculate_simplepair_shell_size (single1, single2)
+            if shell_size:
+                # A shell could be made and makes sense. Create a Pair
+                pair = self.create_pair(single1, single2, center, shell_size, r0)
+            else:
+                pair = None
+
+        elif isinstance(single1.structure, PlanarSurface) and isinstance(single2.structure, CuboidalRegion) ^ \
+             isinstance(single2.structure, PlanarSurface) and isinstance(single1.structure, CuboidalRegion):
+            # one particle in 2D, the other in 3D
+
+            if __debug__:
+                log.debug('Mixed pair')
+
+            # make sure that we know which single is on what structure
+            if isinstance (structure1, PlanarSurface):
+                single2D = single1
+                single3D = single2
+            else:
+                single2D = single2
+                single3D = single1
+
+            center, shell_radius, shell_half_length, r0, shell_orientation_vector = \
+            self.calculate_mixedpair_shell_dimensions (single2D, single3D)
+
+            if shell_radius:
+                pair = self.create_pair(single2D, single3D, center, shell_radius, r0,
+                                        shell_half_length, shell_orientation_vector)
+            else:
+                pair = None
+
+        else:
+            # a 1D/3D pair was supposed to be formed -> unsupported
+            if __debug__:
+                log.debug('Pair(%s, %s) not formed: combination of structures not supported.' %
                           (single1.pid_particle_pair[0],
                            single2.pid_particle_pair[0]))
-
-            center, r0, shell_size = None, None, None
-#           shell = self.make_mixedpair_shell (single1, single2)
-        else:
-            # particles are on the same structure
-            center, r0, shell_size = self.calculate_simplepair_shell_size (single1, single2)
+            pair = None
 
 
-        if shell_size:
-            # A shell could be made and makes sense. Create a Pair
-            pair = self.create_pair(single1, single2, center, shell_size, r0)
+        # if a pair has been formed
+        if pair:
 
             pair.dt, pair.event_type, pair.reactingsingle = \
             pair.determine_next_event(r0)
