@@ -725,7 +725,7 @@ class CylindricalSurfacePair(SimplePair):
 class MixedPair(Pair):
 
     @classmethod
-    def get_min_shell_dimensions(cls, single1, single2, reference_point, geometrycontainer):
+    def get_min_shell_dimensions(cls, single1, single2, geometrycontainer):
 
         assert isinstance (single1.structure, PlanarSurface)
         assert isinstance (single2.structure, CuboidalRegion)
@@ -768,7 +768,7 @@ class MixedPair(Pair):
         return dr, dz_left, dz_right
 
     @classmethod
-    def get_max_shell_dimensions(cls, shell_center, single1, single2, geometrycontainer, domains):
+    def get_max_shell_dimensions(cls, single1, single2, geometrycontainer, domains):
         # Properties of the MixedPair system
 
         com, iv = cls.do_transform(single1, single2, geometrycontainer.world)
@@ -1039,7 +1039,7 @@ class MixedPair(Pair):
 
     def __init__(self, domain_id, single1, single2, shell_id, shell_center, shell_radius,
                  shell_half_length, shell_orientation_vector, 
-                 unit_r, r0, rrs):
+                 r0, rrs):
         Pair.__init__(self, domain_id, single1, single2, shell_id, r0, rrs)
 
         self.surface = single1.structure    # the surface on which particle1 lives
