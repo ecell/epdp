@@ -129,8 +129,6 @@ class Pair(ProtectiveDomain):
         # If the two particles have reacted this returns the
         # new position twice
         # The positions are relative to the center of the shell
-        # TODO move this to SimplePair, this is not applicable to a MixedPair
-        # or make scaling factor in last line a parameter of the class
         new_com = self.shell.shape.position + self.draw_new_com(dt, event_type)
 
         if event_type == EventType.IV_REACTION:
@@ -771,6 +769,9 @@ class MixedPair(Pair):
     def get_max_shell_dimensions(cls, single1, single2, geometrycontainer, domains):
         # Properties of the MixedPair system
 
+        assert isinstance (single1.structure, PlanarSurface)
+        assert isinstance (single2.structure, CuboidalRegion)
+
         com, iv = cls.do_transform(single1, single2, geometrycontainer.world)
         reference_point = com
         orientation_vector = normalize(single1.structure.shape.unit_z * numpy.dot (iv, single1.structure.shape.unit_z))
@@ -1043,7 +1044,10 @@ class MixedPair(Pair):
         Pair.__init__(self, domain_id, single1, single2, shell_id, r0, rrs)
 
         self.surface = single1.structure    # the surface on which particle1 lives
-        self.r0 = r0                        # TODO this needs to be rescaled too
+        self.structure = single1.structure    # the surface on which particle1 lives
+        self.r0 = r0
+
+        self.a_R, self.a_r = self.determine_radii(shell_half_length, shell_radius)
 
         self.shell = self.create_new_shell (shell_center, shell_radius, shell_half_length, shell_orientation_vector,
                                             domain_id)
@@ -1052,9 +1056,34 @@ class MixedPair(Pair):
         # determines the dimensions of the domains used for the Green's functions from the dimensions
         # of the cylindrical shell.
         # Note that the function assumes that the cylinder is dimensioned properly
-        # TODO use class methods to check dimensions of the cylinder
         radius1 = self.pid_particle_pair1[1].radius
         radius2 = self.pid_particle_pair2[1].radius
+
+        # use class methods to check dimensions of the cylinder
+        # note that we assume that only the z_right is scalable
+        r_check = self.r_right (self.single1, self.single2, self.r0, half_length*2 - radius1)
+        hl2_check = self.z_right (self.single1, self.single2, self.r0, radius) + \
+                    self.z_left  (self.single1, self.single2, self.r0, radius)
+        if r_check > radius:
+            # radius should have been larger, adjust z_right instead
+            if __debug__:
+                log.debug('MixedPair: half_length was too high for radius:'
+                          'radius = %.3g, r_check = %.3g, 2half_length = %.3g, 2hl_check = %.3g' %
+                          (radius, r_check, half_length*2, hl2_check))
+
+            half_length = hl2_check/2
+
+        elif hl2_check > (half_length*2):
+            # half_length should have been larger, adjust radius instead
+            if __debug__:
+                log.debug('MixedPair: radius was too high for half_length:'
+                          'radius = %.3g, r_check = %.3g, 2half_length = %.3g, 2hl_check = %.3g' %
+                          (radius, r_check, half_length*2, hl2_check))
+            radius = r_check
+        else:
+            # dimensions were ok
+            pass
+
         D1 = self.pid_particle_pair1[1].D
         D2 = self.pid_particle_pair2[1].D
         D12 = D1 + D2
@@ -1167,13 +1196,13 @@ class MixedPair(Pair):
         return rho
     sigma = property (get_sigma)
 
-    def com_greensfunction(self):
+    def com_greens_function(self):
         # diffusion of the CoM of a mixed pair is only two dimensional
         return GreensFunction2DAbsSym(self.D_R, self.a_R)
 
-    def iv_greensfunction(self):
+    def iv_greens_function(self, r0):
         # diffusion of the interparticle vector is three dimensional
-        return GreensFunction3DRadAbs(self.D_r, self.interparticle_ktot, self.r0,
+        return GreensFunction3DRadAbs(self.D_r, self.interparticle_ktot, r0,
                                       self.sigma, self.a_r)
 
     def create_new_shell(self, position, radius, half_length, orientation_vector, domain_id):
