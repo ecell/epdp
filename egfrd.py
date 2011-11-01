@@ -445,7 +445,9 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
         return interaction
 
-    def create_pair(self, single1, single2, shell_center, shell_radius, r0):
+    def create_pair(self, single1, single2, shell_center, shell_radius, r0, shell_half_length=0,
+                    shell_orientation_vector=None):
+
         assert single1.dt == 0.0
         assert single2.dt == 0.0
 
@@ -473,9 +475,11 @@ class EGFRDSimulator(ParticleSimulatorBase):
             # Either SphericalPair, PlanarSurfacePair, or 
             # CylindricalSurfacePair.
             pair = create_default_pair(domain_id, single1, single2, shell_id, shell_center,
-                                       shell_radius, r0, rrs, structure)
+                                       shell_radius, r0, rrs, structure1)
         else:
             # MixedPair (3D/2D)
+            assert shell_orientation_vector != None
+            assert shell_half_length != 0
             pair = MixedPair(domain_id, single1, single2, shell_id, shell_center, shell_radius,
                              shell_half_length, shell_orientation_vector, r0, rrs)
 
