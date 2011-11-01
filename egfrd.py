@@ -1238,24 +1238,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
         assert single1.structure == single2.structure
 
         # 0. Get some necessary information
-        pos1 = single1.pid_particle_pair[1].position
-        pos2 = single2.pid_particle_pair[1].position
-
-        radius1 = single1.pid_particle_pair[1].radius
-        radius2 = single2.pid_particle_pair[1].radius
-        sigma = radius1 + radius2
-
-#        r0 = self.world.distance(pos1, pos2)
-
-#        D1 = single1.pid_particle_pair[1].D
-#        D2 = single2.pid_particle_pair[1].D
-#        D12 = D1 + D2
-
-#        com = self.world.calculate_pair_CoM(pos1, pos2, D1, D2)
-#        com = self.world.apply_boundary(com)
         com, iv = SimplePair.do_transform(single1, single2, self.world)
         r0 = length (iv)
-        distance_from_sigma = r0 - sigma        # the distance between the surfaces of the particles
 
         # 1. Get the minimal possible shell size (including margin?)
         min_shell_size = SimplePair.get_min_shell_size(single1, single2, self.geometrycontainer)
@@ -1265,6 +1249,10 @@ class EGFRDSimulator(ParticleSimulatorBase):
                                                        self.geometrycontainer, self.domains)
 
         # 3. Calculate the maximum based on some other criterium (convergence?)
+        radius1 = single1.pid_particle_pair[1].radius
+        radius2 = single2.pid_particle_pair[1].radius
+        sigma = radius1 + radius2
+        distance_from_sigma = r0 - sigma        # the distance between the surfaces of the particles
 #        convergence_max = distance_from_sigma * 100 + sigma + shell_size_margin                # FIXME
 #       max_shell_size = min(max_shell_size, convergence_max)
 
@@ -1281,7 +1269,12 @@ class EGFRDSimulator(ParticleSimulatorBase):
                            FORMAT_DOUBLE % max_shell_size))
             return None, None, None
 
-        # 5. Calculate the 'ideal' shell size
+        # 5. Calculate the 'ideal' shell size, it matches the expected first-passage time of the closest particle
+        # with the expected time of the particles in the pair.
+#        D1 = single1.pid_particle_pair[1].D
+#        D2 = single2.pid_particle_pair[1].D
+#        D12 = D1 + D2
+#
 #        D_closest = closest.pid_particle_pair[1].D
 #        D_tot = D_closest + D12
 #        ideal_shell_size = min((D12 / D_tot) *
@@ -1293,6 +1286,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
         # 6. Check if singles would not be better.
         # TODO clear this up -> strange rule
+        pos1 = single1.pid_particle_pair[1].position
+        pos2 = single2.pid_particle_pair[1].position
         d1 = self.world.distance(com, pos1)
         d2 = self.world.distance(com, pos2)
 
@@ -1312,7 +1307,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
         assert shell_size <= max_shell_size
 
         if __debug__:
-            log.info('SimplePair shell made. shell_size=%s, '
+            log.info('SimplePair shell can be made. shell_size=%s, '
                      'closest_shell_distance=%s,\nclosest = %s' %
                      (FORMAT_DOUBLE % shell_size, FORMAT_DOUBLE % 0, None))
 
