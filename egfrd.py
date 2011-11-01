@@ -56,8 +56,8 @@ def create_default_single(domain_id, pid_particle_pair, shell_id, rt, structure)
                                    shell_id, rt, structure)
 
 
-def create_default_pair(domain_id, com, single1, single2, shell_id, 
-                        r0, shell_size, rrs, structure):
+def create_default_pair(domain_id, single1, single2, shell_id, com,
+                        shell_size, r0, rrs, structure):
     if isinstance(structure, CuboidalRegion):
         return SphericalPair(domain_id, com, single1, single2,
                              shell_id, r0, shell_size, rrs, structure)
@@ -445,7 +445,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
         return interaction
 
-    def create_pair(self, single1, single2, com, r0, shell_size):
+    def create_pair(self, single1, single2, shell_center, shell_radius, r0):
         assert single1.dt == 0.0
         assert single2.dt == 0.0
 
@@ -463,15 +463,22 @@ class EGFRDSimulator(ParticleSimulatorBase):
         # Get structure (region or surface) where particle1 lives (assuming particle2
         # also lives here -> TODO).
         species1 = self.world.get_species(pid_particle_pair1[1].sid)
-        structure = self.world.get_structure(species1.structure_id)
-
+        species2 = self.world.get_species(pid_particle_pair2[1].sid)
+        structure1 = self.world.get_structure(species1.structure_id)
+        structure2 = self.world.get_structure(species2.structure_id)
 
         # 2. Create pair. The type of the pair that will be created depends
         # on the structure (region or surface) the particles are in/on.  
-        # Either SphericalPair, PlanarSurfacePair, or 
-        # CylindricalSurfacePair.
-        pair = create_default_pair(domain_id, com, single1, single2, shell_id, 
-                                   r0, shell_size, rrs, structure)
+        if structure1 == structure2:
+            # Either SphericalPair, PlanarSurfacePair, or 
+            # CylindricalSurfacePair.
+            pair = create_default_pair(domain_id, single1, single2, shell_id, shell_center,
+                                       shell_radius, r0, rrs, structure)
+        else:
+            # MixedPair (3D/2D)
+            pair = MixedPair(domain_id, single1, single2, shell_id, shell_center, shell_radius,
+                             shell_half_length, shell_orientation_vector, r0, rrs)
+
 
         assert isinstance(pair, Pair)
         pair.initialize(self.t)
@@ -1961,7 +1968,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
         if shell_size:
             # A shell could be made and makes sense. Create a Pair
-            pair = self.create_pair(single1, single2, center, r0, shell_size)
+            pair = self.create_pair(single1, single2, center, shell_size, r0)
 
             pair.dt, pair.event_type, pair.reactingsingle = \
             pair.determine_next_event(r0)
