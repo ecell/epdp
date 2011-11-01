@@ -1319,10 +1319,10 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
 
         # 1. Get the minimal possible shell size (including margin?)
-        r_min, z_left_min, z_right_min = SimplePair.get_min_shell_size(single1, single2, self.geometrycontainer)
+        r_min, z_left_min, z_right_min = MixedPair.get_min_shell_dimensions(single2D, single3D, self.geometrycontainer)
 
         # 2. Get the maximum possible shell size
-        r, z_left, z_right = SimplePair.get_max_shell_size(single1, single2, self.geometrycontainer, self.domains)
+        r, z_left, z_right = MixedPair.get_max_shell_dimensions(single2D, single3D, self.geometrycontainer, self.domains)
 
         # Decide if MixedPair domain is possible.
         if r < r_min or z_left < z_left_min or z_right < z_right_min:
@@ -1994,25 +1994,26 @@ class EGFRDSimulator(ParticleSimulatorBase):
         if single1.structure == single2.structure:
             # particles are on the same structure
 
-            if __debug__:
-                log.debug('Simple pair')
-
             center, r0, shell_size = self.calculate_simplepair_shell_size (single1, single2)
             if shell_size:
                 # A shell could be made and makes sense. Create a Pair
                 pair = self.create_pair(single1, single2, center, shell_size, r0)
+                if __debug__:
+                    log.debug('Simple pair: %s, shell_size = %.3g, r0 = %.3g' %
+                              (pair, shell_size, r0))
+
             else:
                 pair = None
 
-        elif isinstance(single1.structure, PlanarSurface) and isinstance(single2.structure, CuboidalRegion) ^ \
-             isinstance(single2.structure, PlanarSurface) and isinstance(single1.structure, CuboidalRegion):
+        elif (isinstance(single1.structure, PlanarSurface) and isinstance(single2.structure, CuboidalRegion)) ^ \
+             (isinstance(single2.structure, PlanarSurface) and isinstance(single1.structure, CuboidalRegion)):
             # one particle in 2D, the other in 3D
 
             if __debug__:
                 log.debug('Mixed pair')
 
             # make sure that we know which single is on what structure
-            if isinstance (structure1, PlanarSurface):
+            if isinstance (single1.structure, PlanarSurface):
                 single2D = single1
                 single3D = single2
             else:
@@ -2025,6 +2026,10 @@ class EGFRDSimulator(ParticleSimulatorBase):
             if shell_radius:
                 pair = self.create_pair(single2D, single3D, center, shell_radius, r0,
                                         shell_half_length, shell_orientation_vector)
+                if __debug__:
+                    log.debug('Mixed pair: %s, shell_radius = %.3g, shell_half_length = %.3g, r0 = %.3g' %
+                              (pair, shell_radius, shell_half_length, r0))
+
             else:
                 pair = None
 
@@ -2057,9 +2062,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
             self.add_domain_event(pair)
 
             if __debug__:
-                log.info('%s,\ndt=%s, r0=%s, shell_size=%s, ' %
-                         (pair, FORMAT_DOUBLE % pair.dt, FORMAT_DOUBLE % r0, 
-                          FORMAT_DOUBLE % shell_size)) 
+                log.info('dt=%s' % (FORMAT_DOUBLE % pair.dt)) 
 
             return pair
         else:
