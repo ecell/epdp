@@ -1999,7 +1999,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
                 # A shell could be made and makes sense. Create a Pair
                 pair = self.create_pair(single1, single2, center, shell_size, r0)
                 if __debug__:
-                    log.debug('Simple pair: %s, shell_size = %.3g, r0 = %.3g' %
+                    log.debug('Created: %s, shell_size = %.3g, r0 = %.3g' %
                               (pair, shell_size, r0))
 
             else:
@@ -2027,7 +2027,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
                 pair = self.create_pair(single2D, single3D, center, shell_radius, r0,
                                         shell_half_length, shell_orientation_vector)
                 if __debug__:
-                    log.debug('Mixed pair: %s, shell_radius = %.3g, shell_half_length = %.3g, r0 = %.3g' %
+                    log.debug('Created: %s, shell_radius = %.3g, shell_half_length = %.3g, r0 = %.3g' %
                               (pair, shell_radius, shell_half_length, r0))
 
             else:
