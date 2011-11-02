@@ -827,9 +827,13 @@ class MixedPair(Pair):
     def laurens_algorithm(cls, single1, single2, r0, shell_position, shell_size, reference_point,
                           orientation_vector, r, z_left, z_right, world):
 
+        D1 = single1.pid_particle_pair[1].D
+        D2 = single2.pid_particle_pair[1].D
+
+
         # determine on what side the midpoint of the shell is relative to the reference_point
         shell_position_t = world.cyclic_transpose (shell_position, reference_point)
-        direction = math.dot(shell_position_t - reference_point, orientation_vector)
+        direction = numpy.dot(shell_position_t - reference_point, orientation_vector)
 
         # if the shell is on the side of orientation_vector -> use z_right
         # also use this one if the shell is in plane with the reference_point
@@ -841,6 +845,8 @@ class MixedPair(Pair):
             z2_function = cls.z_left
             z1 = z_right
             z2 = z_left
+            direction = 1           # improve direction specification such that following calculations still work
+                                    # Otherwise problems when direction = 0
         # else -> use z_left
         else:
             phi = cls.calc_left_scalingangle(D1, D2)
@@ -850,6 +856,7 @@ class MixedPair(Pair):
             z2_function = cls.z_right
             z1 = z_left
             z2 = z_right
+            direction = -1
 
         # calculate the center from which linear scaling will take place
         # TODO this should be generalized to accomodate scaling in just z
@@ -859,19 +866,18 @@ class MixedPair(Pair):
         else:                   # we introduce an r0
             scalecenter_r0 = 0
         # TODO check this
-        scale_center = scale_center_h0 * (direction/abs(direction)) * orientation_vector
+        scale_center = scalecenter_h0 * direction * orientation_vector
 
         # calculate the vector from the scale center to the center of the shell
         shell_position_t = world.cyclic_transpose (shell_position, scale_center)
         shell_scale_center = shell_position_t - scale_center
-        shell_scalecenter_z = math.dot( shell_scale_center, orientation_vector * (direction/abs(direction)) )
-        shell_scalecenter_r = shell_scale_center - shell_scalecenter_z
+        shell_scalecenter_z = numpy.dot( shell_scale_center, orientation_vector * direction )
+        shell_scalecenter_r = length(shell_scale_center - shell_scalecenter_z)
         # calculate the angle theta of the vector from the scale center to the shell with the vector
         # to the scale center (which is +- the orientation_vector)
         theta = vector_angle (shell_scale_center, scale_center)
 
         psi = theta - phi
-
 
         ### check what situation arrises
         # The shell can hit the cylinder on the flat side (situation 1),
@@ -910,12 +916,13 @@ class MixedPair(Pair):
 
         else:
         # Don't know how we would get here, but it shouldn't happen
-            raise RuntimeError('psi was not in valid range')
+            raise RuntimeError('Error: psi was not in valid range. psi = %s, phi = %s, theta = %s' %
+                               (FORMAT_DOUBLE % psi, FORMAT_DOUBLE % phi, FORMAT_DOUBLE % theta))
 
 
         ### Get the right values for z and r for the given situation
         if situation == 1:      # shell hits on the flat side
-            z1_new = min(z1, shell_scalecenter_z + scalecenter_h0 - a_shell)
+            z1_new = min(z1, shell_scalecenter_z + scalecenter_h0 - shell_size)
             r_new  = min(r,  r1_function(single1, single2, r0, z1_new))
             z2_new = min(z2, z2_function(single1, single2, r0, r_new))
 
@@ -938,7 +945,7 @@ class MixedPair(Pair):
                 z2_new = min(z2, z2_function(single1, single2, r0, r_new))
 
         elif situation == 3:    # shell hits on the round side
-            r_new = min(r, shell_scalecenter_r - a_shell)
+            r_new = min(r, shell_scalecenter_r - shell_size)
             z1_new = min(z1, z1_function(single1, single2, r0, r_new))
             z2_new = min(z2, z2_function(single1, single2, r0, r_new))
         else:
