@@ -129,7 +129,7 @@ class Pair(ProtectiveDomain):
         # If the two particles have reacted this returns the
         # new position twice
         # The positions are relative to the center of the shell
-        new_com = self.shell.shape.position + self.draw_new_com(dt, event_type)
+        new_com = self.com + self.draw_new_com(dt, event_type)
 
         if event_type == EventType.IV_REACTION:
             newpos1 = new_com
