@@ -1047,6 +1047,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
                 newpos = single.draw_new_position(single.dt, single.event_type)
                 newpos = self.world.apply_boundary(newpos)
             else:
+                # no change in position has taken place
                 newpos = pid_particle_pair[1].position
 
             # newpos now hold the new position of the particle (not yet committed to the world)
@@ -1382,12 +1383,17 @@ class EGFRDSimulator(ParticleSimulatorBase):
         pid_particle_pair1 = pair.pid_particle_pair1
         pid_particle_pair2 = pair.pid_particle_pair2
 
-        pos1 = pid_particle_pair1[1].position
-        pos2 = pid_particle_pair2[1].position
-        pos2t = self.world.cyclic_transpose(pos2, pos1)
-        old_iv = pos2t - pos1
-        r0 = length (old_iv)
-        
+#        pos1 = pid_particle_pair1[1].position
+#        pos2 = pid_particle_pair2[1].position
+#        pos2t = self.world.cyclic_transpose(pos2, pos1)
+#        old_iv = pos2t - pos1
+#        r0 = length (old_iv)
+#        
+#        old_com = pair.com
+
+        old_com, old_iv = pair.do_transform(single1, single2, self.world)
+        r0 = length(old_iv)
+
         if pair.event_type == EventType.IV_EVENT:
             # Draw actual pair event for iv at very last minute.
             pair.event_type = pair.draw_iv_event_type(r0)
@@ -1398,9 +1404,6 @@ class EGFRDSimulator(ParticleSimulatorBase):
             log.info('FIRE PAIR: %s' % pair.event_type)
             log.info('single1 = %s' % pair.single1)
             log.info('single2 = %s' % pair.single2)
-
-
-        old_com = pair.com
 
         # Four cases:
         #  1. Single reaction
@@ -1482,6 +1485,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
                     if self.world.check_overlap((new_com, product_species.radius),
                                                 pid_particle_pair1[0],
                                                 pid_particle_pair2[0]):
+                        # TODO NoSpace no longer exists, make sure that reactant particles are properly placed
                         if __debug__:
                             log.info('no space for product particle.')
                         raise NoSpace()
@@ -1640,15 +1644,18 @@ class EGFRDSimulator(ParticleSimulatorBase):
 #            D1 = pid_particle_pair1[1].D
 #            D2 = pid_particle_pair2[1].D
 
-            # store for later check
-            old_com = pair.com
+            old_com, old_inter_particle = pair.do_transform (pair.single1, pair.single2, self.world)
+            r0 = length(old_inter_particle)
 
 
-            # TODO this should be done when the pair is made -> passed to the constructor
-            pos2t = self.world.cyclic_transpose(pos2, pos1)
-            old_inter_particle = pos2t - pos1
-            r0 = self.world.distance(pos1, pos2)
-            assert feq(r0, length(old_inter_particle))
+#            # store for later check
+#            old_com = pair.com
+#
+#            # TODO this should be done when the pair is made -> passed to the constructor
+#            pos2t = self.world.cyclic_transpose(pos2, pos1)
+#            old_inter_particle = pos2t - pos1
+#            r0 = self.world.distance(pos1, pos2)
+#            assert feq(r0, length(old_inter_particle))
 
             # draw the new positions of the particles
             newpos1, newpos2 = pair.draw_new_positions(pair.dt, r0, old_inter_particle, 
@@ -1663,8 +1670,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
                                                 pid_particle_pair1[0], pid_particle_pair2[0])
 
             # some more consistency checking of the positions
-            assert self.check_pair_pos(pair, newpos1, newpos2, old_com,
-                                       pair.get_shell_size())
+#            assert self.check_pair_pos(pair, newpos1, newpos2, old_com,
+#                                       pair.get_shell_size())
 
         else:
         # no time has passed
@@ -1701,18 +1708,20 @@ class EGFRDSimulator(ParticleSimulatorBase):
         self.domains[single1.domain_id] = single1
         self.domains[single2.domain_id] = single2
 
-        # Thoroughly check the sizes of the shells of the singles
+        # Check the dimensions of the shells of the singles with the shell in the container
         if __debug__:
-            container = self.geometrycontainer.get_container(single1.shell)
-            assert container[single1.shell_id].shape.radius == \
+            container1 = self.geometrycontainer.get_container(single1.shell)
+            assert container1[single1.shell_id].shape.radius == \
                    single1.shell.shape.radius
-            assert container[single2.shell_id].shape.radius == \
-                   single2.shell.shape.radius
-
             if type(single1.shell) is CylindricalShell:
-                assert container[single1.shell_id].shape.half_length == \
+                assert container1[single1.shell_id].shape.half_length == \
                        single1.shell.shape.half_length
-                assert container[single2.shell_id].shape.half_length == \
+
+            container2 = self.geometrycontainer.get_container(single2.shell)
+            assert container2[single2.shell_id].shape.radius == \
+                   single2.shell.shape.radius
+            if type(single2.shell) is CylindricalShell:
+                assert container2[single2.shell_id].shape.half_length == \
                        single2.shell.shape.half_length
 
         assert single1.shell.shape.radius == pid_particle_pair1[1].radius
