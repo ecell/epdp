@@ -126,17 +126,17 @@ class Pair(ProtectiveDomain):
         inter-particle vector.
 
         """
-        # If the two particles have reacted this returns the
-        # new position twice
-        # The positions are relative to the center of the shell
-        new_com = self.com + self.draw_new_com(dt, event_type)
+#        # If the two particles have reacted this returns the
+#        # new position twice
+#        # The positions are relative to the center of the shell
+        new_com = self.draw_new_com(dt, event_type)
 
-        if event_type == EventType.IV_REACTION:
-            newpos1 = new_com
-            newpos2 = new_com
-        else:
-            new_iv = self.draw_new_iv(dt, r0, old_iv, event_type)
-            newpos1, newpos2 = self.do_back_transform(new_com, new_iv)
+#        if event_type == EventType.IV_REACTION:
+#            newpos1 = new_com
+#            newpos2 = new_com
+#        else:
+        new_iv = self.draw_new_iv(dt, r0, old_iv, event_type)
+        newpos1, newpos2 = self.do_back_transform(new_com, new_iv)
 
         return newpos1, newpos2
 
@@ -148,7 +148,7 @@ class Pair(ProtectiveDomain):
             gf = self.com_greens_function()
             r = draw_r_wrapper(gf, dt, self.a_R)
 
-        return self.create_com_vector(r)
+        return self.com + self.create_com_vector(r)
 
         # Add displacement to old CoM. This assumes (correctly) that 
         # r0=0 for the CoM. Compare this to 1D singles, where r0 is not  
