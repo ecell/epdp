@@ -1046,8 +1046,8 @@ class MixedPair(Pair):
     ################
 
     def __init__(self, domain_id, single1, single2, shell_id, shell_center, shell_radius,
-                 shell_half_length, shell_orientation_vector, 
-                 r0, rrs):
+                 shell_half_length, shell_orientation_vector, r0, rrs):
+
         Pair.__init__(self, domain_id, single1, single2, shell_id, r0, rrs)
 
         self.surface = single1.structure    # the surface on which particle1 lives
@@ -1177,12 +1177,12 @@ class MixedPair(Pair):
         # get the coordinates of the iv relative to the system of the surface (or actually the shell)
         iv_x = self.surface.shape.unit_x * numpy.dot(iv, self.surface.shape.unit_x)
         iv_y = self.surface.shape.unit_y * numpy.dot(iv, self.surface.shape.unit_y)
-        iv_z = self.shell.shape.unit_z * numpy.dot(iv, self.shell.shape.unit_z)
+        iv_z = self.shell.shape.unit_z * abs(numpy.dot(iv, self.shell.shape.unit_z))
 
         # reflect the coordinates in the unit_z direction back to the side of the membrane
         # where the domain is. Note that it's implied that the origin of the coordinate system lies in the
         # plane of the membrane
-        iv_z = abs(iv_z)
+#        iv_z = abs(iv_z)
 
         pos1 = com - weight1 * (iv_x + iv_y)
         pos2 = com + weight2 * (iv_x + iv_y) + \
@@ -1203,6 +1203,9 @@ class MixedPair(Pair):
         return rho
     sigma = property (get_sigma)
 
+    def choose_pair_greens_function(self, r0, t):
+        return self.iv_greens_function(r0)
+
     def com_greens_function(self):
         # diffusion of the CoM of a mixed pair is only two dimensional
         return GreensFunction2DAbsSym(self.D_R, self.a_R)
@@ -1218,6 +1221,9 @@ class MixedPair(Pair):
         # assert that orientation_vector is on same line as surface.shape.unit_z
         return CylindricalShell(domain_id, Cylinder(position, radius, orientation_vector,
                                                     half_length))
+
+    def get_shell_size(self):
+        return self.shell.shape.radius
 
     def create_com_vector(self, r):
         x, y = random_vector2D(r)
