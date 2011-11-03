@@ -1441,8 +1441,12 @@ class EGFRDSimulator(ParticleSimulatorBase):
         elif pair.event_type == EventType.IV_REACTION:
 
             # calculate new position
-            new_com, _ = pair.draw_new_positions(pair.dt, r0, old_iv, pair.event_type)
-            new_com = self.world.apply_boundary(new_com)
+            reactant1_pos, reactant2_pos = pair.draw_new_positions(pair.dt, r0, old_iv, pair.event_type)
+            reactant1_pos = self.world.apply_boundary(reactant1_pos)
+            reactant2_pos = self.world.apply_boundary(reactant2_pos)
+
+            product_pos = pair.draw_new_com (pair.dt, pair.event_type)
+            product_pos = self.world.apply_boundary(product_pos)
 
             # TODO make this a fire_pair_reaction method
 
@@ -1474,15 +1478,15 @@ class EGFRDSimulator(ParticleSimulatorBase):
                 product_species = self.world.get_species(rr.products[0])
 
                 # 1.5 no change in position due to reaction
-                # position = new_com
+                # position = product_pos
 
                 # 2.  make space for products
                 # 2.1 if the product particle sticks out of the shell
-                if self.world.distance(old_com, new_com) > (pair.get_shell_size() - product_species.radius):
-                    self.burst_volume(new_com, product_species.radius)
+                if self.world.distance(old_com, product_pos) > (pair.get_shell_size() - product_species.radius):
+                    self.burst_volume(product_pos, product_species.radius)
 
                     # 3. check that there is space for the products ignoring the reactants
-                    if self.world.check_overlap((new_com, product_species.radius),
+                    if self.world.check_overlap((product_pos, product_species.radius),
                                                 pid_particle_pair1[0],
                                                 pid_particle_pair2[0]):
                         # TODO NoSpace no longer exists, make sure that reactant particles are properly placed
@@ -1493,7 +1497,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
                 # 4. process the changes (remove particle, make new ones)
                 self.world.remove_particle(pid_particle_pair1[0])
                 self.world.remove_particle(pid_particle_pair2[0])
-                particle = self.world.new_particle(product_species.id, new_com)
+                particle = self.world.new_particle(product_species.id, product_pos)
                 products = [particle, ]
 
                 # 5. make a new single and schedule
