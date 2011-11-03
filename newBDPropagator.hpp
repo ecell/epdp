@@ -181,7 +181,7 @@ public:
         {        
             boost::shared_ptr<structure_type> const closest_surf( tx_.get_structure(struct_id_distance_pair.first) );
             
-            accumulated_prob += k_tot( pp.second.sid(), closest_surf->sid() ) * dt_ / 
+            accumulated_prob += k_total( pp.second.sid(), closest_surf->sid() ) * dt_ / 
                 closest_surf->surface_reaction_volume( r0, reaction_length_ );
         
             if(accumulated_prob >= 1.)
@@ -236,7 +236,7 @@ public:
             
             boost::shared_ptr<structure_type> s1_struct( tx_.get_structure( s1.structure_id()) );
             const Real reaction_volume( s1_struct->particle_reaction_volume( s0.radius() + s1.radius(), reaction_length_ ) );
-            accumulated_prob += k_tot(s0.id(), s1.id() ) * dt_ / ( 2 * reaction_volume ); 
+            accumulated_prob += k_total(s0.id(), s1.id()) * dt_ / ( 2. * reaction_volume ); 
             
             if (accumulated_prob >= 1.)
             {
@@ -445,9 +445,7 @@ private:
                                 length_type core_surface_distance( struct_id_distance_pair.second - s0.radius() );
                                     
                                 if( core_surface_distance < 0 )
-                                {
                                     surface_overlap = true;
-                                }
                                     
                                 struct_id_distance_pair = tx_.get_closest_surface( pp01.second );
                                 core_surface_distance = struct_id_distance_pair.second - s1.radius();
@@ -495,8 +493,8 @@ private:
         return false;
     }
         
-    /* Function returns the accumulated intrinsic reaction rate. */
-    Real k_tot(species_id_type const& s0_id, species_id_type const& s1_id)
+    /* Function returns the accumulated intrinsic reaction rate between to species. */
+    Real k_total(species_id_type const& s0_id, species_id_type const& s1_id)
     {   
         reaction_rules const& rules(rules_.query_reaction_rule(s0_id, s1_id));
         if (::size(rules) == 0)
@@ -526,7 +524,7 @@ private:
         
         boost::shared_ptr<structure_type> s1_struct( tx_.get_structure( s1.structure_id() ) );
         
-        const Real k_tot( k_tot(s0.sid(), s1.sid()) );
+        const Real k_tot( k_total(pp0.second.sid(), pp1.second.sid()) );
         const Real rnd( k_tot * rng_() );
         Real prob = 0;    
         
@@ -621,17 +619,15 @@ private:
     }
 
         
-    bool fire_interaction(particle_id_pair const& pp, boost::shared_ptr<structure_type> const& structure)
+    bool fire_interaction(particle_id_pair const& pp, boost::shared_ptr<structure_type> const& surface)
     {
-        reaction_rules const& rules(rules_.query_reaction_rule(pp.second.sid(), structure->sid() ));
+        reaction_rules const& rules(rules_.query_reaction_rule(pp.second.sid(), surface->sid() ));
         if (::size(rules) == 0)
             throw propagation_error("trying to fire an interaction with a non-interactive surface");
         
         const species_type s0(tx_.get_species(pp.second.sid()));
-        
-        boost::shared_ptr<structure_type> pp_structure( tx_.get_structure( s0.structure_id() ) ); 
-        
-        const Real k_tot( k_tot(s0.sid(), s1.sid()) );
+                
+        const Real k_tot( k_total(pp.second.sid(), surface->sid()) );
         const Real rnd( k_tot * rng_() );
         Real prob = 0;  
 
@@ -653,7 +649,7 @@ private:
                         const species_id_type product(products[0]);
                         const species_type sp(tx_.get_species(product));
 
-                        const position_type new_pos( tx_.apply_boundary( structure->projected_point( pp.second.position() ).first ) );
+                        const position_type new_pos( tx_.apply_boundary( surface->projected_point( pp.second.position() ).first ) );
                             
                         boost::scoped_ptr<particle_id_pair_and_distance_list> overlapped(
                             tx_.check_overlap(particle_shape_type(new_pos, sp.radius()),

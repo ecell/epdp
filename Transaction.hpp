@@ -170,7 +170,7 @@ public:
         
     virtual structure_id_and_distance_pair get_closest_surface(position_type const& pos) const
     {
-        return structure_id_and_distance_pair();
+        return pc_.get_closest_surface( pos );
     }
 
     virtual species_type const& get_species(species_id_type const& id) const

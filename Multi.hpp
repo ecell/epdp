@@ -244,6 +244,7 @@ public:
     typedef std::map<shell_id_type, spherical_shell_type> spherical_shell_map;
     typedef sized_iterator_range<typename spherical_shell_map::const_iterator> spherical_shell_id_pair_range;
     typedef MultiParticleContainer<traits_type> multi_particle_container_type;
+    typedef typename traits_type::world_type world_type;
 
     enum event_kind
     {
@@ -325,6 +326,7 @@ public:
           shells_(), last_event_(NONE)
     {
         BOOST_ASSERT(dt_factor > 0.);
+        //TODO: dt calc. should only depend on particles in the multi. 
         base_type::dt_ = dt_factor_ * BDSimulator<traits_type>::determine_dt(*main_.world());
     }
 
@@ -425,6 +427,25 @@ public:
     get_particles_range() const
     {
         return pc_.get_particles_range();
+    }
+    
+    static Real determine_dt(world_type const& world)
+    {
+        Real D_max(0.), radius_min(std::numeric_limits<Real>::max());
+
+        BOOST_FOREACH(particle_id_pair pp, get_particles_range() )
+        {       
+            
+        }
+        
+        BOOST_FOREACH(species_type s, world.get_species())
+        {
+            if (D_max < s.D())
+                D_max = s.D();
+            if (radius_min > s.radius())
+                radius_min = s.radius();
+        }
+        return gsl_pow_2(radius_min * 2) / (D_max * 2);
     }
 
     void step()

@@ -77,7 +77,7 @@ public:
 
     virtual Real particle_reaction_volume( length_type const& r01, length_type const& rl ) const
     {
-        return 2*rl;
+        return rl;
     }
 
     virtual Real surface_reaction_volume( length_type const& r0, length_type const& rl ) const
@@ -144,7 +144,7 @@ public:
         length_type const diss_vec_length( cbrt( X * (r01l_cb - r01_cb) + r01_cb ) );
         
         position_type v;
-        v[0] = 1; v[1] = 1; v[2] = 1;
+        v[0] = 1.; v[1] = 1.; v[2] = 1.;
         
         position_type const unit_z( base_type::shape().unit_z() );      
         position_type const unit_x( normalize( subtract( v, 

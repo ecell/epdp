@@ -29,6 +29,7 @@ public:
     typedef typename traits_type::time_type time_type;  
     typedef typename traits_type::network_rules_type network_rules_type;
     typedef typename traits_type::reaction_rule_type reaction_rule_type;
+    typedef typename network_rules_type::reaction_rules reaction_rules;
     typedef typename traits_type::rate_type rate_type;
     typedef typename traits_type::reaction_record_type reaction_record_type;
     typedef typename traits_type::reaction_recorder_type reaction_recorder_type;
@@ -50,7 +51,7 @@ public:
           reaction_length_factor_(reaction_length_factor)
     {
         calculate_dt();
-        reaction_length_ = determine_reaction_length( *world, base_type::dt_, reaction_length_factor_ );
+        reaction_length_ = determine_reaction_length( *world, base_type::dt_, reaction_length_factor_, *base_type::network_rules_);
         bound_time = 0;
     }
 
@@ -100,8 +101,30 @@ public:
         return gsl_pow_2(radius_min * 2) / (D_max * 2);
     }
     
-    static length_type determine_reaction_length(world_type const& world, time_type dt, length_type const& reaction_length_factor)
+    static length_type determine_reaction_length(world_type const& world, time_type dt, length_type const& reaction_length_factor,
+        network_rules_type const& rules)
     {
+        Real k_max(0.);
+
+        BOOST_FOREACH(species_type s0, world.get_species())
+        {
+            BOOST_FOREACH(species_type s1, world.get_species())
+            {
+                reaction_rules const& rrules(rules.query_reaction_rule( s0.id(), s1.id() ));
+                if (::size(rrules) == 0)
+                {
+                    break;
+                }
+                
+                for (typename boost::range_const_iterator<reaction_rules>::type
+                i(boost::begin(rrules)), e(boost::end(rrules)); i != e; ++i)
+                {
+                    if ( k_max < (*i).k() )
+                        k_max = (*i).k();
+                }          
+            }
+        }
+    
         return reaction_length_factor * sqrt( 2 * 1E-12 * dt );
     }
     
@@ -110,13 +133,16 @@ public:
         return reaction_length_;    
     }
     
-    double set_reaction_length_factor(length_type new_reaction_length_factor)
+    double set_reaction_length_factor(length_type new_reaction_length_factor, time_type dt)
     {
         double old_bound_time = bound_time;
         bound_time = 0;
         
+        base_type::dt_ = dt;
+        
         reaction_length_factor_ = new_reaction_length_factor;
-        reaction_length_ = determine_reaction_length( *base_type::world_, base_type::dt_, reaction_length_factor_ );
+        reaction_length_ = determine_reaction_length( *base_type::world_, base_type::dt_, reaction_length_factor_, 
+            *base_type::network_rules_ );
         return old_bound_time;        
     }
 
