@@ -66,6 +66,11 @@ public:
     {
         return random_vector( drawR_gbd(rng.uniform(0., 1.), r01, dt, D01, v ), rng );
     }
+    
+    virtual Real get_1D_rate( Real const& k, length_type const& r01) const
+    {
+        return k / (4 * M_PI * r01 * r01 );    
+    }
 
     virtual Real particle_reaction_volume( length_type const& r01, length_type const& rl ) const
     {

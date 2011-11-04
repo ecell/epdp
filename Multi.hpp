@@ -49,11 +49,16 @@ public:
 private:
     typedef std::map<structure_id_type, boost::shared_ptr<structure_type> > structure_map;
     typedef select_second<typename structure_map::value_type> surface_second_selector_type;
+    typedef std::map<species_id_type, species_type> species_map;
+    typedef select_second<typename species_map::value_type> species_second_selector_type;
 
 public:    
     typedef boost::transform_iterator<surface_second_selector_type,
             typename structure_map::const_iterator> surface_iterator;
     typedef sized_iterator_range<surface_iterator> structures_range;
+    typedef boost::transform_iterator<species_second_selector_type,
+        typename species_map::const_iterator> species_iterator;
+    typedef sized_iterator_range<species_iterator> species_range;
 
 
     virtual ~MultiParticleContainer() {}
@@ -67,7 +72,7 @@ public:
     {
         return world_.world_size();
     }
-
+    
     virtual species_type const& get_species(species_id_type const& id) const
     {
         return world_.get_species(id);
@@ -208,11 +213,31 @@ public:
                                       particles_.size());
     }
 
+    species_range get_species_in_multi() const
+    {   
+        species_map_.clear();
+     
+        BOOST_FOREACH(particle_id_pair pp, get_particles_range() )
+        {
+            typename species_map::const_iterator i(species_map_.find( pp.second.sid() ));
+            if (species_map_.end() == i)
+            {
+                species_map_[pp.second.sid()] = world_.get_species( pp.second.sid() );
+            }
+        }
+    
+        return species_range(
+            species_iterator(species_map_.begin(), species_second_selector_type()),
+            species_iterator(species_map_.end(), species_second_selector_type()),
+            species_map_.size());
+    }
+
     MultiParticleContainer(world_type& world): world_(world) {}
 
 private:
     world_type& world_;
     particle_map particles_;
+    species_map species_map_;
 };
 
 template<typename Tsim_>
@@ -232,6 +257,9 @@ public:
     typedef typename traits_type::world_type::size_type size_type;
     typedef typename traits_type::world_type::structure_type structure_type;
     typedef typename traits_type::world_type::particle_id_pair particle_id_pair;
+    typedef typename traits_type::network_rules_type network_rules_type;
+    typedef typename traits_type::reaction_rule_type reaction_rule_type;
+    typedef typename network_rules_type::reaction_rules reaction_rules;   
     typedef typename traits_type::shell_id_type shell_id_type;
     typedef typename traits_type::domain_id_type identifier_type;
     typedef typename traits_type::template shell_generator<
@@ -241,11 +269,19 @@ public:
     typedef unassignable_adapter<particle_id_pair_and_distance, get_default_impl::std::vector> particle_id_pair_and_distance_list;
     typedef typename traits_type::reaction_record_type reaction_record_type;
 
+private:
+    typedef std::map<species_id_type, species_type> species_map;
+    typedef select_second<typename species_map::value_type> species_second_selector_type;
+            
+public:
     typedef std::map<shell_id_type, spherical_shell_type> spherical_shell_map;
     typedef sized_iterator_range<typename spherical_shell_map::const_iterator> spherical_shell_id_pair_range;
     typedef MultiParticleContainer<traits_type> multi_particle_container_type;
     typedef typename traits_type::world_type world_type;
-
+    typedef boost::transform_iterator<species_second_selector_type,
+        typename species_map::const_iterator> species_iterator;
+    typedef sized_iterator_range<species_iterator> species_range;
+    
     enum event_kind
     {
         NONE,
@@ -326,7 +362,7 @@ public:
           shells_(), last_event_(NONE)
     {
         BOOST_ASSERT(dt_factor > 0.);
-        //TODO: dt calc. should only depend on particles in the multi. 
+        //TODO: dt calc. should only depend on particles in the multi. -This is a hack
         base_type::dt_ = dt_factor_ * BDSimulator<traits_type>::determine_dt(*main_.world());
     }
 
@@ -429,23 +465,102 @@ public:
         return pc_.get_particles_range();
     }
     
-    static Real determine_dt(world_type const& world)
+    /* Returns largest diffusion constant en smallest particle radius in the multi. */
+    std::pair<const Real, const Real> maxD_minsigma()
     {
         Real D_max(0.), radius_min(std::numeric_limits<Real>::max());
 
-        BOOST_FOREACH(particle_id_pair pp, get_particles_range() )
-        {       
-            
-        }
-        
-        BOOST_FOREACH(species_type s, world.get_species())
+        BOOST_FOREACH(species_type s, pc_.get_species_in_multi())
         {
             if (D_max < s.D())
                 D_max = s.D();
             if (radius_min > s.radius())
                 radius_min = s.radius();
         }
-        return gsl_pow_2(radius_min * 2) / (D_max * 2);
+        std::pair<const Real, const Real> retval(D_max, radius_min);
+        
+        return retval;
+    }
+    
+    /* Functions returns largest _1D_ intrinsic reaction rate in the multi.
+       TODO: include structures in kmax finder. */
+    Real kmax()
+    {
+        Real k_max(0.);
+        int i = 0, j= 0;
+
+        BOOST_FOREACH(species_type s0, pc_.get_species_in_multi())
+        {
+            j = 0;
+            BOOST_FOREACH(species_type s1, pc_.get_species_in_multi())
+            {
+                if( j++ < i )
+                    continue;
+                
+                reaction_rules const& rrules(main_.network_rules().query_reaction_rule( s0.id(), s1.id() ));
+                if (::size(rrules) == 0)
+                {
+                    continue;
+                }
+                                
+                for (typename boost::range_const_iterator<reaction_rules>::type
+                it(boost::begin(rrules)), e(boost::end(rrules)); it != e; ++it)
+                {
+                    const length_type r01( s0.radius() + s1.radius() );
+                    Real k;
+                    
+                    if(s0.structure_id() != s1.structure_id())
+                    {
+                        if(s0.structure_id() == "world")
+                            k = pc_.get_structure( s0.structure_id() )->get_1D_rate( (*it).k(), r01 );
+                        else
+                            k = pc_.get_structure( s1.structure_id() )->get_1D_rate( (*it).k(), r01 );
+                    }
+                    else
+                    {
+                        k = pc_.get_structure( s0.structure_id() )->get_1D_rate( (*it).k(), r01 ); 
+                    }
+                
+                    if ( k_max < k )
+                        k_max = k;
+                }          
+            }
+            i++;
+        }
+        
+        return k_max;
+    }
+    
+    /* Function returns dt for BD propegator. dt is calulated with the constraints:
+       (1) The reaction length is equal to (MULTI_SHELL_FACTOR - 1) * r_min,
+       where r_min is the radius of the smallest particle in the multi.
+       (2) The largest acceptance probability in the multi is smaller than 0.02.
+       
+       If the timestep as defined above is larger than a user defined maximum, use this maximum.
+       
+       PROBLEM: for certain parameters (large k) dt can be very small and the simulation will slow down.
+    */    
+    Real determine_dt(Real const& reaction_length_factor)
+    {
+        std::pair<const Real, const Real> maxD_minr( maxD_minsigma() );
+        const Real k_max( kmax() );
+        const Real D_max( maxD_minr.first );
+        const Real r_min( maxD_minr.second );
+        const Real Pacc_max( 0.02 ); //Reciproke of maximum value of the acceptance probability.
+        const Real tau_D( 2 * r_min * r_min / D_max );
+        Real dt;
+        
+        if( k_max > 0)
+        {
+            Real dt_temp( Pacc_max * traits_type::MULTI_SHELL_FACTOR * r_min / k_max );
+            dt = std::min( dt_temp, dt_factor_ * tau_D ); // dt_factor * tau_D is lower limit of dt.
+        }
+        else
+            dt = dt_factor_ * tau_D;
+
+        log_.info( "timestep set to %f", dt );
+
+        return dt;    
     }
 
     void step()

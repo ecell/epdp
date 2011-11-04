@@ -52,6 +52,11 @@ public:
         return position_type(); //TODO
     }
 
+    virtual Real get_1D_rate( Real const& k, length_type const& r01) const
+    {
+        return Real(); //TODO
+    }
+
     virtual Real particle_reaction_volume( length_type const& r01, length_type const& rl ) const
     {
         return Real(); //TODO

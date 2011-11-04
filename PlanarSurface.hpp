@@ -64,6 +64,11 @@ public:
         return random_vector( drawR_gbd(rng(), r01, dt, D01, v), rng ); 
     }
 
+    virtual Real get_1D_rate( Real const& k, length_type const& r01) const
+    {
+        return k / (2 * M_PI * r01);    
+    }
+
     virtual Real particle_reaction_volume( length_type const& r01, length_type const& rl ) const
     {
         length_type r01l( r01 + rl );
@@ -75,6 +80,7 @@ public:
     
     virtual Real surface_reaction_volume( length_type const& r0, length_type const& rl ) const
     {
+        //factor 2 because surface has two possible reaction sides due to cyclic BCn.
         return 2*rl;
     }
     

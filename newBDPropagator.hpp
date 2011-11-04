@@ -198,8 +198,6 @@ public:
                     LOG_DEBUG(("fire surface interaction"));
                     if(fire_interaction(pp, closest_surf ))
                         return true;
-                    else
-                        std::cerr << "zou niet moeten gebeuren (surf)" << std::endl;
                 }   
                 catch (propagation_error const& reason)
                 {
@@ -228,8 +226,10 @@ public:
             if(s0.structure_id() != s1.structure_id())
             {
                 if( !(s0.structure_id() == "world" || s1.structure_id() == "world")  )
-                    throw not_implemented("No surface -> surface + surface - reactions allowed");
-                
+                {
+                    log_.warn("A surface particle overlapped with a particle living on a different surface. No reaction implemented.");
+                    continue;
+                }
                 if(s0.structure_id() == "world")
                     std::swap(s0,s1);
             }
@@ -252,8 +252,6 @@ public:
                 {
                     if( fire_reaction(pp, closest.first) )
                         return true;
-                    else
-                        std::cerr << "zou niet moeten gebeuren (pp)" << std::endl;
                 }
                 catch (propagation_error const& reason)
                 {
