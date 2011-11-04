@@ -47,11 +47,11 @@ print "(Seed " + str(currenttime) + ")"
 # ===============================
 logging = False
 sigma = 1e-9        # Diameter particle
-D = 1e-12           # Diffusion constant
-N = 10000             # Number of steps simulation will last
+D = 1e-13           # Diffusion constant
+N = 10000000        # Number of steps simulation will last
 world_size = 1e-6   # Lengths of simulation box
 NParticles = 50     # Number of particles in the simulation
-k = -6e-13          # Reaction constant
+k = 2e-14          # Reaction constant
 
 # VTK Logger
 # ===============================
@@ -81,9 +81,10 @@ m.add_species_type(B)
 C = model.Species('C', D, 3*sigma, 'the_plane')                                   
 m.add_species_type(C)
 # Reaction rules
-#r1 = model.create_binding_reaction_rule(A, B, C, k)
-#m.network_rules.add_reaction_rule(r1)
-
+r1 = model.create_binding_reaction_rule(A, B, C, k)
+m.network_rules.add_reaction_rule(r1)
+r1 = model.create_unbinding_reaction_rule(C, A, B, (1/10))
+m.network_rules.add_reaction_rule(r1)
 
 
 # World

@@ -404,8 +404,8 @@ class SimplePair(Pair):
 	    if __debug__:
 		log.info('domainsize changed for convergence.')
 
-        assert a_R + a_r * Da / D_tot + radius1 >= \
-               a_R + a_r * Db / D_tot + radius2
+        assert a_R + a_r * Da / D_tot + radiusa >= \
+               a_R + a_r * Db / D_tot + radiusb
 
         assert abs(a_R + a_r * Da / D_tot + radiusa - shell_size) \
             < 1e-12 * shell_size			# here the shell_size is the relevant scale

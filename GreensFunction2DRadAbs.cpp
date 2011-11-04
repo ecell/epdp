@@ -1,3 +1,12 @@
+// Greens function class for 2d Green's Function for 2d annulus with radial and
+// axial dependence. Inner boundary is radiative (rad) (reaction event), outer 
+// boundary is absorbing (abs) (escape event). Different "draw" functions 
+// provide a way to draw certain values from the Green's Function, e.g. an
+// escape angle theta ("drawTheta" function).
+// 
+// Based upon code from Riken Institute. 
+// Written by Laurens Bossen, Adapted by Martijn Wehrens. FOM Institute AMOLF.
+
 //#define NDEBUG
 //#define BOOST_DISABLE_ASSERTS
 
@@ -37,23 +46,30 @@ GreensFunction2DRadAbs( const Real D,
 				    const Real kf,
 				    const Real r0, 
 				    const Real Sigma,
-                    		    const Real a )
+                    const Real a )
     :
-    PairGreensFunction(D, kf, r0, Sigma),
-    h( kf / (D * 2.0 * M_PI * Sigma) ),
-    a( a )
+    PairGreensFunction(D, kf, r0, Sigma),   
+    h( kf / (D * 2.0 * M_PI * Sigma) ),       
+    a( a ),                                    
+    estimated_alpha_root_distance_(M_PI/(a-Sigma))                                                                                      
+    // ^ Noobnote: here parent "constructors" are specified that are executed, 
+    // also a constructor initialization list can be (and is) specified. 
+    // These variables will be set before the contents of the constructor are 
+    // called.
 {
-    // print alphaTable value at construction
     const Real sigma(this->getSigma());
 
+    // Check wether input makes sense, outer boundary a should be > inner 
+    // boundary sigma.    
     if (a < sigma)
     {
         throw std::invalid_argument((boost::format("a >= sigma : a=%.16g, sigma=%.16g") % a % sigma).str());
     }
+    
+    // Clear AlphaTables (if this is not done, things will go wrong!)
     GreensFunction2DRadAbs::clearAlphaTable();
+    
 
-    // std::clog << "[alphaoffsettable[0]=" << this->alphaOffsetTable[0] << "]"; //DEBUG *REMOVEME*
-    ; // do nothing
 }
 
 GreensFunction2DRadAbs::~GreensFunction2DRadAbs()
@@ -65,15 +81,28 @@ GreensFunction2DRadAbs::~GreensFunction2DRadAbs()
 // Alpha-related methods
 //
 
+// Resets the alpha-tables
 void GreensFunction2DRadAbs::clearAlphaTable() const
 {
-    // std::clog << "[clearing.."; // DEBUG *REMOVEME*
+    // Clears all vectors in the alphaTable
     std::for_each( this->alphaTable.begin(), this->alphaTable.end(),
 		   boost::mem_fn( &RealVector::clear ) );
+		   
+    // Sets the values in the alphaoffsetTable to {0, -1, .., -1}
     this->alphaOffsetTable[0] = 0;
     std::fill( this->alphaOffsetTable.begin()+1, this->alphaOffsetTable.end(),
 	       -1 );
-    // std::clog << " done]"; // DEBUG *REMOVEME*
+	       
+	// Sets all values of the alpha_x_scan_table_ to zero.
+    std::fill( this->alpha_x_scan_table_.begin(), 
+               this->alpha_x_scan_table_.end(),
+	           EPSILON/L_TYPICAL );
+	           
+	// Sets all values of the alpha_dx_entry_in_margin_ table to zero.
+    std::fill( this->alpha_dx_entry_in_margin_.begin(), 
+               this->alpha_dx_entry_in_margin_.end(),
+	           0 );	           
+	           
 }
 
 // The method evaluates the equation for finding the alphas for given alpha. This
@@ -101,15 +130,26 @@ GreensFunction2DRadAbs::f_alpha0( const Real alpha ) const
 }
 
 
-// completely unclear why this is a separate function
+// Wraps function of which we need to find roots alpha.
+//
+// Params contains pointer to gf object (params.gf), where f_alpha is the member
+// function of which we have to find the roots. This function is thus a mere
+// wrapper of f_alpha.  
 const Real 
 GreensFunction2DRadAbs::f_alpha0_aux_F( const Real alpha,
 						const f_alpha0_aux_params* const params )
 {
-    const GreensFunction2DRadAbs* const gf( params->gf ); 	// get the gf from the params?
+    // create pointer to Green's Function object
+    const GreensFunction2DRadAbs* const gf( params->gf ); 	
+    
     return gf->f_alpha0( alpha );
 }
 
+
+// ======================================
+// LEGACY; TODO REMOVE
+// ======================================
+/*
 // finding the ith root for the order of Bessel functions zero. Only needed for the survival probability
 // and the flux
 const Real 
@@ -129,7 +169,6 @@ GreensFunction2DRadAbs::alpha0_i( const Real previous ) const
     if (low <= 0)
     {	low = EPSILON/L_TYPICAL;	// NEW to avoid the zero and negative values for the interval
     }
-
 
     // setting up the function
     f_alpha0_aux_params params = { this, target };	// struct with the gf object and the target
@@ -157,6 +196,11 @@ GreensFunction2DRadAbs::alpha0_i( const Real previous ) const
   
     return alpha;
 }
+*/
+
+// ======================================
+// END LEGACY;
+// ======================================
 
 // calculates the value of the expression for which the roots have to be found for given order n
 // The expression is evaluated for given alpha, to check if it zero or to get the value of the expression
@@ -185,40 +229,64 @@ const Real GreensFunction2DRadAbs::f_alpha( const Real alpha,
 }
 
 
-// Finding the roots alpha
+// Wraps function of which we need to find roots alpha.
+//
+// Params contains pointer to gf object (params.gf), where f_alpha is the member
+// function of which we have to find the roots. This function is thus a mere
+// wrapper of f_alpha.  	  
 const Real 
 GreensFunction2DRadAbs::f_alpha_aux_F( const Real alpha,
-	       					const f_alpha_aux_params* const params )
+	       					const f_alpha_aux_params* const params )     					
 {
     const GreensFunction2DRadAbs* const gf( params->gf ); 
     const Integer n( params->n );
 
-    return gf->f_alpha( alpha, n );	// f_alpha is the function of which we have to find the roots
+    return gf->f_alpha( alpha, n );	// f_alpha is the function of which we have 
+                                    // to find the roots
 }
 
+// ======================================
+// LEGACY; TODO REMOVE
+// ======================================
 
+/*
 // This calculates a root based on the previous one (offset) with Bessel functions of order n
 // The roots are calculated based on the previous root which is given as an argument (offset)
 const Real 
 GreensFunction2DRadAbs::alpha_i( const Real offset, const Integer n ) const
 {
+    // # Get boundaries
     const Real sigma( this->getSigma() );
     const Real a( this->geta() );
-    const Real interval( M_PI / ( a - sigma ) );// interval is the estimated distance to the next
-						// root
+    
+    // # Calculate estimated interval and next search area
+    // .. not exactly necessary for each alpha -> move to overhead
+    const Real interval( M_PI / ( a - sigma ) );
 
-    const Real target( offset + interval );	// the target root is the previous one plus the interval
-
-    Real low ( target - (0.4 * interval ) );	// the range is calculated very easily
-    Real high( target + (0.4 * interval ) );	// We are sure that there is only one root in the interval
-						// THE 0.4 IS VERY TRICKY!! NOT SURE IF THIS WORKS FOR ALL
-						// PARAMETER SETS!!
+    Real target( offset + interval );	// the target root is the previous one plus the interval    
+        // CHANGED FROM 0.1 TO 0.4
+    Real low ( target - (0.4 * interval ) );	
+    Real high( target + (0.4 * interval ) );	    
+       
+        // To avoid the zero and negative values for the interval
     if (low <= 0)
-    {	low = EPSILON/L_TYPICAL;	// NEW to avoid the zero and negative values for the interval
-    }
+    {	low = EPSILON/L_TYPICAL;	
+    }    
 
-    f_alpha_aux_params params = { this, n, 0 };	// n is the summation index (the order of the Bessel
-						// functions used
+    // DEBUG REMOVE
+    std::cout << "Interval: " << interval << "; Offset: " << offset << ";\n";
+
+    // # Solving the root using GSL Brent root finder.
+
+        // f_alpha_aux_params is a struct: {gf, n, value}
+        // n is the summation index (the order of the Bessel functions used
+    f_alpha_aux_params params = { this, n, 0 };	
+					
+					
+	    // Reinterpret_cast converts any pointer type to any other pointer type, 
+	    // even of unrelated classes. Hence below code converts pointer 
+	    // ::f_alpha_aux_F to function pointer, which then points to memory 
+	    // location of params (&params).
     gsl_function F = 
 	{
 	    reinterpret_cast<typeof(F.function)>
@@ -226,79 +294,116 @@ GreensFunction2DRadAbs::alpha_i( const Real offset, const Integer n ) const
 	    &params 
 	};
 
-    const gsl_root_fsolver_type* solverType( gsl_root_fsolver_brent );  // initialize the solver
-    gsl_root_fsolver* solver( gsl_root_fsolver_alloc( solverType ) );
+    // DEBUG REMOVE
+    std::cout << "Looking inbetween [" << low << "," << high << "];\n"; 
 
+    // Define solvertype.
+    const gsl_root_fsolver_type* solverType( gsl_root_fsolver_brent );  
+    // Initialize the solver.
+    gsl_root_fsolver* solver( gsl_root_fsolver_alloc( solverType ) );   
+
+    // Call rootfinder, find root called "alpha" and return it.
     const Real alpha ( findRoot( F, solver, low, high,
 		 EPSILON/L_TYPICAL, EPSILON, "GreensFunction2DRadAbs::alpha_i" ) );
     gsl_root_fsolver_free( solver );
 
     return alpha;
 }
+*/
 
+// ======================================
+// END LEGACY; 
+// ======================================
 
-// Calculates the first root (called the offset) for summation index n (so using Bessel functions of order n)
+// Calculates the first root (called the offset) for summation index n (so using
+// Bessel functions of order n)
+//
+// Here we first find the interval where the first positive root is in.
+// We keep shifting the search window with the size of 'interval'
+// 'interval' is half of Pi/(a - sigma) (the expected distance between 
+// the 'offsets'). We then look for a sign change on the border of the
+// interval, if the sign changes in the interval inspected, we know it contains
+// a root.*
+//      After the interval is found, the GSL root finder is called.
+//
+// *) Note: we should be absolutely sure that the first search window is smaller
+// than half the "period" of the function, otherwise we can overlook roots.
 const Real
 GreensFunction2DRadAbs::alphaOffset( const unsigned int n ) const
 {
-    if( this->alphaOffsetTable[n] > 0 )		// if the offset has already been calculated
-    {
-    // std::clog << "[returning because already calculated;]" ;// DEBUG *REMOVEME*
-	return this->alphaOffsetTable[n];	// don't do all the work again   
-    }
-    assert( this->alphaOffsetTable.size() >= n );	// assume the table is large enough to
-							// accomodate the requested index
+    // # Some preliminary checks
 
+    // Don't do all the work again if the offset has already been calculated
+    if( this->alphaOffsetTable[n] > 0 )		 
+    {
+	return this->alphaOffsetTable[n];	   
+    }
+    
+    // Makes sure table is large enough to accomodate requested index
+    assert( this->alphaOffsetTable.size() >= n );	
+
+    // # Get/calculate boundaries and determine width of interval to check for
+    // sign change.
     const Real sigma( this->getSigma() );
     const Real a( this->geta() );
-    const Real interval( M_PI_2 / ( a - sigma ));	// the x-axis of the function scales with a-sigma
+    const Real interval( M_PI_2 / ( a - sigma ));	// The x-axis of the 
+                                                    // function scales with 
+                                                    // a-sigma.
 
-    // std::clog << "[calculating offset; input={n=" << n << ",sigma="<< sigma <<" , a="<< a <<" , interval="<< interval <<"}]" ;// DEBUG *REMOVEME*
-
-	Real offset (0);	// by default the offset is zero
+    // If order (n) is zero, the offset is zero, otherwhise take n-1 offset
+    // value as first estimate.
+    //      (This can be done because the offsets only get bigger, the roots 
+    // shift to the right with the order of the Bessel functions n.)
+	Real offset (0);		
 	if (n != 0)
 	{	offset = ( this->alphaOffsetTable[n-1] );
-	}						// The offsets only get bigger, the roots shift to
-							// the right with the order of the Bessel functions n
+	}						
 
-    // Here we find the interval where the first positive root is in.
-    // We keep shifting the search window with the size of 'interval'
-    // 'interval' is half of Pi/(a - sigma) (the expected distance between the 'offsets'
-
-    Real low ( offset );		// the searching interval for the new offset is between the previous
-    Real high( offset + interval );	// one a interval further
-	if (low <= 0)			// NEW to make sure things don't get negative
-	{	low = EPSILON/L_TYPICAL;// we assume that the high value is never negative
+    // Define new interval as between x1=offset ("low") and x2=(offset+interval)
+    // ("high"). Make sure "low" is > 0.
+    Real low ( offset );		
+    Real high( offset + interval );	
+	if (low <= 0)			
+	{	low = EPSILON/L_TYPICAL;
 	}
 
-    Real f_low ( f_alpha(low,n) );	// get the values of the expression for the roots for these
-    Real f_high( f_alpha(high,n) );	// values of alpha (at the ends of the search range)
+    // # Look for the sign change.
 
-    while( f_low * f_high > 0 )		// if the expression changes sign then there is a root in the range
-    {					// and we should exit the loop
-	low =  high;			// shift everything so we check out the next interval
-	f_low = f_high;			// just pass the value on
+    // Get the values of the function at x "low" and x "high".
+    Real f_low ( f_alpha(low,n) );	
+    Real f_high( f_alpha(high,n) );	
+
+    // Continue shifting the search interval until a sign change is detected.
+    while( f_low * f_high > 0 )		
+    {					
+	low =  high;			
+	f_low = f_high;			
 
 	high += interval;
 	f_high = f_alpha( high, n );
     }
 
-   // We now determined roughly the interval where the first root should be.
-   // Next we find the exact root in the interval.
+   // # Once the interval that contains the root has been determined, use the
+   //   root finder to pinpoint the exact location.
 
    f_alpha_aux_params params = { this, n, 0};
    gsl_function F = 	{reinterpret_cast<typeof(F.function)>
 			( &GreensFunction2DRadAbs::f_alpha_aux_F ),
 			&params
 			};
+			// reinterpret_cast converts any pointer type to any other pointer type.
+            // reinterpret_cast<new_type> variable
 
-    const gsl_root_fsolver_type* solverType( gsl_root_fsolver_brent );  // initialize the solver
+    // Initialize the GSL solver
+    const gsl_root_fsolver_type* solverType( gsl_root_fsolver_brent );  
     gsl_root_fsolver* solver( gsl_root_fsolver_alloc( solverType ) );
 
-    offset = findRoot( F, solver, low, high, EPSILON/L_TYPICAL,	// find the intersection between the random
-                            EPSILON, "alphaOffset" );		// number and the cumm probability
+    // findRoot call GSL solver; See findRoot from findRoot.hpp for more info.
+    offset = findRoot( F, solver, low, high, EPSILON/L_TYPICAL,	
+                            EPSILON, "alphaOffset" );		
     gsl_root_fsolver_free( solver );
 
+    // Record value for future usage and return it.
     this->alphaOffsetTable[n] = offset;	// The offset found is now the first root
     return offset;
 }
@@ -484,60 +589,446 @@ GreensFunction2DRadAbs::Y0J0J1_constants ( const Real alpha,
 	return boost::make_tuple (Ai0_expT*Y0_aAn, Ai0_expT*J0_aAn, Ai0_expT*Y0J1_J0Y1);
 }
 
+/*
 const Real GreensFunction2DRadAbs::getAlpha( size_t n, RealVector::size_type i ) const 
 {
-RealVector& alphaTable( this->alphaTable[n] );		// get the ref to the roots of order n
+    RealVector& alphaTable( this->alphaTable[n] );		// get the ref to the roots of order n
     const RealVector::size_type oldSize( alphaTable.size() );	// get it's size
 
-if( i >= oldSize )
-{
-    alphaTable.resize( i+1, 0 );	// resize the vector and fill the empty slots with 0
-}
+    if( i >= oldSize )
+    {
+        alphaTable.resize( i+1, 0 );	// resize the vector and fill the empty slots with 0
+    }
 
-if (alphaTable[i] == 0)		// if the requested root was not calculated yet
-{
-	if (i==0)		// if the requested root is the first one
-	{	const Real offset (alphaOffset(n));	// The offset is the first root
-        // std::clog << "[offset=" << offset << "]"; // DEBUG *REMOVEME*
-		alphaTable[i]= offset;
-	}
-	else			// the requested root is dependent on the previous one
-	{
-		const Real previous (getAlpha(n, i-1));		// get the previous root
-		alphaTable[i] = this->alpha_i( previous , n );	// find the requested root based on
-								// the previous one
-	}
-}
-return alphaTable[i];
+    if (alphaTable[i] == 0)		// if the requested root was not calculated yet
+    {
+	    if (i==0)		// if the requested root is the first one
+	    {	const Real offset (alphaOffset(n));	// The offset is the first root
+            std::cout << "Looking root " << i << "th root of " << n << "th Bessels;\n";
+            // std::clog << "[offset=" << offset << "]"; // DEBUG *REMOVEME*
+		    alphaTable[i]= offset;
+	    }
+	    else			// the requested root is dependent on the previous one
+	    {
+            std::cout << "Looking root " << i << "th root of " << n << "th Bessels;\n";
+		    const Real previous (getAlpha(n, i-1));		// get the previous root
+		    alphaTable[i] = this->alpha_i( previous , n );	// find the requested root based on
+								    // the previous one
+	    }
+    }
+    
+    return alphaTable[i];
 
 }
+*/
 
+/*
+// TODO: REMOVE THIS FUNCTIONALITY AND REPLACE WITH getAlpha(0)
 const Real GreensFunction2DRadAbs::getAlpha0( const RealVector::size_type i ) const
 {
-RealVector& alphaTable( this->alphaTable[0] );
+    RealVector& alphaTable( this->alphaTable[0] );
     const RealVector::size_type oldSize( alphaTable.size() );
 
-if( i >= oldSize )
+    if( i >= oldSize )
+    {
+        alphaTable.resize( i+1, 0 );// fill the empty spaces with zeros
+    }
+
+    if (alphaTable[i] == 0)         // if the requested root was not calculated yet
+    {
+                if (i==0)               // if the requested root is the first one
+                {       const Real offset (alphaOffset(0));     // The offset is the first root
+                        alphaTable[i]= offset;
+                }
+                else                    // the requested root is dependent on the previous one
+                {
+                        const Real previous (getAlpha0(i-1));		// get the previous root
+                        alphaTable[i] = this->alpha0_i( previous );	// find the requested root based on
+                                                                        // the previous one
+                }
+    }
+
+    return alphaTable[i];
+}
+*/
+
+// =============================================================================
+// Root finding algorithm for alpha function. 
+// Roots (y=0) are necessary to calculate 
+// Modified by wehrens@amolf.nl. nov, 2011
+// =============================================================================
+
+// TODO: check comments for mistakes / completion
+// Scans for next interval where a sign change is observed, and thus where a 
+// root is expected. 
+const void GreensFunction2DRadAbs::GiveRootInterval(
+            Real& low,             // Variable to return left boundary interval
+            Real& high,            // Variable to return right boundary interval
+            const Integer n) const // Order of Bessel functions
 {
-    alphaTable.resize( i+1, 0 );// fill the empty spaces with zeros
+    // Variables for function values @ resp. left and right boundary interval.
+    Real f_low , f_high;
+    
+    // # Get/calculate boundaries and determine width of interval to check for
+    // sign change.
+    const Real estimated_alpha_root_distance_( this->getestimated_alpha_root_distance_() );
+    const Real interval( FRACTION_SCAN_INTERVAL * estimated_alpha_root_distance_);
+                                                        
+    // If order (n) is zero, the offset is zero, otherwhise take n-1 offset
+    // value as first estimate.
+    //      (This can be done because the offsets only get bigger, the roots 
+    // shift to the right with the order of the Bessel functions n.)
+    
+    // Cases:
+    //      1. i = 0 and n = 0; Can't make estimate -> use x=0 to start.
+    //      2. i = 0 and n > 1; Use n-1, i=0 value as estimate.
+    //      3. i > 0; Use value in alpha_x_scan_table_ as estimate.
+    if (alpha_x_scan_table_[n] == 0) { // which implies i == 0   
+	    if (n > 0)
+	    {	
+	        alpha_x_scan_table_[n] = ( this->alphaTable[n-1][0] ); // TODO check if not necessary to use "alphaOffsetTable"
+	    }
+	}	    						
+
+    // Define new interval as between x1=offset ("low") and x2=(offset+interval)
+    // ("high"). Make sure "low" is > 0.
+    low = alpha_x_scan_table_[n];		
+    high = alpha_x_scan_table_[n] + interval;	
+	if (low <= 0)			        // TODO this check should be redundant
+	{	std::cerr << "Left alpha search interval boundary < 0.";//low = EPSILON/L_TYPICAL;
+    	throw std::exception();
+	}
+
+    // # Look for the sign change.
+
+    // Get the values of the function at x "low" and x "high".
+    // Different for n=0 because this results in a simpler function.
+    //      This could be optimized by duplicating all involved functions and 
+    // removing this if-statement. 
+    if (n == 0) {
+        f_low  = f_alpha0(low);	
+        f_high = f_alpha0(high);
+    } else {
+        f_low  = f_alpha(low,n);	
+        f_high = f_alpha(high,n);
+    }	
+
+    // Continue shifting the search interval until a sign change is detected.
+    while( f_low * f_high > 0 )		
+    {					
+        // DEBUG; TODO REMOVE
+        std::cout << "Scanning; no root at:[" << low << "," << high << "]\n";
+    
+        low =  high;			
+        f_low = f_high;			
+
+        high += interval;
+        f_high = f_alpha( high, n );
+    }
+    
+    // When above loop has finished, low and high have values inbetween which
+    // a root of the alpha function should lie have been found. Make sure that 
+    // scanning for the next root starts at the end of the domain [low, high] 
+    // found here.
+    alpha_x_scan_table_[n] = high;
+    
+    return;
 }
 
-if (alphaTable[i] == 0)         // if the requested root was not calculated yet
+// TODO: check comments for mistakes / completion
+// Simply returns an interval based upon previous root, estimated interval 
+// inbetween roots and INTERVAL_MARGIN (see .hpp).
+const void GreensFunction2DRadAbs::GiveRootIntervalSimple(
+            Real& low,          // Variable to return left boundary interval
+            Real& high,         // Variable to return right boundary interval
+            const Integer n,    // Order of Bessel functions
+            const Real i) const // ith root 
 {
-            if (i==0)               // if the requested root is the first one
-            {       const Real offset (alphaOffset(0));     // The offset is the first root
-                    alphaTable[i]= offset;
-            }
-            else                    // the requested root is dependent on the previous one
-            {
-                    const Real previous (getAlpha0(i-1));		// get the previous root
-                    alphaTable[i] = this->alpha0_i( previous );	// find the requested root based on
-                                                                    // the previous one
-            }
+    // Offset is simply based on previous root, the interval in which the first 
+    // root (i=0) lies is never calculated with this function.
+    const Real previous_root (getAlpha(n, i-1));
+
+    // get estimated interval
+    const Real estimated_alpha_root_distance_( this->getestimated_alpha_root_distance_() );
+ 
+    // Calculates interval [low, high] where root is expected based on the 
+    // assumption where in a converging regime, where the deviation from this
+    // estimate is not more than INTERVAL_MARGIN.     
+    low  = previous_root + 
+                estimated_alpha_root_distance_ * (1 - INTERVAL_MARGIN);
+    high = previous_root + 
+                estimated_alpha_root_distance_ * (1 + INTERVAL_MARGIN);
+    
+    return;
 }
 
-return alphaTable[i];
+// ===========================
+const Real 
+GreensFunction2DRadAbs::getAlphaRoot0( const Real low,  // root lies between low
+                                      const Real high   // .. and high 
+                                    ) const
+{                                    
+        // Reinterpret_cast converts any pointer type to any other pointer type, 
+	    // even of unrelated classes. Hence below code converts pointer to 
+	    // function ::f_alpha_aux_F() to function pointer, which then points to 
+	    // memory location of params (&params).
+	
+	    // f_alpha0_aux_params is a struct: {gf, value}
+        // n is the summation index (the order of the Bessel functions used        
+    f_alpha0_aux_params params = { this, 0 }; // TODO: purpose of this zero is unclear!!!	
+
+    gsl_function F = 
+    {       	    
+        reinterpret_cast<typeof(F.function)>
+        ( &GreensFunction2DRadAbs::f_alpha0_aux_F ),
+        &params 
+    };				
+
+    // Define solvertype.
+    const gsl_root_fsolver_type* solverType( gsl_root_fsolver_brent );  
+    // Initialize the solver.
+    gsl_root_fsolver* solver( gsl_root_fsolver_alloc( solverType ) );   
+
+    // Call rootfinder, find root called "alpha" and return it.
+    const Real alpha ( findRoot( F, solver, low, high,
+		 EPSILON/L_TYPICAL, EPSILON, "GreensFunction2DRadAbs::getAlphaRoot0" ) );
+    gsl_root_fsolver_free( solver );
+    
+    return alpha;
+}    
+
+const Real 
+GreensFunction2DRadAbs::getAlphaRootN( const Real low,   // root lies between low
+                                      const Real high,  // .. and high 
+                                      const Integer n   // nth order Bessel
+                                    ) const
+{                                    
+
+    // f_alpha_aux_params is a struct: {gf, n, value}
+    // n is the summation index (the order of the Bessel functions used
+    f_alpha_aux_params params = { this, n, 0 };	// TODO: purpose of this zero is unclear!!!
+    
+    gsl_function F = 
+    {	    
+        reinterpret_cast<typeof(F.function)>
+        ( &GreensFunction2DRadAbs::f_alpha_aux_F ),
+        &params
+    };
+
+
+    // Define solvertype.
+    const gsl_root_fsolver_type* solverType( gsl_root_fsolver_brent );  
+    // Initialize the solver.
+    gsl_root_fsolver* solver( gsl_root_fsolver_alloc( solverType ) );   
+
+    // Call rootfinder, find root called "alpha" and return it.
+    const Real alpha ( findRoot( F, solver, low, high,
+		 EPSILON/L_TYPICAL, EPSILON, "GreensFunction2DRadAbs::getAlphaRootN" ) );
+    gsl_root_fsolver_free( solver );
+    
+    return alpha;
 }
+
+// ====================    
+
+// This calculates a root based on the previous one (offset) with Bessel functions of order n
+// The roots are calculated based on the previous root which is given as an argument (offset)
+const Real 
+GreensFunction2DRadAbs::getAlphaRoot( const Real low,   // root lies between low
+                                      const Real high,  // .. and high 
+                                      const Integer n   // nth order Bessel
+                                    ) const
+{
+    Real alpha;
+
+    if (n == 0) {
+        alpha = getAlphaRoot0(low, high);
+    } else {
+        alpha = getAlphaRootN(low, high, n);
+    }
+
+    return alpha;
+}
+
+// TODO: check comments for mistakes / completion
+// Subfunction of getAlpha
+const void GreensFunction2DRadAbs::decideOnMethod2(size_t n, 
+                                                   RealVector::size_type i
+                                                  ) const
+{
+
+// TODO we could also add to this that if we've been in the margin for a certain
+// amount of time already, we'll also switch. DELIBERATE WITH TOMEK? Well, 
+// actually the overhead is not too bad. If there is only 1 entry, but we expect
+// two, then it will, for each root, check once if there is a sign change in the
+// difference. (Three substractions and a multiplication.)
+
+    // Since the function can only decide with two alpha's already calculated, 
+    // it can't do anything if i = 0.
+    if (i > 0) { 
+
+        const Real dx(getAlpha(n, i)-getAlpha(n, i-1)); // note the recursiveness!
+        const Real estimated_alpha_root_distance_( this->getestimated_alpha_root_distance_() );
+
+        // If the absolute deviation from the expected difference is smaller 
+        // than the expected margin, it is assumed we can use method 2.
+        if (fabs(1-dx/estimated_alpha_root_distance_) < INTERVAL_MARGIN) {
+            ++alpha_dx_entry_in_margin_[n];
+            
+            // There is only a limited amount of times the distance will switch
+            // from expected to be in the margin to being expected not to be in
+            // the margin. Hence if the distance falls within the margin, while
+            // the previous distance didn't, if this happens for more than 
+            // DISTANCE_INOUT_MARGIN times, we permanently switch to method 2. 
+            // (I.e. we will assume the distance between the roots will now 
+            // always stay within the margin.)
+            if (alpha_dx_entry_in_margin_[n] >= DISTANCE_INOUT_MARGIN) {
+                alpha_x_scan_table_[n] = -2; // permanently switch
+            } else {
+                alpha_x_scan_table_[n] = -1; // temporarely switch
+            }
+        }    
+    }
+    
+    return;
+}
+
+// TODO: check comments for mistakes / completion
+// Subfunction of getAlpha
+const void GreensFunction2DRadAbs::needToSwitchBackMethod1(
+                                                size_t n, 
+                                                RealVector::size_type i
+                                                ) const
+{
+
+    // We could only have switched when i = 1, hence check is only needed when
+    // i >= 2. Also, (alpha_x_scan_table_[n] == -1) means it is required to 
+    // check, if (alpha_x_scan_table_[n] == -2), a check is not required.
+    if ((i > 1) and (alpha_x_scan_table_[n] == -1)) { 
+        // if the distance has changed from being overestimated to 
+        // underestimated it might be that we're no longer converging, and we 
+        // need to switch back to method 1. 
+        
+        // Get distance between root i & i-1 and distance i-1 & i-2.
+        const Real dx(getAlpha(n, i)-getAlpha(n, i-1)); // note the recursiveness!        
+        const Real dx_previous(getAlpha(n, i-1)-getAlpha(n, i-2)); // note the recursiveness!
+        
+        // If there is a sign change observed
+        if ((dx*dx_previous) < 0) {
+        
+            // Make alpha_x_scan_table_[n]
+            alpha_x_scan_table_[n] = getAlpha(n,i) + EPSILON;
+        }
+    }
+            
+
+    return;
+}
+
+// TODO ADD SOME COMMENTS HERE!
+const Real GreensFunction2DRadAbs::getAlpha( size_t n,               // order
+                                             RealVector::size_type i // ith root
+                                           ) const 
+{
+    Real current_root_, low, high;   
+    
+    // # "Administration"
+
+    // Gets the line of table that corresponds to order (n),     
+    RealVector& alphaTable( this->alphaTable[n] );		        
+    
+    // Gets it's size 
+    const RealVector::size_type oldSize( alphaTable.size() );	
+    
+    // Resizes and fills with zeroes if the vector is too small
+    if( i >= oldSize )
+    {
+        alphaTable.resize( i+1, 0 );	
+    }
+
+    // # Calculating the root
+
+    // Only calculates the root is this has not been done already
+    if (alphaTable[i] == 0)		
+    {        
+    
+        // Method 1. SCANNING. If the roots are not expected to lie close enough 
+        // to the estimate, use the "scanning" procedure to find an interval 
+        // that contains a root. (More robust method.)
+        //      If it is established that we can use method 2, 
+        // alpha_x_scan_table_[n] will contain a value < 0.
+	    if (alpha_x_scan_table_[n] >= 0)
+	    {		        
+	        // ### Gets estimate of interval by sign-change-searching
+	        //      high and low are the return-values of GiveRootInterval.
+	        GiveRootInterval(low, high, n);	        
+	        
+	        // DEBUG; TODO REMOVE
+	        std::cout << "(n="<<n<<",i="<<i<<") Via scan: looking at:[" << low << "," << high << "]\n";
+	        
+	        // ### Finds the root using the GSL rootfinder
+            current_root_ = getAlphaRoot(low, high, n);
+            
+            // ### Puts the found root in the table.
+		    alphaTable[i]= current_root_;
+		    		    
+		    // Check if we can use method 2 temporarily or permanently
+		    decideOnMethod2(n, i);		    
+	    }
+	    // Method 2. ASSUMING CORRECT. If next root is expected to lie close 
+	    // enough to estimate the root can be calculated from a simple estimated 
+	    // interval.
+	    else 
+	    {
+            // ### Get interval by simple extrapolation
+	        GiveRootIntervalSimple(low, high, n, i);	        
+
+	        // DEBUG; TODO REMOVE
+	        std::cout << "(n="<<n<<",i="<<i<<") Via \"sure\" estimate: looking at:[" << low << "," << high << "]\n";
+	    
+	        // ### Finds the root using the GSL rootfinder
+            current_root_ = getAlphaRoot(low, high, n);
+
+            // ### Puts the found root in the table.
+		    alphaTable[i] = current_root_;		    
+
+    		// check if we need to switch back to method 1
+    		needToSwitchBackMethod1(n, i);    		    
+	    }
+	    
+	    // # Looks if we can switch from method 1 to method 2.
+	    
+            // TODO FOLLOWING COMMENT SHOULD BE PLACED SOMEWHERE:
+	        // If alpha_x_scan_table_[n] is:
+	            // >0:  We're using method 1 and want to know if we can use 
+	            //      method 2. So check if we can temporarely or permanently
+	            //      switch to method 2. (For this value of n.)
+	            // -1:  We're using method 2, but it might be that we need to
+	            //      switch back to method 1 again, so check if we need to 
+	            //      switch to method 1. (For this value of n.)
+	            // -2:  We can keep using method 2 forever. No checks are 
+	            //      needed.(For this value of n.)	    
+/*	    
+	    if (i > 0) { // otherwise calculating distance impossible
+
+	    
+	        // We can use method 2 temporarely, this check should be performed
+	        // again.
+	    
+	        // We can use method 2 permanently, this check becomes obsolete
+	    
+	        real distance (current_root_ - alphaTable[i-1]);
+	    }
+*/	    
+    }
+    
+    return alphaTable[i];
+
+}
+
+// =============================================================================
+// End modification
+// =============================================================================
 
 // calculates the ith term with exponent and time for the survival probability
 const Real 
@@ -545,7 +1036,7 @@ GreensFunction2DRadAbs::p_survival_i_exp_table( const unsigned int i,
 							const Real t,
 							const RealVector& table ) const
 {
-    const Real alpha( this->getAlpha0( i ) );
+    const Real alpha( this->getAlpha( 0, i ) );
     return std::exp( - getD() * t * alpha * alpha ) * table[i];
 }
 
@@ -555,7 +1046,7 @@ const Real
 GreensFunction2DRadAbs::leavea_i_exp( const unsigned int i,
 					      const Real t) const
 {
-    const Real alpha( this->getAlpha0( i ) );
+    const Real alpha( this->getAlpha( 0,i ) );
     return std::exp( - getD() * t * alpha * alpha ) * calc_A_i_0( alpha );
 }
 
@@ -564,7 +1055,7 @@ const Real
 GreensFunction2DRadAbs::leaves_i_exp( const unsigned int i,
 					      const Real t) const
 {
-    const Real alpha( this->getAlpha0( i ) );
+    const Real alpha( this->getAlpha( 0, i ) );
 
     return std::exp( - getD() * t * alpha * alpha ) * leaves_i( alpha );
 }
@@ -578,7 +1069,7 @@ GreensFunction2DRadAbs::p_int_r_i_exp_table( const unsigned int i,
                					     const RealVector& J0_aAnTable,
 							const RealVector& Y0J1J0Y1Table ) const
 {
-	const Real alpha( this->getAlpha0( i ) );	// get the root An
+	const Real alpha( this->getAlpha( 0, i ) );	// get the root An
 	const Real r_An( r*alpha);
 
 	const Real J1_rAn (gsl_sf_bessel_J1(r_An));
@@ -606,7 +1097,7 @@ GreensFunction2DRadAbs::guess_maxi( const Real t ) const
     const Real sigma( getSigma() );
     const Real a( geta() );
 
-    const Real alpha0( getAlpha0( 0 ) );
+    const Real alpha0( getAlpha( 0, 0 ) );
     const Real Dt( D * t );
     const Real thr( ( exp( - Dt * alpha0 * alpha0 ) / alpha0 ) * this->EPSILON * 1e-1 );
     const Real thrsq( thr * thr );
@@ -648,7 +1139,7 @@ GreensFunction2DRadAbs::p_survival_table( const Real t,
             
         if( psurvTable.size() < maxi + 1 )		// if the dimensions are good then this means
         {						// that the table is filled
-        	IGNORE_RETURN getAlpha0( maxi );	// this updates the table of roots
+        	IGNORE_RETURN getAlpha( 0, maxi );	// this updates the table of roots
 		// std::clog << "creating PsurvTable... ";	// DEBUG *REMOVEME*
                 this->createPsurvTable( psurvTable);	// then the table is filled with data
 		// std::clog << "done" << std::endl;	// DEBUG *REMOVEME*
@@ -1012,7 +1503,8 @@ const Real GreensFunction2DRadAbs::p_m_alpha( const unsigned int n,
 	const Real h( this->geth() );
 	const Real a( this->geta() );
 	const Real D( this->getD() );
-	const Real alpha( this->getAlpha( m, n ) ); // get the n-th root using the besselfunctions of order m
+	const Real alpha( this->getAlpha( m, n ) ); // Gets the n-th root using the 
+	                                            // besselfunctions of order m.
 	const Real r0( this->getr0() );
 
     // std::clog << "[r0=" << r0 << "]"; // DEBUG *REMOVEME*
@@ -1072,7 +1564,7 @@ const Real GreensFunction2DRadAbs::p_m_alpha( const unsigned int n,
 
     // DEBUG *REMOVEME*
     if (result == 0.0) {
-        std::clog << "Ladies and gentlemen, we've got alpha=0.";
+        std::clog << "Ladies and gentlemen, we've got 0.";
     }
     // END DEBUG
 	return result;
