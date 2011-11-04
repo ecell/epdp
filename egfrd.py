@@ -794,12 +794,16 @@ class EGFRDSimulator(ParticleSimulatorBase):
                     productA_displacement = product1_displacement
                     productB_displacement = product2_displacement
                     productB_radius = product2_radius
+                    DA = D1
+                    DB = D2
                     default = True      # we like to think of this as the default
                 else:
                     # product1 goes to 3D and is now particleB (product2 is particleA)
                     productA_displacement = product2_displacement
                     productB_displacement = product1_displacement
                     productB_radius = product1_radius
+                    DA = D2
+                    DB = D1
                     default = False
                 # Note that A is a particle in the surface and B is in the 3D
 
@@ -807,30 +811,60 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
                     # draw a number of new positions for the two product particles
                     # TODO make this into a generator
-                    phi_min = math.asin (productB_radius / particle_radius12)   # we assume the membrane to have zero thickness
-                    phi_min *= MINIMAL_SEPARATION_FACTOR        # make sure that there's some distance from the membrane
+#                    phi_min = math.asin (productB_radius / particle_radius12)   # we assume the membrane to have zero thickness
+#                    phi_min *= MINIMAL_SEPARATION_FACTOR        # make sure that there's some distance from the membrane
 
                     product_pos_list = []
                     for _ in range(self.dissociation_retry_moves):
                         # draw the random angle for the 3D particle relative to the particle left in the membrane
                         # not all angles are available because particle cannot intersect with the membrane
-                        phi = myrandom.uniform(phi_min, Pi - phi_min)
 
-                        cos_phi = math.cos(phi) 
-                        sin_phi = math.sin(phi)
+                        weightA = DA/(DA + DB)
+                        weightB = DB/(DA + DB)
 
-                        productA_displacement_xy = productA_displacement * cos_phi
-                        productB_displacement_xy = productB_displacement * cos_phi
-                        productB_displacement_z  = particle_radius12 * sin_phi
+                        # Basically do the backtransform with a random iv with length such that the particles are at contact
+                        # Note we make the iv slightly longer because otherwise the anisotropic transform will produce illegal
+                        # positions
+                        z_scaling_factor = MixedPair.calc_z_scaling_factor(DA, DB)
 
-                        # pick a random orientation
-                        orientation_vector_xy = _random_vector(reactant_structure, 1.0, self.rng)
-                        # pick a random side of the membrane
+                        iv = random_vector(particle_radius12 * z_scaling_factor)
+                        iv *= MINIMAL_SEPARATION_FACTOR
+
+                        # backtransform. TODO use backtransform from MixedPair class
+                        iv_x = reactant_structure.shape.unit_x * numpy.dot(iv, reactant_structure.shape.unit_x)
+                        iv_y = reactant_structure.shape.unit_y * numpy.dot(iv, reactant_structure.shape.unit_y)
                         orientation_vector_z  = reactant_structure.shape.unit_z * myrandom.choice(-1, 1)
+                        iv_z_length = abs(numpy.dot(iv, orientation_vector_z))
+                        # do the reverse scaling
+                        iv_z_length /= z_scaling_factor
 
-                        newposA = reactant_pos + productA_displacement_xy * orientation_vector_xy
-                        newposB = reactant_pos - productB_displacement_xy * orientation_vector_xy + \
-                                                 productB_displacement_z  * orientation_vector_z
+                        # if the particle is overlapping with the membrane, make sure it doesn't
+                        if iv_z_length < productB_radius:
+                            iv_z_length = productB_radius * MINIMAL_SEPARATION_FACTOR
+
+                        iv_z = iv_z_length * orientation_vector_z
+
+                        newposA = reactant_pos - weightA * (iv_x + iv_y)
+                        newposB = reactant_pos + weightB * (iv_x + iv_y) + iv_z
+
+
+#                        phi = myrandom.uniform(phi_min, Pi - phi_min)
+#
+#                        cos_phi = math.cos(phi) 
+#                        sin_phi = math.sin(phi)
+#
+#                        productA_displacement_xy = productA_displacement * cos_phi
+#                        productB_displacement_xy = productB_displacement * cos_phi
+#                        productB_displacement_z  = particle_radius12 * sin_phi
+#
+#                        # pick a random orientation
+#                        orientation_vector_xy = _random_vector(reactant_structure, 1.0, self.rng)
+#                        # pick a random side of the membrane
+#                        orientation_vector_z  = reactant_structure.shape.unit_z * myrandom.choice(-1, 1)
+#
+#                        newposA = reactant_pos + productA_displacement_xy * orientation_vector_xy
+#                        newposB = reactant_pos - productB_displacement_xy * orientation_vector_xy + \
+#                                                 productB_displacement_z  * orientation_vector_z
                         newposA = self.world.apply_boundary(newposA)
                         newposB = self.world.apply_boundary(newposB)
 
