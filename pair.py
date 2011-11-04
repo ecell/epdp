@@ -991,7 +991,7 @@ class MixedPair(Pair):
         a_r = min (a_r1, a_r2)
 
         z_scaling_factor = cls.calc_z_scaling_factor(D1, D2)
-        z_right = (a_r/z_scaling_factor) + (2*radius2)
+        z_right = (a_r/z_scaling_factor) + (radius2)
 
         return z_right
 
@@ -1007,7 +1007,7 @@ class MixedPair(Pair):
 
         # we first calculate the a_r, since it is the only radius that depends on z_right only.
         z_scaling_factor = cls.calc_z_scaling_factor(D1, D2)
-        a_r = (z_right - (2*radius2)) * z_scaling_factor
+        a_r = (z_right - (radius2)) * z_scaling_factor
 
         # We equalize the estimated first passage time for the CoM (2D) and IV (3D) for a given a_r
         # Note that for the IV we only take the distance to the outer boundary into account.
@@ -1093,7 +1093,7 @@ class MixedPair(Pair):
         D2 = self.pid_particle_pair2[1].D
         D12 = D1 + D2
 
-        a_r = ((half_length * 2) - radius1 - (2 * radius2)) * self.z_scaling_factor
+        a_r = ((half_length * 2) - radius1 - (radius2)) * self.z_scaling_factor
 
         # calculate the maximal displacement of a particle given an a_r. Also include its radius
         space_for_iv = max( (D1/D12) * a_r + radius1,
@@ -1158,7 +1158,7 @@ class MixedPair(Pair):
         iv_z = surface.shape.unit_z * numpy.dot (iv, surface.shape.unit_z)
         iv_z_length = length(iv_z)
 
-        new_iv_z_length = (iv_z_length - single2.pid_particle_pair[1].radius) * z_scaling_factor
+        new_iv_z_length = (iv_z_length) * z_scaling_factor
         new_iv_z = (new_iv_z_length / iv_z_length) * iv_z
 
         iv = iv - iv_z + new_iv_z
@@ -1175,17 +1175,24 @@ class MixedPair(Pair):
         # get the coordinates of the iv relative to the system of the surface (or actually the shell)
         iv_x = self.surface.shape.unit_x * numpy.dot(iv, self.surface.shape.unit_x)
         iv_y = self.surface.shape.unit_y * numpy.dot(iv, self.surface.shape.unit_y)
-        iv_z = self.shell.shape.unit_z * abs(numpy.dot(iv, self.shell.shape.unit_z))
 
         # reflect the coordinates in the unit_z direction back to the side of the membrane
         # where the domain is. Note that it's implied that the origin of the coordinate system lies in the
         # plane of the membrane
-#        iv_z = abs(iv_z)
+        iv_z_length = abs(numpy.dot(iv, self.shell.shape.unit_z))
+        # do the reverse scaling
+        iv_z_length = iv_z_length / self.z_scaling_factor
+
+        # if the particle is overlapping with the membrane, make sure it doesn't
+        if iv_z_length < self.pid_particle_pair2[1].radius:
+            iv_z_length = self.pid_particle_pair2[1].radius * MINIMAL_SEPARATION_FACTOR
+
+        iv_z = self.shell.shape.unit_z * iv_z_length
 
         pos1 = com - weight1 * (iv_x + iv_y)
         pos2 = com + weight2 * (iv_x + iv_y) + \
-               iv_z/self.z_scaling_factor + \
-               self.shell.shape.unit_z * self.pid_particle_pair2[1].radius
+               iv_z #/self.z_scaling_factor + \
+#               self.shell.shape.unit_z * self.pid_particle_pair2[1].radius
 
         return pos1, pos2
 
