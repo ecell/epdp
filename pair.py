@@ -958,7 +958,7 @@ class MixedPair(Pair):
             z_right = z2_new
             z_left  = z1_new
 
-        return r, z_right, z_left
+        return r, z_left, z_right
 
     ### class methods that are for the right side of the cylindrical shell
     @classmethod
