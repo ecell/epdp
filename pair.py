@@ -864,16 +864,17 @@ class MixedPair(Pair):
         else:                   # we introduce an r0
             scalecenter_r0 = 0
         # TODO check this
-        scale_center = scalecenter_h0 * direction * orientation_vector
+        scale_center = reference_point + scalecenter_h0 * direction * orientation_vector
+        scale_center = world.apply_boundary(scale_center)
 
         # calculate the vector from the scale center to the center of the shell
         shell_position_t = world.cyclic_transpose (shell_position, scale_center)
         shell_scale_center = shell_position_t - scale_center
-        shell_scalecenter_z = numpy.dot( shell_scale_center, orientation_vector * direction )
-        shell_scalecenter_r = length(shell_scale_center - shell_scalecenter_z)
+        shell_scalecenter_z = numpy.dot( shell_scale_center, direction * orientation_vector )
+        shell_scalecenter_r = length(shell_scale_center - (shell_scalecenter_z*direction*orientation_vector))
         # calculate the angle theta of the vector from the scale center to the shell with the vector
         # to the scale center (which is +- the orientation_vector)
-        theta = vector_angle (shell_scale_center, scale_center)
+        theta = vector_angle (shell_scale_center, direction * orientation_vector)
 
         psi = theta - phi
 
@@ -888,7 +889,7 @@ class MixedPair(Pair):
 
         elif -phi < psi and psi < 0:
         # The (spherical) shell can touch the cylinder on its flat side or its edge
-            if phi == Pi/2:
+            if phi == Pi/2.0:
                 r_tan_phi = 0
             else:
                 r_tan_phi = shell_scalecenter_r/math.tan(phi)   # phi == 0 should not get here
@@ -899,7 +900,7 @@ class MixedPair(Pair):
             else:
                 situation = 2
 
-        elif 0 <= psi and psi < (Pi/2 - phi):
+        elif 0 <= psi and psi < (Pi/2.0 - phi):
         # The (spherical) shell can touch the cylinder on its edge or its radial side
             tan_phi = math.tan(phi)                             # phi == Pi/2 should not get here
             a_thres = shell_scalecenter_r - shell_scalecenter_z * tan_phi
@@ -908,9 +909,9 @@ class MixedPair(Pair):
             else:
                 situation = 3
 
-        elif (Pi/2 - phi) <= psi:
+        elif (Pi/2.0 - phi) <= psi:
         # The shell is always only on the radial side of the cylinder
-                situation = 3
+            situation = 3
 
         else:
         # Don't know how we would get here, but it shouldn't happen
@@ -918,20 +919,23 @@ class MixedPair(Pair):
                                (FORMAT_DOUBLE % psi, FORMAT_DOUBLE % phi, FORMAT_DOUBLE % theta))
 
 
+
         ### Get the right values for z and r for the given situation
         if situation == 1:      # shell hits on the flat side
-            z1_new = min(z1, shell_scalecenter_z + scalecenter_h0 - shell_size)
+            z1_new = min(z1, scalecenter_h0 + shell_scalecenter_z - shell_size)
             r_new  = min(r,  r1_function(single1, single2, r0, z1_new))
             z2_new = min(z2, z2_function(single1, single2, r0, r_new))
 
         elif situation == 2:    # shell hits on the edge
             a_sq = shell_size*shell_size
-            shell_scalecenter_len = length(shell_scalecenter)
+            shell_scalecenter_len = length(shell_scale_center)
             ss_sq = shell_scalecenter_len*shell_scalecenter_len
             sin_phi = math.sin(phi)
             sin_psi = math.sin(psi)
             cos_psi = math.cos(psi)
             scalecenter_shell_dist = (shell_scalecenter_len * cos_psi - math.sqrt(a_sq - ss_sq*sin_psi*sin_psi) )
+            # FIXME UGLY FIX BELOW
+            scalecenter_shell_dist /= 1.1
 
             if phi <= Pi/4:
                 z1_new = min(z1, scalecenter_h0 + cos_phi * scalecenter_shell_dist)
@@ -943,11 +947,12 @@ class MixedPair(Pair):
                 z2_new = min(z2, z2_function(single1, single2, r0, r_new))
 
         elif situation == 3:    # shell hits on the round side
-            r_new = min(r, shell_scalecenter_r - shell_size)
+            r_new = min(r, scalecenter_r0 + shell_scalecenter_r - shell_size)
             z1_new = min(z1, z1_function(single1, single2, r0, r_new))
             z2_new = min(z2, z2_function(single1, single2, r0, r_new))
         else:
             raise RuntimeError('Bad situation for MixedPair shell making')
+
 
         # switch the z values in case it's necessary. r doesn't have to be switched.
         r = r_new
@@ -1107,7 +1112,9 @@ class MixedPair(Pair):
                 tR = numpy.inf 
             else:
                 tR = (a_R**2) / (4 * self.D_R)          # the expected escape time of the CoM
-            log.debug('tr %g, tR %g' % (tr, tR))
+            log.debug('a_r= %s, tr= %s, a_R= %s, tR= %s' % \
+                      (FORMAT_DOUBLE % a_r, FORMAT_DOUBLE % tr,
+                       FORMAT_DOUBLE % a_R, FORMAT_DOUBLE % tR))
 
         assert (self.sigma < a_r) and (a_r < half_length*2)
         assert (0 < a_R) and (a_R < radius)
