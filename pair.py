@@ -918,6 +918,17 @@ class MixedPair(Pair):
             raise RuntimeError('Error: psi was not in valid range. psi = %s, phi = %s, theta = %s' %
                                (FORMAT_DOUBLE % psi, FORMAT_DOUBLE % phi, FORMAT_DOUBLE % theta))
 
+        log.debug('situation = %s' % (situation))
+        print "h0", scalecenter_h0
+        print "scale_center" , scale_center
+        print "theta = " ,theta
+        print "phi= ", phi
+        print "psi= ", psi
+        print "shell_scale_center= ", shell_scale_center
+        print "shell_scalecenter_r= ", shell_scalecenter_r
+        print "shell_scalecenter_z= ", shell_scalecenter_z
+#        print "a_thres=", a_thres
+        print "shell_size=", shell_size
 
 
         ### Get the right values for z and r for the given situation
@@ -938,10 +949,12 @@ class MixedPair(Pair):
             scalecenter_shell_dist /= 1.1
 
             if phi <= Pi/4:
+                print "scale z first."
                 z1_new = min(z1, scalecenter_h0 + cos_phi * scalecenter_shell_dist)
                 r_new  = min(r, r1_function(single1, single2, r0, z1_new))
                 z2_new = min(z2, z2_function(single1, single2, r0, r_new))
             else:
+                print "scale r first."
                 r_new = min(r, scalecenter_r0 + sin_phi * scalecenter_shell_dist)
                 z1_new = min(z1, z1_function(single1, single2, r0, r_new))
                 z2_new = min(z2, z2_function(single1, single2, r0, r_new))
@@ -953,6 +966,14 @@ class MixedPair(Pair):
         else:
             raise RuntimeError('Bad situation for MixedPair shell making')
 
+        ## DEBUGGING
+        h_l = (z1_new + z2_new)/2.0
+        print "h_l = ", h_l
+        g = z1_new - h_l - scalecenter_h0
+        print "g = ", g
+        x = length(shell_scale_center) 
+        print "distance = ", math.sqrt(g*g + x*x - 2.0*g*x*math.cos(theta))
+
 
         # switch the z values in case it's necessary. r doesn't have to be switched.
         r = r_new
@@ -962,6 +983,11 @@ class MixedPair(Pair):
         else:
             z_right = z2_new
             z_left  = z1_new
+
+        ## DEBUGGING
+        print "r = " , r
+        print "z_left = ", z_left
+        print "z_right = ", z_right
 
         return r, z_left, z_right
 

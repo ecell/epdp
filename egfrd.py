@@ -2312,6 +2312,10 @@ rejected moves = %d
                                                                        self.domains,
                                                                        ignore=[obj.domain_id],
                                                                        ignores=ignores)
+
+#            distance_midpoints = self.world.distance(obj.shell.shape.position, closest.shell.shape.position)
+            distance_midpoints = 0
+
         #TODO
             if(type(shell.shape) is Cylinder and
                closest and type(closest.shell.shape) is Sphere):
@@ -2350,10 +2354,11 @@ rejected moves = %d
                 str(shell_id)
 
             assert diff >= 0.0, \
-                '%s overlaps with %s. (shell: %s, dist: %s, diff: %s.' % \
+                '%s overlaps with %s. (shell: %s, dist: %s, diff: %s, dist_midpoints: %s.' % \
                 (str(obj), str(closest), FORMAT_DOUBLE % shell_size,
                  FORMAT_DOUBLE % distance,
-                 FORMAT_DOUBLE % diff)
+                 FORMAT_DOUBLE % diff,
+                 FORMAT_DOUBLE % distance_midpoints)
 
         return True
 
