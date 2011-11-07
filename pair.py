@@ -738,12 +738,17 @@ class MixedPair(Pair):
         # of particle1
         pos2_t = geometrycontainer.world.cyclic_transpose(pos2, pos1)
         iv = pos2_t - pos1
-        iv_x = numpy.dot(iv, single1.structure.shape.unit_x)
-        iv_y = numpy.dot(iv, single1.structure.shape.unit_y)
-        iv_z = numpy.dot(iv, single1.structure.shape.unit_z)
+        iv_x =     numpy.dot(iv, single1.structure.shape.unit_x)
+        iv_y =     numpy.dot(iv, single1.structure.shape.unit_y)
+        iv_z = abs(numpy.dot(iv, single1.structure.shape.unit_z))
 
-        # calculate the minimal dimensions of the iv shell (it fits perfectly around the particles)
-        iv_shell_z = abs(iv_z) + radius2
+        z_scaling = cls.calc_z_scaling_factor (D1, D2)
+        r0 = math.sqrt( iv_x**2 + iv_y**2 + (iv_z*z_scaling)**2)
+
+        # calculate the minimal height z_right1 of the shell including burst radius
+        # with the accompanying radius r1
+        z_right1 = iv_z + radius2 * Domain.SINGLE_SHELL_FACTOR
+        r1       = cls.r_right(single1, single2, r0, z_right1)
 
         len_iv_projected = math.sqrt(iv_x*iv_x + iv_y*iv_y)
         dist_r_from_com1 = len_iv_projected * D1 / D12
@@ -756,12 +761,17 @@ class MixedPair(Pair):
 
         # calculate the minimal dimensions of the protective domain including space for the
         # burst volumes of the particles
-        dz_left = radius1
-        dz_right = iv_shell_z + radius2 * (1 - Domain.SINGLE_SHELL_FACTOR)
-        dr = max(iv_shell_radius1 + com_shell_radius + radius1 * (1 - Domain.SINGLE_SHELL_FACTOR),
+        r2 = max(iv_shell_radius1 + com_shell_radius + radius1 * (1 - Domain.SINGLE_SHELL_FACTOR),
                  iv_shell_radius2 + com_shell_radius + radius2 * (1 - Domain.SINGLE_SHELL_FACTOR))
+        z_right2 = cls.z_right(single1, single2, r0, r2)
 
-        return dr, dz_left, dz_right
+        # of both alternatives pick the largest one
+        z_right, r = max((z_right1, r1),(z_right2, r2))
+
+        # z_left is always the same
+        z_left = radius1
+
+        return r, z_left, z_right
 
     @classmethod
     def get_max_shell_dimensions(cls, single1, single2, geometrycontainer, domains):
