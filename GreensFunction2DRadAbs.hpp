@@ -61,9 +61,11 @@ private:
     // maximum INTERVAL_MARGIN is 0.33, since underestimating >33% twice
     // in a row will result in two roots in the same sign-change scanning 
     // domain.
-    static const Real DISTANCE_INOUT_MARGIN = 2;
+    static const Real CONVERGENCE_ASSUMED = 25;
     static const Real INTERVAL_MARGIN = .33; 
-    static const Real FRACTION_SCAN_INTERVAL = .5; // Distance between subsequent roots should always > this
+    static const Real FRACTION_SCAN_INTERVAL = .5; // Distance between subsequent roots should always > this    
+    // Percentage of estimated interval where root finding should start:
+    static const Real SCAN_START = 0.001; 
 
 
 public:
@@ -344,7 +346,7 @@ private:
     // pi/(sigma-a).
     //      Initial values are set by constructor.
     mutable boost::array<Real,MAX_ORDER+1> alpha_x_scan_table_;     
-    mutable boost::array<int,MAX_ORDER+1> alpha_dx_entry_in_margin_;
+    mutable boost::array<int,MAX_ORDER+1> alpha_correctly_estimated_;
 
 };
 

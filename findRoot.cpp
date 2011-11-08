@@ -22,7 +22,7 @@ Real findRoot(gsl_function const& F, gsl_root_fsolver* solver, Real low,
 {
 
     // TODO DEBUG REMOVE!!!    
-    std::cout << "Starting root finding. Initiated by: " << funcName << ";\n";
+    // std::cout << "Starting root finding. Initiated by: " << funcName << ";\n";
     // END TODO DEBUG REMOVE
 
     Real l(low);
@@ -43,7 +43,7 @@ Real findRoot(gsl_function const& F, gsl_root_fsolver* solver, Real low,
         h = gsl_root_fsolver_x_upper(solver);
 
         // TODO DEBUG REMOVE!!!
-        std::cout << "Current search: [" << l << ", " << h << "];\n";
+        // std::cout << "Current search: [" << l << ", " << h << "];\n";
         // END TODO DEBUG REMOVE
         
 
@@ -70,7 +70,7 @@ Real findRoot(gsl_function const& F, gsl_root_fsolver* solver, Real low,
     const Real root(gsl_root_fsolver_root(solver));
 
     // TODO DEBUG REMOVE!!!    
-    std::cout << "Final output: [" << root << "];\n";
+    // std::cout << "Final output: [" << root << "];\n";
     // END TODO DEBUG REMOVE
         
     return root;    

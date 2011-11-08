@@ -84,6 +84,8 @@ GreensFunction2DRadAbs::~GreensFunction2DRadAbs()
 // Resets the alpha-tables
 void GreensFunction2DRadAbs::clearAlphaTable() const
 {
+    const Real estimated_alpha_root_distance(getestimated_alpha_root_distance_());
+
     // Clears all vectors in the alphaTable
     std::for_each( this->alphaTable.begin(), this->alphaTable.end(),
 		   boost::mem_fn( &RealVector::clear ) );
@@ -96,11 +98,13 @@ void GreensFunction2DRadAbs::clearAlphaTable() const
 	// Sets all values of the alpha_x_scan_table_ to zero.
     std::fill( this->alpha_x_scan_table_.begin(), 
                this->alpha_x_scan_table_.end(),
-	           EPSILON/L_TYPICAL );
+	           SCAN_START*estimated_alpha_root_distance); // DEBUG TODO; actual number here might
+                     	            // be important for functioning of Bessel
+                     	            // functions.
 	           
-	// Sets all values of the alpha_dx_entry_in_margin_ table to zero.
-    std::fill( this->alpha_dx_entry_in_margin_.begin(), 
-               this->alpha_dx_entry_in_margin_.end(),
+	// Sets all values of the alpha_correctly_estimated_ table to zero.
+    std::fill( this->alpha_correctly_estimated_.begin(), 
+               this->alpha_correctly_estimated_.end(),
 	           0 );	           
 	           
 }
@@ -116,6 +120,8 @@ GreensFunction2DRadAbs::f_alpha0( const Real alpha ) const
 	const Real s_An( sigma * alpha );
 	const Real a_An( a * alpha );
 
+//TODO REMOVE    std::cout << "Calling bessel from f_alpha0.\n"; 
+
 	const double J0_s_An (gsl_sf_bessel_J0(s_An));
 	const double J1_s_An (gsl_sf_bessel_J1(s_An));
 	const double J0_a_An (gsl_sf_bessel_J0(a_An));
@@ -123,6 +129,8 @@ GreensFunction2DRadAbs::f_alpha0( const Real alpha ) const
 	const double Y0_s_An (gsl_sf_bessel_Y0(s_An));
 	const double Y1_s_An (gsl_sf_bessel_Y1(s_An));
 	const double Y0_a_An (gsl_sf_bessel_Y0(a_An));
+	
+// TODO DEBUG REMOVE std::cout << "Done.\n";
 
 	const double rho1 ( ( (h * J0_s_An) + (alpha * J1_s_An) ) * Y0_a_An );
 	const double rho2 ( ( (h * Y0_s_An) + (alpha * Y1_s_An) ) * J0_a_An );
@@ -215,13 +223,24 @@ const Real GreensFunction2DRadAbs::f_alpha( const Real alpha,
 	const Real a_An( a * alpha );
 	const Real realn( static_cast<Real>( n ) );
 
+    // TODO REMOVE std::cout << "Calling bessel from f_alpha.\n"; // TODO: DEBUG REMOVE
+    // TODO REMOVE std::cout << "(n="<<n<<", sigma="<<sigma<<", alpha="<<alpha<<", sigma*alpha="<<s_An<<");\n";
+
+    // TODO REMOVE std::cout << "1.\n"; // TODO: DEBUG REMOVE
 	const double Jn_s_An  (gsl_sf_bessel_Jn(n, s_An));
+    // TODO REMOVE std::cout << "2.\n"; // TODO: DEBUG REMOVE	
 	const double Jn1_s_An (gsl_sf_bessel_Jn(n+1, s_An));
+    // TODO REMOVE std::cout << "3.\n"; // TODO: DEBUG REMOVE	
 	const double Jn_a_An  (gsl_sf_bessel_Jn(n, a_An));
 
+    // TODO REMOVE std::cout << "4.\n"; // TODO: DEBUG REMOVE
 	const double Yn_s_An  (gsl_sf_bessel_Yn(n, s_An));
+    // TODO REMOVE std::cout << "5.\n"; // TODO: DEBUG REMOVE
 	const double Yn1_s_An (gsl_sf_bessel_Yn(n+1, s_An));
+    // TODO REMOVE std::cout << "6.\n"; // TODO: DEBUG REMOVE	
 	const double Yn_a_An  (gsl_sf_bessel_Yn(n, a_An));
+
+    // TODO REMOVE std::cout << "Done\n";
 
 	const double rho1 ( ( (h*sigma * Jn_s_An) + (s_An * Jn1_s_An) - realn*Jn_s_An ) * Yn_a_An );
 	const double rho2 ( ( (h*sigma * Yn_s_An) + (s_An * Yn1_s_An) - realn*Yn_s_An ) * Jn_a_An );
@@ -240,6 +259,9 @@ GreensFunction2DRadAbs::f_alpha_aux_F( const Real alpha,
 {
     const GreensFunction2DRadAbs* const gf( params->gf ); 
     const Integer n( params->n );
+
+    //DEBUG REMOVE TODO
+    // TODO REMOVE std::cout << "Calling f_alpha from f_alpha_aux_F.\n";
 
     return gf->f_alpha( alpha, n );	// f_alpha is the function of which we have 
                                     // to find the roots
@@ -369,6 +391,9 @@ GreensFunction2DRadAbs::alphaOffset( const unsigned int n ) const
 
     // # Look for the sign change.
 
+    // DEBUG REMOVE TODO
+    // TODO REMOVE std::cout << "calling f_alpha from alphaOffset.\n";
+
     // Get the values of the function at x "low" and x "high".
     Real f_low ( f_alpha(low,n) );	
     Real f_high( f_alpha(high,n) );	
@@ -420,11 +445,15 @@ GreensFunction2DRadAbs::p_survival_i( const Real alpha) const
 	const Real a_An (a*alpha);
         const Real alpha_sq (alpha*alpha);
 
+    // TODO REMOVE std::cout << "Calling bessel from p_survival_i\n";
+
 	// calculate all the required Bessel functions
         const Real J1_sAn  (gsl_sf_bessel_J1(s_An));
         const Real J0_aAn  (gsl_sf_bessel_J0(a_An));
         const Real Y0_aAn  (gsl_sf_bessel_Y0(a_An));
 	const Real Y1_sAn  (gsl_sf_bessel_Y1(s_An));
+
+    // TODO REMOVE std::cout << "Done.\n";
 
 	// calculate C0,n
         const Real C_i_0 (calc_A_i_0(alpha)); 
@@ -442,24 +471,29 @@ GreensFunction2DRadAbs::p_survival_i( const Real alpha) const
 const Real 
 GreensFunction2DRadAbs::calc_A_i_0( const Real alpha) const
 {
-        const Real a( geta() );    		        // get the needed parameters
-        const Real sigma( getSigma() );
-        const Real h (this->geth());
+    const Real a( geta() );    		        // get the needed parameters
+    const Real sigma( getSigma() );
+    const Real h (this->geth());
 
-        const Real s_An (sigma*alpha);
-        const Real a_An (a*alpha);
-        const Real r0An (r0*alpha);
+    const Real s_An (sigma*alpha);
+    const Real a_An (a*alpha);
+    const Real r0An (r0*alpha);
 
 //	const int n = 0;
 //	if ( n == 0)
 //	{
-		const Real J0_sAn  (gsl_sf_bessel_J0(s_An));    // calculate all the required Bessel functions
-	        const Real J1_sAn  (gsl_sf_bessel_J1(s_An));
-	        const Real J0_aAn  (gsl_sf_bessel_J0(a_An));
 
-	        const Real J0_r0An (gsl_sf_bessel_J0(r0An));
-	        const Real Y0_aAn  (gsl_sf_bessel_Y0(a_An));
-	        const Real Y0_r0An (gsl_sf_bessel_Y0(r0An));
+    // TODO REMOVE std::cout << "Calling bessel from calc_A_i_0.\n";
+
+	const Real J0_sAn  (gsl_sf_bessel_J0(s_An));    // calculate all the required Bessel functions
+    const Real J1_sAn  (gsl_sf_bessel_J1(s_An));
+    const Real J0_aAn  (gsl_sf_bessel_J0(a_An));
+
+    const Real J0_r0An (gsl_sf_bessel_J0(r0An));
+    const Real Y0_aAn  (gsl_sf_bessel_Y0(a_An));
+    const Real Y0_r0An (gsl_sf_bessel_Y0(r0An));
+    
+        // TODO REMOVE std::cout << "Done.\n";
 //	}
 //	else
 //	{
@@ -488,12 +522,16 @@ GreensFunction2DRadAbs::leaves_i( const Real alpha) const
         const Real s_An (sigma*alpha);
         const Real a_An (a*alpha);
 
+    // TODO REMOVE std::cout << "Calling bessel from leaves_i.\n"; // TODO REMOVE DEBUG
+
 	// calculate all the required Bessel functions
         const Real J1_sAn  (gsl_sf_bessel_J1(s_An));
         const Real Y1_sAn  (gsl_sf_bessel_Y1(s_An));
         const Real J0_aAn  (gsl_sf_bessel_J0(a_An));
         const Real Y0_aAn  (gsl_sf_bessel_Y0(a_An));
-
+        
+    // TODO REMOVE std::cout << "Done.\n"; // TODO REMOVE DEBUG
+    
         // calculate An,0
         const Real A_i_0 (calc_A_i_0(alpha));		// calculate the coefficient A0,n
 
@@ -568,12 +606,15 @@ GreensFunction2DRadAbs::Y0J0J1_constants ( const Real alpha,
 	const Real a_An (a*alpha);
 	const Real alpha_sq (alpha*alpha);
 
-	// calculate all the required Bessel functions
+    // TODO REMOVE std::cout << "Calling bessel from Y0J0J1_constants.\n"; // TODO REMOVE DEBUG
+
+	// calculate all the required Bessel functions	
 	const Real J0_aAn  (gsl_sf_bessel_J0(a_An));
 	const Real Y0_aAn  (gsl_sf_bessel_Y0(a_An));
 	const Real J1_sAn  (gsl_sf_bessel_J1(s_An));
 	const Real Y1_sAn  (gsl_sf_bessel_Y1(s_An));
-
+	
+    // TODO REMOVE std::cout << "Done.\n"; // TODO REMOVE DEBUG
 
         // calculate An,0
 	const Real A_i_0 (calc_A_i_0(alpha)); //_sq * rho_sq * B_n_0)/( rho_sq - J0_bAn*J0_bAn*(h*h + alpha_sq)));
@@ -700,6 +741,9 @@ const void GreensFunction2DRadAbs::GiveRootInterval(
 	}
 
     // # Look for the sign change.
+    
+    // TODO DEBUG REMOVE
+    // TODO REMOVE std::cout << "Calling f_alpha from GiveRootInterval.\n";
 
     // Get the values of the function at x "low" and x "high".
     // Different for n=0 because this results in a simpler function.
@@ -717,7 +761,7 @@ const void GreensFunction2DRadAbs::GiveRootInterval(
     while( f_low * f_high > 0 )		
     {					
         // DEBUG; TODO REMOVE
-        std::cout << "Scanning; no root at:[" << low << "," << high << "]\n";
+        // TODO REMOVE std::cout << "Scanning; no root at:[" << low << "," << high << "]\n";
     
         low =  high;			
         f_low = f_high;			
@@ -852,16 +896,15 @@ GreensFunction2DRadAbs::getAlphaRoot( const Real low,   // root lies between low
 
 // TODO: check comments for mistakes / completion
 // Subfunction of getAlpha
+// 
+// For now just counts the number of times the root lies in the interval that
+// can be used to estimate the next root. If this happens enough, then switch
+// to just assuming that for all next roots the distance inbetween roots will
+// equal the interval +/- margin.
 const void GreensFunction2DRadAbs::decideOnMethod2(size_t n, 
                                                    RealVector::size_type i
                                                   ) const
-{
-
-// TODO we could also add to this that if we've been in the margin for a certain
-// amount of time already, we'll also switch. DELIBERATE WITH TOMEK? Well, 
-// actually the overhead is not too bad. If there is only 1 entry, but we expect
-// two, then it will, for each root, check once if there is a sign change in the
-// difference. (Three substractions and a multiplication.)
+{    
 
     // Since the function can only decide with two alpha's already calculated, 
     // it can't do anything if i = 0.
@@ -870,29 +913,26 @@ const void GreensFunction2DRadAbs::decideOnMethod2(size_t n,
         const Real dx(getAlpha(n, i)-getAlpha(n, i-1)); // note the recursiveness!
         const Real estimated_alpha_root_distance_( this->getestimated_alpha_root_distance_() );
 
-        // If the absolute deviation from the expected difference is smaller 
-        // than the expected margin, it is assumed we can use method 2.
+        // If the relative deviation from the expected difference is smaller 
+        // than the expected margin, increase number of would-be correct 
+        // guesses.
         if (fabs(1-dx/estimated_alpha_root_distance_) < INTERVAL_MARGIN) {
-            ++alpha_dx_entry_in_margin_[n];
-            
-            // There is only a limited amount of times the distance will switch
-            // from expected to be in the margin to being expected not to be in
-            // the margin. Hence if the distance falls within the margin, while
-            // the previous distance didn't, if this happens for more than 
-            // DISTANCE_INOUT_MARGIN times, we permanently switch to method 2. 
-            // (I.e. we will assume the distance between the roots will now 
-            // always stay within the margin.)
-            if (alpha_dx_entry_in_margin_[n] >= DISTANCE_INOUT_MARGIN) {
-                alpha_x_scan_table_[n] = -2; // permanently switch
-            } else {
-                alpha_x_scan_table_[n] = -1; // temporarely switch
-            }
-        }    
+            ++alpha_correctly_estimated_[n];            
+        } else {
+            alpha_correctly_estimated_[n] = 0;
+        }   
+        
+        // If guessing would have worked for last CONVERGENCE_ASSUMED roots, 
+        // assume it will for all following roots.
+        if (alpha_correctly_estimated_[n] > CONVERGENCE_ASSUMED) {
+            alpha_x_scan_table_[n] = -2; // permanently switch
+        }
     }
     
     return;
 }
 
+/* LEGACY
 // TODO: check comments for mistakes / completion
 // Subfunction of getAlpha
 const void GreensFunction2DRadAbs::needToSwitchBackMethod1(
@@ -924,6 +964,7 @@ const void GreensFunction2DRadAbs::needToSwitchBackMethod1(
 
     return;
 }
+*/
 
 // TODO ADD SOME COMMENTS HERE!
 const Real GreensFunction2DRadAbs::getAlpha( size_t n,               // order
@@ -964,7 +1005,7 @@ const Real GreensFunction2DRadAbs::getAlpha( size_t n,               // order
 	        GiveRootInterval(low, high, n);	        
 	        
 	        // DEBUG; TODO REMOVE
-	        std::cout << "(n="<<n<<",i="<<i<<") Via scan: looking at:[" << low << "," << high << "]\n";
+	        // TODO REMOVE std::cout << "(n="<<n<<",i="<<i<<") Via scan: looking at:[" << low << "," << high << "]\n";
 	        
 	        // ### Finds the root using the GSL rootfinder
             current_root_ = getAlphaRoot(low, high, n);
@@ -972,7 +1013,7 @@ const Real GreensFunction2DRadAbs::getAlpha( size_t n,               // order
             // ### Puts the found root in the table.
 		    alphaTable[i]= current_root_;
 		    		    
-		    // Check if we can use method 2 temporarily or permanently
+		    // Check if we can use method 2 for next roots
 		    decideOnMethod2(n, i);		    
 	    }
 	    // Method 2. ASSUMING CORRECT. If next root is expected to lie close 
@@ -984,7 +1025,7 @@ const Real GreensFunction2DRadAbs::getAlpha( size_t n,               // order
 	        GiveRootIntervalSimple(low, high, n, i);	        
 
 	        // DEBUG; TODO REMOVE
-	        std::cout << "(n="<<n<<",i="<<i<<") Via \"sure\" estimate: looking at:[" << low << "," << high << "]\n";
+	        // TODO REMOVE std::cout << "(n="<<n<<",i="<<i<<") Via \"sure\" estimate: looking at:[" << low << "," << high << "]\n";
 	    
 	        // ### Finds the root using the GSL rootfinder
             current_root_ = getAlphaRoot(low, high, n);
@@ -992,8 +1033,10 @@ const Real GreensFunction2DRadAbs::getAlpha( size_t n,               // order
             // ### Puts the found root in the table.
 		    alphaTable[i] = current_root_;		    
 
+            /* LEGACY
     		// check if we need to switch back to method 1
     		needToSwitchBackMethod1(n, i);    		    
+    		*/
 	    }
 	    
 	    // # Looks if we can switch from method 1 to method 2.
@@ -1020,6 +1063,7 @@ const Real GreensFunction2DRadAbs::getAlpha( size_t n,               // order
 	        real distance (current_root_ - alphaTable[i-1]);
 	    }
 */	    
+    // TODO REMOVE std::cout << "We've found your root for ya!\n";
     }
     
     return alphaTable[i];
@@ -1072,8 +1116,12 @@ GreensFunction2DRadAbs::p_int_r_i_exp_table( const unsigned int i,
 	const Real alpha( this->getAlpha( 0, i ) );	// get the root An
 	const Real r_An( r*alpha);
 
+    // TODO REMOVE std::cout << "Calling bessel p_int_r_i_esp_table.\n"; // TODO REMOVE DEBUG
+    
 	const Real J1_rAn (gsl_sf_bessel_J1(r_An));
 	const Real Y1_rAn (gsl_sf_bessel_Y1(r_An));
+	
+    // TODO REMOVE std::cout << "Done.\n"; // TODO REMOVE DEBUG
 
 	const Real result (Y0_aAnTable[i]*r*J1_rAn - J0_aAnTable[i]*r*Y1_rAn - Y0J1J0Y1Table[i]);
 	return result;
@@ -1521,6 +1569,8 @@ const Real GreensFunction2DRadAbs::p_m_alpha( const unsigned int n,
 
 //	const CylindricalBesselGenerator& s(CylindricalBesselGenerator::instance());
 
+    // TODO REMOVE std::cout << "Calling bessel from p_m_alpha.\n"; // TODO REMOVE DEBUG
+
 	// calculate the needed bessel functions
 	const Real Jm_sAnm   (gsl_sf_bessel_Jn(m, s_Anm));
 	const Real Jmp1_sAnm (gsl_sf_bessel_Jn(m+1, s_Anm));	// prime
@@ -1544,6 +1594,7 @@ const Real GreensFunction2DRadAbs::p_m_alpha( const unsigned int n,
 //	const Real Jm_rAnm   (s.J(m, r_Anm));
 //	const Real Ym_rAnm   (s.Y(m, r_Anm));
 
+    // TODO REMOVE std::cout << "Done.\n"; // TODO REMOVE DEBUG
 
 	// calculating An,m
 	const Real h_ma (h - realm/sigma);
@@ -1672,6 +1723,8 @@ GreensFunction2DRadAbs::dp_m_alpha_at_a( const unsigned int n,
         const Real a_Anm (a*alpha);
         const Real r0Anm (r0*alpha);
 
+    // TODO REMOVE std::cout << "Calling bessel from dp_m_alpha_at_a.\n"; // TODO REMOVE DEBUG
+
 	// std::clog << "|";	// DEBUG *REMOVEME*
         // calculate the needed bessel functions
         	// std::clog << "1";	// DEBUG *REMOVEME*
@@ -1688,6 +1741,8 @@ GreensFunction2DRadAbs::dp_m_alpha_at_a( const unsigned int n,
         	// std::clog << "6(" << m << ", " << r0Anm << ")";	// DEBUG *REMOVEME*
         const Real Ym_r0Anm  (gsl_sf_bessel_Yn(m, r0Anm)); // !GIVES PROBLEMS
 	// std::clog << "_";	// DEBUG *REMOVEME*
+
+    // TODO REMOVE std::cout << "Done.\n"; // TODO REMOVE DEBUG
 
         // calculating An,m
         const Real h_ma (h - realm/sigma);
