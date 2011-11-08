@@ -144,7 +144,7 @@ public:
         if(!bounced && pp_structure->id() == "world")
         {
             /* Check for overlap with nearest surface. */
-            struct_id_distance_pair = tx_.get_closest_surface( new_pos );
+            struct_id_distance_pair = tx_.get_closest_surface( new_pos, pp_structure->id() );
             core_surface_distance = struct_id_distance_pair.second - r0;
         
             if(core_surface_distance < 0)
@@ -166,7 +166,7 @@ public:
             
             if(pp_structure->id() == "world")
             {
-                struct_id_distance_pair = tx_.get_closest_surface( new_pos );
+                struct_id_distance_pair = tx_.get_closest_surface( new_pos, pp_structure->id() );
                 core_surface_distance = struct_id_distance_pair.second - r0;  
             }
         }
@@ -176,7 +176,7 @@ public:
         Real accumulated_prob = 0;
         Real const rnd( rng_() );
         
-        /* First, if a surface is near, attempt an interaction. */
+        /* First, if a surface is inside the reaction volume, attempt an interaction. */
         if(core_surface_distance < reaction_length_ && pp_structure->id() == "world")
         {        
             boost::shared_ptr<structure_type> const closest_surf( tx_.get_structure(struct_id_distance_pair.first) );
@@ -365,7 +365,7 @@ private:
 
                         if( s0.structure_id() == "world" )
                         {
-                            structure_id_and_distance_pair const struct_id_distance_pair( tx_.get_closest_surface( new_pos ) );
+                            structure_id_and_distance_pair const struct_id_distance_pair( tx_.get_closest_surface( new_pos, s0.structure_id()) );
                             length_type const core_surface_distance( struct_id_distance_pair.second - s0.radius() );
                                     
                             if( core_surface_distance < 0 )
@@ -439,13 +439,13 @@ private:
                             bool surface_overlap = false;
                             if( s0.structure_id() == "world" && s1.structure_id() == "world" )
                             {
-                                structure_id_and_distance_pair struct_id_distance_pair( tx_.get_closest_surface( pp01.first ) );
+                                structure_id_and_distance_pair struct_id_distance_pair( tx_.get_closest_surface( pp01.first, s0.structure_id() ) );
                                 length_type core_surface_distance( struct_id_distance_pair.second - s0.radius() );
                                     
                                 if( core_surface_distance < 0 )
                                     surface_overlap = true;
                                     
-                                struct_id_distance_pair = tx_.get_closest_surface( pp01.second );
+                                struct_id_distance_pair = tx_.get_closest_surface( pp01.second, s1.structure_id() );
                                 core_surface_distance = struct_id_distance_pair.second - s1.radius();
 
                                 if( core_surface_distance < 0 )
@@ -580,7 +580,7 @@ private:
                         
                         if( sp.structure_id() == "world" )
                         {
-                            structure_id_and_distance_pair const struct_id_distance_pair( tx_.get_closest_surface( new_pos ) );
+                            structure_id_and_distance_pair const struct_id_distance_pair( tx_.get_closest_surface( new_pos, sp.structure_id() ) );
                             length_type const core_surface_distance( struct_id_distance_pair.second - sp.radius() );
                                     
                             if( core_surface_distance < 0 )
@@ -667,13 +667,18 @@ private:
                             }
                         }
 
-                        remove_particle(pp.first);
-                        particle_id_pair npp(tx_.new_particle(product, new_pos));
+			            const particle_id_pair new_p(
+			              pp.first, particle_type(sp.id(),
+				            particle_shape_type(new_pos,
+					          sp.radius()),
+					            sp.D()));
+
+                        tx_.update_particle(new_p);
                         if (rrec_)
                         {
                             (*rrec_)(
                                 reaction_record_type(
-                                    r.id(), array_gen(npp.first), pp.first));
+                                    r.id(), array_gen(new_p.first), pp.first));
                         }
                         break;
                     }
@@ -750,7 +755,7 @@ private:
         
         if(s0.structure_id() == "world")
         {
-            structure_id_and_distance_pair const struct_id_distance_pair( tx_.get_closest_surface( new_pos ) );
+            structure_id_and_distance_pair const struct_id_distance_pair( tx_.get_closest_surface( new_pos, s0.structure_id() ) );
             length_type const core_surface_distance( struct_id_distance_pair.second - s0.radius() );
                                     
             if( core_surface_distance < 0 )

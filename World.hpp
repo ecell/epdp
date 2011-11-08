@@ -10,6 +10,8 @@
 #include <boost/array.hpp>
 #include <boost/utility/enable_if.hpp>
 #include <boost/type_traits/is_same.hpp>
+#include <boost/scoped_ptr.hpp>
+#include <boost/foreach.hpp>
 #include "exceptions.hpp"
 #include "generator.hpp"
 #include "filters.hpp"
@@ -289,63 +291,30 @@ public:
             structure_map_.size());
     }
     
-    virtual structure_id_and_distance_pair get_closest_surface(position_type const& pos) const
-    {        
-        structures_range structures = get_structures();
-        size_type const size ( structures.size() );
-               
+    virtual structure_id_and_distance_pair get_closest_surface(position_type const& pos, structure_id_type const& ignore) const
+    {       
         length_type const world_size( base_type::world_size() );
-        
-        switch(size)
-        {
-        case 0:
-            throw not_found(std::string("No structures found."));
-                 
-        case 1:   
-            return structure_id_and_distance_pair( (*structures.begin())->id() , std::numeric_limits<length_type>::max() );
-        
-        case 2:
-        {
-            surface_iterator structure = structures.begin();
-                                              
-            position_type const cyc_pos( cyclic_transpose(pos, (*structure)->structure_position(), world_size) );
-                                              
-            position_type nearest_point_on_surface( (*structure)->projected_point( cyc_pos ).first );
+        length_type ret_dist( std::numeric_limits<length_type>::max() );
+        structure_id_type ret_id;
 
-            return structure_id_and_distance_pair( (*structure)->id(), 
-                 traits_type::distance( nearest_point_on_surface, pos, world_size ) );
-        }
-        
-        default:
-        {   
-            surface_iterator structure = structures.begin();               
-            surface_iterator ret_structure( structure );
+        BOOST_FOREACH(boost::shared_ptr<structure_type> const structure, get_structures())
+        {
+            if( structure->id() == ignore )
+                continue;
             
-            position_type cyc_pos( cyclic_transpose(pos, (*structure)->structure_position(), world_size) );
-            
-            length_type ret_dist( (*structure)->projected_point_on_surface( cyc_pos ).second );
-            length_type dist;
-                   
-            structure++;
-            for(size_type i = 2; i < size; i++)
-            {
-                cyc_pos = cyclic_transpose(pos, (*structure)->structure_position(), world_size);                
-                dist = (*structure)->projected_point_on_surface( cyc_pos ).second;
+            position_type const cyc_pos(cyclic_transpose(pos, structure->structure_position(), world_size));
+            length_type const dist( structure->projected_point_on_surface( cyc_pos ).second );
                 
-                if( dist < ret_dist )
-                {
-                    ret_dist = dist;
-                    ret_structure = structure;
-                }
-                structure++;
-            }
-        
-            return structure_id_and_distance_pair( (*ret_structure)->id() , ret_dist );
+            if( dist < ret_dist )
+            {
+                ret_dist = dist;
+                ret_id = structure->id();
+            }  
         }
         
-        }
+        return structure_id_and_distance_pair( ret_id , ret_dist );
     }
-
+   
     particle_id_set get_particle_ids(species_id_type const& sid) const
     {
         typename per_species_particle_id_set::const_iterator i(

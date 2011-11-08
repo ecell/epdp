@@ -240,9 +240,9 @@ public:
         return py_wrapper_type::get_override("get_structures")();
     }
 
-    virtual structure_id_and_distance_pair get_closest_surface(position_type const& pos) const
+    virtual structure_id_and_distance_pair get_closest_surface(position_type const& pos, structure_id_type const& ignore) const
     {
-        return py_wrapper_type::get_override("get_closest_surface")(pos);
+        return py_wrapper_type::get_override("get_closest_surface")(pos, ignore);
     }
 
     virtual particle_id_pair new_particle(species_id_type const& sid,

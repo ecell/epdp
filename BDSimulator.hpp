@@ -33,6 +33,7 @@ public:
     typedef typename traits_type::rate_type rate_type;
     typedef typename traits_type::reaction_record_type reaction_record_type;
     typedef typename traits_type::reaction_recorder_type reaction_recorder_type;
+    typedef std::pair<const Real, const Real> real_pair;
 
 public:
     Real const& dt_factor()
@@ -44,21 +45,24 @@ public:
 
     BDSimulator(boost::shared_ptr<world_type> world, 
                 boost::shared_ptr<network_rules_type const> network_rules,
-                rng_type& rng, Real dt_factor = traits_type::DEFAULT_DT_FACTOR,
-                int dissociation_retry_moves = 1, length_type reaction_length_factor = 1)
+                rng_type& rng, Real dt_factor = .1,
+                int dissociation_retry_moves = 1, length_type reaction_length_factor = traits_type::MULTI_SHELL_FACTOR)
         : base_type(world, network_rules, rng),
           dt_factor_(dt_factor), num_retries_(dissociation_retry_moves), 
           reaction_length_factor_(reaction_length_factor)
     {
-        calculate_dt();
-        reaction_length_ = determine_reaction_length( *world, base_type::dt_, reaction_length_factor_, *base_type::network_rules_);
+        calculate_dt_and_reaction_length();
         bound_time = 0;
     }
 
-    virtual void calculate_dt()
+    void calculate_dt_and_reaction_length()
     {
-        base_type::dt_ = dt_factor_ * determine_dt(*base_type::world_);
-        LOG_DEBUG(("dt=%f", base_type::dt_));
+        //base_type::dt_ = dt_factor_ * determine_dt(*base_type::world_);
+        base_type::dt_ = determine_dt();
+        reaction_length_ = determine_reaction_length();
+        log_.info( "dt=%e, reaction length=%e", base_type::dt_, reaction_length_ );
+        
+        LOG_DEBUG(("dt=%e, reaction length=%e", base_type::dt_, reaction_length_));
     }
 
     virtual void step()
@@ -101,31 +105,96 @@ public:
         return gsl_pow_2(radius_min * 2) / (D_max * 2);
     }
     
-    static length_type determine_reaction_length(world_type const& world, time_type dt, length_type const& reaction_length_factor,
-        network_rules_type const& rules)
+    Real determine_dt()
+    {
+        std::pair<const Real, const Real> maxD_minr( maxD_minsigma() );
+        const Real k_max( get_max_rate() );
+        const Real D_max( maxD_minr.first );
+        const Real r_min( maxD_minr.second );
+        const Real Pacc_max( 0.02 ); //Reciproke of maximum value of the acceptance probability.
+        const Real tau_D( 2 * r_min * r_min / D_max ); //~multi escape time.
+        Real dt;
+        
+        if( k_max > 0)
+        {
+            Real dt_temp( Pacc_max * reaction_length_factor_ * r_min / k_max );
+            dt = std::min( dt_temp, dt_factor_ * tau_D ); // dt_factor * tau_D is upper limit of dt.
+        }
+        else
+            dt = dt_factor_ * tau_D;
+
+        return dt;    
+    }
+    
+    length_type determine_reaction_length()
+    {
+        real_pair maxD_minr( maxD_minsigma() );
+        return reaction_length_factor_ * maxD_minr.second;
+    }
+    
+    /* Returns largest diffusion constant en smallest particle radius in the multi. */
+    real_pair maxD_minsigma()
+    {
+        Real D_max(0.), radius_min(std::numeric_limits<Real>::max());
+
+        BOOST_FOREACH(species_type s, base_type::world_->get_species())
+        {
+            if (D_max < s.D())
+                D_max = s.D();
+            if (radius_min > s.radius())
+                radius_min = s.radius();
+        }
+        
+        return real_pair(D_max, radius_min);
+    }
+    
+    /* Functions returns largest _1D_ intrinsic reaction rate in the multi.
+       TODO: include structures in kmax finder. */
+    Real get_max_rate()
     {
         Real k_max(0.);
+        int i = 0, j= 0;
 
-        BOOST_FOREACH(species_type s0, world.get_species())
+        BOOST_FOREACH(species_type s0, base_type::world_->get_species())
         {
-            BOOST_FOREACH(species_type s1, world.get_species())
+            j = 0;
+            BOOST_FOREACH(species_type s1, base_type::world_->get_species())
             {
-                reaction_rules const& rrules(rules.query_reaction_rule( s0.id(), s1.id() ));
+                if( j++ < i )
+                    continue;
+                
+                reaction_rules const& rrules((*base_type::network_rules_).query_reaction_rule( s0.id(), s1.id() ));
                 if (::size(rrules) == 0)
                 {
-                    break;
+                    continue;
                 }
-                
+                                
                 for (typename boost::range_const_iterator<reaction_rules>::type
-                i(boost::begin(rrules)), e(boost::end(rrules)); i != e; ++i)
+                it(boost::begin(rrules)), e(boost::end(rrules)); it != e; ++it)
                 {
-                    if ( k_max < (*i).k() )
-                        k_max = (*i).k();
+                    const length_type r01( s0.radius() + s1.radius() );
+                    Real k;
+                    
+                    if(s0.structure_id() != s1.structure_id())
+                    {
+                        if(s0.structure_id() == "world")
+                            k = base_type::world_->get_structure( s0.structure_id() )->get_1D_rate( (*it).k(), r01 );
+                        else
+                            k = base_type::world_->get_structure( s1.structure_id() )->get_1D_rate( (*it).k(), r01 );
+                    }
+                    else
+                    {
+                        k = base_type::world_->get_structure( s0.structure_id() )->get_1D_rate( (*it).k(), r01 ); 
+                    }
+                
+                    if ( k_max < k )
+                        k_max = k;
                 }          
             }
+            i++;
         }
-    
-        return reaction_length_factor * sqrt( 2 * 1E-12 * dt );
+        
+        return k_max;
     }
     
     Real get_reaction_length() const
@@ -138,11 +207,10 @@ public:
         double old_bound_time = bound_time;
         bound_time = 0;
         
-        base_type::dt_ = dt;
-        
+        //base_type::dt_ = dt;
         reaction_length_factor_ = new_reaction_length_factor;
-        reaction_length_ = determine_reaction_length( *base_type::world_, base_type::dt_, reaction_length_factor_, 
-            *base_type::network_rules_ );
+        calculate_dt_and_reaction_length();
+
         return old_bound_time;        
     }
 
@@ -167,7 +235,7 @@ protected:
     }
 
 private:
-    Real const dt_factor_;
+    Real dt_factor_;
     int const num_retries_;
     length_type reaction_length_factor_;
     length_type reaction_length_;

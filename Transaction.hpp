@@ -168,9 +168,9 @@ public:
         return pc_.get_structures();
     }    
         
-    virtual structure_id_and_distance_pair get_closest_surface(position_type const& pos) const
+    virtual structure_id_and_distance_pair get_closest_surface(position_type const& pos, structure_id_type const& ignore) const
     {
-        return pc_.get_closest_surface( pos );
+        return pc_.get_closest_surface( pos, ignore );
     }
 
     virtual species_type const& get_species(species_id_type const& id) const

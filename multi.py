@@ -24,12 +24,14 @@ class Multi(Domain):
         self.escaped = False
         self.dt_factor = dt_factor
         self.last_reaction = None
+        self.reaction_length = 0
 
     def initialize(self, t):
         self.last_time = t
         self.start_time = t
         main = self.main()
-        self.dt = self.dt_factor * self.calculate_bd_dt(main.world.get_species(sid) for sid in main.world.species)
+        set_dt_and_reaction_length()
+        #self.dt = self.dt_factor * self.calculate_bd_dt(main.world.get_species(sid) for sid in main.world.species)
 
     def calculate_bd_dt(species_list):
         D_list = []
@@ -64,6 +66,9 @@ class Multi(Domain):
             log.info("add particle to multi:\n  (%s,\n   %s)" % 
                      (pid_particle_pair[0], pid_particle_pair[1]))
         self.particle_container.update_particle(pid_particle_pair)
+        
+    def set_dt_and_reaction_length(self):
+        self.dt, self.reaction_length = self.particle_container.determine_dt_and_reaction_length(main.network_rules, self.dt_factor)
 
     def step(self):
         self.escaped = False
@@ -102,8 +107,8 @@ class Multi(Domain):
         cr = check_reaction()
         vc = clear_volume(self)
 
-        ppg = _gfrd.BDPropagator(tx, main.network_rules,
-                     myrandom.rng, self.dt, main.dissociation_retry_moves,
+        ppg = _gfrd.newBDPropagator(tx, main.network_rules,
+                     myrandom.rng, self.dt, main.dissociation_retry_moves, self.reaction_length,
                      cr, vc, [pid for pid, _ in self.particle_container])
 
         self.last_event = None

@@ -53,7 +53,7 @@ public:
     
     virtual structures_range get_structures() const = 0;
     
-    virtual structure_id_and_distance_pair get_closest_surface(position_type const& pos) const = 0;
+    virtual structure_id_and_distance_pair get_closest_surface(position_type const& pos, structure_id_type const& ignore) const = 0;
 
     virtual particle_id_pair new_particle(species_id_type const& sid,
             position_type const& pos) = 0;
