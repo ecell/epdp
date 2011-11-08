@@ -1066,7 +1066,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
             # check that the event time of the single (last_time + dt) is equal to the
             # simulator time
-            assert (abs(single.dt + single.last_time - self.t) <= 1e-18 * self.t)
+            assert (abs(single.last_time + single.dt - self.t) <= TIME_TOLERANCE * self.t)
 
 
             pid_particle_pair = single.pid_particle_pair
