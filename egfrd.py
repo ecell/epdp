@@ -1020,12 +1020,80 @@ class EGFRDSimulator(ParticleSimulatorBase):
         return products
 
 
-    def fire_pair_reaction(self, pair):
+    def fire_pair_reaction(self, pair, reactant1_pos, reactant2_pos):
         # This takes care of the identity change when two particles react with each other
         # It performs the reactions:
         # A(any structure) + B(same structure) -> 0
         # A(any structure) + B(same structure or 3D) -> C(same structure)
-        pass
+
+        # 0. get reactant info
+        pid_particle_pair1 = pair.pid_particle_pair1
+        pid_particle_pair2 = pair.pid_particle_pair2
+        reactant1_species_id = pid_particle_pair1[1].sid
+        reactant2_species_id = pid_particle_pair2[1].sid
+
+        rr = pair.draw_reaction_rule(pair.interparticle_rrs)
+        # 1. remove the particles
+
+        if len(rr.products) == 0:
+
+            # 1. no product particles, no info
+            # 2. No space required
+            # 3. No space required
+            # 4. process the change (remove particles, make new ones)
+            self.world.remove_particle(pid_particle_pair1[0])
+            self.world.remove_particle(pid_particle_pair2[0])
+            products = []
+
+            # 5. No new single to be made
+            # 6. Log the change
+            self.last_reaction = (rr, (pid_particle_pair1[1], pid_particle_pair2[1]), products)
+
+        elif len(rr.products) == 1:
+
+            # 1. get product info
+            product_species = self.world.get_species(rr.products[0])
+            product_radius  = product_species.radius
+
+            # 1.5 get new position for product particle
+            product_pos = pair.draw_new_com (pair.dt, pair.event_type)
+            product_pos = self.world.apply_boundary(product_pos)
+
+            # 2.  make space for products
+            # 2.1 if the product particle sticks out of the shell
+#            if self.world.distance(old_com, product_pos) > (pair.get_shell_size() - product_radius):
+            self.burst_volume(product_pos, product_radius)
+
+            # 3. check that there is space for the products ignoring the reactants
+            if self.world.check_overlap((product_pos, product_radius), pid_particle_pair1[0],
+                                                                       pid_particle_pair2[0]):
+                if __debug__:
+                    log.info('fire_pair_reaction: no space for product particle.')
+                moved_reactant1 = self.move_particle(pid_particle_pair1, reactant1_pos)
+                moved_reactant2 = self.move_particle(pid_particle_pair2, reactant2_pos)
+                products = [moved_reactant1, moved_reactant2]     # no change 
+                self.rejected_moves += 1
+
+            else:
+                # 4. process the changes (remove particle, make new ones)
+                self.world.remove_particle(pid_particle_pair1[0])
+                self.world.remove_particle(pid_particle_pair2[0])
+                newparticle = self.world.new_particle(product_species.id, product_pos)
+                products = [newparticle]
+
+                # 5. update counters
+                self.reaction_events += 1
+                self.last_reaction = (rr, (pid_particle_pair1, pid_particle_pair2),
+                                      products)
+
+                # 6. Log the change
+                if __debug__:
+                    log.info('fire_pair_reaction: product (%s) = %s' % (len(products), products))
+
+        else:
+            raise NotImplementedError('num products >= 2 not supported.')
+
+        return products
 
 
     def fire_move(self, single, reactant_pos):
@@ -1479,76 +1547,15 @@ class EGFRDSimulator(ParticleSimulatorBase):
             reactant1_pos = self.world.apply_boundary(reactant1_pos)
             reactant2_pos = self.world.apply_boundary(reactant2_pos)
 
-            product_pos = pair.draw_new_com (pair.dt, pair.event_type)
-            product_pos = self.world.apply_boundary(product_pos)
-
-            # TODO make this a fire_pair_reaction method
-
-
-            # 0. get reactant info
-            rr = pair.draw_reaction_rule(pair.interparticle_rrs)
-            reactant1_species_id = pid_particle_pair1[1].sid
-            reactant2_species_id = pid_particle_pair2[1].sid
-
-            # 1. remove the particles
-
-            if len(rr.products) == 0:
-
-                # 1. no product particles, no info
-                # 2. No space required
-                # 3. No space required
-                # 4. process the change (remove particles, make new ones)
-                self.world.remove_particle(pid_particle_pair1[0])
-                self.world.remove_particle(pid_particle_pair2[0])
-                products = []
-
-                # 5. No new single to be made
-                # 6. Log the change
-                self.last_reaction = (rr, (pid_particle_pair1[1], pid_particle_pair2[1]), products)
-
-            elif len(rr.products) == 1:
-
-                # 1. get product info
-                product_species = self.world.get_species(rr.products[0])
-
-                # 1.5 no change in position due to reaction
-                # position = product_pos
-
-                # 2.  make space for products
-                # 2.1 if the product particle sticks out of the shell
-                if self.world.distance(old_com, product_pos) > (pair.get_shell_size() - product_species.radius):
-                    self.burst_volume(product_pos, product_species.radius)
-
-                    # 3. check that there is space for the products ignoring the reactants
-                    if self.world.check_overlap((product_pos, product_species.radius),
-                                                pid_particle_pair1[0],
-                                                pid_particle_pair2[0]):
-                        # TODO NoSpace no longer exists, make sure that reactant particles are properly placed
-                        if __debug__:
-                            log.info('no space for product particle.')
-                        raise NoSpace()
-
-                # 4. process the changes (remove particle, make new ones)
-                self.world.remove_particle(pid_particle_pair1[0])
-                self.world.remove_particle(pid_particle_pair2[0])
-                particle = self.world.new_particle(product_species.id, product_pos)
-                products = [particle, ]
-
-                # 5. make a new single and schedule
-                single = self.create_single(particle)
-                self.add_domain_event(single)
-
-                # 6. Log the change
-                if __debug__:
-                    log.info('product = %s' % single)
-                self.last_reaction = (rr, (pid_particle_pair1, pid_particle_pair2),
-                                      products)
-            else:
-                raise NotImplementedError('num products >= 2 not supported.')
-
-            # 7. update counter
-            self.reaction_events += 1
             self.remove_domain(pair)
+            particles = self.fire_pair_reaction (pair, reactant1_pos, reactant2_pos)
+
+            domains = []
+            for pid_particle_pair in particles:
+                # 5. make a new single and schedule
+                single = self.create_single(pid_particle_pair)
+                self.add_domain_event(single)
+                domains.append(single)
 
         #
         # 3a. Escaping through a_r.
