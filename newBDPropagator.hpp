@@ -108,7 +108,7 @@ public:
         boost::shared_ptr<structure_type> const pp_structure( tx_.get_structure( pp_species.structure_id() ) );
         
         structure_id_and_distance_pair struct_id_distance_pair;
-        length_type core_surface_distance = 0;
+        length_type particle_surface_distance = 0;
         position_type new_pos;
         
         /* Sample a potential move, and check if the particle _core_ has overlapped with another 
@@ -145,10 +145,9 @@ public:
         {
             /* Check for overlap with nearest surface. */
             struct_id_distance_pair = tx_.get_closest_surface( new_pos, pp_structure->id() );
-            core_surface_distance = struct_id_distance_pair.second - r0;
+            particle_surface_distance = struct_id_distance_pair.second;
         
-            if(core_surface_distance < 0)
-                bounced = true;
+            bounced = determine_surface_passage(new_pos, pp.second.position(), struct_id_distance_pair.first);
         }         
          
         /* If particle is bounced, check reaction_volume for reaction partners at old_pos. */     
@@ -167,17 +166,17 @@ public:
             if(pp_structure->id() == "world")
             {
                 struct_id_distance_pair = tx_.get_closest_surface( new_pos, pp_structure->id() );
-                core_surface_distance = struct_id_distance_pair.second - r0;  
+                particle_surface_distance = struct_id_distance_pair.second;  
             }
         }
         
         /* Attempt a reaction (and/or interaction) with all the particles (and/or a surface) that 
-           are inside the reaction volume. */
+           are/is inside the reaction volume. */
         Real accumulated_prob = 0;
         Real const rnd( rng_() );
         
         /* First, if a surface is inside the reaction volume, attempt an interaction. */
-        if(core_surface_distance < reaction_length_ && pp_structure->id() == "world")
+        if( particle_surface_distance < reaction_length_ && pp_structure->id() == "world")
         {        
             boost::shared_ptr<structure_type> const closest_surf( tx_.get_structure(struct_id_distance_pair.first) );
             
@@ -241,7 +240,7 @@ public:
             if (accumulated_prob >= 1.)
             {
                 LOG_WARNING((
-                    "the accumulated acceptance probability for a reaction volume exeeded one; %f.",
+                    "the accumulated acceptance probability of a reaction volume exeeded one; %f.",
                     accumulated_prob));
             } 
             
@@ -320,7 +319,7 @@ private:
                 switch (::size(products))
                 {
                 case 0:
-                    remove_particle(pp.first);
+                    tx_.remove_particle(pp.first);
                     break;
 
                 case 1:
@@ -359,16 +358,15 @@ private:
                         {
                             if (!(*vc_)(new_p.second.shape(), pp.first))
                             {
-                                throw propagation_error("no space due to other particle");
+                                throw propagation_error("no space due to other particle (vc)");
                             }
                         }
 
                         if( s0.structure_id() == "world" )
                         {
                             structure_id_and_distance_pair const struct_id_distance_pair( tx_.get_closest_surface( new_pos, s0.structure_id()) );
-                            length_type const core_surface_distance( struct_id_distance_pair.second - s0.radius() );
-                                    
-                            if( core_surface_distance < 0 )
+                             
+                            if( determine_surface_passage(new_pos, pp.second.position(), struct_id_distance_pair.first) )
                                 throw propagation_error("no space due to near surface");
                         }
 
@@ -398,7 +396,7 @@ private:
                         {
                             if (--i < 0)
                             {
-                                throw propagation_error("no space");
+                                throw propagation_error("no space due to particle or surface");
                             }
                             
                             /* If the product particles do NOT live on the same structure => surface -> surface + bulk dissociation.
@@ -435,21 +433,15 @@ private:
                                     particle_shape_type(pp01.second, s1.radius()),
                                     pp.first));
                                     
-                            //Only when both products live in the bulk, check for possible overlap with a surface.
+                            /* Only when both products live in the bulk, check for possible overlap with a surface. */
                             bool surface_overlap = false;
                             if( s0.structure_id() == "world" && s1.structure_id() == "world" )
                             {
                                 structure_id_and_distance_pair struct_id_distance_pair( tx_.get_closest_surface( pp01.first, s0.structure_id() ) );
-                                length_type core_surface_distance( struct_id_distance_pair.second - s0.radius() );
-                                    
-                                if( core_surface_distance < 0 )
-                                    surface_overlap = true;
-                                    
-                                struct_id_distance_pair = tx_.get_closest_surface( pp01.second, s1.structure_id() );
-                                core_surface_distance = struct_id_distance_pair.second - s1.radius();
+                                surface_overlap = determine_surface_passage(pp01.first, pp.second.position(), struct_id_distance_pair.first);
 
-                                if( core_surface_distance < 0 )
-                                    surface_overlap = true;                                
+                                struct_id_distance_pair = tx_.get_closest_surface( pp01.second, s1.structure_id() );
+                                surface_overlap = determine_surface_passage(pp01.second, pp.second.position(), struct_id_distance_pair.first);                          
                             }
                                     
                             if (!(overlapped_s0 && overlapped_s0->size() > 0) && !(overlapped_s1 && overlapped_s1->size() > 0) && !surface_overlap)
@@ -463,7 +455,7 @@ private:
                         {
                             if (!(*vc_)(particle_shape_type(pp01.first, s0.radius()), pp.first) || !(*vc_)(particle_shape_type(pp01.second, s1.radius()), pp.first))
                             {
-                                throw propagation_error("no space");
+                                throw propagation_error("no space due to near particle (vc)");
                             }
                         }
 
@@ -565,7 +557,7 @@ private:
                                               pp0.first, pp1.first));
                         if (overlapped && overlapped->size() > 0)
                         {
-                            throw propagation_error("no space");
+                            throw propagation_error("no space due to particle");
                         }
 
                         if (vc_)
@@ -574,16 +566,15 @@ private:
                                     particle_shape_type(new_pos, sp.radius()), 
                                     pp0.first, pp1.first))
                             {
-                                throw propagation_error("no space");
+                                throw propagation_error("no space due to particle (vc)");
                             }
                         }
                         
                         if( sp.structure_id() == "world" )
                         {
                             structure_id_and_distance_pair const struct_id_distance_pair( tx_.get_closest_surface( new_pos, sp.structure_id() ) );
-                            length_type const core_surface_distance( struct_id_distance_pair.second - sp.radius() );
                                     
-                            if( core_surface_distance < 0 )
+                            if( determine_surface_passage(new_pos, pp0.second.position(), struct_id_distance_pair.first) )
                                 throw propagation_error("no space due to near surface");     
                         }
 
@@ -663,7 +654,7 @@ private:
                                     particle_shape_type(new_pos, sp.radius()), 
                                     pp.first))
                             {
-                                throw propagation_error("no space");
+                                throw propagation_error("no space (vc)");
                             }
                         }
 
@@ -697,6 +688,20 @@ private:
         }
         //should not reach here.
         return false;
+    }
+    
+    /* Function determines wether old_pos lies on the other side of the surface than new_pos. */
+    bool determine_surface_passage(position_type const& new_pos, position_type const& old_pos, structure_id_type const& struct_id)
+    {
+        boost::shared_ptr<structure_type> surface( tx_.get_structure( struct_id ) );
+        
+        projected_type const old_projection( surface->projected_point_on_surface( old_pos ) );
+        projected_type const new_projection( surface->projected_point_on_surface( new_pos ) );
+        
+        if( old_projection.second * new_projection.second <= 0 )
+            return true;
+        else
+            return false;
     }
     
     /* Given a position pair and two species, the function generates two new 
@@ -733,17 +738,17 @@ private:
         return new_pp01;
     }
 
-    position_type const make_move(species_type const& s0, position_type const& np, particle_id_type const& ignore)
+    position_type const make_move(species_type const& s0, position_type const& old_pos, particle_id_type const& ignore)
     {
         if(s0.D() == 0)
-            return np;
+            return old_pos;
     
         boost::shared_ptr<structure_type> s0_struct( tx_.get_structure( s0.structure_id() ) );
 
         position_type displacement( s0_struct->
                                         bd_displacement(s0.v() * dt_, std::sqrt(2.0 * s0.D() * dt_), rng_) );
 
-        position_type new_pos(tx_.apply_boundary( add( np, displacement ) ));
+        position_type new_pos(tx_.apply_boundary( add( old_pos, displacement ) ));
                         
         boost::scoped_ptr<particle_id_pair_and_distance_list> overlapped( 
                                     tx_.check_overlap(
@@ -751,15 +756,14 @@ private:
                                     ignore));
                                                                 
         if ( (overlapped && overlapped->size() > 0) )
-            return np;
+            return old_pos;
         
         if(s0.structure_id() == "world")
         {
             structure_id_and_distance_pair const struct_id_distance_pair( tx_.get_closest_surface( new_pos, s0.structure_id() ) );
-            length_type const core_surface_distance( struct_id_distance_pair.second - s0.radius() );
                                     
-            if( core_surface_distance < 0 )
-                return np;        
+            if( determine_surface_passage(new_pos, old_pos, struct_id_distance_pair.first) )
+                return old_pos;        
         }
             
         return new_pos;

@@ -87,12 +87,12 @@ public:
 
     virtual Real surface_reaction_volume( length_type const& r0, length_type const& rl ) const
     {
-        length_type r01( r0 + base_type::shape().radius() );
-        length_type r01l( r01 + rl );
-        length_type r01l_sq( r01l * r01l );
-        length_type r01_sq( r01 * r01 );
+        length_type rc( base_type::shape().radius() ); 
+        length_type rcl( rc + rl );
+        length_type rcl_sq( rcl * rcl );
+        length_type rc_sq( rc * rc );
 
-        return M_PI * ( r01l_sq - r01_sq );
+        return M_PI * ( rcl_sq - rc_sq );
     }
     
     virtual position_type surface_dissociation_vector( rng_type& rng, length_type const& r0, length_type const& rl ) const

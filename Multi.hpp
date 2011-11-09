@@ -309,34 +309,35 @@ public:
     /* Function returns the timestep and reaction length (rl) for BD propegator. 
        
        --dt is calulated with the constraints:
-       (1) The reaction length is equal to MULTI_SHELL_FACTOR * r_min,
+       (1) The reaction length is equal to 0.05 * r_min,
        where r_min is the radius of the smallest particle in the multi.
-       (2) The largest acceptance probability in the multi is smaller than 0.02.
-       (3) particles can't escape the multi with a large step. (Dmax * dt < 1/10 * MULTI_SHELL_FACTOR * r_min * r_min).
+       (2) The largest acceptance probability in the multi is smaller than 0.1.
+       (3) particles escape the multi with a maximum step size in the order of the 
+           reaction length. (Dmax * dt ~ (.05 * r_min)**2 ).
        
        TODO:This function should be a method of the Multi Class, but I put it in the mpc such that we can use it in python.
        
        PROBLEM: for certain parameters (large k) dt can be very small and the simulation will slow down.
     */    
-    real_pair determine_dt_and_reaction_length(network_rules_type const& rules, Real const& dt_factor) const
-    {            
+    real_pair determine_dt_and_reaction_length(network_rules_type const& rules, Real const& step_size_factor) const
+    {               
         const real_pair maxD_minr( maxD_minsigma() );
         const Real k_max( get_max_rate(rules) );
         const Real D_max( maxD_minr.first );
         const Real r_min( maxD_minr.second );
-        const Real Pacc_max( 0.02 ); //Maximum allowed value of the acceptance probability.
-        const Real tau_D( 2 * r_min * r_min / D_max );
+        const Real Pacc_max( 0.1 ); //Maximum allowed value of the acceptance probability.
+        const Real tau_D( 2 * gsl_pow_2(step_size_factor * r_min) / D_max );
         Real dt;
         
         if( k_max > 0)
         {
-            Real dt_temp( Pacc_max * Ttraits_::MULTI_SHELL_FACTOR * r_min / k_max );
-            dt = std::min( dt_temp, dt_factor * tau_D ); // dt_factor * tau_D is upper limit of dt.
+            Real dt_temp( 2 * Pacc_max * step_size_factor * r_min / k_max );
+            dt = std::min( dt_temp, tau_D ); // tau_D is upper limit of dt.
         }
         else
-            dt = dt_factor * tau_D;
+            dt = tau_D;
 
-        return real_pair(dt, Ttraits_::MULTI_SHELL_FACTOR * r_min);
+        return real_pair(dt, step_size_factor * r_min);
     }
 
     MultiParticleContainer(world_type& world): world_(world) {}

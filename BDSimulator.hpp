@@ -111,7 +111,7 @@ public:
         const Real k_max( get_max_rate() );
         const Real D_max( maxD_minr.first );
         const Real r_min( maxD_minr.second );
-        const Real Pacc_max( 0.02 ); //Reciproke of maximum value of the acceptance probability.
+        const Real Pacc_max( 0.1 ); //Reciproke of maximum value of the acceptance probability.
         const Real tau_D( 2 * r_min * r_min / D_max ); //~multi escape time.
         Real dt;
         

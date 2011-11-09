@@ -303,7 +303,7 @@ public:
                 continue;
             
             position_type const cyc_pos(cyclic_transpose(pos, structure->structure_position(), world_size));
-            length_type const dist( structure->projected_point_on_surface( cyc_pos ).second );
+            length_type const dist( fabs( structure->projected_point_on_surface( cyc_pos ).second ) );
                 
             if( dist < ret_dist )
             {

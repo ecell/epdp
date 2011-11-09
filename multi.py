@@ -12,7 +12,7 @@ from domain import Domain
 import os
 
 class Multi(Domain):
-    def __init__(self, domain_id, main, dt_factor):
+    def __init__(self, domain_id, main, step_size_factor):
         Domain.__init__(self, domain_id)
 
         self.main = ref(main)
@@ -22,7 +22,7 @@ class Multi(Domain):
         self.sphere_container = _gfrd.SphericalShellContainer(main.world.world_size, 3)
         self.particle_container = _gfrd.MultiParticleContainer(main.world)
         self.escaped = False
-        self.dt_factor = dt_factor
+        self.step_size_factor = step_size_factor
         self.last_reaction = None
         self.reaction_length = 0
 
@@ -68,7 +68,8 @@ class Multi(Domain):
         self.particle_container.update_particle(pid_particle_pair)
         
     def set_dt_and_reaction_length(self):
-        self.dt, self.reaction_length = self.particle_container.determine_dt_and_reaction_length(main.network_rules, self.dt_factor)
+        self.dt, self.reaction_length = \
+            self.particle_container.determine_dt_and_reaction_length(main.network_rules, self.step_size_factor)
 
     def step(self):
         self.escaped = False

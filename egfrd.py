@@ -36,8 +36,6 @@ from shellcontainer import ShellContainer
 import logging
 import os
 
-from bd import DEFAULT_DT_FACTOR
-
 log = logging.getLogger('ecell')
 
 if __debug__:
@@ -116,7 +114,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
         self.shell_id_generator = ShellIDGenerator(0)
 
         # some constants
-        self.MULTI_SHELL_FACTOR = 1.05          # This is the threshold for when the algorithm switches from
+        self.MULTI_SHELL_FACTOR = 1.5           # This is the threshold for when the algorithm switches from
                                                 # NonInteractionSingles to a Multi and also defines the Multi
                                                 # shell size.
         self.SINGLE_SHELL_FACTOR = 2.0          # This is the threshold for when the algorithm switches from
@@ -125,6 +123,10 @@ class EGFRDSimulator(ParticleSimulatorBase):
         self.MAX_NUM_DT0_STEPS = 10000
 
         self.MAX_TIME_STEP = 10
+
+        self.DEFAULT_DT_FACTOR = 1e-5           # Diffusion time prefactor in BD algortithm to determine time step.
+        
+        self.DEFAULT_STEP_SIZE_FACTOR = 0.05    # prefactor to determine maximum step size in BD algorithm.
 
         # used datastructrures
         self.scheduler = EventScheduler()       # contains the events. Note that every domains has exactly one event
@@ -497,9 +499,10 @@ class EGFRDSimulator(ParticleSimulatorBase):
                 dt_factor = DEFAULT_DT_FACTOR 
         else:
             dt_factor = DEFAULT_DT_FACTOR
+            step_size_factor = DEFAULT_STEP_SIZE_FACTOR
 
         # 2. Create and register domain object
-        multi = Multi(domain_id, self, dt_factor)
+        multi = Multi(domain_id, self, step_size_factor)
         self.domains[domain_id] = multi
 
         # 3. no shells are yet made, since these are added later
