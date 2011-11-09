@@ -89,11 +89,13 @@ void GreensFunction2DRadAbs::clearAlphaTable() const
     // Clears all vectors in the alphaTable
     std::for_each( this->alphaTable.begin(), this->alphaTable.end(),
 		   boost::mem_fn( &RealVector::clear ) );
-		   
+	
+	
+// LEGACY		   
     // Sets the values in the alphaoffsetTable to {0, -1, .., -1}
-    this->alphaOffsetTable[0] = 0;
-    std::fill( this->alphaOffsetTable.begin()+1, this->alphaOffsetTable.end(),
-	       -1 );
+//    this->alphaOffsetTable[0] = 0;
+//    std::fill( this->alphaOffsetTable.begin()+1, this->alphaOffsetTable.end(),
+//	       -1 );
 	       
 	// Sets all values of the alpha_x_scan_table_ to zero.
     std::fill( this->alpha_x_scan_table_.begin(), 
@@ -350,6 +352,9 @@ GreensFunction2DRadAbs::alpha_i( const Real offset, const Integer n ) const
 //
 // *) Note: we should be absolutely sure that the first search window is smaller
 // than half the "period" of the function, otherwise we can overlook roots.
+
+
+/* LEGACY 
 const Real
 GreensFunction2DRadAbs::alphaOffset( const unsigned int n ) const
 {
@@ -432,7 +437,7 @@ GreensFunction2DRadAbs::alphaOffset( const unsigned int n ) const
     this->alphaOffsetTable[n] = offset;	// The offset found is now the first root
     return offset;
 }
-
+*/
 
 // calculates the constant part of the i-th term for the survival probability
 const Real 
