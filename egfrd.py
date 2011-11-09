@@ -483,7 +483,6 @@ class EGFRDSimulator(ParticleSimulatorBase):
             pair = MixedPair(domain_id, single1, single2, shell_id, shell_center, shell_radius,
                              shell_half_length, shell_orientation_vector, r0, rrs)
 
-
         assert isinstance(pair, Pair)
         pair.initialize(self.t)
         self.domains[domain_id] = pair
@@ -1134,7 +1133,9 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
             # check that the event time of the single (last_time + dt) is equal to the
             # simulator time
-            assert (abs(single.last_time + single.dt - self.t) <= TIME_TOLERANCE * self.t)
+            assert (abs(single.last_time + single.dt - self.t) <= TIME_TOLERANCE * self.t), \
+                'Timeline incorrect. single.last_time = %s, single.dt = %s, self.t = %s' % \
+                (FORMAT_DOUBLE % single.last_time, FORMAT_DOUBLE % single.dt, FORMAT_DOUBLE % self.t)
 
 
             pid_particle_pair = single.pid_particle_pair

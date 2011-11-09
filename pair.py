@@ -562,9 +562,9 @@ class PlanarSurfacePair(SimplePair):
         return GreensFunction2DAbsSym(self.D_R, self.a_R)
 
     def iv_greens_function(self, r0):
-        # TODO still doesn't work with 2D Green's functions
+	    # TODO still doesn't work with 2D Green's functions
         return GreensFunction3DRadAbs(self.D_r, self.interparticle_ktot, r0,
-                                              self.sigma, self.a_r)
+                                      self.sigma, self.a_r)
 
     def create_new_shell(self, position, radius, domain_id):
         # The half_length (thickness/2) of a hockey puck is not more 
