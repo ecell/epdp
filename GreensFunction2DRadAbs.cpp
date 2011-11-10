@@ -116,17 +116,13 @@ GreensFunction2DRadAbs::f_alpha0( const Real alpha ) const
 	const Real s_An( sigma * alpha );
 	const Real a_An( a * alpha );
 
-//TODO REMOVE    std::cout << "Calling bessel from f_alpha0.\n"; 
-
 	const double J0_s_An (gsl_sf_bessel_J0(s_An));
 	const double J1_s_An (gsl_sf_bessel_J1(s_An));
 	const double J0_a_An (gsl_sf_bessel_J0(a_An));
 
 	const double Y0_s_An (gsl_sf_bessel_Y0(s_An));
 	const double Y1_s_An (gsl_sf_bessel_Y1(s_An));
-	const double Y0_a_An (gsl_sf_bessel_Y0(a_An));
-	
-// TODO DEBUG REMOVE std::cout << "Done.\n";
+	const double Y0_a_An (gsl_sf_bessel_Y0(a_An));	
 
 	const double rho1 ( ( (h * J0_s_An) + (alpha * J1_s_An) ) * Y0_a_An );
 	const double rho2 ( ( (h * Y0_s_An) + (alpha * Y1_s_An) ) * J0_a_An );
@@ -320,8 +316,6 @@ GreensFunction2DRadAbs::createY0J0Tables( RealVector& Y0_Table,
 	Y0J1J0Y1_Table.reserve( alphaTable_0.size() );
 
 	boost::tuple<Real,Real,Real> result;
-
-	// std::clog << "building Y0J0Tables... ";	// DEBUG *REMOVEME*
 	
 	for (unsigned int count = 0; count < alphaTable_0.size(); count++)
 	{	result = Y0J0J1_constants(alphaTable_0[count], t);
@@ -331,7 +325,6 @@ GreensFunction2DRadAbs::createY0J0Tables( RealVector& Y0_Table,
 		Y0J1J0Y1_Table.push_back (result.get<2>());
 	}
 
-	// std::clog << "done" << std::endl;	// DEBUG *REMOVEME*
 }
 
 
@@ -711,13 +704,9 @@ GreensFunction2DRadAbs::p_int_r_i_exp_table( const unsigned int i,
 {
 	const Real alpha( this->getAlpha( 0, i ) );	// get the root An
 	const Real r_An( r*alpha);
-
-    // TODO REMOVE std::cout << "Calling bessel p_int_r_i_esp_table.\n"; // TODO REMOVE DEBUG
-    
+   
 	const Real J1_rAn (gsl_sf_bessel_J1(r_An));
 	const Real Y1_rAn (gsl_sf_bessel_Y1(r_An));
-	
-    // TODO REMOVE std::cout << "Done.\n"; // TODO REMOVE DEBUG
 
 	const Real result (Y0_aAnTable[i]*r*J1_rAn - J0_aAnTable[i]*r*Y1_rAn - Y0J1J0Y1Table[i]);
 	return result;
@@ -784,11 +773,8 @@ GreensFunction2DRadAbs::p_survival_table( const Real t,
         if( psurvTable.size() < maxi + 1 )		// if the dimensions are good then this means
         {						// that the table is filled
         	IGNORE_RETURN getAlpha( 0, maxi );	// this updates the table of roots
-		// std::clog << "creating PsurvTable... ";	// DEBUG *REMOVEME*
                 this->createPsurvTable( psurvTable);	// then the table is filled with data
-		// std::clog << "done" << std::endl;	// DEBUG *REMOVEME*
         }
-//std::cout << "p_survival_2DPair ";
         p = funcSum_all( boost::bind( &GreensFunction2DRadAbs::p_survival_i_exp_table,
                                           this,
                                           _1, t, psurvTable ),
@@ -1151,8 +1137,6 @@ const Real GreensFunction2DRadAbs::p_m_alpha( const unsigned int n,
 	                                            // besselfunctions of order m.
 	const Real r0( this->getr0() );
 
-    // std::clog << "[r0=" << r0 << "]"; // DEBUG *REMOVEME*
-
 	const Real alpha_sq( alpha * alpha );
 	const Real realm( static_cast<Real>( m ) );
 	const Real msq( realm * realm);
@@ -1171,12 +1155,10 @@ const Real GreensFunction2DRadAbs::p_m_alpha( const unsigned int n,
 //	const Real Jm_sAnm   (s.J(m, s_Anm));
 //	const Real Jmp1_sAnm (s.J(m+1, s_Anm));	// prime
 
-	// std::clog << "|";	// DEBUG *REMOVEME*
 	const Real Jm_aAnm   (gsl_sf_bessel_Jn(m, a_Anm));
 	const Real Ym_aAnm   (gsl_sf_bessel_Yn(m, a_Anm));
 //	const Real Jm_aAnm   (s.J(m, a_Anm));
 //	const Real Ym_aAnm   (s.Y(m, a_Anm));
-	// std::clog << "_";	// DEBUG *REMOVEME*
 
 	const Real Jm_r0Anm  (gsl_sf_bessel_Jn(m, r0Anm));
 	const Real Ym_r0Anm  (gsl_sf_bessel_Yn(m, r0Anm));
@@ -1205,11 +1187,6 @@ const Real GreensFunction2DRadAbs::p_m_alpha( const unsigned int n,
 	// calculating the result
 	const Real result( A_n_m * B_n_m_r * exp(-D*alpha_sq*t) );
 
-    // DEBUG *REMOVEME*
-    if (result == 0.0) {
-        std::clog << "Ladies and gentlemen, we've got 0.";
-    }
-    // END DEBUG
 	return result;
 }
 
@@ -1239,16 +1216,13 @@ GreensFunction2DRadAbs::makep_mTable( RealVector& p_mTable,
 	const Real p_0 ( this->p_m( 0, r, t ) );	// This is the p_m where m is 0, for the denominator
 	p_mTable.push_back( p_0 );			// put it in the table
 
-	// std::clog << "m=0, ";	// DEBUG *REMOVEME*
-
 	const Real p_1 ( this->p_m( 1, r, t ) / p_0 );
 	p_mTable.push_back( p_1 );			// put the first result in the table
-
-	// std::clog << "m=1, ";	// DEBUG *REMOVEME*
 
 	if( p_1 == 0 )
 	{
 		return;					// apparantly all the terms are zero? We are finished
+		                        // TODO: is this assumption correct??
 	}
 
 	const Real threshold( fabs( EPSILON * p_1  ) );	// get a measure for the allowed error, is this correct?
@@ -1265,12 +1239,8 @@ GreensFunction2DRadAbs::makep_mTable( RealVector& p_mTable,
 			break;
 		}
 
-		// std::clog << "m=" << m ;	// DEBUG *REMOVEME*
-
 		p_m_prev_abs = p_m_abs;					// store the previous term
 		const Real p_m( this->p_m( m, r, t ) / p_0 );	// get the next term
-
-		// std::clog << ", ";		// DEBUG *REMOVEME*
 
 		if( ! std::isfinite( p_m ) )		// if the calculated value is not valid->exit
 		{
@@ -1301,11 +1271,8 @@ GreensFunction2DRadAbs::dp_m_alpha_at_a( const unsigned int n,
         const Real D( this->getD() );
         const Real r0( this->getr0() );
 
-        // std::clog << "[feed the alpha: (m=" << m << ", n= " << n << ")]"; // DEBUG *REMOVEME*
         const Real alpha( this->getAlpha( m, n ) ); // get the n-th root using the besselfunctions of order m
        
-        // std::clog << "{r0=" << r0 << ", alpha="<< alpha << ", r*alpha="<< r0*alpha << "}"; // DEBUG *REMOVEME*
-
         const Real alpha_sq( alpha * alpha );
         const Real realm( static_cast<Real>( m ) );
         const Real msq( realm * realm);
@@ -1315,51 +1282,27 @@ GreensFunction2DRadAbs::dp_m_alpha_at_a( const unsigned int n,
         const Real a_Anm (a*alpha);
         const Real r0Anm (r0*alpha);
 
-    // TODO REMOVE std::cout << "Calling bessel from dp_m_alpha_at_a.\n"; // TODO REMOVE DEBUG
-
-	// std::clog << "|";	// DEBUG *REMOVEME*
-        // calculate the needed bessel functions
-        	// std::clog << "1";	// DEBUG *REMOVEME*
         const Real Jm_sAnm   (gsl_sf_bessel_Jn(m, s_Anm));
-        	// std::clog << "2";	// DEBUG *REMOVEME*
-        const Real Jmp1_sAnm (gsl_sf_bessel_Jn(m+1, s_Anm));    // prime
-        	// std::clog << "3";	// DEBUG *REMOVEME*
+        const Real Jmp1_sAnm (gsl_sf_bessel_Jn(m+1, s_Anm));    
         const Real Jm_aAnm   (gsl_sf_bessel_Jn(m, a_Anm));
-        	// std::clog << "4(" << m << ", " << r0Anm << ")";	// DEBUG *REMOVEME*
-        const Real Ym_aAnm   (gsl_sf_bessel_Yn(m, a_Anm)); // !GIVES PROBLEMS
+        const Real Ym_aAnm   (gsl_sf_bessel_Yn(m, a_Anm)); 
 
-        	// std::clog << "5";	// DEBUG *REMOVEME*
         const Real Jm_r0Anm  (gsl_sf_bessel_Jn(m, r0Anm));
-        	// std::clog << "6(" << m << ", " << r0Anm << ")";	// DEBUG *REMOVEME*
-        const Real Ym_r0Anm  (gsl_sf_bessel_Yn(m, r0Anm)); // !GIVES PROBLEMS
-	// std::clog << "_";	// DEBUG *REMOVEME*
-
-    // TODO REMOVE std::cout << "Done.\n"; // TODO REMOVE DEBUG
+        const Real Ym_r0Anm  (gsl_sf_bessel_Yn(m, r0Anm)); 
 
         // calculating An,m
         const Real h_ma (h - realm/sigma);
-//        std::clog << "\n[$ h_ma = "<< h_ma <<"$]\n"; // DEBUG *REMOVEME*
         const Real rho (h_ma*Jm_sAnm + alpha*Jmp1_sAnm);
-//        std::clog << "\n[$ rho = "<< rho <<"$]\n"; // DEBUG *REMOVEME*
         const Real rho_sq (rho*rho);
 
         // calculating Bn,m(r')
         const Real B_n_m_r0 (Jm_r0Anm * Ym_aAnm  -  Ym_r0Anm * Jm_aAnm);
-//        std::clog << "\n[$ B_n_m_r0 = "<< B_n_m_r0 <<"$]\n"; // DEBUG *REMOVEME*
 
         const Real A_n_m ((alpha_sq * rho_sq * B_n_m_r0)/( rho_sq - (Jm_aAnm*Jm_aAnm)*(h*h + alpha_sq - msq/ssq)));
-//        std::clog << "\n[$ A_n_m = "<< A_n_m <<"$]\n"; // DEBUG *REMOVEME*
 
         // calculating the result
         const Real result( A_n_m * exp(-D*alpha_sq*t) );
 
-        // DEBUG *REMOVEME*
-        if (result == 0.0) {
-            std::clog << "\nLadies and gentlemen, we've got result=0.";
-            std::clog << "\nShowing add. information:\nInput parameters: {n=" << n << ",m=" << m << ",t=" << t << "}\n"
-                      << "\nObtained parameters {sigma=" << sigma << ", h=" << h << ", a=" << a << ", D=" << D << ", r0=" << r0 << ", alpha="<< alpha <<"}\n";
-        }
-        // END DEBUG
 	return result;
 }
 
@@ -1368,9 +1311,6 @@ const Real
 GreensFunction2DRadAbs::dp_m_at_a( const Integer m,
 					   const Real t ) const
 {
-    
-    // DEBUG *REMOVEME*; seems to be correct
-    // std::clog << "\n[$$$ We're giving funcsum: " << m << ", " << t  << ", " << MAX_ALPHA_SEQ << ","<< EPSILON <<",  $$$]";    
 
     const Real p( funcSum( 
                         boost::bind( 
@@ -1530,21 +1470,16 @@ GreensFunction2DRadAbs::drawTheta( const Real rnd,
 	}
 
 	// making the tables with constants
-	// std::clog << "Making table p_mTable... "; // DEBUG *REMOVEME*
 
 	RealVector p_mTable;			// a table with constants to make calculations much faster
 	if( fabs(r - a) <= EPSILON*L_TYPICAL )	// If the r is at the outer boundary
 	{
-		// std::clog << "at a... "; // DEBUG *REMOVEME*
 		makedp_m_at_aTable( p_mTable, t );	// making the table if particle on the outer boundary
 	}
 	else
 	{
-		// std::clog << "NOT at a... "; // DEBUG *REMOVEME*
 		makep_mTable( p_mTable, r, t );	// making the table of constants for the regular case
 	}
-
-	// std::clog << "done" << std::endl; // DEBUG *REMOVEME*
 
 	// preparing the function
 	ip_theta_params params = { this, r, t, p_mTable, rnd*0.5 };	// r, r0, t are not required
