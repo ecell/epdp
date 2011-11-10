@@ -318,35 +318,29 @@ private:
 
     // Tables that hold calculated roots (y=0) of "alpha" function for each    
     // order n.
-    //      The alphaOffsetTable will be filled with 1st roots for all n. The 
-    // alphaTable will also be filled with these 1st roots, but also the mth 
-    // roots for all n.
-    //      Note that number of elements is MAX_ORDER+1 as the order n can range
-    // from n=0 to n=MAX_ORDER.
-    //      Initial values are set by constructor.
-//    mutable boost::array<Real,MAX_ORDER+1> alphaOffsetTable;
     mutable boost::array<RealVector,MAX_ORDER+1> alphaTable;
-    
-    const Real estimated_alpha_root_distance_;    
-    
-    // LEGACY
-    // Table which for each order n tells if we're in regime where next root
-    // will lie in [x_previous_root-INTERVAL_ALLOWED_ERROR, x_previous_root
-    // +INTERVAL_ALLOWED_ERROR]. In that case value n of table will be true, 
-    // if we still have to scan for a sign-change, than value n in table will
-    // be false.
-    // mutable boost::array<bool,MAX_ORDER+1> alphaRootsConverged;
-    
+
+    // Constants used in the roots of f_alpha() finding algorithm.
+    // ====
+    //
+    // This constant will simply be M_PI/(a-Sigma), the value to which the 
+    // distance between roots of f_alpha() should converge.
+    const Real estimated_alpha_root_distance_;        
+    //
     // Table which tells us at which x we're left with scanning the alpha 
     // function for a sign change, for a given order n. (A sign change would 
     // indicate a root (y=0) lies between the boundaries of the "scanned" 
     // interval.) 
-    //      If x_scan[n] == -1, this indicates scanning is no longer required
+    //      If x_scan[n] < 0, this indicates scanning is no longer required
     // because the distance between the roots is converging and within 
     // boundaries that allow the direct use of the estimate interval width 
     // pi/(sigma-a).
     //      Initial values are set by constructor.
     mutable boost::array<Real,MAX_ORDER+1> alpha_x_scan_table_;     
+    //
+    // Table that keeps track of the number of previous subsequent roots that 
+    // we're within margin of the distance to which they're expected to 
+    // converge.
     mutable boost::array<int,MAX_ORDER+1> alpha_correctly_estimated_;
 
 };
