@@ -591,12 +591,12 @@ class PlanarSurfacePair(SimplePair):
         
             if distance_from_shell < threshold_distance:
                 # near both a and sigma;
-                # use GreensFunction3DRadAbs
+                # use GreensFunction2DRadAbs
                 if __debug__:
                     log.debug('GF2D: normal')
                 return self.iv_greens_function(r0)
             else:
-                # near sigma; use GreensFunction3DRadInf
+                # near sigma; use GreensFunction2DRadInf
                 if __debug__:
                     log.debug('GF2D: only sigma')
                 return self.iv_greens_function(r0)
@@ -925,16 +925,17 @@ class MixedPair(Pair):
             raise RuntimeError('Error: psi was not in valid range. psi = %s, phi = %s, theta = %s' %
                                (FORMAT_DOUBLE % psi, FORMAT_DOUBLE % phi, FORMAT_DOUBLE % theta))
 
-        log.debug('situation = %s' % (situation))
-#        print "h0", scalecenter_h0
-#        print "scale_center" , scale_center
-#        print "theta = " ,theta
-#        print "phi= ", phi
-#        print "psi= ", psi
-#        print "shell_scale_center= ", shell_scale_center
-#        print "shell_scalecenter_r= ", shell_scalecenter_r
-#        print "shell_scalecenter_z= ", shell_scalecenter_z
-#        print "shell_size=", shell_size
+        if __debug__:
+            log.debug('situation = %s' % (situation))
+    #        print "h0", scalecenter_h0
+    #        print "scale_center" , scale_center
+    #        print "theta = " ,theta
+    #        print "phi= ", phi
+    #        print "psi= ", psi
+    #        print "shell_scale_center= ", shell_scale_center
+    #        print "shell_scalecenter_r= ", shell_scalecenter_r
+    #        print "shell_scalecenter_z= ", shell_scalecenter_z
+    #        print "shell_size=", shell_size
 
 
         ### Get the right values for z and r for the given situation
@@ -973,12 +974,13 @@ class MixedPair(Pair):
             raise RuntimeError('Bad situation for MixedPair shell making')
 
         ## DEBUGGING
-        h_l = (z1_new + z2_new)/2.0
-        print "h_l = ", h_l
-        g = z1_new - h_l - scalecenter_h0
-        print "g = ", g
-        x = length(shell_scale_center) 
-        print "distance = ", math.sqrt(g*g + x*x - 2.0*g*x*math.cos(theta))
+        if __debug__:
+#            h_l = (z1_new + z2_new)/2.0
+#            print "h_l = ", h_l
+#            g = z1_new - h_l - scalecenter_h0
+#            print "g = ", g
+#            x = length(shell_scale_center) 
+#            print "distance = ", math.sqrt(g*g + x*x - 2.0*g*x*math.cos(theta))
 
 
         # switch the z values in case it's necessary. r doesn't have to be switched.
@@ -991,9 +993,10 @@ class MixedPair(Pair):
             z_left  = z1_new
 
         ## DEBUGGING
-        print "r = " , r
-        print "z_left = ", z_left
-        print "z_right = ", z_right
+        if __debug__:
+#            print "r = " , r
+#            print "z_left = ", z_left
+#            print "z_right = ", z_right
 
         return r, z_left, z_right
 
