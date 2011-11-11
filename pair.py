@@ -975,7 +975,7 @@ class MixedPair(Pair):
 
         ## DEBUGGING
         if __debug__:
-#            h_l = (z1_new + z2_new)/2.0
+            h_l = (z1_new + z2_new)/2.0
 #            print "h_l = ", h_l
 #            g = z1_new - h_l - scalecenter_h0
 #            print "g = ", g
@@ -994,7 +994,7 @@ class MixedPair(Pair):
 
         ## DEBUGGING
         if __debug__:
-#            print "r = " , r
+            print "r = " , r
 #            print "z_left = ", z_left
 #            print "z_right = ", z_right
 
