@@ -25,7 +25,7 @@ TIME_TOLERANCE = 1e-10
 
 # Multiplication factor used for seperating 2 particles or a particle and a 
 # surface after unbinding.
-MINIMAL_SEPARATION_FACTOR = 2.0 + TOLERANCE
+MINIMAL_SEPARATION_FACTOR = 1.0 + TOLERANCE
   
 # Float comparison functions.
 def feq(a, b, typical=1, tolerance=TOLERANCE):
