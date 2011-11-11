@@ -1094,15 +1094,21 @@ class EGFRDSimulator(ParticleSimulatorBase):
         return products
 
 
-    def fire_move(self, single, reactant_pos):
+    def fire_move(self, single, reactant_pos, ignore=None):
         # No reactions/Interactions have taken place -> no identity change of the particle
         # Just only move the particles
 
         reactant = single.pid_particle_pair
 
-        if self.world.check_overlap((reactant_pos, reactant[1].radius),
-                                    reactant[0]):
-            raise RuntimeError('fire_move: particle overlap failed.')
+        if ignore:
+            if self.world.check_overlap((reactant_pos, reactant[1].radius),
+                                        reactant[0], ignore[0]):
+                raise RuntimeError('fire_move: particle overlap failed.')
+        else:
+            if self.world.check_overlap((reactant_pos, reactant[1].radius),
+                                        reactant[0]):
+                raise RuntimeError('fire_move: particle overlap failed.')
+
         moved_reactant = self.move_particle(reactant, reactant_pos)
         return [moved_reactant]
 
@@ -1111,7 +1117,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
         ### log Single event
         if __debug__:
-            log.info('%s' % single.event_type)
+            log.info('FIRE SINGLE: %s' % single.event_type)
             log.info('single = %s' % single)
 
 
@@ -1165,11 +1171,11 @@ class EGFRDSimulator(ParticleSimulatorBase):
                     log.info('reactant = %s' % single)
 
                 if single.event_type == EventType.SINGLE_REACTION:
-                    self.single_steps[single.event_type] += 1
+                    self.single_steps[single.event_type] += 1       # TODO counters should also be updated for escape events
                     particles = self.fire_single_reaction(single, newpos)
 
                 else:
-                    self.interaction_steps[single.event_type] += 1
+                    self.interaction_steps[single.event_type] += 1  # TODO similarly here
                     particles = self.fire_interaction(single, newpos)
 
             else:
@@ -1476,17 +1482,28 @@ class EGFRDSimulator(ParticleSimulatorBase):
     def process_pair_event(self, pair):
         assert self.check_obj(pair)
 
+        if __debug__:
+            log.info('FIRE PAIR: %s' % pair.event_type)
+            log.info('single1 = %s' % pair.single1)
+            log.info('single2 = %s' % pair.single2)
+
         # check that the event time of the single (last_time + dt) is equal to the
         # simulator time
         assert (abs(pair.last_time + pair.dt - self.t) <= TIME_TOLERANCE * self.t), \
             'Timeline incorrect. pair.last_time = %s, pair.dt = %s, self.t = %s' % \
             (FORMAT_DOUBLE % pair.last_time, FORMAT_DOUBLE % pair.dt, FORMAT_DOUBLE % self.t)
 
+
+
         single1 = pair.single1
         single2 = pair.single2
+        assert single1.domain_id not in self.domains
+        assert single2.domain_id not in self.domains
+
         pid_particle_pair1 = pair.pid_particle_pair1
         pid_particle_pair2 = pair.pid_particle_pair2
 
+        # TODO store old_iv, old_com, r0 in pair object -> useless to recalculate these things all the time
         old_com, old_iv = pair.do_transform(single1, single2, self.world)
         r0 = length(old_iv)
 
@@ -1496,16 +1513,28 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
         self.pair_steps[pair.event_type] += 1
 
-        if __debug__:
-            log.info('FIRE PAIR: %s' % pair.event_type)
-            log.info('single1 = %s' % pair.single1)
-            log.info('single2 = %s' % pair.single2)
 
+        # Get new position of particles
+        if pair.dt > 0.0:
+            newpos1, newpos2 = pair.draw_new_positions(pair.dt, r0, old_iv, pair.event_type)
+            newpos1 = self.world.apply_boundary(newpos1)
+            newpos2 = self.world.apply_boundary(newpos2)
+
+            # check that the particles do not overlap with any other particles in the world
+            assert not self.world.check_overlap((newpos1, pid_particle_pair1[1].radius),
+                                                pid_particle_pair1[0], pid_particle_pair2[0])
+            assert not self.world.check_overlap((newpos2, pid_particle_pair2[1].radius),
+                                                pid_particle_pair1[0], pid_particle_pair2[0])
+
+        else:
+            newpos1 = pid_particle_pair1[1].position
+            newpos2 = pid_particle_pair2[1].position
+
+        # If identity changing processes have taken place
         # Four cases:
         #  1. Single reaction
         #  2. Pair reaction
-        #  3a. IV escape
-        #  3b. com escape
+
 
         #
         # 1. Single reaction
@@ -1542,12 +1571,12 @@ class EGFRDSimulator(ParticleSimulatorBase):
         elif pair.event_type == EventType.IV_REACTION:
 
             # calculate new position
-            reactant1_pos, reactant2_pos = pair.draw_new_positions(pair.dt, r0, old_iv, pair.event_type)
-            reactant1_pos = self.world.apply_boundary(reactant1_pos)
-            reactant2_pos = self.world.apply_boundary(reactant2_pos)
+#            reactant1_pos, reactant2_pos = pair.draw_new_positions(pair.dt, r0, old_iv, pair.event_type)
+#            reactant1_pos = self.world.apply_boundary(reactant1_pos)
+#            reactant2_pos = self.world.apply_boundary(reactant2_pos)
 
             self.remove_domain(pair)
-            particles = self.fire_pair_reaction (pair, reactant1_pos, reactant2_pos)
+            particles = self.fire_pair_reaction (pair, newpos1, newpos2)
 
             domains = []
             for pid_particle_pair in particles:
@@ -1556,24 +1585,42 @@ class EGFRDSimulator(ParticleSimulatorBase):
                 self.add_domain_event(single)
                 domains.append(single)
 
+        # Just moving the particles
+        #  3a. IV escape
+        #  3b. com escape
+
         #
         # 3a. Escaping through a_r.
         # 3b. Escaping through a_R.
         #
         elif(pair.event_type == EventType.IV_ESCAPE or
-             pair.event_type == EventType.COM_ESCAPE):
+             pair.event_type == EventType.COM_ESCAPE or
+             pair.event_type == EventType.BURST):
 
-            # get new positions for particles, move them and make singles
-            single1, single2 = self.propagate_pair(pair)
+#            # get new positions for particles, move them and make singles
+#            single1, single2 = self.propagate_pair(pair)
+
+#            pid_particle_pair1 = self.move_particle(pid_particle_pair1, newpos1)
+#            pid_particle_pair2 = self.move_particle(pid_particle_pair2, newpos2)
+            self.remove_domain(pair)
+            particles = self.fire_move (single1, newpos1, pid_particle_pair2)
+            particles.extend(self.fire_move (single2, newpos2, pid_particle_pair1))
+
 
             # reschedule single domains
-            self.add_domain_event(single1)
-            self.add_domain_event(single2)
+            domains = []
+            for pid_particle_pair in particles:
+                # 5. make a new single and schedule
+                single = self.create_single(pid_particle_pair)
+                self.add_domain_event(single)
+                domains.append(single)
+#            self.add_domain_event(single1)
+#            self.add_domain_event(single2)
 
         else:
-            raise SystemError('Bug: invalid event_type.')
+            raise SystemError('process_pair_event: invalid event_type.')
 
-        return
+        return domains
 
     def process_multi_event(self, multi):
         self.multi_steps[3] += 1  # multi_steps[3]: total multi steps
