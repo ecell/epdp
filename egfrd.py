@@ -462,8 +462,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
         rrs = self.network_rules.query_reaction_rule(pid_particle_pair1[1].sid,
                                                      pid_particle_pair2[1].sid)
 
-        # Get structure (region or surface) where particle1 lives (assuming particle2
-        # also lives here -> TODO).
+        # Get structure (region or surface) where particles live.
         species1 = self.world.get_species(pid_particle_pair1[1].sid)
         species2 = self.world.get_species(pid_particle_pair2[1].sid)
         structure1 = self.world.get_structure(species1.structure_id)
@@ -1477,22 +1476,16 @@ class EGFRDSimulator(ParticleSimulatorBase):
     def process_pair_event(self, pair):
         assert self.check_obj(pair)
 
-        # check that the time is the currect simulator time 
-        assert self.t >= pair.last_time
-        assert self.t == pair.last_time + pair.dt
+        # check that the event time of the single (last_time + dt) is equal to the
+        # simulator time
+        assert (abs(pair.last_time + pair.dt - self.t) <= TIME_TOLERANCE * self.t), \
+            'Timeline incorrect. pair.last_time = %s, pair.dt = %s, self.t = %s' % \
+            (FORMAT_DOUBLE % pair.last_time, FORMAT_DOUBLE % pair.dt, FORMAT_DOUBLE % self.t)
 
         single1 = pair.single1
         single2 = pair.single2
         pid_particle_pair1 = pair.pid_particle_pair1
         pid_particle_pair2 = pair.pid_particle_pair2
-
-#        pos1 = pid_particle_pair1[1].position
-#        pos2 = pid_particle_pair2[1].position
-#        pos2t = self.world.cyclic_transpose(pos2, pos1)
-#        old_iv = pos2t - pos1
-#        r0 = length (old_iv)
-#        
-#        old_com = pair.com
 
         old_com, old_iv = pair.do_transform(single1, single2, self.world)
         r0 = length(old_iv)
@@ -1532,11 +1525,16 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
             if __debug__:
                 log.info('reactant = %s' % reactingsingle)
+
             self.remove_domain(reactingsingle)
             particles = self.fire_single_reaction(reactingsingle, reactingsingle.pid_particle_pair[1].position)
+
+            domains = []
             for pid_particle_pair in particles:
+                # 5. make a new single and schedule
                 single = self.create_single(pid_particle_pair)
                 self.add_domain_event(single)
+                domains.append(single)
 
         #
         # 2. Pair reaction
