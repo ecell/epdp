@@ -1269,6 +1269,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
                                                                         ignores=[single.structure.id])
 
         # TODO Potential partners are for now just the bursted domains
+        # TODO FIX THIS!
         partners = burst
 
         dists = []
@@ -1300,12 +1301,12 @@ class EGFRDSimulator(ParticleSimulatorBase):
         # Note that we do not differentiate between directions. This means that we
         # look around in a sphere, the horizons are spherical
         surface_horizon = single_radius * self.SINGLE_SHELL_FACTOR
-        multi_horizon = single_radius * self.MULTI_SHELL_FACTOR
 
         # 2.4 check that the object is a potential partner for an
         # -Pair         (a zero dt NonInteractionSingle)
         # -Interaction  (a surface)
         # -Multi        (a zero dt NonInteractionSingle or Multi)
+        # TODO For a MixedPair, the surface can be closer than the particle, still a Pair should be attempted
         if isinstance(closest_obj, NonInteractionSingle) and \
            closest_obj.is_reset():
                 pair_horizon = (single_radius + \
@@ -1330,6 +1331,15 @@ class EGFRDSimulator(ParticleSimulatorBase):
         if not domain:
             # No Pair or Interaction could be formed
             # Now choose between NonInteractionSingle and Multi
+
+            # TODO cleanup
+            if isinstance (closest_obj, NonInteractionSingle) and \
+               closest_obj.is_reset():
+                multi_horizon = (single_radius + \
+                    closest_obj.pid_particle_pair[1].radius) * self.MULTI_SHELL_FACTOR
+            else:
+                multi_horizon = single_radius * self.MULTI_SHELL_FACTOR
+
 
             if closest_distance > multi_horizon: # and \
 #              surface_distance > multi_horizon:
