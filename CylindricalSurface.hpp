@@ -101,11 +101,11 @@ public:
         length_type const rod_radius = base_type::shape().radius();
         position_type const unit_z = base_type::shape().unit_z();
 
-        length_type const r0rrl( rod_radius + r0 + rl );
-        length_type const r0rrl_sq( r0rrl * r0rrl );
-        length_type const r0rr_sq( (r0 + rod_radius) * (r0 + rod_radius) );
+        length_type const rrl( rod_radius + rl );
+        length_type const rrl_sq( gsl_pow_2(rrl) );
+        length_type const rr_sq( gsl_pow_2(rod_radius) );
         
-        length_type const diss_vec_length( sqrt( X * (r0rrl_sq - r0rr_sq) + r0rr_sq ) );
+        length_type const diss_vec_length( sqrt( X * (rrl_sq - rr_sq) + rr_sq ) );
 
         position_type v(rng.uniform(0.,1.) - .5, rng.uniform(0.,1.) - .5, rng.uniform(0.,1.) - .5);        
         v = normalize( subtract(v, multiply( unit_z, dot_product( unit_z, v ) ) ) );
@@ -137,7 +137,7 @@ public:
         Real const D_bulk_D01( s_bulk.D() / D01 );
         Real const D_surf_D01( s_surf.D() / D01 );
           
-        Real const theta_min( asin(s_bulk.radius() / ( r01 )) );       
+        Real const theta_min( asin(base_type::shape().radius() / r01) );       
         Real const theta( theta_min + rng.uniform(0.,1.) * (M_PI - 2 * theta_min) );        
         Real const phi( rng.uniform(0.,1.) * 2 * M_PI );
         

@@ -88,7 +88,7 @@ public:
     {
         Real X( rng.uniform(0.,1.) );
         
-        length_type diss_vec_length( X*rl + r0 );
+        length_type diss_vec_length( X*rl );
 
         position_type unit_z( cross_product( base_type::shape().unit_x(), base_type::shape().unit_y() ) );
 
@@ -112,7 +112,7 @@ public:
         length_type const diss_vec_length( sqrt( X * (r01l_sq - r01_sq) + r01_sq ) );
 
         position_type const m( random_vector( diss_vec_length, rng ) );
-        
+
         return position_pair_type( op - m * s0.D() / D01,
                                     op + m * s1.D() / D01 );
     }
@@ -125,24 +125,23 @@ public:
         Real const D_bulk_D01( s_bulk.D() / D01 );
         Real const D_surf_D01( s_surf.D() / D01 );
         
-        Real theta_max( M_PI/2 - asin(s_bulk.radius() / ( r01 )) );
-        theta_max = theta_max < 0 ? 0 : theta_max;
+        //Real theta_max( M_PI/2 - asin(s_bulk.radius() / ( r01 )) );
+        //theta_max = theta_max < 0 ? 0 : theta_max;
         
-        Real const theta( rng.uniform(0.,1.) * theta_max );        
+        Real const theta( rng.uniform(0.,1.) * M_PI );        
         Real const phi( rng.uniform(0.,1.) * 2 * M_PI );
         
         Real const X( rng.uniform(0.,1.) );
-
         length_type const r01l( r01 + rl );
         length_type const r01l_cb( r01l * r01l * r01l );
         length_type const r01_cb( r01 * r01 * r01 );
         
-        length_type const diss_vec_length( cbrt( X * (r01l_cb - r01_cb ) + r01_cb ) );
+        length_type const diss_vec_length( cbrt( X * (r01l_cb - r01_cb ) + r01_cb ) );   
         
         position_type unit_z( cross_product( base_type::shape().unit_x(), base_type::shape().unit_y() ) );
         unit_z = normalize ( unit_z );
         
-        unit_z = multiply(unit_z, rng.uniform_int(0, 1) * 2 - 1);
+        //unit_z = multiply(unit_z, rng.uniform_int(0, 1) * 2 - 1);
         
         length_type const x( diss_vec_length * sin( theta ) * cos( phi ) );
         length_type const y( diss_vec_length * sin( theta ) * sin( phi ) );
@@ -160,6 +159,7 @@ public:
                                 unit_z * z ) ) );
 
         return pp01;
+        
     }
 
     virtual length_type minimal_distance(length_type const& radius) const

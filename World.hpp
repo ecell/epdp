@@ -295,7 +295,7 @@ public:
     {       
         length_type const world_size( base_type::world_size() );
         length_type ret_dist( std::numeric_limits<length_type>::max() );
-        structure_id_type ret_id;
+        structure_id_type ret_id( ignore );
 
         BOOST_FOREACH(boost::shared_ptr<structure_type> const structure, get_structures())
         {

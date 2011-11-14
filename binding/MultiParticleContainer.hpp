@@ -18,7 +18,7 @@ boost::python::objects::class_base register_multi_particle_container_class(char 
 
     return class_<impl_type, bases<typename Tworld::particle_container_type>,
            boost::noncopyable>(name, init<Tworld&>())
-        .def("determine_dt_and_reaction_length", pure_virtual(&impl_type::determine_dt_and_reaction_length))
+        .def("determine_dt_and_reaction_length",&impl_type::determine_dt_and_reaction_length)
         ;
 }
 

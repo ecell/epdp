@@ -147,8 +147,8 @@ public:
             struct_id_distance_pair = tx_.get_closest_surface( new_pos, pp_structure->id() );
             particle_surface_distance = struct_id_distance_pair.second;
         
-            bounced = determine_surface_passage(new_pos, pp.second.position(), struct_id_distance_pair.first);
-        }         
+            bounced = determine_surface_passage(new_pos, pp.second.position(), struct_id_distance_pair, r0);
+        }
          
         /* If particle is bounced, check reaction_volume for reaction partners at old_pos. */     
         if(bounced)
@@ -186,7 +186,7 @@ public:
             if(accumulated_prob >= 1.)
             {
                 LOG_WARNING((
-                    "The accumulated acceptance probability for a reaction volume exeeded one; %f.",
+                    "the acceptance probability of an interaction exeeded one; %f.",
                     accumulated_prob));
             } 
         
@@ -240,7 +240,7 @@ public:
             if (accumulated_prob >= 1.)
             {
                 LOG_WARNING((
-                    "the accumulated acceptance probability of a reaction volume exeeded one; %f.",
+                    "the accumulated acceptance probability inside a reaction volume exeeded one; %f.",
                     accumulated_prob));
             } 
             
@@ -362,11 +362,11 @@ private:
                             }
                         }
 
-                        if( s0.structure_id() == "world" )
+                        if( s0.structure_id() == "world" && pp_struct->id() == "world" )
                         {
                             structure_id_and_distance_pair const struct_id_distance_pair( tx_.get_closest_surface( new_pos, s0.structure_id()) );
-                             
-                            if( determine_surface_passage(new_pos, pp.second.position(), struct_id_distance_pair.first) )
+                            
+                            if( determine_surface_passage(new_pos, pp.second.position(), struct_id_distance_pair, s0.radius()) )
                                 throw propagation_error("no space due to near surface");
                         }
 
@@ -438,10 +438,10 @@ private:
                             if( s0.structure_id() == "world" && s1.structure_id() == "world" )
                             {
                                 structure_id_and_distance_pair struct_id_distance_pair( tx_.get_closest_surface( pp01.first, s0.structure_id() ) );
-                                surface_overlap = determine_surface_passage(pp01.first, pp.second.position(), struct_id_distance_pair.first);
+                                surface_overlap = determine_surface_passage(pp01.first, pp.second.position(), struct_id_distance_pair, s0.radius());
 
                                 struct_id_distance_pair = tx_.get_closest_surface( pp01.second, s1.structure_id() );
-                                surface_overlap = determine_surface_passage(pp01.second, pp.second.position(), struct_id_distance_pair.first);                          
+                                surface_overlap = determine_surface_passage(pp01.second, pp.second.position(), struct_id_distance_pair, s1.radius());                          
                             }
                                     
                             if (!(overlapped_s0 && overlapped_s0->size() > 0) && !(overlapped_s1 && overlapped_s1->size() > 0) && !surface_overlap)
@@ -573,9 +573,9 @@ private:
                         if( sp.structure_id() == "world" )
                         {
                             structure_id_and_distance_pair const struct_id_distance_pair( tx_.get_closest_surface( new_pos, sp.structure_id() ) );
-                                    
-                            if( determine_surface_passage(new_pos, pp0.second.position(), struct_id_distance_pair.first) )
-                                throw propagation_error("no space due to near surface");     
+                            
+                            if( determine_surface_passage(new_pos, pp0.second.position(), struct_id_distance_pair, sp.radius()) )
+                                throw propagation_error("no space due to near surface");
                         }
 
                         remove_particle(pp0.first);
@@ -691,9 +691,13 @@ private:
     }
     
     /* Function determines wether old_pos lies on the other side of the surface than new_pos. */
-    bool determine_surface_passage(position_type const& new_pos, position_type const& old_pos, structure_id_type const& struct_id)
+    bool determine_surface_passage(position_type const& new_pos, position_type const& old_pos, 
+                                    structure_id_and_distance_pair const& struct_id_distance_pair, length_type const& radius)
     {
-        boost::shared_ptr<structure_type> surface( tx_.get_structure( struct_id ) );
+        if( struct_id_distance_pair.second > radius )
+            return false;
+    
+        boost::shared_ptr<structure_type> surface( tx_.get_structure( struct_id_distance_pair.first ) );
         
         projected_type const old_projection( surface->projected_point_on_surface( old_pos ) );
         projected_type const new_projection( surface->projected_point_on_surface( new_pos ) );
@@ -761,8 +765,8 @@ private:
         if(s0.structure_id() == "world")
         {
             structure_id_and_distance_pair const struct_id_distance_pair( tx_.get_closest_surface( new_pos, s0.structure_id() ) );
-                                    
-            if( determine_surface_passage(new_pos, old_pos, struct_id_distance_pair.first) )
+                             
+            if( determine_surface_passage(new_pos, old_pos, struct_id_distance_pair, s0.radius()) )
                 return old_pos;        
         }
             

@@ -30,7 +30,7 @@ class Multi(Domain):
         self.last_time = t
         self.start_time = t
         main = self.main()
-        set_dt_and_reaction_length()
+        self.set_dt_and_reaction_length()
         #self.dt = self.dt_factor * self.calculate_bd_dt(main.world.get_species(sid) for sid in main.world.species)
 
     def calculate_bd_dt(species_list):
@@ -53,7 +53,7 @@ class Multi(Domain):
         return SphericalShell(self.domain_id, Sphere(position, radius))
 
     def within_shell(self, pp):
-        return bool(self.sphere_container.get_neighbors_within_radius(pp[1].position, -pp[1].radius))
+        return bool(self.sphere_container.get_neighbors_within_radius(pp[1].position, -(pp[1].radius + self.reaction_length)))
 
     def add_shell(self, shell_id_shell_pair):
         if __debug__:
@@ -68,6 +68,7 @@ class Multi(Domain):
         self.particle_container.update_particle(pid_particle_pair)
         
     def set_dt_and_reaction_length(self):
+        main = self.main()
         self.dt, self.reaction_length = \
             self.particle_container.determine_dt_and_reaction_length(main.network_rules, self.step_size_factor)
 
@@ -90,7 +91,7 @@ class Multi(Domain):
             def __call__(self, shape, ignore0, ignore1=None):
                 within_radius = bool(
                     self.outer_.sphere_container.get_neighbors_within_radius(
-                        shape.position, -shape.radius))
+                        shape.position, -(shape.radius + self.outer_.reaction_length) ))
                 if not within_radius:
                     main = self.outer_.main()
                     if self.outer_.last_event == None:
@@ -112,7 +113,7 @@ class Multi(Domain):
                      myrandom.rng, self.dt, main.dissociation_retry_moves, self.reaction_length,
                      cr, vc, [pid for pid, _ in self.particle_container])
 
-        self.last_event = None
+        self.last_event = None        
         while ppg():
             if cr.reactions:
                 self.last_reaction = cr.reactions[-1]
@@ -121,7 +122,7 @@ class Multi(Domain):
                 else:
                     self.last_event = EventType.MULTI_BIMOLECULAR_REACTION
                 break
-
+                
         # for pid_particle_pair in itertools.chain(
         #         tx.modified_particles, tx.added_particles):
         #     overlapped = main.world.check_overlap(pid_particle_pair[1].shape, pid_particle_pair[0])

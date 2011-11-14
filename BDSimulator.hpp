@@ -111,13 +111,13 @@ public:
         const Real k_max( get_max_rate() );
         const Real D_max( maxD_minr.first );
         const Real r_min( maxD_minr.second );
-        const Real Pacc_max( 0.1 ); //Reciproke of maximum value of the acceptance probability.
+        const Real Pacc_max( 0.01 ); //Maximum value of the acceptance probability.
         const Real tau_D( 2 * r_min * r_min / D_max ); //~multi escape time.
         Real dt;
         
         if( k_max > 0)
         {
-            Real dt_temp( Pacc_max * reaction_length_factor_ * r_min / k_max );
+            Real dt_temp( 1. ); //2 * Pacc_max * reaction_length_factor_ * r_min / k_max );
             dt = std::min( dt_temp, dt_factor_ * tau_D ); // dt_factor * tau_D is upper limit of dt.
         }
         else
@@ -132,7 +132,7 @@ public:
         return reaction_length_factor_ * maxD_minr.second;
     }
     
-    /* Returns largest diffusion constant en smallest particle radius in the multi. */
+    /* Returns largest diffusion constant and smallest particle radius in the multi. */
     real_pair maxD_minsigma()
     {
         Real D_max(0.), radius_min(std::numeric_limits<Real>::max());
@@ -202,12 +202,12 @@ public:
         return reaction_length_;    
     }
     
-    double set_reaction_length_factor(length_type new_reaction_length_factor, time_type dt)
+    double set_reaction_length_factor(length_type new_reaction_length_factor, time_type new_dt_factor)
     {
         double old_bound_time = bound_time;
         bound_time = 0;
         
-        //base_type::dt_ = dt;
+        dt_factor_ = new_dt_factor;
         reaction_length_factor_ = new_reaction_length_factor;
         calculate_dt_and_reaction_length();
 
