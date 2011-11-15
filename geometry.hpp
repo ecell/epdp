@@ -5,7 +5,7 @@
 #include <boost/utility/enable_if.hpp>
 #include <boost/mpl/and.hpp>
 #include "linear_algebra.hpp"
-//He!
+
 template< typename T1_, typename T2_ >
 inline typename element_type_of< T1_ >::type distance(
         T1_ const& p1,
