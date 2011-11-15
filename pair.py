@@ -19,6 +19,7 @@ __all__ = [
     'Pair',
     'SimplePair',
     'MixedPair',
+    'MixedPair3D1D',
     ]
 
 if __debug__:
@@ -1319,6 +1320,8 @@ class MixedPair3D1D(Pair):
         weight1 = D1 / D_tot
         weight2 = D2 / D_tot
 
+        min_iv_r_length = radius2 + surface.shape.radius
+
         # get the coordinates of the iv relative to the system of the surface (or actually the shell)
         iv_z = surface.shape.unit_z * numpy.dot(iv, surface.shape.unit_z)
         iv_r = iv - iv_z
@@ -1331,8 +1334,8 @@ class MixedPair3D1D(Pair):
         iv_r_length_new = iv_r_length / cls.calc_r_scaling_factor(D1, D2)
 
         # if the particle is overlapping with the cylinder, make sure it doesn't
-        if iv_r_length_new < radius1:
-            iv_r_length_new = radius1 * MINIMAL_SEPARATION_FACTOR
+        if iv_r_length_new < min_iv_r_length:
+            iv_r_length_new = min_iv_r_length * MINIMAL_SEPARATION_FACTOR
 
         iv_r =  (iv_r_length_new/iv_r_length) * iv_r
 
