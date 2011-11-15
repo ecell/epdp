@@ -166,13 +166,16 @@ class EGFRDSimulator(ParticleSimulatorBase):
         self.dt = 0.0
         self.step_counter = 0
         self.single_steps = {EventType.SINGLE_ESCAPE:0,
-                             EventType.SINGLE_REACTION:0}
+                             EventType.SINGLE_REACTION:0,
+                             EventType.BURST:0}
         self.interaction_steps = {EventType.IV_INTERACTION:0,
-                                  EventType.IV_ESCAPE:0}
+                                  EventType.IV_ESCAPE:0,
+                                  EventType.BURST:0}
         self.pair_steps = {EventType.SINGLE_REACTION:0,
                            EventType.IV_REACTION:0,
                            EventType.IV_ESCAPE:0,
-                           EventType.COM_ESCAPE:0}
+                           EventType.COM_ESCAPE:0,
+                           EventType.BURST:0}
         self.multi_steps = {EventType.MULTI_ESCAPE:0,
                             EventType.MULTI_UNIMOLECULAR_REACTION:0,
                             EventType.MULTI_BIMOLECULAR_REACTION:0, 3:0}
@@ -587,6 +590,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
     def burst_domain(self, domain):
     # Reduces and domain (Single, Pair or Multi) to Singles with the zero shell, and dt=0
+    # return a list of Singles that was the result of the bursting
         if __debug__:
             log.info('burst_domain: %s' % domain)
 
@@ -595,8 +599,9 @@ class EGFRDSimulator(ParticleSimulatorBase):
             domains = self.burst_single(domain)
             bursted = domains
         elif isinstance(domain, Pair):  # Pair
-            single1, single2 = self.burst_pair(domain)
-            bursted = [single1, single2]
+#            single1, single2 = self.burst_pair(domain)
+#            bursted = [single1, single2]
+            bursted = self.burst_pair(domain)
         else:  # Multi
 #            bursted = self.burst_multi(domain)
             bursted = self.break_up_multi(domain)       # Multi's can't really be 'bursted' since the
@@ -1540,6 +1545,13 @@ class EGFRDSimulator(ParticleSimulatorBase):
             newpos1 = pid_particle_pair1[1].position
             newpos2 = pid_particle_pair2[1].position
 
+
+
+        # newpos1/2 now hold the new positions of the particles (not yet committed to the world)
+        # if we would here move the particles and make new shells, then it would be similar to a propagate
+
+        self.remove_domain(pair)
+
         # If identity changing processes have taken place
         # Four cases:
         #  1. Single reaction
@@ -1554,19 +1566,25 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
             if reactingsingle == single1:
                 theothersingle = single2
+                # first move the non-reacting particle
+                particles = self.fire_move(single2, newpos2, pid_particle_pair1)
+                # don't ignore the (moved) non-reacting particle
+                particles.extend(self.fire_single_reaction(single1, newpos1))
             else:
                 theothersingle = single1
+                particles = self.fire_move(single1, newpos1, pid_particle_pair2)
+                particles.extend(self.fire_single_reaction(single2, newpos2))
 
             # note method has side effect on single1 and single2
-            self.propagate_pair(pair)
+#            self.propagate_pair(pair)
 
-            self.add_domain_event(theothersingle)
+#            self.add_domain_event(theothersingle)
 
             if __debug__:
                 log.info('reactant = %s' % reactingsingle)
 
-            self.remove_domain(reactingsingle)
-            particles = self.fire_single_reaction(reactingsingle, reactingsingle.pid_particle_pair[1].position)
+#            self.remove_domain(reactingsingle)
+#            particles = self.fire_single_reaction(reactingsingle, reactingsingle.pid_particle_pair[1].position)
 
             domains = []
             for pid_particle_pair in particles:
@@ -1585,7 +1603,6 @@ class EGFRDSimulator(ParticleSimulatorBase):
 #            reactant1_pos = self.world.apply_boundary(reactant1_pos)
 #            reactant2_pos = self.world.apply_boundary(reactant2_pos)
 
-            self.remove_domain(pair)
             particles = self.fire_pair_reaction (pair, newpos1, newpos2)
 
             domains = []
@@ -1612,7 +1629,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
 #            pid_particle_pair1 = self.move_particle(pid_particle_pair1, newpos1)
 #            pid_particle_pair2 = self.move_particle(pid_particle_pair2, newpos2)
-            self.remove_domain(pair)
+#            self.remove_domain(pair)
             particles = self.fire_move (single1, newpos1, pid_particle_pair2)
             particles.extend(self.fire_move (single2, newpos2, pid_particle_pair1))
 
@@ -1725,121 +1742,123 @@ class EGFRDSimulator(ParticleSimulatorBase):
         pair.event_type = EventType.BURST
         self.remove_event(pair)         # remove the event -> was still in the scheduler
 
-        single1, single2 = self.propagate_pair(pair)    # TODO this can now also just be a process_pair_event
-        self.add_domain_event(single1)
-        self.add_domain_event(single2)
+#        single1, single2 = self.propagate_pair(pair)    # TODO this can now also just be a process_pair_event
+#        self.add_domain_event(single1)
+#        self.add_domain_event(single2)
+        newsingles = self.process_pair_event(pair)
 
-        return single1, single2
+#        return single1, single2
+        return newsingles
 
-    def propagate_pair(self, pair):
-        # takes a pair and returns two singles after propagation
-
-        pid_particle_pair1 = pair.pid_particle_pair1
-        pid_particle_pair2 = pair.pid_particle_pair2
-
-        pos1 = pid_particle_pair1[1].position
-        pos2 = pid_particle_pair2[1].position
-
-        # if time has passed (should be always)
-        if pair.dt > 0.0:
-#            D1 = pid_particle_pair1[1].D
-#            D2 = pid_particle_pair2[1].D
-
-            old_com, old_inter_particle = pair.do_transform (pair.single1, pair.single2, self.world)
-            r0 = length(old_inter_particle)
-
-
-#            # store for later check
-#            old_com = pair.com
+#    def propagate_pair(self, pair):
+#        # takes a pair and returns two singles after propagation
 #
-#            # TODO this should be done when the pair is made -> passed to the constructor
-#            pos2t = self.world.cyclic_transpose(pos2, pos1)
-#            old_inter_particle = pos2t - pos1
-#            r0 = self.world.distance(pos1, pos2)
-#            assert feq(r0, length(old_inter_particle))
-
-            # draw the new positions of the particles
-            newpos1, newpos2 = pair.draw_new_positions(pair.dt, r0, old_inter_particle, 
-                                                       pair.event_type)
-            newpos1 = self.world.apply_boundary(newpos1)
-            newpos2 = self.world.apply_boundary(newpos2)
-
-            # check that the particles do not overlap with any other particles in the world
-            assert not self.world.check_overlap((newpos1, pid_particle_pair1[1].radius),
-                                                pid_particle_pair1[0], pid_particle_pair2[0])
-            assert not self.world.check_overlap((newpos2, pid_particle_pair2[1].radius),
-                                                pid_particle_pair1[0], pid_particle_pair2[0])
-
-            # some more consistency checking of the positions
-#            assert self.check_pair_pos(pair, newpos1, newpos2, old_com,
-#                                       pair.get_shell_size())
-
-        else:
-        # no time has passed
-            newpos1 = pid_particle_pair1[1].position
-            newpos2 = pid_particle_pair2[1].position
-
-        pid_particle_pair1 = self.move_particle(pid_particle_pair1, newpos1)
-        pid_particle_pair2 = self.move_particle(pid_particle_pair2, newpos2)
-
-
-        # re-use single domains for particles
-        # normally we would take the particles + new positions from the old pair
-        # and use them to make new singles. Now we re-use the singles stored in the
-        # pair
-        single1 = pair.single1
-        single2 = pair.single2
-        assert single1.domain_id not in self.domains
-        assert single2.domain_id not in self.domains
-        single1.pid_particle_pair = pid_particle_pair1  # this is probably redundant
-        single2.pid_particle_pair = pid_particle_pair2
-
-
-        # remove the old domain
-        self.remove_domain(pair)
-
-        # 'make' the singles
-        single1.initialize(self.t)
-        single2.initialize(self.t)
-        
-        self.update_single_shell(single1, newpos1, pid_particle_pair1[1].radius)
-        self.update_single_shell(single2, newpos2, pid_particle_pair2[1].radius)
-
-
-        self.domains[single1.domain_id] = single1
-        self.domains[single2.domain_id] = single2
-
-        # Check the dimensions of the shells of the singles with the shell in the container
-        if __debug__:
-            container1 = self.geometrycontainer.get_container(single1.shell)
-            assert container1[single1.shell_id].shape.radius == \
-                   single1.shell.shape.radius
-            if type(single1.shell) is CylindricalShell:
-                assert container1[single1.shell_id].shape.half_length == \
-                       single1.shell.shape.half_length
-
-            container2 = self.geometrycontainer.get_container(single2.shell)
-            assert container2[single2.shell_id].shape.radius == \
-                   single2.shell.shape.radius
-            if type(single2.shell) is CylindricalShell:
-                assert container2[single2.shell_id].shape.half_length == \
-                       single2.shell.shape.half_length
-
-        assert single1.shell.shape.radius == pid_particle_pair1[1].radius
-        assert single2.shell.shape.radius == pid_particle_pair2[1].radius
-        # even more checking
-        assert self.check_obj(single1)
-        assert self.check_obj(single2)
-        # Now finally we are convinced that the singles were actually made correctly
-
-        # Log the event
-        if __debug__:
-            log.debug("process_pair_event: #1 { %s: %s => %s }" %
-                      (single1, str(pos1), str(newpos1)))
-            log.debug("process_pair_event: #2 { %s: %s => %s }" %
-                      (single2, str(pos2), str(newpos2)))
-
-        return single1, single2
+#        pid_particle_pair1 = pair.pid_particle_pair1
+#        pid_particle_pair2 = pair.pid_particle_pair2
+#
+#        pos1 = pid_particle_pair1[1].position
+#        pos2 = pid_particle_pair2[1].position
+#
+#        # if time has passed (should be always)
+#        if pair.dt > 0.0:
+##            D1 = pid_particle_pair1[1].D
+##            D2 = pid_particle_pair2[1].D
+#
+#            old_com, old_inter_particle = pair.do_transform (pair.single1, pair.single2, self.world)
+#            r0 = length(old_inter_particle)
+#
+#
+##            # store for later check
+##            old_com = pair.com
+##
+##            # TODO this should be done when the pair is made -> passed to the constructor
+##            pos2t = self.world.cyclic_transpose(pos2, pos1)
+##            old_inter_particle = pos2t - pos1
+##            r0 = self.world.distance(pos1, pos2)
+##            assert feq(r0, length(old_inter_particle))
+#
+#            # draw the new positions of the particles
+#            newpos1, newpos2 = pair.draw_new_positions(pair.dt, r0, old_inter_particle, 
+#                                                       pair.event_type)
+#            newpos1 = self.world.apply_boundary(newpos1)
+#            newpos2 = self.world.apply_boundary(newpos2)
+#
+#            # check that the particles do not overlap with any other particles in the world
+#            assert not self.world.check_overlap((newpos1, pid_particle_pair1[1].radius),
+#                                                pid_particle_pair1[0], pid_particle_pair2[0])
+#            assert not self.world.check_overlap((newpos2, pid_particle_pair2[1].radius),
+#                                                pid_particle_pair1[0], pid_particle_pair2[0])
+#
+#            # some more consistency checking of the positions
+##            assert self.check_pair_pos(pair, newpos1, newpos2, old_com,
+##                                       pair.get_shell_size())
+#
+#        else:
+#        # no time has passed
+#            newpos1 = pid_particle_pair1[1].position
+#            newpos2 = pid_particle_pair2[1].position
+#
+#        pid_particle_pair1 = self.move_particle(pid_particle_pair1, newpos1)
+#        pid_particle_pair2 = self.move_particle(pid_particle_pair2, newpos2)
+#
+#
+#        # re-use single domains for particles
+#        # normally we would take the particles + new positions from the old pair
+#        # and use them to make new singles. Now we re-use the singles stored in the
+#        # pair
+#        single1 = pair.single1
+#        single2 = pair.single2
+#        assert single1.domain_id not in self.domains
+#        assert single2.domain_id not in self.domains
+#        single1.pid_particle_pair = pid_particle_pair1  # this is probably redundant
+#        single2.pid_particle_pair = pid_particle_pair2
+#
+#
+#        # remove the old domain
+#        self.remove_domain(pair)
+#
+#        # 'make' the singles
+#        single1.initialize(self.t)
+#        single2.initialize(self.t)
+#        
+#        self.update_single_shell(single1, newpos1, pid_particle_pair1[1].radius)
+#        self.update_single_shell(single2, newpos2, pid_particle_pair2[1].radius)
+#
+#
+#        self.domains[single1.domain_id] = single1
+#        self.domains[single2.domain_id] = single2
+#
+#        # Check the dimensions of the shells of the singles with the shell in the container
+#        if __debug__:
+#            container1 = self.geometrycontainer.get_container(single1.shell)
+#            assert container1[single1.shell_id].shape.radius == \
+#                   single1.shell.shape.radius
+#            if type(single1.shell) is CylindricalShell:
+#                assert container1[single1.shell_id].shape.half_length == \
+#                       single1.shell.shape.half_length
+#
+#            container2 = self.geometrycontainer.get_container(single2.shell)
+#            assert container2[single2.shell_id].shape.radius == \
+#                   single2.shell.shape.radius
+#            if type(single2.shell) is CylindricalShell:
+#                assert container2[single2.shell_id].shape.half_length == \
+#                       single2.shell.shape.half_length
+#
+#        assert single1.shell.shape.radius == pid_particle_pair1[1].radius
+#        assert single2.shell.shape.radius == pid_particle_pair2[1].radius
+#        # even more checking
+#        assert self.check_obj(single1)
+#        assert self.check_obj(single2)
+#        # Now finally we are convinced that the singles were actually made correctly
+#
+#        # Log the event
+#        if __debug__:
+#            log.debug("process_pair_event: #1 { %s: %s => %s }" %
+#                      (single1, str(pos1), str(newpos1)))
+#            log.debug("process_pair_event: #2 { %s: %s => %s }" %
+#                      (single2, str(pos2), str(newpos2)))
+#
+#        return single1, single2
 
     def try_interaction(self, single, surface):
         # Try to form an interaction between the 'single' particle and the 'surface'.
@@ -2324,9 +2343,9 @@ class EGFRDSimulator(ParticleSimulatorBase):
         report = '''
 t = %g
 steps = %d 
-\tSingle:\t%d\t(escape: %d, reaction: %d)
-\tInteraction: %d\t(escape: %d, interaction: %d)
-\tPair:\t%d\t(escape r: %d, R: %d, reaction pair: %d, single: %d)
+\tSingle:\t%d\t(escape: %d, reaction: %d, bursted: %d)
+\tInteraction: %d\t(escape: %d, interaction: %d, bursted: %d)
+\tPair:\t%d\t(escape r: %d, R: %d, reaction pair: %d, single: %d, bursted: %d)
 \tMulti:\t%d\t(escape: %d, reaction pair: %d, single: %d)
 total reactions = %d
 rejected moves = %d
@@ -2335,14 +2354,17 @@ rejected moves = %d
                numpy.array(self.single_steps.values()).sum(),
                self.single_steps[EventType.SINGLE_ESCAPE],
                self.single_steps[EventType.SINGLE_REACTION],
+               self.single_steps[EventType.BURST],
                numpy.array(self.interaction_steps.values()).sum(),
                self.interaction_steps[EventType.IV_ESCAPE],
                self.interaction_steps[EventType.IV_INTERACTION],
+               self.interaction_steps[EventType.BURST],
                numpy.array(self.pair_steps.values()).sum(),
                self.pair_steps[EventType.IV_ESCAPE],
                self.pair_steps[EventType.COM_ESCAPE],
                self.pair_steps[EventType.IV_REACTION],
                self.pair_steps[EventType.SINGLE_REACTION],
+               self.pair_steps[EventType.BURST],
                self.multi_steps[3], # total multi steps
                self.multi_steps[EventType.MULTI_ESCAPE],
                self.multi_steps[EventType.MULTI_BIMOLECULAR_REACTION],
