@@ -126,19 +126,17 @@ class Pair(ProtectiveDomain):
         inter-particle vector.
 
         """
-        # If the two particles have reacted this returns the
-        # new position twice
-        # The positions are relative to the center of the shell
-        # TODO move this to SimplePair, this is not applicable to a MixedPair
-        # or make scaling factor in last line a parameter of the class
-        new_com = self.shell.shape.position + self.draw_new_com(dt, event_type)
+#        # If the two particles have reacted this returns the
+#        # new position twice
+#        # The positions are relative to the center of the shell
+        new_com = self.draw_new_com(dt, event_type)
 
-        if event_type == EventType.IV_REACTION:
-            newpos1 = new_com
-            newpos2 = new_com
-        else:
-            new_iv = self.draw_new_iv(dt, r0, old_iv, event_type)
-            newpos1, newpos2 = self.do_back_transform(new_com, new_iv)
+#        if event_type == EventType.IV_REACTION:
+#            newpos1 = new_com
+#            newpos2 = new_com
+#        else:
+        new_iv = self.draw_new_iv(dt, r0, old_iv, event_type)
+        newpos1, newpos2 = self.do_back_transform(new_com, new_iv)
 
         return newpos1, newpos2
 
@@ -150,7 +148,7 @@ class Pair(ProtectiveDomain):
             gf = self.com_greens_function()
             r = draw_r_wrapper(gf, dt, self.a_R)
 
-        return self.create_com_vector(r)
+        return self.com + self.create_com_vector(r)
 
         # Add displacement to old CoM. This assumes (correctly) that 
         # r0=0 for the CoM. Compare this to 1D singles, where r0 is not  
@@ -184,8 +182,8 @@ class Pair(ProtectiveDomain):
 
 class SimplePair(Pair):
 
-    @staticmethod
-    def get_min_shell_size(single1, single2, geometrycontainer):
+    @classmethod
+    def get_min_shell_size(cls, single1, single2, geometrycontainer):
         # 1. Determine min shell size for a putative SimplePair.
         # TODO Note that the calculation is dimension independent. Also
         # 'size' is not the right term here
@@ -224,8 +222,8 @@ class SimplePair(Pair):
         return shell_size
 
 
-    @staticmethod
-    def get_max_shell_size(shell_center, single1, single2, geometrycontainer, domains):
+    @classmethod
+    def get_max_shell_size(cls, shell_center, single1, single2, geometrycontainer, domains):
         # returns the maximum shell size based on geometric constraints
         # It makes sure that surrounding NonInteractionSingles have at least the
         # 'bursting volume' of space.
@@ -317,8 +315,8 @@ class SimplePair(Pair):
         return self.shell.shape.position
     com = property(get_com)
 
-    @staticmethod
-    def do_transform(single1, single2, world):
+    @classmethod
+    def do_transform(cls, single1, single2, world):
 
         pos1 = single1.pid_particle_pair[1].position
         pos2 = single2.pid_particle_pair[1].position
@@ -450,7 +448,7 @@ class SphericalPair(SimplePair):
                                               self.sigma, self.a_r)
 
     def create_new_shell(self, position, radius, domain_id):
-        return SphericalShell(self.domain_id, Sphere(position, radius))
+        return SphericalShell(domain_id, Sphere(position, radius))
 
     # selects between the full solution or an approximation where one of
     # the boundaries is ignored
@@ -564,9 +562,9 @@ class PlanarSurfacePair(SimplePair):
         return GreensFunction2DAbsSym(self.D_R, self.a_R)
 
     def iv_greens_function(self, r0):
-        # TODO still doesn't work with 2D Green's functions
-        return GreensFunction3DRadAbs(self.D_r, self.interparticle_ktot, r0,
-                                              self.sigma, self.a_r)
+	    # TODO still doesn't work with 2D Green's functions
+        return GreensFunction2DRadAbs(self.D_r, self.interparticle_ktot, r0,
+                                      self.sigma, self.a_r)
 
     def create_new_shell(self, position, radius, domain_id):
         # The half_length (thickness/2) of a hockey puck is not more 
@@ -683,8 +681,6 @@ class CylindricalSurfacePair(SimplePair):
         return GreensFunction1DAbsAbs(self.D_R, self.v_R, 0.0, -self.a_R, self.a_R)
 
     def iv_greens_function(self, r0):
-        # TODO Fix ugly hack to avoid k=0 below
-        #return GreensFunction1DRadAbs(self.D_r, self.v_r, self.interparticle_ktot, r0, self.sigma, self.a_r)
         return GreensFunction1DRadAbs(self.D_r, self.v_r, self.interparticle_ktot, r0, self.sigma, self.a_r)
 
     def create_new_shell(self, position, half_length, domain_id):
@@ -724,8 +720,8 @@ class CylindricalSurfacePair(SimplePair):
 
 class MixedPair(Pair):
 
-    @staticmethod
-    def get_min_shell_dimensions(single1, single2, reference_point, geometrycontainer):
+    @classmethod
+    def get_min_shell_dimensions(cls, single1, single2, geometrycontainer):
 
         assert isinstance (single1.structure, PlanarSurface)
         assert isinstance (single2.structure, CuboidalRegion)
@@ -742,12 +738,17 @@ class MixedPair(Pair):
         # of particle1
         pos2_t = geometrycontainer.world.cyclic_transpose(pos2, pos1)
         iv = pos2_t - pos1
-        iv_x = numpy.dot(iv, single1.structure.shape.unit_x)
-        iv_y = numpy.dot(iv, single1.structure.shape.unit_y)
-        iv_z = numpy.dot(iv, single1.structure.shape.unit_z)
+        iv_x =     numpy.dot(iv, single1.structure.shape.unit_x)
+        iv_y =     numpy.dot(iv, single1.structure.shape.unit_y)
+        iv_z = abs(numpy.dot(iv, single1.structure.shape.unit_z))
 
-        # calculate the minimal dimensions of the iv shell (it fits perfectly around the particles)
-        iv_shell_z = abs(iv_z) + radius2
+        z_scaling = cls.calc_z_scaling_factor (D1, D2)
+        r0 = math.sqrt( iv_x**2 + iv_y**2 + (iv_z*z_scaling)**2)
+
+        # calculate the minimal height z_right1 of the shell including burst radius
+        # with the accompanying radius r1
+        z_right1 = iv_z + radius2 * Domain.SINGLE_SHELL_FACTOR
+        r1       = cls.r_right(single1, single2, r0, z_right1)
 
         len_iv_projected = math.sqrt(iv_x*iv_x + iv_y*iv_y)
         dist_r_from_com1 = len_iv_projected * D1 / D12
@@ -760,24 +761,342 @@ class MixedPair(Pair):
 
         # calculate the minimal dimensions of the protective domain including space for the
         # burst volumes of the particles
-        dz_left = radius1
-        dz_right = iv_shell_z + radius2 * (1 - Domain.SINGLE_SHELL_FACTOR)
-        dr = max(iv_shell_radius1 + com_shell_radius + radius1 * (1 - Domain.SINGLE_SHELL_FACTOR),
+        r2 = max(iv_shell_radius1 + com_shell_radius + radius1 * (1 - Domain.SINGLE_SHELL_FACTOR),
                  iv_shell_radius2 + com_shell_radius + radius2 * (1 - Domain.SINGLE_SHELL_FACTOR))
+        z_right2 = cls.z_right(single1, single2, r0, r2)
 
-        return dr, dz_left, dz_right
+        # of both alternatives pick the largest one
+        z_right, r = max((z_right1, r1),(z_right2, r2))
 
-    @staticmethod
-    def get_max_shell_dimensions(shell_center, single1, single2, geometrycontainer, domains):
-        pass
+        # z_left is always the same
+        z_left = radius1
+
+        return r, z_left, z_right
+
+    @classmethod
+    def get_max_shell_dimensions(cls, single1, single2, geometrycontainer, domains):
+        # Properties of the MixedPair system
+
+        assert isinstance (single1.structure, PlanarSurface)
+        assert isinstance (single2.structure, CuboidalRegion)
+
+        com, iv = cls.do_transform(single1, single2, geometrycontainer.world)
+        reference_point = com
+        orientation_vector = normalize(single1.structure.shape.unit_z * numpy.dot (iv, single1.structure.shape.unit_z))
+        r0 = length(iv)
+
+        # Make sure the maximal cylinder fits in the maximal sphere. Matrix space
+        # doesn't allow to check for shells outside the maximal sphere.
+        max_cylinder_radius      = geometrycontainer.get_max_shell_size()/math.sqrt(2)
+        max_cylinder_half_length = max_cylinder_radius
+
+        # set initial values of shell dimensions
+        z_left = single1.pid_particle_pair[1].radius
+        z_right = max_cylinder_half_length * 2 - z_left
+        r = max_cylinder_radius
+        
+        # get all the domains in the neighborhood
+        search_point = reference_point + ((z_right - z_left)/2.0) * orientation_vector
+        all_neighbor_ids = \
+            geometrycontainer.get_neighbors_within_radius_no_sort(search_point,
+                                                     geometrycontainer.get_max_shell_size(),
+                                                     ignore=[single1.domain_id, single2.domain_id])
+        all_neighbors = [domains[domain_id] for domain_id in all_neighbor_ids]
+
+        world = geometrycontainer.world
+
+        # adjust the maximal shell dimensions for every shell in the neighborhood
+        for domain in all_neighbors:
+            if isinstance(domain, Multi):
+                for _, shell in domain.shell_list:
+                    shell_position = shell.shape.position
+                    shell_size = shell.shape.radius
+                    r, z_left, z_right = cls.laurens_algorithm(single1, single2, r0, shell_position, shell_size,
+                                                                     reference_point, orientation_vector, r, z_left,
+                                                                     z_right, world)
+            else:
+                shell_position = domain.shell.shape.position
+                shell_size = domain.get_shell_size()
+
+                if domain.dt == 0.0 and domain.getD() > 0:
+                    # This is one of the bursted singles.
+                    # Or a particle that just escaped it's multi.
+                    shell_size *= Domain.SINGLE_SHELL_FACTOR
+
+                r, z_left, z_right = cls.laurens_algorithm(single1, single2, r0, shell_position, shell_size,
+                                                                 reference_point, orientation_vector, r, z_left,
+                                                                 z_right, world)
+
+
+
+        return r, z_left, z_right
+
+    @classmethod
+    def laurens_algorithm(cls, single1, single2, r0, shell_position, shell_size, reference_point,
+                          orientation_vector, r, z_left, z_right, world):
+
+        D1 = single1.pid_particle_pair[1].D
+        D2 = single2.pid_particle_pair[1].D
+
+
+        # determine on what side the midpoint of the shell is relative to the reference_point
+        shell_position_t = world.cyclic_transpose (shell_position, reference_point)
+        direction = numpy.dot(shell_position_t - reference_point, orientation_vector)
+
+        # if the shell is on the side of orientation_vector -> use z_right
+        # also use this one if the shell is in plane with the reference_point
+        if direction >= 0:
+            phi = cls.calc_right_scalingangle(D1, D2)
+            scalecenter_h0 = cls.z_right(single1, single2, r0, 0.0)   # r = 0.0
+            r1_function =  cls.r_right
+            z1_function = cls.z_right
+            z2_function = cls.z_left
+            z1 = z_right
+            z2 = z_left
+            direction = 1           # improve direction specification such that following calculations still work
+                                    # Otherwise problems when direction = 0
+        # else -> use z_left
+        else:
+            phi = cls.calc_left_scalingangle(D1, D2)
+            scalecenter_h0 = cls.z_left(single1, single2, r0, 0.0)    # r = 0.0
+            r1_function =  cls.r_left
+            z1_function = cls.z_left
+            z2_function = cls.z_right
+            z1 = z_left
+            z2 = z_right
+            direction = -1
+
+        # calculate the center from which linear scaling will take place
+        # TODO this should be generalized to accomodate scaling in just z
+        # TODO Also the scale center is still strangly defined.
+        if phi == 0.0:
+            scalecenter_r0 = r  # This is an approximation, since the h0 is infinitely far away of phi == 0,
+        else:                   # we introduce an r0
+            scalecenter_r0 = 0
+        # TODO check this
+        scale_center = reference_point + scalecenter_h0 * direction * orientation_vector
+        scale_center = world.apply_boundary(scale_center)
+
+        # calculate the vector from the scale center to the center of the shell
+        shell_position_t = world.cyclic_transpose (shell_position, scale_center)
+        shell_scale_center = shell_position_t - scale_center
+        shell_scalecenter_z = numpy.dot( shell_scale_center, direction * orientation_vector )
+        shell_scalecenter_r = length(shell_scale_center - (shell_scalecenter_z*direction*orientation_vector))
+        # calculate the angle theta of the vector from the scale center to the shell with the vector
+        # to the scale center (which is +- the orientation_vector)
+        theta = vector_angle (shell_scale_center, direction * orientation_vector)
+
+        psi = theta - phi
+
+        ### check what situation arrises
+        # The shell can hit the cylinder on the flat side (situation 1),
+        #                                on the edge (situation 2),
+        #                                or on the round side (situation 3).
+        # I think this also works for phi == 0 and phi == Pi/2
+        if psi <= -phi:
+        # The midpoint of the shell lies on the axis of the cylinder
+            situation = 1
+
+        elif -phi < psi and psi < 0:
+        # The (spherical) shell can touch the cylinder on its flat side or its edge
+            if phi == Pi/2.0:
+                r_tan_phi = 0
+            else:
+                r_tan_phi = shell_scalecenter_r/math.tan(phi)   # phi == 0 should not get here
+
+            a_thres = shell_scalecenter_z - r_tan_phi
+            if shell_size < a_thres:
+                situation = 1
+            else:
+                situation = 2
+
+        elif 0 <= psi and psi < (Pi/2.0 - phi):
+        # The (spherical) shell can touch the cylinder on its edge or its radial side
+            tan_phi = math.tan(phi)                             # phi == Pi/2 should not get here
+            a_thres = shell_scalecenter_r - shell_scalecenter_z * tan_phi
+            if shell_size > a_thres:
+                situation = 2
+            else:
+                situation = 3
+
+        elif (Pi/2.0 - phi) <= psi:
+        # The shell is always only on the radial side of the cylinder
+            situation = 3
+
+        else:
+        # Don't know how we would get here, but it shouldn't happen
+            raise RuntimeError('Error: psi was not in valid range. psi = %s, phi = %s, theta = %s' %
+                               (FORMAT_DOUBLE % psi, FORMAT_DOUBLE % phi, FORMAT_DOUBLE % theta))
+
+        log.debug('situation = %s' % (situation))
+        print "h0", scalecenter_h0
+        print "scale_center" , scale_center
+        print "theta = " ,theta
+        print "phi= ", phi
+        print "psi= ", psi
+        print "shell_scale_center= ", shell_scale_center
+        print "shell_scalecenter_r= ", shell_scalecenter_r
+        print "shell_scalecenter_z= ", shell_scalecenter_z
+#        print "a_thres=", a_thres
+        print "shell_size=", shell_size
+
+
+        ### Get the right values for z and r for the given situation
+        if situation == 1:      # shell hits on the flat side
+            z1_new = min(z1, scalecenter_h0 + shell_scalecenter_z - shell_size)
+            r_new  = min(r,  r1_function(single1, single2, r0, z1_new))
+            z2_new = min(z2, z2_function(single1, single2, r0, r_new))
+
+        elif situation == 2:    # shell hits on the edge
+            a_sq = shell_size*shell_size
+            shell_scalecenter_len = length(shell_scale_center)
+            ss_sq = shell_scalecenter_len*shell_scalecenter_len
+            sin_phi = math.sin(phi)
+            sin_psi = math.sin(psi)
+            cos_psi = math.cos(psi)
+            scalecenter_shell_dist = (shell_scalecenter_len * cos_psi - math.sqrt(a_sq - ss_sq*sin_psi*sin_psi) )
+            # FIXME UGLY FIX BELOW
+            scalecenter_shell_dist /= 1.1
+
+            if phi <= Pi/4:
+                print "scale z first."
+                z1_new = min(z1, scalecenter_h0 + cos_phi * scalecenter_shell_dist)
+                r_new  = min(r, r1_function(single1, single2, r0, z1_new))
+                z2_new = min(z2, z2_function(single1, single2, r0, r_new))
+            else:
+                print "scale r first."
+                r_new = min(r, scalecenter_r0 + sin_phi * scalecenter_shell_dist)
+                z1_new = min(z1, z1_function(single1, single2, r0, r_new))
+                z2_new = min(z2, z2_function(single1, single2, r0, r_new))
+
+        elif situation == 3:    # shell hits on the round side
+            r_new = min(r, scalecenter_r0 + shell_scalecenter_r - shell_size)
+            z1_new = min(z1, z1_function(single1, single2, r0, r_new))
+            z2_new = min(z2, z2_function(single1, single2, r0, r_new))
+        else:
+            raise RuntimeError('Bad situation for MixedPair shell making')
+
+        ## DEBUGGING
+        h_l = (z1_new + z2_new)/2.0
+        print "h_l = ", h_l
+        g = z1_new - h_l - scalecenter_h0
+        print "g = ", g
+        x = length(shell_scale_center) 
+        print "distance = ", math.sqrt(g*g + x*x - 2.0*g*x*math.cos(theta))
+
+
+        # switch the z values in case it's necessary. r doesn't have to be switched.
+        r = r_new
+        if direction >= 0.0:
+            z_right = z1_new
+            z_left  = z2_new
+        else:
+            z_right = z2_new
+            z_left  = z1_new
+
+        ## DEBUGGING
+        print "r = " , r
+        print "z_left = ", z_left
+        print "z_right = ", z_right
+
+        return r, z_left, z_right
+
+    ### class methods that are for the right side of the cylindrical shell
+    @classmethod
+    def calc_right_scalingangle(cls, D1, D2):
+        D_r = D1 + D2
+        D_R = (D1*D2)/(D1 + D2)
+
+        z_scaling_factor = cls.calc_z_scaling_factor(D1, D2)
+
+        angle = math.atan( ( z_scaling_factor * ( math.sqrt( (2*D_R)/(3*D_r) ) + \
+                                                      max( D1/D_r, D2/D_r )
+                                                    )))
+        return angle
+
+    @classmethod
+    def z_right(cls, single1, single2, r0, r):
+        # if the radius is known and we want to determine the height z_right
+        radius1 = single1.pid_particle_pair[1].radius
+        radius2 = single2.pid_particle_pair[1].radius
+        D1 = single1.pid_particle_pair[1].D
+        D2 = single2.pid_particle_pair[1].D
+        D_r = D1 + D2
+        D_R = (D1*D2)/(D1 + D2)
+
+        # calculate a_r such that the expected first-passage for the CoM and IV are equal
+        sqrt_DRDr = math.sqrt((2*D_R)/(3*D_r))
+        a_r1 = (r - radius1 + r0*sqrt_DRDr ) / (sqrt_DRDr + (D1/D_r) )
+        a_r2 = (r - radius2 + r0*sqrt_DRDr ) / (sqrt_DRDr + (D2/D_r) )
+        # take the smallest that, if entered in the function for r below, would lead to this z_right
+        a_r = min (a_r1, a_r2)
+
+        z_scaling_factor = cls.calc_z_scaling_factor(D1, D2)
+        z_right = (a_r/z_scaling_factor) + (radius2)
+
+        return z_right
+
+    @classmethod
+    def r_right(cls, single1, single2, r0, z_right):
+        # if the z_right is known and we want to know the radius r
+        radius1 = single1.pid_particle_pair[1].radius
+        radius2 = single2.pid_particle_pair[1].radius
+        D1 = single1.pid_particle_pair[1].D
+        D2 = single2.pid_particle_pair[1].D
+        D_r = D1 + D2
+        D_R = (D1*D2)/(D1 + D2)
+
+        # we first calculate the a_r, since it is the only radius that depends on z_right only.
+        z_scaling_factor = cls.calc_z_scaling_factor(D1, D2)
+        a_r = (z_right - (radius2)) * z_scaling_factor
+
+        # We equalize the estimated first passage time for the CoM (2D) and IV (3D) for a given a_r
+        # Note that for the IV we only take the distance to the outer boundary into account.
+        a_R = (a_r - r0)*math.sqrt((2*D_R)/(3*D_r))
+
+        # We calculate the maximum space needed for particles A and B based on maximum IV displacement
+        iv_max = max( (D1/D_r * a_r + radius1),
+                      (D2/D_r * a_r + radius2))
+
+        r = a_R + iv_max
+        return r
+
+    ### class methods for the left side of the cylindrical shell
+    @classmethod
+    def calc_left_scalingangle(cls, D1, D2):
+        return Pi/2
+
+    @classmethod
+    def z_left(cls, single1, single2, r0, r):
+        return single1.pid_particle_pair[1].radius
+
+    @classmethod
+    def r_left(cls, single1, single2, r0, z_left):
+        # FIXME this should return the maximum of the shell container
+        return numpy.inf
+
+
+    ### class methods that are general
+    @classmethod
+    def calc_z_scaling_factor(cls, D2d, D3d):
+        # calculates the scaling factor to make the anisotropic diffusion problem into a isotropic one
+        return math.sqrt( (D2d + D3d) / D3d)
+
+    ################
 
     def __init__(self, domain_id, single1, single2, shell_id, shell_center, shell_radius,
-                 shell_half_length, shell_orientation_vector, 
-                 unit_r, r0, rrs):
+                 shell_half_length, shell_orientation_vector, r0, rrs):
+
         Pair.__init__(self, domain_id, single1, single2, shell_id, r0, rrs)
 
-        self.surface = surface  # the surface on which particle1 lives
-        self.r0 = r0    # TODO this needs to be rescaled too
+        self.surface = single1.structure    # the surface on which particle1 lives
+        self.structure = single1.structure    # the surface on which particle1 lives
+        self.r0 = r0
+
+        self.a_R, self.a_r = self.determine_radii(shell_half_length, shell_radius)
+
+        self.shell = self.create_new_shell (shell_center, shell_radius, shell_half_length, shell_orientation_vector,
+                                            domain_id)
 
     def determine_radii(self, half_length, radius):
         # determines the dimensions of the domains used for the Green's functions from the dimensions
@@ -785,11 +1104,37 @@ class MixedPair(Pair):
         # Note that the function assumes that the cylinder is dimensioned properly
         radius1 = self.pid_particle_pair1[1].radius
         radius2 = self.pid_particle_pair2[1].radius
+
+        # use class methods to check dimensions of the cylinder
+        # note that we assume that only the z_right is scalable
+        r_check = self.r_right (self.single1, self.single2, self.r0, half_length*2 - radius1)
+        hl2_check = self.z_right (self.single1, self.single2, self.r0, radius) + \
+                    self.z_left  (self.single1, self.single2, self.r0, radius)
+        if r_check > radius:
+            # radius should have been larger, adjust z_right instead
+            if __debug__:
+                log.debug('MixedPair: half_length was too high for radius:'
+                          'radius = %.3g, r_check = %.3g, 2half_length = %.3g, 2hl_check = %.3g' %
+                          (radius, r_check, half_length*2, hl2_check))
+
+            half_length = hl2_check/2
+
+        elif hl2_check > (half_length*2):
+            # half_length should have been larger, adjust radius instead
+            if __debug__:
+                log.debug('MixedPair: radius was too high for half_length:'
+                          'radius = %.3g, r_check = %.3g, 2half_length = %.3g, 2hl_check = %.3g' %
+                          (radius, r_check, half_length*2, hl2_check))
+            radius = r_check
+        else:
+            # dimensions were ok
+            pass
+
         D1 = self.pid_particle_pair1[1].D
         D2 = self.pid_particle_pair2[1].D
         D12 = D1 + D2
 
-        a_r = ((half_length * 2) - radius1 - (2 * radius2)) * self.z_scaling_factor
+        a_r = ((half_length * 2) - radius1 - (radius2)) * self.z_scaling_factor
 
         # calculate the maximal displacement of a particle given an a_r. Also include its radius
         space_for_iv = max( (D1/D12) * a_r + radius1,
@@ -803,7 +1148,9 @@ class MixedPair(Pair):
                 tR = numpy.inf 
             else:
                 tR = (a_R**2) / (4 * self.D_R)          # the expected escape time of the CoM
-            log.debug('tr %g, tR %g' % (tr, tR))
+            log.debug('a_r= %s, tr= %s, a_R= %s, tR= %s' % \
+                      (FORMAT_DOUBLE % a_r, FORMAT_DOUBLE % tr,
+                       FORMAT_DOUBLE % a_R, FORMAT_DOUBLE % tR))
 
         assert (self.sigma < a_r) and (a_r < half_length*2)
         assert (0 < a_R) and (a_R < radius)
@@ -823,8 +1170,8 @@ class MixedPair(Pair):
         return math.sqrt(self.D_r/D_2)
     z_scaling_factor = property(get_scaling_factor)
 
-    @staticmethod
-    def do_transform(single1, single2, world):
+    @classmethod
+    def do_transform(cls, single1, single2, world):
 
         pos1 = single1.pid_particle_pair[1].position
         pos2 = single2.pid_particle_pair[1].position
@@ -837,7 +1184,7 @@ class MixedPair(Pair):
 
 
         # the CoM is calculated in a similar way to a normal 3D pair
-        com = (D_2 * pos1 + D_1 * pos) / (D_1 + D_2)
+        com = (D_2 * pos1 + D_1 * pos2) / (D_1 + D_2)
         # and then projected onto the plane
         com = world.cyclic_transpose(com, surface.shape.position)
         com, _ = surface.projected_point (com)
@@ -854,7 +1201,7 @@ class MixedPair(Pair):
         iv_z = surface.shape.unit_z * numpy.dot (iv, surface.shape.unit_z)
         iv_z_length = length(iv_z)
 
-        new_iv_z_length = (iv_z_length - single2.pid_particle_pair[1].radius) * z_scaling_factor
+        new_iv_z_length = (iv_z_length) * z_scaling_factor
         new_iv_z = (new_iv_z_length / iv_z_length) * iv_z
 
         iv = iv - iv_z + new_iv_z
@@ -871,17 +1218,24 @@ class MixedPair(Pair):
         # get the coordinates of the iv relative to the system of the surface (or actually the shell)
         iv_x = self.surface.shape.unit_x * numpy.dot(iv, self.surface.shape.unit_x)
         iv_y = self.surface.shape.unit_y * numpy.dot(iv, self.surface.shape.unit_y)
-        iv_z = self.shell.shape.unit_z * numpy.dot(iv, self.shell.shape.unit_z)
 
         # reflect the coordinates in the unit_z direction back to the side of the membrane
         # where the domain is. Note that it's implied that the origin of the coordinate system lies in the
         # plane of the membrane
-        iv_z = abs(iv_z)
+        iv_z_length = abs(numpy.dot(iv, self.shell.shape.unit_z))
+        # do the reverse scaling
+        iv_z_length = iv_z_length / self.z_scaling_factor
+
+        # if the particle is overlapping with the membrane, make sure it doesn't
+        if iv_z_length < self.pid_particle_pair2[1].radius:
+            iv_z_length = self.pid_particle_pair2[1].radius * MINIMAL_SEPARATION_FACTOR
+
+        iv_z = self.shell.shape.unit_z * iv_z_length
 
         pos1 = com - weight1 * (iv_x + iv_y)
         pos2 = com + weight2 * (iv_x + iv_y) + \
-               iv_z/self.z_scaling_factor + \
-               self.shell.shape.unit_z * self.pid_particle_pair2[1].radius
+               iv_z #/self.z_scaling_factor + \
+#               self.shell.shape.unit_z * self.pid_particle_pair2[1].radius
 
         return pos1, pos2
 
@@ -897,21 +1251,27 @@ class MixedPair(Pair):
         return rho
     sigma = property (get_sigma)
 
-    def com_greensfunction(self):
+    def choose_pair_greens_function(self, r0, t):
+        return self.iv_greens_function(r0)
+
+    def com_greens_function(self):
         # diffusion of the CoM of a mixed pair is only two dimensional
         return GreensFunction2DAbsSym(self.D_R, self.a_R)
 
-    def iv_greensfunction(self):
+    def iv_greens_function(self, r0):
         # diffusion of the interparticle vector is three dimensional
-        return GreensFunction3DRadAbs(self.D_r, self.interparticle_ktot, self.r0,
+        return GreensFunction3DRadAbs(self.D_r, self.interparticle_ktot, r0,
                                       self.sigma, self.a_r)
 
-    def create_new_shell(self, position, radius, orientation_vector, half_length):
+    def create_new_shell(self, position, radius, half_length, orientation_vector, domain_id):
         # It is assumed that the parameter are correct -> the 'bottom' of the cylinder
         # sticks through the membrane enough to accomodate the particle in the membrane
         # assert that orientation_vector is on same line as surface.shape.unit_z
-        return CylindricalShell(self.domain_id, Cylinder(position, radius, orientation_vector,
-                                                         half_length))
+        return CylindricalShell(domain_id, Cylinder(position, radius, orientation_vector,
+                                                    half_length))
+
+    def get_shell_size(self):
+        return self.shell.shape.radius
 
     def create_com_vector(self, r):
         x, y = random_vector2D(r)
