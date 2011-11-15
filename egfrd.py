@@ -865,6 +865,9 @@ class EGFRDSimulator(ParticleSimulatorBase):
                 elif isinstance(reactant_structure, CylindricalSurface):
 
                     # TODO insert reverse transformation for 3D/1D here
+                    product_pos_list = []
+                    for _ in range(self.dissociation_retry_moves):
+
                     surface_displace = product3D_radius + reactant_structure.shape.radius
 
                 else:
