@@ -64,9 +64,14 @@ public:
         return random_vector( drawR_gbd(rng(), r01, dt, D01, v), rng ); 
     }
 
-    virtual Real get_1D_rate( Real const& k, length_type const& r01) const
+    virtual Real get_1D_rate_geminate( Real const& k, length_type const& r01) const
     {
         return k / (2 * M_PI * r01);    
+    }
+    
+    virtual Real get_1D_rate_surface( Real const& k ) const
+    {
+        return k;    
     }
 
     virtual Real particle_reaction_volume( length_type const& r01, length_type const& rl ) const

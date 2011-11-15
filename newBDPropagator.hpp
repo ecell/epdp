@@ -487,7 +487,7 @@ private:
     Real k_total(species_id_type const& s0_id, species_id_type const& s1_id)
     {   
         reaction_rules const& rules(rules_.query_reaction_rule(s0_id, s1_id));
-        if (::size(rules) == 0)
+        if(::size(rules) == 0)
         {
             return 0;
         }

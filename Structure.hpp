@@ -73,7 +73,9 @@ public:
 
     virtual position_type dissociation_vector(rng_type& rng, length_type const& r01, Real const& dt, Real const& D01, Real const& v) const = 0;
     
-    virtual Real get_1D_rate( Real const& k, length_type const& r01) const = 0;
+    virtual Real get_1D_rate_geminate( Real const& k, length_type const& r01) const = 0;
+    
+    virtual Real get_1D_rate_surface( Real const& k ) const = 0;
 
     virtual Real particle_reaction_volume( length_type const& r01, length_type const& rl ) const = 0;
     

@@ -52,7 +52,12 @@ public:
         return position_type(); //TODO
     }
 
-    virtual Real get_1D_rate( Real const& k, length_type const& r01) const
+    virtual Real get_1D_rate_geminate( Real const& k, length_type const& r01) const
+    {
+        return Real(); //TODO
+    }
+    
+    virtual Real get_1D_rate_surface( Real const& k ) const
     {
         return Real(); //TODO
     }

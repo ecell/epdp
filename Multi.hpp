@@ -38,11 +38,9 @@ public:
     typedef typename traits_type::size_type size_type;
     typedef typename traits_type::structure_id_type structure_id_type;
     typedef typename traits_type::structure_type structure_type;
-    
     typedef typename Ttraits_::network_rules_type network_rules_type;
     typedef typename Ttraits_::reaction_rule_type reaction_rule_type;
-    typedef typename network_rules_type::reaction_rules reaction_rules;   
-    
+    typedef typename network_rules_type::reaction_rules reaction_rules;      
     typedef typename Ttraits_::world_type::particle_container_type::structure_id_and_distance_pair structure_id_and_distance_pair;
     typedef std::pair<const particle_id_type, particle_type> particle_id_pair;
     typedef Transaction<traits_type> transaction_type;
@@ -257,13 +255,37 @@ public:
         return real_pair(D_max, radius_min);
     }
     
-    /* Functions returns largest _1D_ intrinsic reaction rate in the mpc.
-       TODO: include structures in kmax finder. */
+    /* Functions returns largest _1D_ intrinsic reaction rate in the multi. */
     Real get_max_rate(network_rules_type const& rules) const
     {
         Real k_max(0.);
         int i = 0, j= 0;
+        
+        BOOST_FOREACH(particle_id_pair pp, get_particles_range())
+        {
+            species_type const s( pp.second.sid() );
+            structure_id_and_distance_pair const strc_id_and_dist( 
+                get_closest_surface( pp.second.position(), s.structure_id() ) );
+                
+            if( strc_id_and_dist.second < s.radius() && s.structure_id() == "world" )
+            {
+                species_id_type const strc_sid( get_structure( strc_id_and_dist.first )->sid() );
+                reaction_rules const& rrules(rules.query_reaction_rule( s.id(), strc_sid ));
+                if (::size(rrules) == 0)
+                    continue;
 
+                for (typename boost::range_const_iterator<reaction_rules>::type
+                it(boost::begin(rrules)), e(boost::end(rrules)); it != e; ++it)
+                {
+                    Real const k( get_structure( strc_id_and_dist.first )->get_1D_rate_surface( (*it).k() ) ); 
+
+                    if ( k_max < k )
+                        k_max = k;
+                }
+            }            
+            
+        }
+        
         BOOST_FOREACH(species_type s0, get_species_in_multi())
         {
             j = 0;
@@ -274,10 +296,8 @@ public:
                 
                 reaction_rules const& rrules(rules.query_reaction_rule( s0.id(), s1.id() ));
                 if (::size(rrules) == 0)
-                {
                     continue;
-                }
-                                
+                                            
                 for (typename boost::range_const_iterator<reaction_rules>::type
                 it(boost::begin(rrules)), e(boost::end(rrules)); it != e; ++it)
                 {
@@ -287,13 +307,13 @@ public:
                     if(s0.structure_id() != s1.structure_id())
                     {
                         if(s0.structure_id() == "world")
-                            k = get_structure( s0.structure_id() )->get_1D_rate( (*it).k(), r01 );
+                            k = get_structure( s0.structure_id() )->get_1D_rate_geminate( (*it).k(), r01 );
                         else
-                            k = get_structure( s1.structure_id() )->get_1D_rate( (*it).k(), r01 );
+                            k = get_structure( s1.structure_id() )->get_1D_rate_geminate( (*it).k(), r01 );
                     }
                     else
                     {
-                        k = get_structure( s0.structure_id() )->get_1D_rate( (*it).k(), r01 ); 
+                        k = get_structure( s0.structure_id() )->get_1D_rate_geminate( (*it).k(), r01 ); 
                     }
                 
                     if ( k_max < k )
