@@ -343,7 +343,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
         # assert if not too many successive dt=0 steps occur.
         if __debug__:
             if self.dt == 0:
-                log.warning('dt=zero step, working in s.t >> dt~0 Python limit.')
+                log.debug('dt=zero step, working in s.t >> dt~0 Python limit.')
                 self.zero_steps += 1
                 # TODO Changed from 10 to 10000, because only a problem 
                 # when reaching certain magnitude.

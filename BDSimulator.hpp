@@ -250,8 +250,8 @@ protected:
                 make_select_first_range(base_type::world_->
                                         get_particles_range()));
             while (propagator());
-            //LOG_DEBUG(("%d: t=%lg, dt=%lg", base_type::num_steps_, 
-            //           base_type::t_, dt));
+            LOG_DEBUG(("%d: t=%lg, dt=%lg", base_type::num_steps_, 
+                       base_type::t_, dt));
         }
         ++base_type::num_steps_;
         base_type::t_ += dt;
