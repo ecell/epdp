@@ -793,6 +793,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
                     # product2 goes to 3D and is now particleB (product1 is particleA)
                     productA_displacement = product1_displacement
                     productB_displacement = product2_displacement
+                    productA_radius = product1_radius
                     productB_radius = product2_radius
                     DA = D1
                     DB = D2
@@ -801,6 +802,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
                     # product1 goes to 3D and is now particleB (product2 is particleA)
                     productA_displacement = product2_displacement
                     productB_displacement = product1_displacement
+                    productA_radius = product2_radius
                     productB_radius = product1_radius
                     DA = D2
                     DB = D1
@@ -859,11 +861,27 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
                 elif isinstance(reactant_structure, CylindricalSurface):
 
-                    # TODO insert reverse transformation for 3D/1D here
                     product_pos_list = []
                     for _ in range(self.dissociation_retry_moves):
 
-                    surface_displace = product3D_radius + reactant_structure.shape.radius
+                        iv = random_vector(particle_radius12 * MixedPair3D1D.calc_r_scaling_factor(DA, DB))
+                        iv *= MINIMAL_SEPARATION_FACTOR
+
+                        newposA, newposB = MixedPair3D1D.do_back_transform(reactant_pos, iv, DA, DB,
+                                                                           productA_radius, productB_radius, reactant_structure)
+
+                        newposA = self.world.apply_boundary(newposA)
+                        newposB = self.world.apply_boundary(newposB)
+
+                        assert (self.world.distance(newposA, newposB) >= particle_radius12)
+                        assert (self.world.distance(reactant_structure.shape, newposB) >= productB_radius)
+
+                        if default:
+                            newpos1, newpos2 = newposA, newposB
+                        else:
+                            newpos1, newpos2 = newposB, newposA
+
+                        product_pos_list.append((newpos1, newpos2))
 
                 else:
                     # cannot decay from 3D to other structure
