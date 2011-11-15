@@ -699,9 +699,11 @@ class EGFRDSimulator(ParticleSimulatorBase):
                 assert isinstance(product_structure, CuboidalRegion)
 
                 if isinstance(reactant_structure, PlanarSurface):
+                    a = myrandom.choice(-1, 1)
+                    directions = [-a,a]
                     vector_length = (product_radius + 0.0) * MINIMAL_SEPARATION_FACTOR  # the thickness of the membrane is 0.0
                     product_pos_list = [reactant_pos + vector_length * reactant_structure.shape.unit_z * direction \
-                                        for direction in [-1,1]]        # FIXME the direction should be randomized
+                                        for direction in directions]
 
                 elif isinstance(reactant_structure, CylindricalSurface):
                     vector_length = (product_radius + reactant_structure.shape.radius) * MINIMAL_SEPARATION_FACTOR
