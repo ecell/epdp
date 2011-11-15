@@ -23,7 +23,7 @@
 #include "OldDefs.hpp"			// TODO: this must be removed at some point!
 #include "GreensFunction.hpp"
 
-class GreensFunction1DRadAbs: public GreensFunction
+class GreensFunction1DAbsSinkAbs: public GreensFunction
 {
 private:
     // This is a typical length scale of the system, may not be true!
@@ -40,88 +40,95 @@ private:
     static const int MIN_TERMS = 20;
 
 public:
-    GreensFunction1DRadAbs(Real D, Real k, Real r0, Real sigma, Real a)
-	: GreensFunction(D), v(0.0), k(k), r0(r0), sigma(sigma), a(a), l_scale(L_TYPICAL), t_scale(T_TYPICAL)
+    GreensFunction1DAbsSinkAbs(Real D, Real k, Real r0, Real rsink, Real sigma, Real a)
+	: GreensFunction(D), v(0.0), k(k), r0(r0), sigma(sigma), a(a), rsink(rsink), l_scale(L_TYPICAL), t_scale(T_TYPICAL)
     {
 	// do nothing
     }
 
     // The constructor is overloaded and can be called with or without drift v
     // copy constructor including drift variable v
-    GreensFunction1DRadAbs(Real D, Real v, Real k, Real r0, Real sigma, Real a)
-	: GreensFunction(D), v(v), k(k), r0(r0), sigma(sigma), a(a), l_scale(L_TYPICAL), t_scale(T_TYPICAL)
+    GreensFunction1DAbsSinkAbs(Real D, Real v, Real k, Real r0, Real rsink, Real sigma, Real a)
+	: GreensFunction(D), v(v), k(k), r0(r0), sigma(sigma), a(a), L(a - sigma), l_scale(L_TYPICAL), t_scale(T_TYPICAL)
     {
 	// do nothing
     }
 
-    ~GreensFunction1DRadAbs()
+    ~GreensFunction1DAbsSinkAbs()
     {
 	;   // empty
     }
 
-    // This also sets the scale
-    void seta(Real a)
-    {
-	THROW_UNLESS( std::invalid_argument, (a-this->sigma) >= 0.0 && this->r0 <= a);
-
-	// Use a typical domain size to determine if we are here 
-	// defining a domain of size 0.
-	if ( (a-this->sigma) < EPSILON*this->l_scale )
-	{
-	    // just some random value to show that the domain is zero
-	    this->a = -1.0;
-	}
-	else
-	{
-	    // set the l_scale to the given one
-	    this->l_scale = a-sigma;
-	    // set the typical time scale (MSD = sqrt(2*d*D*t) )
-	    this->t_scale = (l_scale*l_scale)/this->getD();
-	    this->a = a;
-	}
-    }
-
     Real geta() const
     {
-	return this->a;
+	    return this->a;
+    }
+    
+    Real getrsink() const
+    {
+	    return rsink;
     }
     
     Real getsigma() const
     {
-	return this->sigma;
-    }
-
-    void setr0(Real r0)
-    {
-	if ( this->a - this->sigma < 0.0 )
-	{
-	    // if the domain had zero size
-	    THROW_UNLESS( std::invalid_argument,
-	                  0.0 <= (r0-sigma) && (r0-sigma) <= EPSILON * l_scale );
-	    this->r0 = 0.0;
-	}
-	else
-	{
-	    // The normal case
-	    THROW_UNLESS( std::invalid_argument,
-	                  0.0 <= (r0-sigma) && r0 <= this->a);
-	    this->r0 = r0;
-	}
+	    return this->sigma;
     }
 
     Real getr0() const
     {
-	return r0;
+	    return r0;
     }
 
     Real getk() const
     {
-	return this->k;
+	    return k;
     }
 
     Real getv() const
     {
-	return this->v;
+	    return v;
+    }
+    
+    // This also sets the scale
+    void seta(Real a)
+    {
+	    THROW_UNLESS( std::invalid_argument, (a-this->sigma) >= 0.0 && this->r0 <= a);
+
+	    // Use a typical domain size to determine if we are here 
+	    // defining a domain of size 0.
+	    if ( (a-this->sigma) < EPSILON*this->l_scale )
+	    {
+	        // just some random value to show that the domain is zero
+	        this->a = -1.0;
+  	        this->L = -1.0;
+	    }
+	    else
+	    {   
+	        // set the l_scale to the given one
+	        this->l_scale = a - sigma;
+	        this->L = a - sigma;
+	        // set the typical time scale (MSD = sqrt(2*d*D*t) )
+	        this->t_scale = ( l_scale * l_scale ) / this->getD();
+	        this->a = a;
+	    }
+    }
+
+    void setr0(Real r0)
+    {
+	    if ( this->a - this->sigma < 0.0 )
+	    {
+	     // if the domain had zero size
+	        THROW_UNLESS( std::invalid_argument,
+	                  0.0 <= (r0-sigma) && (r0-sigma) <= EPSILON * l_scale );
+	        this->r0 = 0.0;
+	    }
+	    else
+	    {
+	        // The normal case
+	        THROW_UNLESS( std::invalid_argument,
+	                  0.0 <= (r0-sigma) && r0 <= this->a);
+	        this->r0 = r0;
+	    }
     }
 
     // Calculates the probability density of finding the particle at 
@@ -176,10 +183,10 @@ public:
 
     const char* getName() const
     {
-        return "GreensFunction1DRadAbs";
+        return "GreensFunction1DAbsSinkAbs";
     }
 
-    // Calculates the roots of tan(a*x)=-xk/h
+    // Calculates the roots of D/L x * sin(x) + k/2 * ( cos(x Lr - Ll/L) - cos(x) ) 
     Real root_n(int n) const;
     
 private:
@@ -227,13 +234,16 @@ private:
     static double drawR_f (double z, void *p);
 
     // The diffusion constant and drift velocity
-    Real v;
+    const Real v;
     // The reaction constant
-    Real k;
-    Real r0;
+    const Real k;
+    //starting position
+    const Real r0;
     // The left and right boundary of the domain (sets the l_scale, see below)
-    Real sigma;
-    Real a;
+    const Real sigma;
+    const Real a;
+    //Position of the sink in the domain.
+    const Real rsink;
     // This is the length scale of the system
     Real l_scale;
     // This is the time scale of the system.

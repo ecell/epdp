@@ -40,7 +40,7 @@ GreensFunction1DRadAbs::tan_f (double x, void *p)
     else
     {
 	// h = k/D
-	return tan(x) + x/(h_a);
+    return tan(x) + x/(h_a);
     }
     
 }
