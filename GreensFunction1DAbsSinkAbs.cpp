@@ -23,8 +23,7 @@
 // Later needed by the rootfinder.
 //
 // It expects a reaction rate h=k/D already divided by D.
-double
-GreensFunction1DRadAbs::tan_f (double x, void *p)
+Real GreensFunction1DAbsSinkAbs::root_f (Real x, void *p)
 {
     // casts the void to the struct pointer
     struct tan_f_params *params = (struct tan_f_params *)p;
@@ -46,8 +45,7 @@ GreensFunction1DRadAbs::tan_f (double x, void *p)
 }
 
 // Calculates the roots of tan(x*a)=-x/h
-Real
-GreensFunction1DRadAbs::root_n(int n) const
+Real GreensFunction1DAbsSinkAbs::root_n(int n) const
 {
     const Real L( this->geta()-this->getsigma() );
     const Real h( (this->getk()+this->getv()/2.0) / this->getD() );
@@ -90,73 +88,12 @@ GreensFunction1DRadAbs::root_n(int n) const
     gsl_root_fsolver_free( solver );
     
     return root/L;
-    // This rescaling is important, because the function tan_f is used to solve for
-    // tan(x)+x/h/L=0, whereas we actually need tan(x*L)+x/h=0, So if x solves the 
-    // subsidiary equation, x/L solves the original one.
 }
 
-// This is the non-exponential factor in the Green's function sum, not
-// including the factor containing the explicit r-dependency (The latter
-// is given by the Bn's, see below).
-//
-// r0 is here still in the interval from 0 to a (and supposed to be the
-// starting point of the particle at t0).
-//
-// The root a_n also must be the specific one for that interval, thus
-// the one rescaled by a (see comments in function a_n(n) ).
-//
-// The factor calculated here is identical for the cases w. or w/o drift,
-// only h changes.
-Real
-GreensFunction1DRadAbs::An (Real root_n) const
-{
-    const Real h((this->getk()+this->getv()/2.0)/this->getD());
-    const Real sigma(this->getsigma());
-    const Real L(this->geta()-this->getsigma());
-    const Real r0(this->getr0());
-    const Real rootn_r0_s = root_n*(r0-sigma);
-
-    return (root_n*cos(rootn_r0_s) + h*sin(rootn_r0_s)) / (h + (root_n*root_n + h*h)*L);
-}
-
-// This factor appears in the survival prob.
-Real
-GreensFunction1DRadAbs::Bn (Real root_n) const
-{
-    const Real h((this->getk()+this->getv()/2.0)/this->getD());
-    const Real k(this->getk());
-    const Real D(this->getD());
-    const Real v(this->getv());
-    const Real sigma(this->getsigma());
-    const Real a(this->geta());
-    const Real L(this->geta()-this->getsigma());
-    
-    const Real rootnL(root_n*L);
-    const Real rootn2(root_n*root_n);
-    const Real h2(h*h);
-    const Real v2D(v/2.0/D);
-
-    if(v==0.0) return (h2 - (rootn2 + h2)*cos(rootnL)) / (h*root_n);
-    else	return (exp(v2D*sigma)*h*k/D - exp(v2D*a)*(rootn2+h2)*cos(rootnL) ) / (h/root_n*(rootn2+v2D*v2D));
-}
-
-// This is the exponential factor in the Green's function sum, also
-// appearing in the survival prob. and prop. function.
-//
-// Also here the root is the one refering to the interval of length L.
-Real
-GreensFunction1DRadAbs::Cn (Real root_n, Real t)
-const
-{
-    const Real D(this->getD());
-
-    return std::exp(-D*root_n*root_n*t);
-}
 
 // Calculates the probability of finding the particle inside the domain
 // at time t, the survival probability.
-Real
-GreensFunction1DRadAbs::p_survival (Real t) const
+Real GreensFunction1DAbsSinkAbs::p_survival(Real t) const
 {
     THROW_UNLESS( std::invalid_argument, t >= 0.0 );
   
@@ -219,8 +156,7 @@ GreensFunction1DRadAbs::p_survival (Real t) const
 
 // Calculates the probability density of finding the particle at location r
 // at time t.
-Real
-GreensFunction1DRadAbs::prob_r (Real r, Real t)
+Real GreensFunction1DAbsSinkAbs::prob_r(Real r, Real t)
 const
 {
     THROW_UNLESS( std::invalid_argument, t >= 0.0 );
@@ -287,8 +223,7 @@ const
 
 // Calculates the probability density of finding the particle at location z at
 // timepoint t, given that the particle is still in the domain.
-Real
-GreensFunction1DRadAbs::calcpcum (Real r, Real t) const
+Real GreensFunction1DAbsSinkAbs::calcpcum(Real r, Real t) const
 {
     return prob_r(r, t)/p_survival(t);
 }
@@ -296,8 +231,7 @@ GreensFunction1DRadAbs::calcpcum (Real r, Real t) const
 // Calculates the total probability flux leaving the domain at time t
 // This is simply the negative of the time derivative of the survival prob.
 // at time t [-dS(t')/dt' for t'=t].
-Real
-GreensFunction1DRadAbs::flux_tot (Real t) const
+Real GreensFunction1DAbsSinkAbs::flux_tot(Real t) const
 {
     Real root_n;
     const Real D(this->getD());
@@ -331,29 +265,56 @@ GreensFunction1DRadAbs::flux_tot (Real t) const
     return 2.0*D*exp(vexpo)*sum;
 }
 
-// Calculates the probability flux leaving the domain through the radiative
-// boundary at time t
-Real
-GreensFunction1DRadAbs::flux_rad (Real t) const
+// Calculates the probability flux leaving the domain through the absorbing
+// left boundary at time t
+Real GreensFunction1DAbsSinkAbs::flux_abs_left(Real t) const
 {
-    return this->getk() * prob_r(this->getsigma(), t);
+    return Real();
 }
 
-// Calculates the flux leaving the domain through the radiative boundary as a
-// fraction of the total flux. This is the probability that the particle left
-// the domain through the radiative boundary instead of the absorbing
-// boundary.
-Real
-GreensFunction1DRadAbs::fluxRatioRadTot (Real t) const
+// Calculates the probability flux leaving the domain through the absorbing
+// right boundary at time t
+Real GreensFunction1DAbsSinkAbs::flux_abs_right(Real t) const
 {
-    return flux_rad(t)/flux_tot(t);
+    return Real();
+}
+
+// Calculates the probability flux leaving the domain through the sink
+// at time t
+Real GreensFunction1DAbsSinkAbs::flux_sink(Real t) const
+{
+    return Real();
+}
+
+// Calculates the flux leaving the domain through the left absorbing boundary as a
+// fraction of the total flux. This is the probability that the particle left
+// the domain through the this boundary.
+Real GGreensFunction1DAbsSinkAbs::fluxRatioAbsLeftTot(Real t) const
+{
+    return flux_abs_left(t)/flux_tot(t);
+}
+
+// Calculates the flux leaving the domain through the left absorbing boundary as a
+// fraction of the total flux. This is the probability that the particle left
+// the domain through the this boundary.
+Real GreensFunction1DAbsSinkAbs::fluxRatioAbsRightTot(Real t) const
+{
+    return flux_abs_right(t)/flux_tot(t);
+}
+
+// Calculates the flux leaving the domain through the sink as a
+// fraction of the total flux. This is the probability that the particle left
+// the domain through the sink.
+Real GreensFunction1DAbsSinkAbs::fluxRatioSinkTot(Real t) const
+{
+    return flux_sink(t)/flux_tot(t);
 }
 
 // Determine which event has occured, an escape or a reaction. Based on the
-// fluxes through the boundaries at the given time. Beware: if t is not a
+// fluxes through the boundaries and the sink at the given time. Beware: if t is not a
 // first passage time you still get an answer!
-GreensFunction1DRadAbs::EventKind
-GreensFunction1DRadAbs::drawEventType( Real rnd, Real t )
+GreensFunction1DAbsSinkAbs::EventKind
+GreensFunction1DAbsSinkAbs::drawEventType( Real rnd, Real t )
 const
 {
     THROW_UNLESS( std::invalid_argument, rnd < 1.0 && rnd >= 0.0 );
@@ -386,8 +347,7 @@ const
 
 // This function is needed to cast the math. form of the function
 // into the form needed by the GSL root solver.
-double
-GreensFunction1DRadAbs::drawT_f (double t, void *p)
+Real GreensFunction1DRadAbs::drawT_f (Real t, void *p)
 {
     // casts p to type 'struct drawT_params *'
     struct drawT_params *params = (struct drawT_params *)p;
@@ -425,8 +385,7 @@ GreensFunction1DRadAbs::drawT_f (double t, void *p)
 // Draws the first passage time from the survival probability,
 // using an assistance function drawT_f that casts the math. function
 // into the form needed by the GSL root solver.
-Real
-GreensFunction1DRadAbs::drawTime (Real rnd) const
+Real GreensFunction1DAbsSinkAbs::drawTime(Real rnd) const
 {
     THROW_UNLESS( std::invalid_argument, 0.0 <= rnd && rnd < 1.0 );
   
@@ -596,8 +555,7 @@ GreensFunction1DRadAbs::drawTime (Real rnd) const
     return t;
 }
 
-double
-GreensFunction1DRadAbs::drawR_f (double z, void *p)
+Real GreensFunction1DAbsSinkAbs::drawR_f(Real z, void *p)
 {
     // casts p to type 'struct drawR_params *'
     struct drawR_params *params = (struct drawR_params *)p;
@@ -639,8 +597,7 @@ GreensFunction1DRadAbs::drawR_f (double z, void *p)
     return sum - params->rnd;
 }
 
-Real
-GreensFunction1DRadAbs::drawR (Real rnd, Real t) const
+Real GreensFunction1DAbsSinkAbs::drawR(Real rnd, Real t) const
 {
     THROW_UNLESS( std::invalid_argument, 0.0 <= rnd && rnd < 1.0 );
     THROW_UNLESS( std::invalid_argument, t >= 0.0 );
@@ -726,12 +683,13 @@ GreensFunction1DRadAbs::drawR (Real rnd, Real t) const
     return r;
 }
 
-std::string GreensFunction1DRadAbs::dump() const
+std::string GreensFunction1DAbsSinkAbs::dump() const
 {
     std::ostringstream ss;
     ss << "D = " << this->getD() << ", sigma = " << this->getsigma() <<
         ", a = " << this->geta() <<
         ", r0 = " << this->getr0() <<
+        ", rsink = " << this->getrsink() <<
         ", k = " << this->getk() << std::endl;
     return ss.str();
 }
