@@ -1514,7 +1514,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
 
     def process_pair_event(self, pair):
-        assert self.check_obj(pair)
+        assert self.check_domain(pair)
 
         if __debug__:
             log.info('FIRE PAIR: %s' % pair.event_type)
@@ -1681,8 +1681,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
 #        assert single1.shell.shape.radius == pid_particle_pair1[1].radius
 #        assert single2.shell.shape.radius == pid_particle_pair2[1].radius
 #        # even more checking
-#        assert self.check_obj(single1)
-#        assert self.check_obj(single2)
+#        assert self.check_domain(single1)
+#        assert self.check_domain(single2)
 #        # Now finally we are convinced that the singles were actually made correctly
 
 
@@ -1874,7 +1874,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
         self.remove_domain(single)
         # the event associated with the single will be removed by the scheduler.
 
-        #assert self.check_obj(interaction)
+        #assert self.check_domain(interaction)
         self.add_domain_event(interaction)
 
         if __debug__:
@@ -2102,7 +2102,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
             # single1 will be removed by the scheduler.
             self.remove_event(single2)
 
-            assert self.check_obj(pair)
+#            assert self.check_domain(pair)
             self.add_domain_event(pair)
 
             if __debug__:
@@ -2294,29 +2294,30 @@ rejected moves = %d
     # consistency checkers
     #
 
-    def check_obj(self, obj):
-        obj.check()
+    def check_domain(self, domain):
+        domain.check()
 
-        if isinstance(obj, Multi):
+        if isinstance(domain, Multi):
             # Ignore all surfaces, multi shells can overlap with 
             # surfaces.
             ignores = [s.id for s in self.world.structures]
-        elif isinstance(obj, InteractionSingle):
+        elif isinstance(domain, InteractionSingle) or isinstance(domain, MixedPair):
             # Ignore surface of the particle and interaction surface
-            ignores = [obj.structure.id, obj.surface.id]
+            ignores = [domain.structure.id, domain.surface.id]
         else:
-            ignores = [obj.structure.id]
+            ignores = [domain.structure.id]
 
-        for shell_id, shell in obj.shell_list:
+        for shell_id, shell in domain.shell_list:
             closest, distance = self.geometrycontainer.get_closest_obj(shell.shape.position,
                                                                        self.domains,
-                                                                       ignore=[obj.domain_id],
+                                                                       ignore=[domain.domain_id],
                                                                        ignores=ignores)
 
-#            distance_midpoints = self.world.distance(obj.shell.shape.position, closest.shell.shape.position)
+#            distance_midpoints = self.world.distance(domain.shell.shape.position, closest.shell.shape.position)
             distance_midpoints = 0
 
-        #TODO
+            # testing overlap criteria
+            # TODO This doesn't work if closest is a Multi -> redesign this test
             if(type(shell.shape) is Cylinder and
                closest and type(closest.shell.shape) is Sphere):
                 # Note: this case is special.
@@ -2333,9 +2334,9 @@ rejected moves = %d
                 diff = self.world.distance(shell.shape, sphere.position) - \
                        sphere.radius
             else:
-                if(type(obj) is CylindricalSurfaceSingle or
-                   type(obj) is CylindricalSurfacePair or
-                   type(obj) is CylindricalSurfaceInteraction):
+                if(type(domain) is CylindricalSurfaceSingle or
+                   type(domain) is CylindricalSurfacePair or
+                   type(domain) is CylindricalSurfaceInteraction):
                     # On CylindricalSurface, use half_lenghts.
                     # (assume all nearby other cylinders are on the 
                     # same surface)
@@ -2355,17 +2356,17 @@ rejected moves = %d
 
             assert diff >= 0.0, \
                 '%s overlaps with %s. (shell: %s, dist: %s, diff: %s, dist_midpoints: %s.' % \
-                (str(obj), str(closest), FORMAT_DOUBLE % shell_size,
+                (str(domain), str(closest), FORMAT_DOUBLE % shell_size,
                  FORMAT_DOUBLE % distance,
                  FORMAT_DOUBLE % diff,
                  FORMAT_DOUBLE % distance_midpoints)
 
         return True
 
-    def check_obj_for_all(self):
+    def check_domain_for_all(self):
         for id, event in self.scheduler:
             domain = self.domains[event.data]
-            self.check_obj(domain)
+            self.check_domain(domain)
 
     def check_event_stoichiometry(self):
     # checks if the number of particles in the world is equal to the number
@@ -2405,6 +2406,8 @@ rejected moves = %d
                                (shell_population, matrix_population))
 
     def check_domains(self):
+    # checks that the events in the scheduler are consistent with the domains
+
         # make set of event_id that are stored in all the domains
         event_ids = set(domain.event_id
                         for domain in self.domains.itervalues())
@@ -2469,7 +2472,7 @@ rejected moves = %d
         self.check_domains()
         self.check_event_stoichiometry()
         
-        self.check_obj_for_all()
+        self.check_domain_for_all()
 
     #
     # methods for debugging.

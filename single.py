@@ -136,6 +136,7 @@ class Single(ProtectiveDomain):
 #        return self.reactionrules[i]
 
     def check(self):
+    # performs an internal consistency check
         pass
 
     def __str__(self):

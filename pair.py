@@ -168,6 +168,7 @@ class Pair(ProtectiveDomain):
         return self.create_interparticle_vector(gf, r, dt, r0, old_iv)
 
     def check(self):
+    # perform internal consistency check 
         pass
 
     def __str__(self):
