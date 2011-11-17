@@ -1131,7 +1131,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
             single.dt, single.event_type = single.determine_next_event() 
             single.last_time = self.t
             self.add_domain_event(single)
-            return
+            return single
 
 
         single_pos = single.pid_particle_pair[1].position
@@ -1148,10 +1148,14 @@ class EGFRDSimulator(ParticleSimulatorBase):
         reaction_threshold = single.pid_particle_pair[1].radius * \
                              self.SINGLE_SHELL_FACTOR
 
-        intruder_ids, closest_id, closest_distance = \
-            self.geometrycontainer.get_intruders(single_pos, reaction_threshold,
-                                                 ignore=[single.domain_id, ])
-        intruders = [self.domains[domain_id] for domain_id in intruder_ids]
+#        intruder_ids, _, _ = \
+#            self.geometrycontainer.get_intruders(single_pos, reaction_threshold,
+#                                                 ignore=[single.domain_id, ])
+#        intruders = [self.domains[domain_id] for domain_id in intruder_ids]
+
+        neighbors = self.geometrycontainer.get_neighbor_domains(single_pos, self.domains, ignore=[single.domain_id, ])
+        intruders = self.geometrycontainer.filter_distance(neighbors, reaction_threshold)
+        intruders = [domain for domain, distance in intruders]
 
         if __debug__:
             log.debug("intruders: %s" %
@@ -1168,8 +1172,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
 #            burst = self.burst_non_multis(intruders)
             for domain in intruders:
                 if not isinstance(domain, Multi) and \
-                   not self.t == domain.last_time: # and \
-#                  not domain.dt == 0.0:
+                   not self.t == domain.last_time and \
+                   not domain.dt == 0.0:
                     # domain is Single or Pair of some subclass
                     single_list = self.burst_domain(domain)
                     burst.extend(single_list)
