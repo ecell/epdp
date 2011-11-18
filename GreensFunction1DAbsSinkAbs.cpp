@@ -76,7 +76,7 @@ Real GreensFunction1DAbsSinkAbs::root_n(int const& n) const
                             "GreensFunction1DAbsSinkAbs::root_f" ) );
     gsl_root_fsolver_free( solver );
     
-    return root/Lp;
+    return root/L;
 }
 
 /* Denominator of the greensfunction. */

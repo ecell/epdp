@@ -45,15 +45,41 @@ public:
     GreensFunction1DAbsSinkAbs(Real D, Real k, Real r0, Real rsink, Real sigma, Real a)
 	: GreensFunction(D), v(0.0), k(k), r0(r0), sigma(sigma), a(a), rsink(rsink), l_scale(L_TYPICAL), t_scale(T_TYPICAL)
     {
-	// do nothing
+	    /* Set variables which define a domain with the sink at the origin. 
+	       Futhermore r0 is assumed to be ringht from the sink. */
+	    ASSERT( a > sigma );
+	    
+	    L0 = fabs( r0 - rsink ); 
+	    if( r0 >= rsink )
+	    {
+	        Lr = a - rsink; 
+	        Ll = rsink - sigma;	        
+	    }
+	    else
+	    {
+	        Lr = rsink - sigma; 
+	        Ll = a - rsink;
+	    }
     }
 
-    // The constructor is overloaded and can be called with or without drift v
-    // copy constructor including drift variable v
+    /* The constructor is overloaded and can be called with or without drift v
+       copy constructor including drift variable v */
     GreensFunction1DAbsSinkAbs(Real D, Real v, Real k, Real r0, Real rsink, Real sigma, Real a)
-	: GreensFunction(D), v(v), k(k), r0(r0), sigma(sigma), a(a), L(a - sigma), l_scale(L_TYPICAL), t_scale(T_TYPICAL)
+	: GreensFunction(D), v(v), k(k), r0(r0), sigma(sigma), a(a), rsink(a - sigma), l_scale(L_TYPICAL), t_scale(T_TYPICAL)
     {
-	// do nothing
+		ASSERT( a > sigma );
+	    
+	    L0 = fabs( r0 - rsink ); 
+	    if( r0 >= rsink )
+	    {
+	        Lr = a - rsink; 
+	        Ll = rsink - sigma;	        
+	    }
+	    else
+	    {
+	        Lr = rsink - sigma; 
+	        Ll = a - rsink;
+	    }
     }
 
     ~GreensFunction1DAbsSinkAbs()
@@ -63,9 +89,24 @@ public:
 
     Real geta() const
     {
-	    return this->a;
+	    return a;
     }
     
+    Real getLr() const
+    {
+	    return Lr;
+    }
+    
+    Real getLl() const
+    {
+	    return Ll;
+    }
+    
+    Real getL0() const
+    {
+	    return L0;
+    }
+
     Real getrsink() const
     {
 	    return rsink;
@@ -73,7 +114,7 @@ public:
     
     Real getsigma() const
     {
-	    return this->sigma;
+	    return sigma;
     }
 
     Real getr0() const
@@ -91,7 +132,7 @@ public:
 	    return v;
     }
     
-    // This also sets the scale
+    // TODO: ask Tomek for their function.
     void seta(Real a)
     {
 	    THROW_UNLESS( std::invalid_argument, (a-this->sigma) >= 0.0 && this->r0 <= a);
@@ -133,28 +174,27 @@ public:
 	    }
     }
 
-    // Calculates the probability density of finding the particle at 
-    // location z at timepoint t, given that the particle is still in the 
-    // domain.
+    /* Calculates the probability density of finding the particle at 
+       location z at timepoint t, given that the particle is still in the 
+       domain. */
     Real calcpcum (Real r, Real t) const;
 
-    // Determine which event has occured, an escape or a reaction. Based 
-    // on the fluxes through the boundaries at the given time. Beware: if 
-    // t is not a first passage time you still get an answer!
+    /* Determine which event has occured at time t. Either an escape 
+       (left or right boundary) or a reaction with the sink. 
+       Based on the fluxes through the boundaries at the given time. */
     EventKind drawEventType( Real rnd, Real t ) const;
 
-    // Draws the first passage time from the propensity function
+    /* Draws the first passage time from the propensity function */
     Real drawTime (Real rnd) const;
 
-    // Draws the position of the particle at a given time, assuming that 
-    // the particle is still in the domain
+    /* Draws the position of the particle at a given time, assuming that 
+       the particle is still in the domain. */
     Real drawR (Real rnd, Real t) const;
 
 
-// These methods are both public and private, they are used by public methods 
-// but can also be called from the 'outside'. This is mainly because of 
-// debugging purposes.
-
+    // These methods are both public and private, they are used by public methods 
+    // but can also be called from the 'outside'. This is mainly because of 
+    // debugging purposes.
 
     // Calculates the probability of finding the particle inside the 
     // domain at time t -> the survival probability
@@ -164,14 +204,12 @@ public:
     Real flux_tot (Real t) const;
 
     // Calculates the probability flux leaving the domain through the 
-    // radiative boundary at time t
-    Real flux_rad (Real t) const;
-
-    // Calculates the flux leaving the domain through the radiative 
-    // boundary as a fraction of the total flux. This is the probability 
-    // that the particle left the domain through the radiative
-    // boundary instead of the absorbing boundary.
-    Real fluxRatioRadTot (Real t) const;
+    // absorbing boundaries at time t.
+    real_pair flux_abs (Real t) const;
+    
+    // Calculates the probability flux leaving the domain through the 
+    // sink at time t.
+    flux_sink(Real t) const
 
     // Calculates the probability density of finding the particle at 
     // location r at time t.
@@ -192,15 +230,25 @@ public:
     Real root_n(int n) const;
     
 private:
+   
+    Real p_denominator( Real const& root_n );
+    
+    inline Real num_int_r_leftdomain(Real const& rr, Real const& t, Real const& root_n) const;
 
+    inline Real num_int_r_rightdomainA(Real const& rr, Real const& t, Real const& root_n) const;
+
+    inline Real num_int_r_rightdomainB(Real const& rr, Real const& t, Real const& root_n) const;
+
+
+    static Real root_f (Real x, void *p);
+    
     struct root_f_params
     {
 	    Real Lm_L;
 	    Real h;
     };
 
-    static Real root_f (Real x, void *p);
-    // this is the appropriate definition of the function in gsl
+    static Real drawT_f (Real t, void *p);
 
     struct drawT_params
     {
@@ -214,8 +262,8 @@ private:
 	    Real rnd;
     };
 
-    static Real drawT_f (Real t, void *p);
-
+    static Real drawR_f (Real z, void *p);
+    
     struct drawR_params
     {
 	    Real root_n[MAX_TERMS];
@@ -227,8 +275,7 @@ private:
 	    Real rnd;
     };
 
-    static Real drawR_f (Real z, void *p);
-
+    /* Class variables */
     // The diffusion constant and drift velocity
     const Real v;
     // The reaction constant
@@ -244,5 +291,16 @@ private:
     Real l_scale;
     // This is the time scale of the system.
     Real t_scale;
+    
+    /* Greensfunction assumes that the sink is at the origin, and
+       consists of two sub-domains: one between a boundary and the sink including
+       r0, and one between boundary and sink not inlcuding r0. */
+
+    // Length of sub-domain which does not include r0.
+    Real Lr;
+    // Length of sub-domain which does include r0.
+    Real Ll;
+    // Distance between the sink and r0.
+    Real L0;
 };
 #endif // __GREENSFUNCTION1DRADABS_HPP
