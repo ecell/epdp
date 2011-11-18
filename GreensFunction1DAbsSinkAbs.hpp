@@ -186,49 +186,43 @@ public:
         return "GreensFunction1DAbsSinkAbs";
     }
 
-    // Calculates the roots of D/L x * sin(x) + k/2 * ( cos(x Lr - Ll/L) - cos(x) ) 
+    // Calculates the roots of x * sin(x) + k * L / (2 * D) * ( cos(x * (Lr - Ll)/L) - cos(x) ) 
     Real root_n(int n) const;
     
 private:
 
-    Real An (Real a_n) const;
-
-    Real Bn (Real a_n) const;
-
-    Real Cn (Real a_n, Real t) const;
-
-    struct tan_f_params
+    struct root_f_params
     {
-	Real a;
-	Real h;
+	    Real Lm_L;
+	    Real h;
     };
 
-    static double tan_f (double x, void *p);
+    static double root_f (double x, void *p);
     // this is the appropriate definition of the function in gsl
 
     struct drawT_params
     {
-	double exponent[MAX_TERMS];
-	double Xn[MAX_TERMS];
-	double prefactor;
-	int    terms;
-	// the timescale used for convergence
-	Real   tscale;
-	// the random number associated with the time
-	double rnd;
+	    double exponent[MAX_TERMS];
+	    double Xn[MAX_TERMS];
+	    double prefactor;
+	    int    terms;
+	    // the timescale used for convergence
+	    Real   tscale;
+	    // the random number associated with the time
+	    double rnd;
     };
 
     static double drawT_f (double t, void *p);
 
     struct drawR_params
     {
-	double root_n[MAX_TERMS];
-	double S_Cn_root_n[MAX_TERMS];
-	// variables H: for additional terms appearing as multiplicative factors etc.
-	double H[5];
-	int terms;
-	// the random number associated with the time
-	double rnd;
+	    double root_n[MAX_TERMS];
+	    double S_Cn_root_n[MAX_TERMS];
+	    // variables H: for additional terms appearing as multiplicative factors etc.
+	    double H[5];
+	    int terms;
+	    // the random number associated with the time
+	    double rnd;
     };
 
     static double drawR_f (double z, void *p);

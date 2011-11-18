@@ -7,6 +7,7 @@
 #include "freeFunctions.hpp"
 #include "GreensFunction1DAbsAbs.hpp"
 #include "GreensFunction1DRadAbs.hpp"
+#include "GreensFunction1DAbsSinkAbs.hpp"
 #include "GreensFunction2DAbsSym.hpp"
 #include "GreensFunction2DRadAbs.hpp"
 #include "GreensFunction3DSym.hpp"
@@ -61,6 +62,29 @@ BOOST_PYTHON_MODULE( _greens_functions )
     class_<GreensFunction1DRadAbs>("GreensFunction1DRadAbs",
                                    init<Real, Real, Real, Real, Real>() )
         .def( init<Real, Real, Real, Real, Real, Real>())
+        .def( "getName", &GreensFunction1DRadAbs::getName )
+        .def( "getk", &GreensFunction1DRadAbs::getk )
+        .def( "getD", &GreensFunction1DRadAbs::getD )
+        .def( "getv", &GreensFunction1DRadAbs::getv )
+        .def( "getsigma", &GreensFunction1DRadAbs::getsigma )
+        .def( "seta", &GreensFunction1DRadAbs::seta )
+        .def( "geta", &GreensFunction1DRadAbs::geta )
+        .def( "setr0", &GreensFunction1DRadAbs::setr0 )
+        .def( "getr0", &GreensFunction1DRadAbs::getr0 )
+        .def( "drawTime", &GreensFunction1DRadAbs::drawTime )
+        .def( "drawR", &GreensFunction1DRadAbs::drawR )
+        .def( "drawEventType", &GreensFunction1DRadAbs::drawEventType )
+        .def( "flux_tot", &GreensFunction1DRadAbs::flux_tot )
+        .def( "flux_rad", &GreensFunction1DRadAbs::flux_rad )
+        .def( "fluxRatioRadTot", &GreensFunction1DRadAbs::fluxRatioRadTot )
+        .def( "p_survival", &GreensFunction1DRadAbs::p_survival )
+        .def( "calcpcum", &GreensFunction1DRadAbs::calcpcum )
+        .def( "dump", &GreensFunction1DRadAbs::dump )
+        ;
+        
+    class_<GreensFunction1DRadAbs>("GreensFunction1DRadAbs",
+                                   init<Real, Real, Real, Real, Real, Real>() )
+        .def( init<Real, Real, Real, Real, Real, Real, Real>())
         .def( "getName", &GreensFunction1DRadAbs::getName )
         .def( "getk", &GreensFunction1DRadAbs::getk )
         .def( "getD", &GreensFunction1DRadAbs::getD )
