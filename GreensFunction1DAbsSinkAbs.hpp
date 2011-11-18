@@ -40,14 +40,14 @@ private:
     static const int MIN_TERMS = 20;
 
 public:
-    typedef std::pair(Real, Real) real_pair;
+    typedef std::pair<Real, Real> real_pair;
 
     GreensFunction1DAbsSinkAbs(Real D, Real k, Real r0, Real rsink, Real sigma, Real a)
 	: GreensFunction(D), v(0.0), k(k), r0(r0), sigma(sigma), a(a), rsink(rsink), l_scale(L_TYPICAL), t_scale(T_TYPICAL)
     {
 	    /* Set variables which define a domain with the sink at the origin. 
 	       Futhermore r0 is assumed to be ringht from the sink. */
-	    ASSERT( a > sigma );
+	    assert( a > sigma );
 	    
 	    L0 = fabs( r0 - rsink ); 
 	    if( r0 >= rsink )
@@ -67,7 +67,7 @@ public:
     GreensFunction1DAbsSinkAbs(Real D, Real v, Real k, Real r0, Real rsink, Real sigma, Real a)
 	: GreensFunction(D), v(v), k(k), r0(r0), sigma(sigma), a(a), rsink(a - sigma), l_scale(L_TYPICAL), t_scale(T_TYPICAL)
     {
-		ASSERT( a > sigma );
+		assert( a > sigma );
 	    
 	    L0 = fabs( r0 - rsink ); 
 	    if( r0 >= rsink )
@@ -132,7 +132,7 @@ public:
 	    return v;
     }
     
-    // TODO: ask Tomek for their function.
+    /* TODO: ask Tomek for their function.
     void seta(Real a)
     {
 	    THROW_UNLESS( std::invalid_argument, (a-this->sigma) >= 0.0 && this->r0 <= a);
@@ -173,7 +173,8 @@ public:
 	        this->r0 = r0;
 	    }
     }
-
+    */
+    
     /* Calculates the probability density of finding the particle at 
        location z at timepoint t, given that the particle is still in the 
        domain. */
@@ -203,17 +204,17 @@ public:
     // Calculates the total probability flux leaving the domain at time t
     Real flux_tot (Real t) const;
 
-    // Calculates the probability flux leaving the domain through the 
+    // Calculates the probability flux leaving the domain through both 
     // absorbing boundaries at time t.
     real_pair flux_abs (Real t) const;
     
     // Calculates the probability flux leaving the domain through the 
     // sink at time t.
-    flux_sink(Real t) const
+    Real flux_sink(Real t) const;
 
     // Calculates the probability density of finding the particle at 
     // location r at time t.
-    Real prob_r (Real r, Real t) const;
+    Real prob_r(Real r, Real t) const;
     
 // End of public/private mix methods
 
