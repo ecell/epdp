@@ -249,95 +249,6 @@ Real GreensFunction1DAbsSinkAbs::prob_r(Real r, Real t) const
     return - 2.0 * sum;
 }
 
-/* Greensfunction differentiated w.r.t. the position r.
-   Used for calculating fluxes. */
-Real GreensFunction1DAbsSinkAbs::diff_prob_r(Real r, Real t) const
-{
-    THROW_UNLESS( std::invalid_argument, t >= 0.0 );
-    THROW_UNLESS( std::invalid_argument, (r-sigma) >= 0.0 && r <= a && (r0 - sigma) >= 0.0 && r0<=a );
-    
-    const Real D( getD() );
-    const Real k( getk() ); 
-    const Real L( getLr() + getLl() );
-    const Real Lr( getLr() );
-    const Real Ll( getLl() );
-    const Real L0( getL0() );
-    const Real rr( r - getrsink() ) ;
-
-    // If there was no time change or zero diffusivity => no flux
-    if (t == 0 || D == 0)
-    {
-	    return 0.0;
-    }
-    
-    /* If r is on the right side of the sink, use right the solution for the right domain.
-       Otherwise, use the solution for the left domain. */
-    if( rr >= 0 )
-    {
-        /* Check if r is left or right of the starting position r0.
-           If so, interchange r with r0. */
-        if( rr < L0 )
-        {
-            const Real temp( L0 );
-            rr = L0;
-            L0 = temp;
-        }    
-
-        do
-        {   
-	        if ( n >= MAX_TERMS )
-	        {
-	            std::cerr << " Too many terms needed for GF1DSink::diff_prob_r. N: "
-	              << n << std::endl;
-	            break;
-	        }
-	        term_prev = term_n;
-
-	        root_n = root_n(n);
-
-            numerator =  k * sin( root_n * Ll ) * sin( root_n * L0 ) + root_n * D * sin( root_n * (Ll + L0) );
-            numerator *= root_n * cos( root_n * (Lr - rr) );       
-                
-            term_n = exp( - D * gsl_pow_2( root_n ) * t ) * numerator / p_denominator( root_n );
-                
-    	    sum += term_n;
-
-    	    n++;
-       }
-       while ( fabs(term/sum) > EPSILON*PDENS_TYPICAL || 
-	           fabs(prev_term/sum) > EPSILON*PDENS_TYPICAL ||
-	           n <= MIN_TERMS );
-	}
-    else
-    {
-        do
-        {   
-	        if ( n >= MAX_TERMS )
-	        {
-	            std::cerr << " Too many terms needed for GF1DSink::diff_prob_r. N: "
-	              << n << std::endl;
-	            break;
-	        }
-	        term_prev = term_n;
-
-	        root_n = root_n(n);
-
-            numerator =  - D * gsl_pow_2( root_n ) * cos( root_n * (Ll + rr) ) * sin( root_n * (Lr - L0) ); 
-            
-            term_n = exp( - D * gsl_pow_2( root_n ) * t ) * numerator / p_denominator( root_n );
-               
-    	    sum += term_n;
-
-    	    n++;
-       }
-       while ( fabs(term/sum) > EPSILON*PDENS_TYPICAL || 
-	           fabs(prev_term/sum) > EPSILON*PDENS_TYPICAL ||
-	           n <= MIN_TERMS );
-    }
-
-    return 2.0 * sum;
-}
-
 // Calculates the probability density of finding the particle at location z at
 // timepoint t, given that the particle is still in the domain.
 Real GreensFunction1DAbsSinkAbs::calcpcum(Real r, Real t) const
@@ -360,7 +271,7 @@ Real GreensFunction1DAbsSinkAbs::flux_tot(Real t) const
     const Real rr( r - getrsink() ) ;
 
     double sum = 0, term = 0, prev_term = 0;
-    int n=1;
+    int n = 1;
     do
     {
         if ( n >= MAX_TERMS )
@@ -386,18 +297,48 @@ Real GreensFunction1DAbsSinkAbs::flux_tot(Real t) const
     return  2.0 * D * sum;
 }
 
-// Calculates the probability flux leaving the domain through the absorbing
-// left boundary at time t
-Real GreensFunction1DAbsSinkAbs::flux_abs_left(Real t) const
+/* Calculates the probability flux leaving the domain through the absorbing
+   boundaries at the left and right side at time t. */
+real_pair GreensFunction1DAbsSinkAbs::flux_abs(Real t) const
 {
-    return - getD() * diff_prob_r(getsigma(), t);
-}
+    const Real D( getD() );
+    const Real k( getk() );    
+    const Real Lr_L0( getLr() - getL0() );
+    const Real LlpL0( getLr() + getL0() );
+    const Real Ll( getLl() );
+    const Real L0( getL0() );
+    Real root_n;
+    
+    Real sum = 0, term = 0, prev_term = 0, prefac = 0;
+    int n = 1;
+    do
+    {
+        if ( n >= MAX_TERMS )
+	    {
+	        std::cerr << " Too many terms needed for GF1DSink::flux_abs. N: "
+	              << n << std::endl;
+	        break;
+	    }
+	    num_prev = num_left;
+    
+        root_n = root_n(n);
+        root_n2 = gsl_pow_2( root_n );        
+        
+        num_left = root_n2 * sin( root_n * ( Lr_L0 ) );
 
-// Calculates the probability flux leaving the domain through the absorbing
-// right boundary at time t
-Real GreensFunction1DAbsSinkAbs::flux_abs_right(Real t) const
-{
-    return - getD() * diff_prob_r(geta(), t);
+        num_right = k * sin( root_n * Ll ) * sin ( root_n * L0 ) + D * root_n * sin( root_n * LlpL0 );
+        
+        prefac = exp( - D * root_n2 * t ) / p_denominator( root_n );
+        
+	    sum_left  += prefac * num_left;
+	    sum_right += prefac * num_right; 
+	    n++;
+    }
+    while ( fabs(term/sum_left) > EPSILON  ||
+	        fabs(term_prev/sum_left) > EPSILON ||
+	        n <= MIN_TERMS );
+
+    return real_pair( 2 * D * D * sum_left,  - D * 2 * root_n * sum_right);
 }
 
 // Calculates the probability flux leaving the domain through the sink
@@ -407,33 +348,9 @@ Real GreensFunction1DAbsSinkAbs::flux_sink(Real t) const
     return getk() * prob_r(getrsink(), t);
 }
 
-// Calculates the flux leaving the domain through the left absorbing boundary as a
-// fraction of the total flux. This is the probability that the particle left
-// the domain through the this boundary.
-Real GGreensFunction1DAbsSinkAbs::fluxRatioAbsLeftTot(Real t) const
-{
-    return flux_abs_left(t)/flux_tot(t);
-}
-
-// Calculates the flux leaving the domain through the left absorbing boundary as a
-// fraction of the total flux. This is the probability that the particle left
-// the domain through the this boundary.
-Real GreensFunction1DAbsSinkAbs::fluxRatioAbsRightTot(Real t) const
-{
-    return flux_abs_right(t)/flux_tot(t);
-}
-
-// Calculates the flux leaving the domain through the sink as a
-// fraction of the total flux. This is the probability that the particle left
-// the domain through the sink.
-Real GreensFunction1DAbsSinkAbs::fluxRatioSinkTot(Real t) const
-{
-    return flux_sink(t)/flux_tot(t);
-}
-
-// Determine which event has occured, an escape or a reaction. Based on the
-// fluxes through the boundaries and the sink at the given time. Beware: if t is not a
-// first passage time you still get an answer!
+/* Determine which event has occured, an escape or a reaction. Based on the
+   fluxes through the boundaries and the sink at the given time. Beware: if t is not a
+   first passage time you still get an answer! */
 GreensFunction1DAbsSinkAbs::EventKind
 GreensFunction1DAbsSinkAbs::drawEventType( Real rnd, Real t )
 const
@@ -460,21 +377,24 @@ const
        (3) Leave through sink - IV_REACTION
     */
     rnd *= flux_tot( t );
-    Real p_accumulate( flux_sink( t ) );
+    //Get fluxes through left and right boundaries.
+    const real_pair flux_abs_left_right( flux_abs( t ) );
+    
+    Real p_accumulate( flux_abs_left_right.first );
     if (rnd < p_accumulate)
     {
-	    return IV_REACTION;
+	    return IV_ESCAPE_L;
     }
     else
     {
-        p_accumulate += flux_abs_right( t );
+        p_accumulate += flux_abs_left_right.second;
         if( rnd < p_accumulate )
         {
 	        return IV_ESCAPE_R;
 	    }
 	    else
 	    {
-	        return IV_ESCAPE_L;
+	        return IV_REACTION;
 	    }
     }
 }
@@ -558,19 +478,15 @@ Real GreensFunction1DAbsSinkAbs::drawTime(Real rnd) const
     // coefficients should be calculated on demand->TODO or not TODO?
     for (int n=0; n<MAX_TERMS; n++)
     {
-	    root_n = this->root_n(n+1);	// get the n-th root of tan(root*a)=root/-h (Note: root numbering starts at n=1)
-	
-	    root_n2	    = root_n * root_n;
-	    root_n_r0_s = root_n * (r0-sigma);
-	    root_n_L    = root_n * L;
-	    h_root_n    = h / root_n;
-	
-	    if(v==0)	Xn = (h*sin(root_n_r0_s) + root_n*cos(root_n_r0_s)) / (L*(root_n2+h*h)+h)
-			          * ( h_root_n + sin(root_n_L) - h_root_n*cos(root_n_L) ); 
-	    else		Xn = (h*sin(root_n_r0_s) + root_n*cos(root_n_r0_s)) / (L*(root_n2+h*h)+h)
-			          * (exp_sigmav2D*h*k/D - exp_av2D*(root_n2+h*h)*cos(root_n_L)) / (h_root_n * (root_n2 + v2D*v2D)); 
+	    root_n = root_n( n + 1 );	
+		
+        const Real term1( sin( root_n * L ) - sin( root_n * (Lr - L0) ) - sin( root_n * (Ll + L0) ) );
+        const Real term2( sin( root_n * Lr ) - sin( root_n * L0 ) - sin( root_n * (Lr - L0) ) );
+        
+        const Real numerator( D * term1 + k * sin( root_n * Ll ) * term2 / root_n );
+	    Xn = numerator / p_denominator( root_n );
 		      
-	    exponent = -D*root_n2 + vexpo_t;
+	    exponent = - D * gsl_pow_2( root_n );
 
 	    // store the coefficients in the structure
 	    parameters.Xn[n] = Xn;
@@ -579,7 +495,7 @@ Real GreensFunction1DAbsSinkAbs::drawTime(Real rnd) const
     }
     
     // the prefactor of the sum is also different in case of drift<>0 :
-    parameters.prefactor = 2;
+    parameters.prefactor = 2.0;
     
     // store the random number for the probability
     parameters.rnd = rnd;
@@ -664,46 +580,89 @@ Real GreensFunction1DAbsSinkAbs::drawTime(Real rnd) const
     return t;
 }
 
-Real GreensFunction1DAbsSinkAbs::drawR_f(Real z, void *p)
+Real GreensFunction1DAbsSinkAbs::drawR_f(Real rr, void *p)
 {
     // casts p to type 'struct drawR_params *'
     struct drawR_params *params = (struct drawR_params *)p;
-    Real v2D 		= params->H[0];	// = v2D = v/(2D)
-    Real costerm 	= params->H[1];	// = k/D
-    Real sinterm 	= params->H[2];	// = h*v2D
-    Real sigma 		= params->H[3];	// = sigma
-    int  terms = params->terms;
-
-    Real expsigma(exp(sigma*v2D));
-    Real zs(z-sigma);
-    
+    int  max_terms = params->terms;
+.    
     Real sum = 0, term = 0, prev_term = 0;
-    Real root_n, S_Cn_root_n;
+    Real root_n, exp_and_denominator;
+    
+    /* Determine in which part of the domain rr lies, and
+       thus which domain function to use. */
+    Real (*numerator_int_f)(Real const&, Real const&, Real const&) = NULL;
+    if( rr <= 0 )
+        numerator_int_f = &GreensFunction1DAbsSinkAbs::num_int_r_leftdomain;
+    else if( rr < L0 )
+            numerator_int_f = &GreensFunction1DAbsSinkAbs::num_int_r_rightdomainA;
+        else
+            numerator_int_f = &GreensFunction1DAbsSinkAbs::num_int_r_rightdomainB;
     
     int n = 0;
     do
     {
-	if ( n >= terms )
-	{
-	    std::cerr << "GF1DRad: Too many terms needed for DrawR. N: "
-	              << n << std::endl;
-	    break;
-	}
-	prev_term = term;
+	    if ( n >= max_terms )
+	    {
+	        std::cerr << "GF1DSink: Too many terms needed for DrawR. N: "
+	                  << n << std::endl;
+	        break;
+	    }
+	    prev_term = term;
 
-	S_Cn_root_n = params->S_Cn_root_n[n];
-	root_n  = params->root_n[n];
-	term = S_Cn_root_n * ( expsigma*costerm - exp(v2D*z)*( costerm*cos(root_n*zs) - (root_n+sinterm/root_n)*sin(root_n*zs) ));
+	    exp_and_denominator = params->exp_and_denominator[n];	    
+	    term = exp_and_denominator * (*numerator_int_f)( rr, t, root_n[n] );
 
-	sum += term;
-	n++;
+	    sum += term;
+	    n++;
     }
     while (fabs(term/sum) > EPSILON*1.0 ||
-	fabs(prev_term/sum) > EPSILON*1.0 ||
-	n <= MIN_TERMS );
+	       fabs(prev_term/sum) > EPSILON*1.0 ||
+           n <= MIN_TERMS );
 
     // Find the intersection with the random number
-    return sum - params->rnd;
+    return params.prefactor * sum - params->rnd;
+}
+
+//Integrated Greens function for rr part of [-Ll, 0]
+inline Real GreensFunction1DAbsSinkAbs::num_int_r_leftdomain(Real const& rr, Real const& t, Real const& root_n) const
+{
+    const Real Ll_L0( getLl() - getL0() );
+    const Real Ll_rr( getLl() + rr );
+    
+    return getD() * sin( root_n * Ll_L0 ) * ( cos( root_n * Ll_rr ) - 1 )
+}
+
+//Integrated Greens function for rr part of (0, L0]
+inline Real GreensFunction1DAbsSinkAbs::num_int_r_rightdomainA(Real const& rr, Real const& t, Real const& root_n) const
+{
+    const Real Lr_L0( getLr() - getL0() );
+    const Real Ll_rr( getLl() + rr );
+    const Real root_n_rr( root_n * rr );
+    
+    const Real temp( getD() * ( cos( root_n * Ll_rr ) - 1 ) + 
+            getk() / root_n * ( cos( root_n_rr ) - 1 ) * sin( root_n * Ll ) );
+    
+    return sin( root_n * Lr_L0 ) * temp;
+}
+
+//Integrated Greens function for rr part of (L0, Lr]
+inline Real GreensFunction1DAbsSinkAbs::num_int_r_rightdomainB(Real const& rr, Real const& t, Real const& root_n) const
+{
+    const Real L( getLr() + getLl() );
+    const Real Lr( getLr() );
+    const Real Ll( getLl() );
+    const Real L0( getL0() );
+    const Real Lr_L0( Lr - L0 );
+    const Real Lr_rr( Lr - rr );
+                   
+    const Real term1( sin( root_n * L ) - sin( root_n * Lr_L0 ) - 
+            sin( root_n * (Ll + L0) ) * cos( root_n * Lr_rr ) );
+            
+    const Real term2( sin( root_n * Lr ) - sin( root_n * Lr_L0 ) -
+            sin( root_n * L0 ) * cos( root_n * Lr_rr ));
+        
+    return getD() * term1 + getk() * sin( root_n * Ll ) * term2 / root_n;
 }
 
 Real GreensFunction1DAbsSinkAbs::drawR(Real rnd, Real t) const
@@ -711,65 +670,44 @@ Real GreensFunction1DAbsSinkAbs::drawR(Real rnd, Real t) const
     THROW_UNLESS( std::invalid_argument, 0.0 <= rnd && rnd < 1.0 );
     THROW_UNLESS( std::invalid_argument, t >= 0.0 );
     
-    const Real sigma(this->getsigma());
-    const Real a(this->geta());
-    const Real L(this->geta()-this->getsigma());
-    const Real r0(this->getr0());
-    const Real D(this->getD());
-    const Real v(this->getv());
-    const Real k(this->getk());
-    const Real h((this->getk()+this->getv()/2.0)/this->getD());
-    
+    const Real D( getD() );
+    const Real L( getLr() + getLl() );
+    const Real Lr( getLr() );
+    const Real Ll( getLl() );
+    const Real L0( getL0() );
 
-    if (t==0.0 || (D==0.0 && v==0.0) )
+    if (t == 0.0 || (D == 0.0 && v == 0.0) )
     {
-	// the trivial case
-	//return r0*this->l_scale;	// renormalized version, discontinued
-	return r0;
+	    // the trivial case
+	    return r0;
     }
-    if ( a<0.0 )
+    if ( L < 0.0 )
     {
-	// if the domain had zero size
-	return 0.0;
+	    // if the domain had zero size
+	    return 0.0;
     }
 
-    // the structure to store the numbers to calculate the numbers for 1-S
+    // the structure to store the numbers to calculate r.
     struct drawR_params parameters;
-    double root_n = 0;
-    double S_Cn_root_n;
-    double root_n2, root_n_r0_s;
+    const Real S( p_survival(t) );
+    Real root_n = 0;
 
-    const Real vexpo(-v*v*t/4.0/D - v*r0/2.0/D); // exponent of the drift-prefactor, same as in survival prob.
-    const Real v2D(v/2.0/D);
-    const Real v2Dv2D(v2D*v2D);
-    const Real S = 2.0*exp(vexpo)/p_survival(t); 
-
-    assert(p_survival(t) >= 0.0);
+    assert(S >= 0.0);
 
     // produce the coefficients and the terms in the exponent and put them
-    // in the params structure
-    for (int n=0; n<MAX_TERMS; n++)
+    // in the params structure //TODO: MAX_TERM -> CONVERGENCE_TERMS
+    for (int n = 0; n < MAX_TERMS; n++)
     {
-	    root_n = this->root_n(n+1);  // get the n-th root of tan(alfa*a)=alfa/-k
+	    root_n = root_n(n+1);
        	root_n2 = root_n * root_n;
-       	root_n_r0_s = root_n * (r0-sigma);
-       	S_Cn_root_n =	S * exp(-D*root_n2*t)
-	         * (root_n*cos(root_n_r0_s) + h*sin(root_n_r0_s)) / (L*(root_n2 + h*h) + h)
-	         * root_n / (root_n2 + v2Dv2D);
-
-      	// store the coefficients in the structure
+      	// store the roots in the structure
 	    parameters.root_n[n] = root_n;
-        // also store the values for the exponent
-        parameters.S_Cn_root_n[n] = S_Cn_root_n;
+        // also store the exponent and denominator.
+        parameters.exp_and_denominator[n] = exp( - D * root_n2 * t ) / p_denominator( root_n );
+        // and the normalization.
+        parameters.prefactor = 2.0 / S;
     }
     
-    // also store constant prefactors that appear in the calculation of the
-    // r-dependent terms
-    parameters.H[0] = v2D;		// appears together with z in one of the prefactors
-    parameters.H[1] = k/D;		// further constant terms of the cosine prefactor
-    parameters.H[2] = h*v2D;		// further constant terms of the sine prefactor
-    parameters.H[3] = sigma;
-
     // define gsl function for rootfinder
     gsl_function F;
     F.function = &GreensFunction1DRadAbs::drawR_f;
@@ -785,10 +723,11 @@ Real GreensFunction1DAbsSinkAbs::drawR(Real rnd, Real t) const
     // make a new solver instance
     // TODO: incl typecast?
     gsl_root_fsolver* solver( gsl_root_fsolver_alloc( solverType ) );
-    Real r( findRoot( F, solver, sigma, a, EPSILON*L, EPSILON,
+    Real r( findRoot( F, solver, -Ll, Lr, EPSILON*L, EPSILON,
                             "GreensFunction1DRadAbs::drawR" ) );
 
-    // return the drawn position
+    // Convert the position to 'world' coordinates and return it.
+    
     return r;
 }
 

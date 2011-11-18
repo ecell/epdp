@@ -40,6 +40,8 @@ private:
     static const int MIN_TERMS = 20;
 
 public:
+    typedef std::pair(Real, Real) real_pair;
+
     GreensFunction1DAbsSinkAbs(Real D, Real k, Real r0, Real rsink, Real sigma, Real a)
 	: GreensFunction(D), v(0.0), k(k), r0(r0), sigma(sigma), a(a), rsink(rsink), l_scale(L_TYPICAL), t_scale(T_TYPICAL)
     {
@@ -197,35 +199,35 @@ private:
 	    Real h;
     };
 
-    static double root_f (double x, void *p);
+    static Real root_f (Real x, void *p);
     // this is the appropriate definition of the function in gsl
 
     struct drawT_params
     {
-	    double exponent[MAX_TERMS];
-	    double Xn[MAX_TERMS];
-	    double prefactor;
+	    Real exponent[MAX_TERMS];
+	    Real Xn[MAX_TERMS];
+	    Real prefactor;
 	    int    terms;
 	    // the timescale used for convergence
 	    Real   tscale;
 	    // the random number associated with the time
-	    double rnd;
+	    Real rnd;
     };
 
-    static double drawT_f (double t, void *p);
+    static Real drawT_f (Real t, void *p);
 
     struct drawR_params
     {
-	    double root_n[MAX_TERMS];
-	    double S_Cn_root_n[MAX_TERMS];
+	    Real root_n[MAX_TERMS];
+	    Real exp_and_denominator[MAX_TERMS];
 	    // variables H: for additional terms appearing as multiplicative factors etc.
-	    double H[5];
+	    Real prefactor;
 	    int terms;
 	    // the random number associated with the time
-	    double rnd;
+	    Real rnd;
     };
 
-    static double drawR_f (double z, void *p);
+    static Real drawR_f (Real z, void *p);
 
     // The diffusion constant and drift velocity
     const Real v;
