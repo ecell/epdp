@@ -291,8 +291,7 @@ class SimplePair(Pair):
             shell_size = closest_distance 
 
 
-        return min(geometrycontainer.get_max_shell_size(),
-                   shell_size)
+        return min(geometrycontainer.get_max_shell_size(), shell_size)/SAFETY
 
 
     def __init__(self, domain_id, shell_center, single1, single2, shell_id,
