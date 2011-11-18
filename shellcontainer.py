@@ -9,6 +9,8 @@ from _gfrd import (
     CylindricalShellContainer
     )
 from utils import *
+from single import NonInteractionSingle
+from multi import Multi
 from gfrdbase import (
     get_closest_surface
     )
@@ -159,7 +161,7 @@ class ShellContainer(object):
 
         partners = []
         for domain, distance in neighbor_domains:
-            if isinstance ((domain, NonInteractionSingle) and domain.isreset()) or \
+            if (isinstance (domain, NonInteractionSingle) and domain.is_reset()) or \
                isinstance (domain, Multi):
                 partners.append((domain, distance))
 
