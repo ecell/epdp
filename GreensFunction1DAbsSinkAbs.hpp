@@ -1,5 +1,5 @@
-#if !defined( __GREENSFUNCTION1DRADABS_HPP )
-#define __GREENSFUNCTION1DRADABS_HPP
+#if !defined( __GREENSFUNCTION1DABSSINKABS_HPP )
+#define __GREENSFUNCTION1DABSSINKABS_HPP
 
 #include <sstream>
 #include <iostream>
@@ -40,8 +40,6 @@ private:
     static const int MIN_TERMS = 20;
 
 public:
-    typedef std::pair<Real, Real> real_pair;
-
     GreensFunction1DAbsSinkAbs(Real D, Real k, Real r0, Real rsink, Real sigma, Real a)
 	: GreensFunction(D), v(0.0), k(k), r0(r0), sigma(sigma), a(a), rsink(rsink), l_scale(L_TYPICAL), t_scale(T_TYPICAL)
     {
@@ -131,54 +129,12 @@ public:
     {
 	    return v;
     }
-    
-    /* TODO: ask Tomek for their function.
-    void seta(Real a)
-    {
-	    THROW_UNLESS( std::invalid_argument, (a-this->sigma) >= 0.0 && this->r0 <= a);
 
-	    // Use a typical domain size to determine if we are here 
-	    // defining a domain of size 0.
-	    if ( (a-this->sigma) < EPSILON*this->l_scale )
-	    {
-	        // just some random value to show that the domain is zero
-	        this->a = -1.0;
-  	        this->L = -1.0;
-	    }
-	    else
-	    {   
-	        // set the l_scale to the given one
-	        this->l_scale = a - sigma;
-	        this->L = a - sigma;
-	        // set the typical time scale (MSD = sqrt(2*d*D*t) )
-	        this->t_scale = ( l_scale * l_scale ) / this->getD();
-	        this->a = a;
-	    }
-    }
-
-    void setr0(Real r0)
-    {
-	    if ( this->a - this->sigma < 0.0 )
-	    {
-	     // if the domain had zero size
-	        THROW_UNLESS( std::invalid_argument,
-	                  0.0 <= (r0-sigma) && (r0-sigma) <= EPSILON * l_scale );
-	        this->r0 = 0.0;
-	    }
-	    else
-	    {
-	        // The normal case
-	        THROW_UNLESS( std::invalid_argument,
-	                  0.0 <= (r0-sigma) && r0 <= this->a);
-	        this->r0 = r0;
-	    }
-    }
-    */
     
     /* Calculates the probability density of finding the particle at 
        location z at timepoint t, given that the particle is still in the 
        domain. */
-    Real calcpcum (Real r, Real t) const;
+    Real calcpcum(Real r, Real t) const;
 
     /* Determine which event has occured at time t. Either an escape 
        (left or right boundary) or a reaction with the sink. 
@@ -186,31 +142,36 @@ public:
     EventKind drawEventType( Real rnd, Real t ) const;
 
     /* Draws the first passage time from the propensity function */
-    Real drawTime (Real rnd) const;
+    Real drawTime(Real rnd) const;
 
     /* Draws the position of the particle at a given time, assuming that 
        the particle is still in the domain. */
-    Real drawR (Real rnd, Real t) const;
+    Real drawR(Real rnd, Real t) const;
+
+    /* Calculates the probability flux leaving the domain through the right 
+       absorbing boundary at time t. */
+    Real flux_leavea(Real t) const;
+
+    /* Calculates the probability flux leaving the domain through the left 
+       absorbing boundary at time t. */
+    Real flux_leaves(Real t) const;
 
 
-    // These methods are both public and private, they are used by public methods 
-    // but can also be called from the 'outside'. This is mainly because of 
-    // debugging purposes.
+    /* TODO: Private methods which are public for now - debugging */
 
     // Calculates the probability of finding the particle inside the 
     // domain at time t -> the survival probability
-    Real p_survival (Real t) const;
+    Real p_survival(Real t) const;
 
     // Calculates the total probability flux leaving the domain at time t
-    Real flux_tot (Real t) const;
+    Real flux_tot(Real t) const;
 
-    // Calculates the probability flux leaving the domain through both 
-    // absorbing boundaries at time t.
-    real_pair flux_abs (Real t) const;
-    
-    // Calculates the probability flux leaving the domain through the 
-    // sink at time t.
+    /* Calculates the probability flux leaving the domain through the 
+       sink, sub-domain containing r0 via absorbing boundary and sub-domain
+       not containing r0 via sink, respectivily. */
     Real flux_sink(Real t) const;
+    Real flux_abs_Lr(Real t) const;
+    Real flux_abs_Ll(Real t) const;
 
     // Calculates the probability density of finding the particle at 
     // location r at time t.
@@ -228,17 +189,19 @@ public:
     }
 
     // Calculates the roots of x * sin(x) + k * L / (2 * D) * ( cos(x * (Lr - Ll)/L) - cos(x) ) 
-    Real root_n(int n) const;
+    Real root_n(int const& n) const;
     
 private:
    
-    Real p_denominator( Real const& root_n );
+    inline Real p_denominator( Real const& root_n ) const;
     
-    inline Real num_int_r_leftdomain(Real const& rr, Real const& t, Real const& root_n) const;
+    inline Real Greens_fn(Real const& t, Real const& root_n, Real const& root_n2) const;
 
-    inline Real num_int_r_rightdomainA(Real const& rr, Real const& t, Real const& root_n) const;
+    Real num_int_r_leftdomain(Real const& rr, Real const& t, Real const& root_n) const;
 
-    inline Real num_int_r_rightdomainB(Real const& rr, Real const& t, Real const& root_n) const;
+    Real num_int_r_rightdomainA(Real const& rr, Real const& t, Real const& root_n) const;
+
+    Real num_int_r_rightdomainB(Real const& rr, Real const& t, Real const& root_n) const;
 
 
     static Real root_f (Real x, void *p);
@@ -256,7 +219,7 @@ private:
 	    Real exponent[MAX_TERMS];
 	    Real Xn[MAX_TERMS];
 	    Real prefactor;
-	    int    terms;
+	    int  terms;
 	    // the timescale used for convergence
 	    Real   tscale;
 	    // the random number associated with the time
