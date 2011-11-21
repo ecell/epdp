@@ -2418,6 +2418,43 @@ rejected moves = %d
 
         return True
 
+    def check_shell_overlap(self, shell1, shell2):
+    # Returns True if the shells DO NOT overlap
+    # Returns False if the shells DO overlap
+
+        # overlap criterium when both shells are spherical
+        if (type(shell1.shape) is Sphere) and (type(shell2.shape) is Sphere):
+            distance = self.world.distance(shell1.shape.position, shell2.shape.position)
+            return (shell1.shape.radius + shell2.shape.radius) < distance
+
+        # overlap criterium when both shells are cylindrical 
+        elif (type(shell1.shape) is Cylinder) and (type(shell2.shape) is Cylinder):
+            # assuming that the cylinders are always parallel
+            assert (shell1.shape.unit_z == shell2.shape.unit_z) or \
+                   (shell1.shape.unit_z == -shell2.shape.unit_z)
+            shell1_pos = shell1.shape.position
+            shell2_pos = shell2.shape.position
+            shell2_post = self.world.cyclic_transpose(shell1_pos, shell2_pos)
+            inter_pos = shell1_pos - shell2_pos
+            inter_pos_z = shell1.shape.unit_z * numpy.dot(inter_pos, shell1.shape.unit_z)
+            inter_pos_r = inter_pos - inter_pos_z
+            return not (((shell1.shape.half_length + shell2.shape.half_length) > length(inter_pos_z)) and \
+                       ((shell1.shape.radius + shell2.shape.radius) > length(inter_pos_r)))
+
+        # overlap criterium when one shell is spherical and the other is cylindrical
+        elif (type(shell1.shape) is Sphere) and (type(shell2.shape) is Cylinder):
+            distance = self.world.distance(shell2.shape, shell1.shape.position)
+            return (shell1.shape.radius) < distance
+
+        # the other way around
+        elif (type(shell1.shape) is Cylinder) and (type(shell2.shape) is Sphere):
+            distance = self.world.distance(shell1.shape, shell2.shape.position)
+            return (shell2.shape.radius) < distance
+
+        # something was wrong (wrong type of shell provided)
+        else:
+            raise RuntimeError('check_shell_overlap: wrong shell type(s) provided.')
+
 
     def check_domain_for_all(self):
         for id, event in self.scheduler:
