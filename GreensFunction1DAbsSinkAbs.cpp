@@ -55,7 +55,9 @@ Real GreensFunction1DAbsSinkAbs::root_n(int const& n) const
     else
     {
         //TODO: more complicated scheme needed.
-        assert( h > 1 );
+        THROW_UNLESS( std::invalid_argument, h < 1 );
+        lower = (n-1)*M_PI + 1E-10;
+	    upper =  n   *M_PI - 1E-1;      
     }
 
     gsl_function F;
@@ -115,8 +117,8 @@ Real GreensFunction1DAbsSinkAbs::p_survival(Real t) const
 	    return 1.0;
     }
 
-    Real sum = 0, numerator = 0, num_prev = 0;
-    Real term1, term2, root_n;
+    Real sum = 0, numerator = 0, prev_term = 0;
+    Real term1, term2, term_n, root_n;
     int n = 1;
     do
     {
@@ -126,14 +128,15 @@ Real GreensFunction1DAbsSinkAbs::p_survival(Real t) const
 	              << n << std::endl;
 	        break;
 	    }
-	    num_prev = numerator;
+	    prev_term = numerator;
     
-        root_n = root_n(n);
+        root_n = this->root_n(n);
         term1 = sin( root_n * L ) - sin( root_n * (Lr - L0) ) - sin( root_n * (Ll + L0) );
         term2 = sin( root_n * Lr ) - sin( root_n * L0 ) - sin( root_n * (Lr - L0) );
         
         numerator = ( D * term1 + k * sin( root_n * Ll ) * term2 / root_n );
-	    sum += Greens_fn(t, root_n, gsl_pow_2( root_n ) ) * numerator;
+        term_n = Greens_fn(t, root_n, gsl_pow_2( root_n ) ) * numerator;
+	    sum += term_n;
 	    n++;
     }
     while ( fabs(term_n/sum) > EPSILON  ||
@@ -214,7 +217,7 @@ Real GreensFunction1DAbsSinkAbs::prob_r(Real r, Real t) const
 	        }
 	        prev_term = term_n;
 
-	        root_n = root_n(n);
+	        root_n = this->root_n(n);
 
             numerator =  D * root_n * sin( root_n * LlpL0 ) + k * sin( root_n * Ll ) * sin( root_n * L0);
             numerator *= sin( root_n * Lrmrr );       
@@ -242,7 +245,7 @@ Real GreensFunction1DAbsSinkAbs::prob_r(Real r, Real t) const
 	        }
 	        prev_term = term_n;
 
-	        root_n = root_n(n);
+	        root_n = this->root_n(n);
 
             numerator =  D * root_n * sin( root_n * (Llprr) ) * sin( root_n * (LrmL0) ); 
             term_n = Greens_fn(t, root_n, gsl_pow_2( root_n ) ) * numerator;
@@ -312,7 +315,7 @@ Real GreensFunction1DAbsSinkAbs::flux_tot(Real t) const
         }
         prev_term = term_n;
     
-        root_n = root_n(n);
+        root_n = this->root_n(n);
         root_n2 = gsl_pow_2( root_n );
 
         term1 = sin( root_n * L ) - sin( root_n * LrmL0 ) - sin( root_n * LlpL0 );
@@ -354,7 +357,7 @@ Real GreensFunction1DAbsSinkAbs::flux_abs_Lr(Real t) const
         }
         prev_term = term_n;
     
-        root_n = root_n(n);
+        root_n = this->root_n(n);
         
         numerator = k * sin( root_n * Ll ) * sin ( root_n * L0 ) + D * root_n * sin( root_n * LlpL0 );
         
@@ -390,7 +393,7 @@ Real GreensFunction1DAbsSinkAbs::flux_abs_Ll(Real t) const
         }
         prev_term = numerator;
     
-        root_n = root_n(n);
+        root_n = this->root_n(n);
         root_n2 = gsl_pow_2( root_n );        
         
         numerator = root_n2 * sin( root_n * ( LrmL0 ) );
@@ -400,7 +403,7 @@ Real GreensFunction1DAbsSinkAbs::flux_abs_Ll(Real t) const
 
         n++;
     }
-    while ( fabs(term/sum) > EPSILON  ||
+    while ( fabs(term_n/sum) > EPSILON  ||
             fabs(prev_term/sum) > EPSILON ||
             n <= MIN_TERMS );
     
@@ -457,7 +460,7 @@ Real GreensFunction1DAbsSinkAbs::drawT_f (Real t, void *p)
 {
     // casts p to type 'struct drawT_params *'
     struct drawT_params *params = (struct drawT_params *)p;
-    Real Xn, exponent;
+    Real Xn = 0, exponent = 0;
     Real prefactor = params->prefactor;
     int terms = params->terms;
 
@@ -525,7 +528,7 @@ Real GreensFunction1DAbsSinkAbs::drawTime(Real rnd) const
     // coefficients should be calculated on demand->TODO or not TODO?
     for (int n=0; n<MAX_TERMS; n++)
     {
-        root_n = root_n( n + 1 );	
+        root_n = this->root_n( n + 1 );	
 	    
         const Real term1( sin( root_n * L ) - sin( root_n * (Lr - L0) ) - sin( root_n * (Ll + L0) ) );
         const Real term2( sin( root_n * Lr ) - sin( root_n * L0 ) - sin( root_n * (Lr - L0) ) );
@@ -634,14 +637,15 @@ Real GreensFunction1DAbsSinkAbs::drawR_f(Real rr, void *p)
     int  max_terms = params->terms;
     
     Real sum = 0, term_n = 0, prev_term = 0;
-    Real root_n, exp_and_denominator;
     
     /* Determine in which part of the domain rr lies, and
        thus which domain function to use. */
-    Real (*numerator_int_f)(Real const&, Real const&, Real const&) const = NULL;
+    static Real (*numerator_int_f)
+        (Real const&, Real const&, drawR_params const&) = NULL;
+
     if( rr <= 0 )
         numerator_int_f = &GreensFunction1DAbsSinkAbs::num_int_r_leftdomain;
-    else if( rr < L0 )
+    else if( rr < params->L0 )
             numerator_int_f = &GreensFunction1DAbsSinkAbs::num_int_r_rightdomainA;
         else
             numerator_int_f = &GreensFunction1DAbsSinkAbs::num_int_r_rightdomainB;
@@ -655,53 +659,59 @@ Real GreensFunction1DAbsSinkAbs::drawR_f(Real rr, void *p)
 	                  << n << std::endl;
 	        break;
 	    }
-	    prev_term = term;
+	    prev_term = term_n;
 
-	    exp_and_denominator = params->exp_and_denominator[n];	    
-	    term_n = exp_and_denominator * (*numerator_int_f)( rr, t, root_n[n] );
+	    term_n = params->exp_and_denominator[n] * (*numerator_int_f)
+            ( rr, params->root_n[n], *params );
 
 	    sum += term_n;
 	    n++;
     }
-    while (fabs(term/sum) > EPSILON*1.0 ||
+    while (fabs(term_n/sum) > EPSILON*1.0 ||
 	       fabs(prev_term/sum) > EPSILON*1.0 ||
            n <= MIN_TERMS );
 
     // Find the intersection with the random number
-    return params.prefactor * sum - params->rnd;
+    return params->prefactor * sum - params->rnd;
 }
 
 //Integrated Greens function for rr part of [-Ll, 0]
-Real GreensFunction1DAbsSinkAbs::num_int_r_leftdomain(Real const& rr, Real const& t, Real const& root_n) const
+Real GreensFunction1DAbsSinkAbs::num_int_r_leftdomain(Real const& rr, 
+                                                      Real const& root_n,
+                                                      drawR_params const& params)
 {
-    const Real Ll_L0( getLl() - getL0() );
-    const Real Ll_rr( getLl() + rr );
+    const Real Ll_L0( params.Ll - params.L0 );
+    const Real Ll_rr( params.Ll + rr );
     
-    return getD() * sin( root_n * Ll_L0 ) * ( cos( root_n * Ll_rr ) - 1 )
+    return params.D * sin( root_n * Ll_L0 ) * ( cos( root_n * Ll_rr ) - 1 );
 }
 
 //Integrated Greens function for rr part of (0, L0]
-Real GreensFunction1DAbsSinkAbs::num_int_r_rightdomainA(Real const& rr, Real const& t, Real const& root_n) const
+Real GreensFunction1DAbsSinkAbs::num_int_r_rightdomainA(Real const& rr, 
+                                                        Real const& root_n, 
+                                                        drawR_params const& params)
 {
-    const Real Lr_L0( getLr() - getL0() );
-    const Real Ll_rr( getLl() + rr );
+    const Real Lr_L0( params.Lr - params.L0 );
+    const Real Ll_rr( params.Ll + rr );
     const Real root_n_rr( root_n * rr );
     
-    const Real temp( getD() * ( cos( root_n * Ll_rr ) - 1 ) + 
-            getk() / root_n * ( cos( root_n_rr ) - 1 ) * sin( root_n * Ll ) );
+    const Real temp( params.D * ( cos( root_n * Ll_rr ) - 1 ) + 
+            params.k / root_n * ( cos( root_n_rr ) - 1 ) * sin( root_n * params.Ll ) );
     
     return sin( root_n * Lr_L0 ) * temp;
 }
 
 //Integrated Greens function for rr part of (L0, Lr]
-Real GreensFunction1DAbsSinkAbs::num_int_r_rightdomainB(Real const& rr, Real const& t, Real const& root_n) const
+Real GreensFunction1DAbsSinkAbs::num_int_r_rightdomainB(Real const& rr, 
+                                                        Real const& root_n, 
+                                                        drawR_params const& params)
 {
-    const Real L( getLr() + getLl() );
-    const Real Lr( getLr() );
-    const Real Ll( getLl() );
-    const Real L0( getL0() );
+    const Real Lr( params.Lr );
+    const Real Ll( params.Ll );
+    const Real L0( params.L0 );
     const Real Lr_L0( Lr - L0 );
     const Real Lr_rr( Lr - rr );
+    const Real L( Lr + Ll );
                    
     const Real term1( sin( root_n * L ) - sin( root_n * Lr_L0 ) - 
             sin( root_n * (Ll + L0) ) * cos( root_n * Lr_rr ) );
@@ -709,7 +719,7 @@ Real GreensFunction1DAbsSinkAbs::num_int_r_rightdomainB(Real const& rr, Real con
     const Real term2( sin( root_n * Lr ) - sin( root_n * Lr_L0 ) -
             sin( root_n * L0 ) * cos( root_n * Lr_rr ));
         
-    return getD() * term1 + getk() * sin( root_n * Ll ) * term2 / root_n;
+    return params.D * term1 + params.k * sin( root_n * Ll ) * term2 / root_n;
 }
 
 Real GreensFunction1DAbsSinkAbs::drawR(Real rnd, Real t) const
@@ -721,7 +731,6 @@ Real GreensFunction1DAbsSinkAbs::drawR(Real rnd, Real t) const
     const Real L( getLr() + getLl() );
     const Real Lr( getLr() );
     const Real Ll( getLl() );
-    const Real L0( getL0() );
     const Real rsink( getrsink() );
 
     if (t == 0.0 || (D == 0.0 && v == 0.0) )
@@ -738,7 +747,7 @@ Real GreensFunction1DAbsSinkAbs::drawR(Real rnd, Real t) const
     // the structure to store the numbers to calculate r.
     struct drawR_params parameters;
     const Real S( p_survival(t) );
-    Real root_n = 0;
+    Real root_n, root_n2;
 
     assert(S >= 0.0);
 
@@ -746,7 +755,7 @@ Real GreensFunction1DAbsSinkAbs::drawR(Real rnd, Real t) const
     // in the params structure //TODO: MAX_TERM -> CONVERGENCE_TERMS
     for (int n = 0; n < MAX_TERMS; n++)
     {
-	    root_n = root_n(n+1);
+	    root_n = this->root_n(n+1);
        	root_n2 = gsl_pow_2( root_n );
       	// store the roots in the structure
 	    parameters.root_n[n] = root_n;
@@ -761,8 +770,14 @@ Real GreensFunction1DAbsSinkAbs::drawR(Real rnd, Real t) const
     F.function = &drawR_f;
     F.params = &parameters;
 
-    // store the random number for the probability
+    // store the random number and L0
     parameters.rnd = rnd;
+    parameters.L0 = getL0();
+    parameters.Lr = getLr();
+    parameters.Ll = getLl();
+    parameters.D = getD();
+    parameters.k = getk();
+
     // store the number of terms used
     parameters.terms = MAX_TERMS;
 

@@ -192,27 +192,20 @@ public:
     Real root_n(int const& n) const;
     
 private:
-   
-    inline Real p_denominator( Real const& root_n ) const;
-    
-    inline Real Greens_fn(Real const& t, Real const& root_n, Real const& root_n2) const;
 
-    Real num_int_r_leftdomain(Real const& rr, Real const& t, Real const& root_n) const;
-
-    Real num_int_r_rightdomainA(Real const& rr, Real const& t, Real const& root_n) const;
-
-    Real num_int_r_rightdomainB(Real const& rr, Real const& t, Real const& root_n) const;
-
-
-    static Real root_f (Real x, void *p);
-    
-    struct root_f_params
+    struct drawR_params
     {
-	    Real Lm_L;
-	    Real h;
+	    Real root_n[MAX_TERMS];
+	    Real exp_and_denominator[MAX_TERMS];
+	    Real prefactor;
+        Real L0;
+        Real Lr;
+        Real Ll;
+	    Real rnd;
+        Real D;
+        Real k;
+	    int terms;
     };
-
-    static Real drawT_f (Real t, void *p);
 
     struct drawT_params
     {
@@ -222,22 +215,30 @@ private:
 	    int  terms;
 	    // the timescale used for convergence
 	    Real   tscale;
-	    // the random number associated with the time
 	    Real rnd;
     };
-
-    static Real drawR_f (Real z, void *p);
     
-    struct drawR_params
+    struct root_f_params
     {
-	    Real root_n[MAX_TERMS];
-	    Real exp_and_denominator[MAX_TERMS];
-	    // variables H: for additional terms appearing as multiplicative factors etc.
-	    Real prefactor;
-	    int terms;
-	    // the random number associated with the time
-	    Real rnd;
+	    Real Lm_L;
+	    Real h;
     };
+       
+    inline Real p_denominator( Real const& root_n ) const;
+    
+    inline Real Greens_fn(Real const& t, Real const& root_n, Real const& root_n2) const;
+
+    static Real num_int_r_leftdomain(Real const& rr, Real const& root_n, drawR_params const& params);
+
+    static Real num_int_r_rightdomainA(Real const& rr, Real const& root_n, drawR_params const& params);
+
+    static Real num_int_r_rightdomainB(Real const& rr, Real const& root_n, drawR_params const& params);
+
+    static Real root_f (Real x, void *p);
+
+    static Real drawT_f (Real t, void *p);
+
+    static Real drawR_f (Real t, void *p);
 
     /* Class variables */
     // The diffusion constant and drift velocity
