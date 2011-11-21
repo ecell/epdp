@@ -249,7 +249,7 @@ class SimplePair(Pair):
             log.debug('Pair closest neighbor: %s %s' % \
                       (closest, FORMAT_DOUBLE % closest_distance))
 
-        assert closest_distance > 0
+        assert (closest_distance > 0), 'closest_distance = %s' % (FORMAT_DOUBLE % closest_distance)
 
 
 
@@ -290,8 +290,12 @@ class SimplePair(Pair):
             assert isinstance(closest, (InteractionSingle, Pair, Multi, Surface, None.__class__))
             shell_size = closest_distance 
 
+        # FIXME Bloody ugly tweak to make sure that in case of a cylinder the 'maximum size' (which is
+        # actually the radius) does not stick out of the maximum sphere (which is the real hard max).
+        sigma = max(single1.pid_particle_pair[1].radius, single2.pid_particle_pair[1].radius)
+        max_shell_size = math.sqrt(geometrycontainer.get_max_shell_size()**2 - sigma**2)
 
-        return min(geometrycontainer.get_max_shell_size(), shell_size)/SAFETY
+        return min(max_shell_size, shell_size)/SAFETY
 
 
     def __init__(self, domain_id, shell_center, single1, single2, shell_id,
