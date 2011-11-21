@@ -40,7 +40,7 @@ import os
 log = logging.getLogger('ecell')
 
 if __debug__:
-    PRECISION = 3
+    PRECISION = 7
     FORMAT_DOUBLE = '%.' + str(PRECISION) + 'g'
 
 def create_default_single(domain_id, pid_particle_pair, shell_id, rt, structure):
@@ -1565,7 +1565,6 @@ class EGFRDSimulator(ParticleSimulatorBase):
     def process_pair_event(self, pair):
         assert self.check_domain(pair)
 
-        print 'FIRE_PAIR'
         if __debug__:
             log.info('FIRE PAIR: %s' % pair.event_type)
             log.info('single1 = %s' % pair.single1)
