@@ -22,6 +22,7 @@ from _gfrd import (
     _random_vector,
     Cylinder,
     Sphere,
+    Plane,
     NetworkRulesWrapper,
     )
 
@@ -2363,58 +2364,83 @@ rejected moves = %d
 
 
         for shell_id, shell in domain.shell_list:
-            closest, distance = self.geometrycontainer.get_closest_obj(shell.shape.position,
-                                                                       self.domains,
-                                                                       ignore=[domain.domain_id],
-                                                                       ignores=ignores)
+
+#            closest, distance = self.geometrycontainer.get_closest_obj(shell.shape.position,
+#                                                                       self.domains,
+#                                                                       ignore=[domain.domain_id],
+#                                                                       ignores=ignores)
 
 #            distance_midpoints = self.world.distance(domain.shell.shape.position, closest.shell.shape.position)
-            distance_midpoints = 0
+#            distance_midpoints = 0
 
-            # testing overlap criteria
-            # TODO This doesn't work if closest is a Multi -> redesign this test
-            if(type(shell.shape) is Cylinder and
-               closest and type(closest.shell.shape) is Sphere):
-                # Note: this case is special.
-                # Note: only checking if cylinder doesn't overlap with 
-                # closest sphere, like we do here, is not really 
-                # sufficient (but checking all spheres is too much 
-                # work).
-                shell_size = shell.shape.half_length
-                # Reverse overlap calculation: from closest sphere to 
-                # cylinder is easier than the other way around, because 
-                # the distance calculation from a point to a cylinder 
-                # is already implemented.
-                sphere = closest.shell.shape
-                diff = self.world.distance(shell.shape, sphere.position) - \
-                       sphere.radius
-            else:
-                if(type(domain) is CylindricalSurfaceSingle or
-                   type(domain) is CylindricalSurfacePair or
-                   type(domain) is CylindricalSurfaceInteraction):
-                    # On CylindricalSurface, use half_lenghts.
-                    # (assume all nearby other cylinders are on the 
-                    # same surface)
-                    shell_size = shell.shape.half_length
-                else:
-                    # Normally compare radii.
-                    shell_size = shell.shape.radius
-                diff = distance - shell_size
+            # TODO should be replace by list of surface
+            surface, distance = get_closest_surface(self.world, shell.shape.position, ignores)
+            if surface:
+                surfaces = [(surface, distance), ]
+                for surface, distance in surfaces:
+                    assert self.check_surface_overlap(shell, surface), \
+                        '%s (%s) overlaps with %s.' % \
+                        (str(domain), str(shell), str(surface))
+
+
+            neighbors = self.geometrycontainer.get_neighbor_domains(shell.shape.position,
+                                                                    self.domains, ignore=[domain.domain_id])
+
+            for neighbor, _ in neighbors:
+                for _, neighbor_shell in neighbor.shell_list:
+                    assert self.check_shell_overlap(shell, neighbor_shell), \
+                        '%s (%s) overlaps with %s (%s).' % \
+                        (str(domain), str(shell), str(neighbor), str(neighbor_shell))
+
+#            # testing overlap criteria
+#            # TODO This doesn't work if closest is a Multi -> redesign this test
+#            if(type(shell.shape) is Cylinder and
+#               closest and type(closest.shell.shape) is Sphere):
+#                # Note: this case is special.
+#                # Note: only checking if cylinder doesn't overlap with 
+#                # closest sphere, like we do here, is not really 
+#                # sufficient (but checking all spheres is too much 
+#                # work).
+#                shell_size = shell.shape.half_length
+#                # Reverse overlap calculation: from closest sphere to 
+#                # cylinder is easier than the other way around, because 
+#                # the distance calculation from a point to a cylinder 
+#                # is already implemented.
+#                sphere = closest.shell.shape
+#                diff = self.world.distance(shell.shape, sphere.position) - \
+#                       sphere.radius
+#            else:
+#                if(type(domain) is CylindricalSurfaceSingle or
+#                   type(domain) is CylindricalSurfacePair or
+#                   type(domain) is CylindricalSurfaceInteraction):
+#                    # On CylindricalSurface, use half_lenghts.
+#                    # (assume all nearby other cylinders are on the 
+#                    # same surface)
+#                    shell_size = shell.shape.half_length
+#                else:
+#                    # Normally compare radii.
+#                    shell_size = shell.shape.radius
+#                diff = distance - shell_size
+
+            if (type(shell.shape) is Cylinder):
+                shell_size = math.sqrt(shell.shape.radius**2 + shell.shape.half_length**2)
+            elif (type(shell.shape) is Sphere):
+                shell_size = shell.shape.radius
 
             assert shell_size <= self.geometrycontainer.get_user_max_shell_size(), \
-                '%s shell size larger than user-set max shell size' % \
-                str(shell_id)
+                '%s shell size larger than user-set max shell size, shell_size = %s, max = %s.' % \
+                (str(shell_id), FORMAT_DOUBLE % shell_size, FORMAT_DOUBLE % self.geometrycontainer.get_user_max_shell_size())
 
             assert shell_size <= self.geometrycontainer.get_max_shell_size(), \
-                '%s shell size larger than simulator cell size / 2' % \
-                str(shell_id)
+                '%s shell size larger than simulator cell size / 2, shell_size = %s, max = %s.' % \
+                (str(shell_id), FORMAT_DOUBLE % shell_size, FORMAT_DOUBLE % self.geometrycontainer.get_max_shell_size())
 
-            assert diff >= 0.0, \
-                '%s overlaps with %s. (shell: %s, dist: %s, diff: %s, dist_midpoints: %s.' % \
-                (str(domain), str(closest), FORMAT_DOUBLE % shell_size,
-                 FORMAT_DOUBLE % distance,
-                 FORMAT_DOUBLE % diff,
-                 FORMAT_DOUBLE % distance_midpoints)
+#            assert diff >= 0.0, \
+#                '%s overlaps with %s. (shell: %s, dist: %s, diff: %s, dist_midpoints: %s.' % \
+#                (str(domain), str(closest), FORMAT_DOUBLE % shell_size,
+#                 FORMAT_DOUBLE % distance,
+#                 FORMAT_DOUBLE % diff,
+#                 FORMAT_DOUBLE % distance_midpoints)
 
         return True
 
@@ -2430,8 +2456,7 @@ rejected moves = %d
         # overlap criterium when both shells are cylindrical 
         elif (type(shell1.shape) is Cylinder) and (type(shell2.shape) is Cylinder):
             # assuming that the cylinders are always parallel
-            assert (shell1.shape.unit_z == shell2.shape.unit_z) or \
-                   (shell1.shape.unit_z == -shell2.shape.unit_z)
+            assert abs(numpy.dot (shell1.shape.unit_z, shell2.shape.unit_z)) == 1
             shell1_pos = shell1.shape.position
             shell2_pos = shell2.shape.position
             shell2_post = self.world.cyclic_transpose(shell1_pos, shell2_pos)
@@ -2454,6 +2479,26 @@ rejected moves = %d
         # something was wrong (wrong type of shell provided)
         else:
             raise RuntimeError('check_shell_overlap: wrong shell type(s) provided.')
+
+    def check_surface_overlap(self, shell, surface):
+        if (type(shell.shape) is Sphere):
+            distance = self.world.distance(surface.shape, shell.shape.position)
+            return shell.shape.radius < distance
+
+        elif (type(shell.shape) is Cylinder):
+            distance = self.world.distance(surface.shape, shell.shape.position)
+
+            # Only take shells into account that have unit_z perpendicular to unit_z of surface
+            if (type(surface.shape) is Plane):
+                return shell.shape.radius < distance
+            elif (type(surface.shape) is Cylinder):
+                return shell.shape.half_length < distance
+            else:
+                raise RuntimeError('check_surface_overlap: Surface was not Plane of Cylinder.')
+
+        # something was wrong (wrong type of shell provided)
+        else:
+            raise RuntimeError('check_surface_overlap: wrong shell type provided.')
 
 
     def check_domain_for_all(self):
