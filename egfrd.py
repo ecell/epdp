@@ -2423,9 +2423,12 @@ rejected moves = %d
 #                diff = distance - shell_size
 
             if (type(shell.shape) is Cylinder):
+                # the cylinder should at least fit in the maximal sphere
                 shell_size = math.sqrt(shell.shape.radius**2 + shell.shape.half_length**2)
             elif (type(shell.shape) is Sphere):
                 shell_size = shell.shape.radius
+            else:
+                raise RuntimeError('check_domain error: Shell shape was not Cylinder of Sphere')
 
             assert shell_size <= self.geometrycontainer.get_user_max_shell_size(), \
                 '%s shell size larger than user-set max shell size, shell_size = %s, max = %s.' % \
