@@ -118,12 +118,12 @@ class ShellContainer(object):
             for shell_id_shell_pair, distance in result:
                 domain_id = shell_id_shell_pair[1].did
 
-                if domain_id not in ignore and distance < closest_distance:
+                if ((domain_id not in ignore) and (distance < closest_distance)):
                     domain = domains[domain_id]
                     closest_domain, closest_distance = domain, distance
                     # Found yet a closer domain. Break out of inner for 
                     # loop and check other containers.
-                    break
+#                    break
 
         surface, distance = get_closest_surface(self.world, pos, ignores)
 
