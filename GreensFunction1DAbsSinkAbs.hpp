@@ -63,7 +63,7 @@ public:
     /* The constructor is overloaded and can be called with or without drift v
        copy constructor including drift variable v */
     GreensFunction1DAbsSinkAbs(Real D, Real v, Real k, Real r0, Real rsink, Real sigma, Real a)
-	: GreensFunction(D), v(v), k(k), r0(r0), sigma(sigma), a(a), rsink(a - sigma), l_scale(L_TYPICAL), t_scale(T_TYPICAL)
+	: GreensFunction(D), v(v), k(k), r0(r0), sigma(sigma), a(a), rsink(rsink), l_scale(L_TYPICAL), t_scale(T_TYPICAL)
     {
 		assert( a > sigma );
 	    

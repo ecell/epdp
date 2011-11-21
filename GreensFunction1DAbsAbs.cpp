@@ -331,11 +331,11 @@ GreensFunction1DAbsAbs::drawEventType( Real rnd, Real t ) const
 
     if (rnd > fluxratio )
     {
-	return IV_ESCAPE;
+    return IV_ESCAPE; //escape through a.
     }
     else
     {
-	return IV_REACTION;
+	return IV_REACTION; //escape through sigma.
     }
 }
 

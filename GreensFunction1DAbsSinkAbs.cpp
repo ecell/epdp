@@ -48,16 +48,16 @@ Real GreensFunction1DAbsSinkAbs::root_n(int const& n) const
     if ( h < 1 )
     {
 	    // 1E-10 to make sure that he doesn't include the transition 
-	    lower = (n-1)*M_PI + 1E-10;
+	    lower = (n-.5)*M_PI;
 	    // (asymptotic) from infinity to -infinity
-	    upper =  n   *M_PI - 1E-10;
+	    upper = (n+.5)*M_PI;
     }
     else
     {
         //TODO: more complicated scheme needed.
         THROW_UNLESS( std::invalid_argument, h < 1 );
-        lower = (n-1)*M_PI + 1E-10;
-	    upper =  n   *M_PI - 1E-1;      
+        lower = (n-.5)*M_PI;
+	    upper = (n+.5)*M_PI;      
     }
 
     gsl_function F;
@@ -93,8 +93,8 @@ inline Real GreensFunction1DAbsSinkAbs::p_denominator(Real const& root_n) const
     const Real L( getLr() + getLl() );
     
     const Real term1( root_n * L * cos( root_n * L ) + sin( root_n * L ) );
-    const Real term2( L * sin( root_n * L ) + Lm * sin( root_n * L ) );
- 
+    const Real term2( L * sin( root_n * L ) - Lm * sin( root_n * Lm ) );   
+
     return getD() * term1 + getk() / 2. * term2;
 }
 
@@ -106,10 +106,10 @@ Real GreensFunction1DAbsSinkAbs::p_survival(Real t) const
   
     const Real D ( getD() );
     const Real k ( getk() ); 
-    const Real L ( getLr() + getLl() );
     const Real Lr( getLr() );
     const Real Ll( getLl() );
     const Real L0( getL0() );
+    const Real L ( Lr + Ll );
 
     if (t == 0.0 || (D == 0.0 && v == 0.0) )
     {
@@ -136,6 +136,7 @@ Real GreensFunction1DAbsSinkAbs::p_survival(Real t) const
         
         numerator = ( D * term1 + k * sin( root_n * Ll ) * term2 / root_n );
         term_n = Greens_fn(t, root_n, gsl_pow_2( root_n ) ) * numerator;
+        //std::cerr << term_n << " " << root_n * L / M_PI << std::endl;
 	    sum += term_n;
 	    n++;
     }
@@ -161,11 +162,7 @@ Real GreensFunction1DAbsSinkAbs::prob_r(Real r, Real t) const
     Real L0( getL0() );
     Real rr( r - getrsink() ) ;
 
-    const Real L( getLr() + getLl() );
-    const Real LlpL0( Ll + L0 );
-    const Real LrmL0( Lr - L0 );
-    const Real Lrmrr( Lr - Lr );
-    const Real Llprr( Ll + rr );
+    const Real L( Lr + Ll );
 
     // if there was no time change or zero diffusivity => no movement
     if (t == 0 || D == 0)
@@ -202,10 +199,13 @@ Real GreensFunction1DAbsSinkAbs::prob_r(Real r, Real t) const
            If so, interchange r with r0. */
         if( rr < L0 )
         {
-            const Real temp( L0 );
+            const Real temp( rr );
             rr = L0;
             L0 = temp;
-        }    
+        }
+
+        const Real LlpL0( Ll + L0 );
+        const Real Lrmrr( Lr - rr );
 
         do
         {   
@@ -219,8 +219,10 @@ Real GreensFunction1DAbsSinkAbs::prob_r(Real r, Real t) const
 
 	        root_n = this->root_n(n);
 
-            numerator =  D * root_n * sin( root_n * LlpL0 ) + k * sin( root_n * Ll ) * sin( root_n * L0);
-            numerator *= sin( root_n * Lrmrr );       
+            numerator =  D * root_n * sin( root_n * LlpL0 ) + 
+                k * sin( root_n * Ll ) * sin( root_n * L0);
+            numerator *= sin( root_n * Lrmrr );
+
             term_n = Greens_fn(t, root_n, gsl_pow_2( root_n ) ) * numerator;
             sum += term_n;
 
@@ -234,6 +236,9 @@ Real GreensFunction1DAbsSinkAbs::prob_r(Real r, Real t) const
     {
         if( rr > 0 )
             rr *= -1;
+
+        const Real LrmL0( Lr - L0 );
+        const Real Llprr( Ll + rr );
 
         do
         {   
@@ -272,6 +277,11 @@ Real GreensFunction1DAbsSinkAbs::calcpcum(Real r, Real t) const
 /* Function returns flux at absorbing bounday sigma. */
 Real GreensFunction1DAbsSinkAbs::flux_leaves(Real t) const
 {
+    if( t == 0 || D == 0 )
+    {
+        return 0.0;
+    }
+
     if( getr0() > getrsink() )
         return flux_abs_Ll( t );
     else
@@ -281,6 +291,11 @@ Real GreensFunction1DAbsSinkAbs::flux_leaves(Real t) const
 /* Function returns flux at absorbing bounday a. */
 Real GreensFunction1DAbsSinkAbs::flux_leavea(Real t) const
 {
+    if( t == 0 || D == 0 )
+    {
+        return 0.0;
+    }
+
     if( getr0() < getrsink() )
         return flux_abs_Ll( t );
     else
@@ -340,9 +355,9 @@ Real GreensFunction1DAbsSinkAbs::flux_abs_Lr(Real t) const
 {
     const Real D( getD() );
     const Real k( getk() );    
-    const Real LlpL0( getLr() + getL0() );
     const Real Ll( getLl() );
     const Real L0( getL0() );
+    const Real LlpL0( Ll + L0 );
     Real root_n;
     
     Real sum = 0, numerator, term_n = 0, prev_term = 0;
@@ -351,7 +366,7 @@ Real GreensFunction1DAbsSinkAbs::flux_abs_Lr(Real t) const
     {
         if ( n >= MAX_TERMS )
         {
-            std::cerr << " Too many terms needed for GF1DSink::flux_abs. N: "
+            std::cerr << " Too many terms needed for GF1DSink::flux_abs_Lr. N: "
                       << n << std::endl;
             break;
         }
@@ -360,7 +375,8 @@ Real GreensFunction1DAbsSinkAbs::flux_abs_Lr(Real t) const
         root_n = this->root_n(n);
         
         numerator = k * sin( root_n * Ll ) * sin ( root_n * L0 ) + D * root_n * sin( root_n * LlpL0 );
-        
+        numerator *= root_n;
+
         term_n = Greens_fn(t, root_n, gsl_pow_2( root_n ) ) * numerator;         
         sum += term_n;
 
@@ -370,7 +386,7 @@ Real GreensFunction1DAbsSinkAbs::flux_abs_Lr(Real t) const
             fabs(prev_term/sum) > EPSILON ||
             n <= MIN_TERMS );
 
-    return - D * 2 * root_n * sum;
+    return - D * 2 * sum;
 }
 
 /* Flux leaving throught absorbing boundary from sub-domain not containing r0. */
@@ -387,16 +403,16 @@ Real GreensFunction1DAbsSinkAbs::flux_abs_Ll(Real t) const
     {
         if ( n >= MAX_TERMS )
         {
-            std::cerr << " Too many terms needed for GF1DSink::flux_abs. N: "
+            std::cerr << " Too many terms needed for GF1DSink::flux_abs_Ll. N: "
                       << n << std::endl;
             break;
         }
-        prev_term = numerator;
+        prev_term = term_n;
     
         root_n = this->root_n(n);
         root_n2 = gsl_pow_2( root_n );        
         
-        numerator = root_n2 * sin( root_n * ( LrmL0 ) );
+        numerator = root_n2 * sin( root_n * LrmL0 );
 
         term_n = Greens_fn(t, root_n, root_n2 ) * numerator;
         sum += term_n;
