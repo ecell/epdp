@@ -246,11 +246,14 @@ class SimplePair(Pair):
                                                                       single2.domain_id],
                                                                       ignores=[single1.structure.id])
         if __debug__:
-            log.debug('Pair closest neighbor: %s %s' % \
+            log.debug('Pair closest neighbor: %s, distance: %s' % \
                       (closest, FORMAT_DOUBLE % closest_distance))
 
-        assert (closest_distance > 0), 'closest_distance = %s' % (FORMAT_DOUBLE % closest_distance)
-
+        # shortcut
+        # if closest_distance <0 then neighbor particle overlaps with center of mass ->
+        # neighboring particle is actually closer to the CoM than any of the two member particles
+        if closest_distance <= 0:
+            return 0
 
 
         # 3. Check if bursted Singles can still make a minimal shell.
