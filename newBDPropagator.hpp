@@ -267,6 +267,26 @@ public:
             
             j++;
         }
+        
+        
+        /*Debug overlap failed error.
+        std::cerr << " &&&& : " << pp.first << std::endl;
+        
+        j = 0;
+        boost::scoped_ptr<particle_id_pair_and_distance_list> overlapped_last( 
+                    tx_.check_overlap( particle_shape_type( new_pos, 10*r0 ), 
+                            pp.first) );
+                            
+        particles_in_overlap = overlapped_last ? overlapped_last->size(): 0;
+        while(j < particles_in_overlap)
+        {
+            particle_id_pair_and_distance const& closest( overlapped_last->at(j++) );
+            const Real dist( tx_.distance( closest.first.second.position(), pp.second.position() ) );
+            std::cerr << "### pp id: " << pp.first << " ppi id: " << closest.first.first << " ipv length @ old_pos = " << dist << 
+                " dist till shell @ new_pos: " << closest.second << std::endl;
+            std::cerr << "Bounced? " << bounced << ", d (after move) = " << tx_.distance( new_pos, closest.first.second.position() ) << std::endl;
+        }
+        */
                        
         /* If the particle did neither react, interact or bounce, update it to it's new position. */
         if(!bounced)
