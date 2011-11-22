@@ -31,7 +31,7 @@ Real GreensFunction1DAbsSinkAbs::root_f (Real x, void *p)
     // L_Lm = Lr + Ll / Lr - Ll
     // x    = q * L
 
-    if( h <= 1 )
+    if( h <= 10.0 )
         return x * sin(x) + h * ( cos(x * Lm_L) - cos(x) );
     else
         return Real();
@@ -48,7 +48,7 @@ Real GreensFunction1DAbsSinkAbs::root_n(int const& n) const
 
     /* h sets how strong second term in root function is pronounced. 
        The second term makes the rootfinding more complex. */
-    if ( h <= 1 )
+    if ( h <= 10.0 )
     {
 	    // 1E-10 to make sure that he doesn't include the transition 
 	    lower = (n-.5)*M_PI;
@@ -507,7 +507,7 @@ Real GreensFunction1DAbsSinkAbs::drawT_f (Real t, void *p)
            n <= MIN_TERMS );
 
     // find the intersection with the random number
-    return 1.0 - prefactor*sum - params->rnd;
+    return params->rnd - prefactor*sum;
 }
 
 // Draws the first passage time from the survival probability,
@@ -526,7 +526,7 @@ Real GreensFunction1DAbsSinkAbs::drawTime(Real rnd) const
     const Real L0( getL0() );
     const Real L( getLr() + getLl() );
 
-    Real root_n, Xn, exponent;
+    Real root_n, Xn, exponent, term1, term2, numerator;
 
     if ( D == 0.0 || L == INFINITY )
     {
@@ -540,19 +540,18 @@ Real GreensFunction1DAbsSinkAbs::drawTime(Real rnd) const
 
     // the structure to store the numbers to calculate the numbers for 1-S
     struct drawT_params parameters;
-    // some temporary variables
 
-    // produce the coefficients and the terms in the exponent and put them
-    // in the params structure. This is not very efficient at this point,
-    // coefficients should be calculated on demand->TODO or not TODO?
-    for (int n=0; n<MAX_TERMS; n++)
+    /* produce the coefficients and the terms in the exponent and put them
+       in the params structure. This is not very efficient at this point,
+       coefficients should be calculated on demand->TODO or not TODO? */
+    for (int n = 0; n < MAX_TERMS; n++)
     {
         root_n = this->root_n( n + 1 );	
-	    
-        const Real term1( sin( root_n * L ) - sin( root_n * (Lr - L0) ) - sin( root_n * (Ll + L0) ) );
-        const Real term2( sin( root_n * Lr ) - sin( root_n * L0 ) - sin( root_n * (Lr - L0) ) );
+
+        term1 = sin( root_n * L ) - sin( root_n * (Lr - L0) ) - sin( root_n * (Ll + L0) );
+        term2 = sin( root_n * Lr ) - sin( root_n * L0 ) - sin( root_n * (Lr - L0) );
         
-        const Real numerator( D * term1 + k * sin( root_n * Ll ) * term2 / root_n );
+        numerator = D * term1 + k * sin( root_n * Ll ) * term2 / root_n;
         Xn = numerator / p_denominator( root_n );
 		      
         exponent = - D * gsl_pow_2( root_n );
@@ -659,15 +658,15 @@ Real GreensFunction1DAbsSinkAbs::drawR_f(Real rr, void *p)
     
     /* Determine in which part of the domain rr lies, and
        thus which domain function to use. */
-    static Real (*numerator_int_f)
+    static Real (*p_int_r)
         (Real const&, Real const&, drawR_params const&) = NULL;
 
     if( rr <= 0 )
-        numerator_int_f = &GreensFunction1DAbsSinkAbs::num_int_r_leftdomain;
+        p_int_r = &GreensFunction1DAbsSinkAbs::p_int_r_leftdomain;
     else if( rr < params->L0 )
-            numerator_int_f = &GreensFunction1DAbsSinkAbs::num_int_r_rightdomainA;
+            p_int_r = &GreensFunction1DAbsSinkAbs::p_int_r_rightdomainA;
         else
-            numerator_int_f = &GreensFunction1DAbsSinkAbs::num_int_r_rightdomainB;
+            p_int_r = &GreensFunction1DAbsSinkAbs::p_int_r_rightdomainB;
     
     int n = 0;
     do
@@ -680,7 +679,7 @@ Real GreensFunction1DAbsSinkAbs::drawR_f(Real rr, void *p)
 	    }
 	    prev_term = term_n;
 
-	    term_n = params->exp_and_denominator[n] * (*numerator_int_f)
+	    term_n = params->exp_and_denominator[n] * (*p_int_r)
             ( rr, params->root_n[n], *params );
 
 	    sum += term_n;
@@ -689,78 +688,90 @@ Real GreensFunction1DAbsSinkAbs::drawR_f(Real rr, void *p)
     while (fabs(term_n/sum) > EPSILON*1.0 ||
 	       fabs(prev_term/sum) > EPSILON*1.0 ||
            n <= MIN_TERMS );
-
+    
     // Find the intersection with the random number
     return params->prefactor * sum - params->rnd;
 }
 
 //Integrated Greens function for rr part of [-Ll, 0]
-Real GreensFunction1DAbsSinkAbs::num_int_r_leftdomain(Real const& rr, 
-                                                      Real const& root_n,
-                                                      drawR_params const& params)
+Real GreensFunction1DAbsSinkAbs::p_int_r_leftdomain(Real const& rr, 
+                                                    Real const& root_n,
+                                                    drawR_params const& params)
 {
-    const Real Ll_L0( params.Ll - params.L0 );
-    const Real Ll_rr( params.Ll + rr );
-    
-    return params.D * sin( root_n * Ll_L0 ) * ( cos( root_n * Ll_rr ) - 1 );
+    const Real LrmL0( params.Lr - params.L0 );
+    const Real Llprr( params.Ll + rr );
+   
+    return params.D * sin( root_n * LrmL0 ) * ( cos( root_n * Llprr ) - 1.0 );
 }
 
 //Integrated Greens function for rr part of (0, L0]
-Real GreensFunction1DAbsSinkAbs::num_int_r_rightdomainA(Real const& rr, 
-                                                        Real const& root_n, 
-                                                        drawR_params const& params)
+Real GreensFunction1DAbsSinkAbs::p_int_r_rightdomainA(Real const& rr, 
+                                                      Real const& root_n, 
+                                                      drawR_params const& params)
 {
-    const Real Lr_L0( params.Lr - params.L0 );
-    const Real Ll_rr( params.Ll + rr );
+    const Real LrmL0( params.Lr - params.L0 );
+    const Real Llprr( params.Ll + rr );
     const Real root_n_rr( root_n * rr );
     
-    const Real temp( params.D * ( cos( root_n * Ll_rr ) - 1 ) + 
+    const Real temp( params.D * ( cos( root_n * Llprr ) - 1.0 ) + 
             params.k / root_n * ( cos( root_n_rr ) - 1 ) * sin( root_n * params.Ll ) );
     
-    return sin( root_n * Lr_L0 ) * temp;
+    return sin( root_n * LrmL0 ) * temp;
 }
 
 //Integrated Greens function for rr part of (L0, Lr]
-Real GreensFunction1DAbsSinkAbs::num_int_r_rightdomainB(Real const& rr, 
-                                                        Real const& root_n, 
-                                                        drawR_params const& params)
+Real GreensFunction1DAbsSinkAbs::p_int_r_rightdomainB(Real const& rr, 
+                                                      Real const& root_n, 
+                                                      drawR_params const& params)
 {
     const Real Lr( params.Lr );
     const Real Ll( params.Ll );
     const Real L0( params.L0 );
-    const Real Lr_L0( Lr - L0 );
-    const Real Lr_rr( Lr - rr );
+    const Real LrmL0( Lr - L0 );
+    const Real Lrmrr( Lr - rr );
     const Real L( Lr + Ll );
+    const Real LlpL0( Ll + L0 );
                    
-    const Real term1( sin( root_n * L ) - sin( root_n * Lr_L0 ) - 
-            sin( root_n * (Ll + L0) ) * cos( root_n * Lr_rr ) );
+    const Real term1( sin( root_n * L ) - sin( root_n * LrmL0 ) - 
+            sin( root_n * LlpL0 ) * cos( root_n * Lrmrr ) );
             
-    const Real term2( sin( root_n * Lr ) - sin( root_n * Lr_L0 ) -
-            sin( root_n * L0 ) * cos( root_n * Lr_rr ));
+    const Real term2( sin( root_n * Lr ) - sin( root_n * LrmL0 ) -
+            sin( root_n * L0 ) * cos( root_n * Lrmrr ));
         
     return params.D * term1 + params.k * sin( root_n * Ll ) * term2 / root_n;
 }
 
 Real GreensFunction1DAbsSinkAbs::drawR(Real rnd, Real t) const
 {
-    THROW_UNLESS( std::invalid_argument, 0.0 <= rnd && rnd < 1.0 );
+    THROW_UNLESS( std::invalid_argument, 0.0 <= rnd && rnd <= 1.0 );
     THROW_UNLESS( std::invalid_argument, t >= 0.0 );
     
     const Real D( getD() );
-    const Real L( getLr() + getLl() );
     const Real Lr( getLr() );
     const Real Ll( getLl() );
     const Real rsink( getrsink() );
+    const Real L( Lr + Ll );
 
     if (t == 0.0 || (D == 0.0 && v == 0.0) )
     {
 	    // the trivial case
 	    return r0;
     }
+
     if ( L < 0.0 )
     {
 	    // if the domain had zero size
 	    return 0.0;
+    }
+
+    if ( rnd <= EPSILON )
+    {
+        return -Ll;        
+    }
+
+    if( rnd >= ( 1 - EPSILON ) )
+    {
+        return Lr;
     }
 
     // the structure to store the numbers to calculate r.
@@ -780,16 +791,12 @@ Real GreensFunction1DAbsSinkAbs::drawR(Real rnd, Real t) const
 	    parameters.root_n[n] = root_n;
         // also store the exponent and denominator.
         parameters.exp_and_denominator[n] = Greens_fn( t, root_n, root_n2 );
-        // and the normalization.
-        parameters.prefactor = 2.0 / S;
     }
     
-    // define gsl function for rootfinder
-    gsl_function F;
-    F.function = &drawR_f;
-    F.params = &parameters;
+    // The normalization.
+    parameters.prefactor = 2.0 / S;
 
-    // store the random number and L0
+    // and the rest of the parameters
     parameters.rnd = rnd;
     parameters.L0 = getL0();
     parameters.Lr = getLr();
@@ -799,6 +806,11 @@ Real GreensFunction1DAbsSinkAbs::drawR(Real rnd, Real t) const
 
     // store the number of terms used
     parameters.terms = MAX_TERMS;
+
+    // define gsl function for rootfinder
+    gsl_function F;
+    F.function = &drawR_f;
+    F.params = &parameters;
 
     // define a new solver type brent
     const gsl_root_fsolver_type* solverType( gsl_root_fsolver_brent );

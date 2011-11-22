@@ -228,11 +228,11 @@ private:
     
     inline Real Greens_fn(Real const& t, Real const& root_n, Real const& root_n2) const;
 
-    static Real num_int_r_leftdomain(Real const& rr, Real const& root_n, drawR_params const& params);
+    static Real p_int_r_leftdomain(Real const& rr, Real const& root_n, drawR_params const& params);
 
-    static Real num_int_r_rightdomainA(Real const& rr, Real const& root_n, drawR_params const& params);
+    static Real p_int_r_rightdomainA(Real const& rr, Real const& root_n, drawR_params const& params);
 
-    static Real num_int_r_rightdomainB(Real const& rr, Real const& root_n, drawR_params const& params);
+    static Real p_int_r_rightdomainB(Real const& rr, Real const& root_n, drawR_params const& params);
 
     static Real root_f (Real x, void *p);
 
