@@ -17,12 +17,11 @@
 #include "findRoot.hpp"
 #include "GreensFunction1DAbsSinkAbs.hpp"
 
-// This is the appropriate definition of the function defining
-// the roots of our Green's functions in GSL.
-// Later needed by the rootfinder.
+/* This is the appropriate definition of the function defining
+   the roots of our Green's functions in GSL.
+   Later needed by the rootfinder. */
 Real GreensFunction1DAbsSinkAbs::root_f (Real x, void *p)
 {
-    // casts the void to the struct pointer
     struct root_f_params *params = (struct root_f_params *)p;
     const Real Lm_L = (params->Lm_L);
     const Real h = (params->h);
@@ -32,10 +31,13 @@ Real GreensFunction1DAbsSinkAbs::root_f (Real x, void *p)
     // L_Lm = Lr + Ll / Lr - Ll
     // x    = q * L
 
-    return x * sin(x) + h * ( cos(x * Lm_L) - cos(x) );
+    if( h <= 1 )
+        return x * sin(x) + h * ( cos(x * Lm_L) - cos(x) );
+    else
+        return Real();
 }
 
-// Calculates the roots of tan(x*a)=-x/h
+/* Calculates the roots of root_f */
 Real GreensFunction1DAbsSinkAbs::root_n(int const& n) const
 {
     const Real L( getLr() + getLl() );
@@ -44,8 +46,9 @@ Real GreensFunction1DAbsSinkAbs::root_n(int const& n) const
     
     Real upper, lower;  
 
-    //h sets how strong second term in root function is pronounced. 
-    if ( h < 1 )
+    /* h sets how strong second term in root function is pronounced. 
+       The second term makes the rootfinding more complex. */
+    if ( h <= 1 )
     {
 	    // 1E-10 to make sure that he doesn't include the transition 
 	    lower = (n-.5)*M_PI;
