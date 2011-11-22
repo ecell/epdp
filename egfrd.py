@@ -115,7 +115,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
         self.shell_id_generator = ShellIDGenerator(0)
 
         # some constants
-        self.MULTI_SHELL_FACTOR = 1.2           # This is the threshold for when the algorithm switches from
+        self.MULTI_SHELL_FACTOR = math.sqrt(2)  # This stems from the fact that there vacant space in the cylinder
+#        self.MULTI_SHELL_FACTOR = 1.2           # This is the threshold for when the algorithm switches from
                                                 # NonInteractionSingles to a Multi and also defines the Multi
                                                 # shell size.
         self.SINGLE_SHELL_FACTOR = 2.0          # This is the threshold for when the algorithm switches from
@@ -354,7 +355,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
                 if self.zero_steps >= max(self.scheduler.size * 3, self.MAX_NUM_DT0_STEPS): 
                     raise RuntimeError('too many dt=zero steps. '
                                        'Simulator halted?'
-                                    'dt= %.300g-%.300g' % (self.scheduler.top[1].time, self.t))
+                                    'dt= %.10g-%.10g' % (self.scheduler.top[1].time, self.t))
             else:
                 self.zero_steps = 0
 
@@ -1248,8 +1249,9 @@ class EGFRDSimulator(ParticleSimulatorBase):
         domain = None
         for obj, hor_overlap in pair_interaction_partners:
 
-            if hor_overlap > 0.0:
+            if hor_overlap > 0.0 or domain:
                 break       # there are no more potential partners (everything is out of range)
+                            # or a domain was formed successfully previously
 
             if isinstance(obj, NonInteractionSingle):
 #                pair_horizon = (single_radius + \
@@ -1279,10 +1281,10 @@ class EGFRDSimulator(ParticleSimulatorBase):
             multi_partners = []
             for domain, dist_to_shell in neighbors:
                 if (isinstance (domain, NonInteractionSingle) and domain.is_reset()):
-                    multi_horizon = (single_radius + domain.pid_particle_pair[1].radius) * self.MULTI_SHELL_FACTOR
+                    multi_horizon = (single_radius ) * self.MULTI_SHELL_FACTOR
                     # distance from the center of the particles/domains
                     distance = self.world.distance(single_pos, domain.shell.shape.position)
-                    multi_partners.append((domain, distance - multi_horizon))
+                    multi_partners.append((domain, dist_to_shell - multi_horizon))
 
                 elif isinstance(domain, Multi):
                     # The dist_to_shell = dist_to_particle - multi_horizon_of_target_particle
