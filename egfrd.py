@@ -1298,9 +1298,9 @@ class EGFRDSimulator(ParticleSimulatorBase):
                 # TODO get a list of the surfaces sorted by distance instead of just the closest
                 closest_surface, surface_distance = \
                     get_closest_surface(self.world, single_pos, ignore=[single.structure.id])
-                surface_horizon = single_radius * self.MULTI_SHELL_FACTOR
                 if closest_surface:
-                    interaction_partners = [(closest_surface, surface_distance - surface_horizon, surface_horizon), ]
+                    surface_horizon = single_radius * self.MULTI_SHELL_FACTOR
+                    interaction_partners = [(closest_surface, surface_distance - surface_horizon), ]
                 # else no interaction is possible
 
             multi_partners = multi_partners + interaction_partners
