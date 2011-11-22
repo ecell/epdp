@@ -1322,7 +1322,6 @@ class EGFRDSimulator(ParticleSimulatorBase):
                 self.add_domain_event(single)
             else:
                 # An object was closer than the Multi horizon
-#                domain = self.form_multi(single, partners, dists)
                 domain = self.form_multi(single, multi_partners)
 
         return domain
@@ -2162,19 +2161,22 @@ class EGFRDSimulator(ParticleSimulatorBase):
             return None
     
 
-#    def form_multi(self, single, neighbors, dists):
     def form_multi(self, single, multi_partners):
         # form a Multi with the 'single'
-        # The 'neighbors' are neighboring NonInteractionSingles and Multi which
+        # The 'multi_partners' are neighboring NonInteractionSingles, Multis and surfaces which
         # can be added to the Multi (this can also be empty)
-        # 'dists' are the distances of the 'neighbors'
+
 
         # Filter out relevant neighbors if present
-        # only consider neighboring bursted domains that are within the Multi horizon
-#        min_shell = single.pid_particle_pair[1].radius * self.MULTI_SHELL_FACTOR
-#        dists = numpy.array(dists)      # FIXME Not sure why this is necessary, dists should already be array
-#        neighbors = [neighbors[i] for i in (dists <= min_shell).nonzero()[0]]
-        neighbors = [domain for domain, overlap in multi_partners if overlap < 0]
+        # only consider objects that are within the Multi horizon
+        neighbors = [obj for obj, overlap in multi_partners if overlap < 0]
+        for partner in neighbors:
+            assert (isinstance(partner, NonInteractionSingle) or \
+                    isinstance(partner, Multi) or \
+                    isinstance(partner, PlanarSurface) or \
+                    isinstance(partner, CylindricalSurface)), \
+                    'multi_partner %s was not of proper type' % (partner)
+
         if neighbors:
             closest = neighbors[0]
         else:
@@ -2195,8 +2197,10 @@ class EGFRDSimulator(ParticleSimulatorBase):
         # 2. Add the single and neighbors to the Multi
         self.add_to_multi(single, multi)
         self.remove_domain(single)
-        for neighbor in neighbors:
-            self.add_to_multi_recursive(neighbor, multi)
+
+        # TODO add them here or let the scheduler handle this?
+#        for neighbor in neighbors:
+#            self.add_to_multi_recursive(neighbor, multi)
 
 
         # 3. Initialize and (re-)schedule
@@ -2210,29 +2214,40 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
 
     def add_to_multi_recursive(self, domain, multi):
+    # adds 'domain' (which can be zero-dt NonInteractionSingle or Multi) to 'multi'
+
         if isinstance(domain, NonInteractionSingle):
+            assert domain.is_reset()        # domain must be zero-dt NonInteractionSingle
+
             if multi.has_particle(domain.pid_particle_pair[0]):
                 # Already in the Multi.
+                if __debug__:
+                    log.debug('%s already in multi. skipping.' % domain)
                 return
-            assert domain.is_reset()
+
             dompos = domain.shell.shape.position
             
+            # 1. burst to make space for the multi shell
+            # TODO this is expensive/stupid -> fix
+            burstradius = domain.pid_particle_pair[1].radius * self.MULTI_SHELL_FACTOR
+            neighbor_ids = self.geometrycontainer.get_neighbors_within_radius_no_sort(
+                    dompos, burstradius, ignore=[domain.domain_id, multi.domain_id])
+            neighbors = [self.domains[domain_id] for domain_id in neighbor_ids]
+
+            burst = self.burst_non_multis(neighbors)
+
+            # 2. add domain to the multi
             self.add_to_multi(domain, multi)
             self.remove_domain(domain)
             self.remove_event(domain)
 
-            # TODO this is expensive/stupid -> fix
-            radius = domain.pid_particle_pair[1].radius * \
-                self.MULTI_SHELL_FACTOR
-            neighbor_ids = self.geometrycontainer.get_neighbors_within_radius_no_sort(
-                    dompos, radius, ignore=[domain.domain_id])
-            neighbors = [self.domains[domain_id] for domain_id in neighbor_ids]
-
-            burst = self.burst_non_multis(neighbors)
+            # get distances to closest shell of burst neighbors
             neighbor_dists = self.obj_distance_array(dompos, burst)
+            # 3. select neighbors in the 'multi_horizon' for adding to the multi
             neighbors = [burst[i] for i
-                                  in (neighbor_dists <= radius).nonzero()[0]]
+                                  in (neighbor_dists <= burstradius).nonzero()[0]]
 
+            # 4. not sure we really want to do this
             for domain in neighbors:
                 self.add_to_multi_recursive(domain, multi)
 
@@ -2249,6 +2264,9 @@ class EGFRDSimulator(ParticleSimulatorBase):
             assert False, 'Trying to add non Single or Multi to Multi.'
 
     def add_to_multi(self, single, multi):
+    # This method is similar to the 'create_' methods for pair and interaction, except it's now for a multi
+    # adding a single to the multi instead of creating a pair or interaction out of single(s)
+
         if __debug__:
             log.info('add to multi:\n  %s\n  %s' % (single, multi))
 
