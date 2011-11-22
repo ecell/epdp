@@ -168,6 +168,7 @@ class Pair(ProtectiveDomain):
         return self.create_interparticle_vector(gf, r, dt, r0, old_iv)
 
     def check(self):
+    # perform internal consistency check 
         pass
 
     def __str__(self):
@@ -245,11 +246,14 @@ class SimplePair(Pair):
                                                                       single2.domain_id],
                                                                       ignores=[single1.structure.id])
         if __debug__:
-            log.debug('Pair closest neighbor: %s %s' % \
+            log.debug('Pair closest neighbor: %s, distance: %s' % \
                       (closest, FORMAT_DOUBLE % closest_distance))
 
-        assert closest_distance > 0
-
+        # shortcut
+        # if closest_distance <0 then neighbor particle overlaps with center of mass ->
+        # neighboring particle is actually closer to the CoM than any of the two member particles
+        if closest_distance <= 0:
+            return 0
 
 
         # 3. Check if bursted Singles can still make a minimal shell.
@@ -289,9 +293,12 @@ class SimplePair(Pair):
             assert isinstance(closest, (InteractionSingle, Pair, Multi, Surface, None.__class__))
             shell_size = closest_distance 
 
+        # FIXME Bloody ugly tweak to make sure that in case of a cylinder the 'maximum size' (which is
+        # actually the radius) does not stick out of the maximum sphere (which is the real hard max).
+        sigma = max(single1.pid_particle_pair[1].radius, single2.pid_particle_pair[1].radius)
+        max_shell_size = math.sqrt(geometrycontainer.get_max_shell_size()**2 - sigma**2)
 
-        return min(geometrycontainer.get_max_shell_size(),
-                   shell_size)
+        return min(max_shell_size, shell_size)/SAFETY
 
 
     def __init__(self, domain_id, shell_center, single1, single2, shell_id,

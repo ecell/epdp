@@ -22,6 +22,7 @@ from _gfrd import (
     _random_vector,
     Cylinder,
     Sphere,
+    Plane,
     NetworkRulesWrapper,
     )
 
@@ -39,7 +40,7 @@ import os
 log = logging.getLogger('ecell')
 
 if __debug__:
-    PRECISION = 3
+    PRECISION = 7
     FORMAT_DOUBLE = '%.' + str(PRECISION) + 'g'
 
 def create_default_single(domain_id, pid_particle_pair, shell_id, rt, structure):
@@ -1126,12 +1127,12 @@ class EGFRDSimulator(ParticleSimulatorBase):
         
         # Special case: When D=0, nothing needs to change and only new event
         # time is drawn
-        # TODO find nicer constructrion than just this if statement
+        # TODO find nicer construction than just this if statement
         if single.getD() == 0:
             single.dt, single.event_type = single.determine_next_event() 
             single.last_time = self.t
             self.add_domain_event(single)
-            return
+            return single
 
 
         single_pos = single.pid_particle_pair[1].position
@@ -1148,10 +1149,13 @@ class EGFRDSimulator(ParticleSimulatorBase):
         reaction_threshold = single.pid_particle_pair[1].radius * \
                              self.SINGLE_SHELL_FACTOR
 
-        intruder_ids, closest_id, closest_distance = \
-            self.geometrycontainer.get_intruders(single_pos, reaction_threshold,
-                                                 ignore=[single.domain_id, ])
-        intruders = [self.domains[domain_id] for domain_id in intruder_ids]
+#        intruder_ids, _, _ = \
+#            self.geometrycontainer.get_intruders(single_pos, reaction_threshold,
+#                                                 ignore=[single.domain_id, ])
+#        intruders = [self.domains[domain_id] for domain_id in intruder_ids]
+
+        neighbors = self.geometrycontainer.get_neighbor_domains(single_pos, self.domains, ignore=[single.domain_id, ])
+        intruders = self.geometrycontainer.filter_distance(neighbors, reaction_threshold)
 
         if __debug__:
             log.debug("intruders: %s" %
@@ -1165,11 +1169,11 @@ class EGFRDSimulator(ParticleSimulatorBase):
         # -shell is not already a zero shell (just bursted)
         burst = []
         if intruders:
-#            burst = self.burst_non_multis(intruders)
-            for domain in intruders:
+
+            for domain, _ in intruders:
                 if not isinstance(domain, Multi) and \
-                   not self.t == domain.last_time: # and \
-#                  not domain.dt == 0.0:
+                   not self.t == domain.last_time and \
+                   not domain.dt == 0.0:
                     # domain is Single or Pair of some subclass
                     single_list = self.burst_domain(domain)
                     burst.extend(single_list)
@@ -1190,87 +1194,135 @@ class EGFRDSimulator(ParticleSimulatorBase):
                                                                         ignore=[single.domain_id],
                                                                         ignores=[single.structure.id])
 
-        # TODO Potential partners are for now just the bursted domains
-        # TODO FIX THIS!
-        partners = burst
+        # New situation -> re-get the neighbors
+        # TODO: modify the existing neighbor list by removing burst domains, and adding the new ones + distance
+        neighbors = self.geometrycontainer.get_neighbor_domains(single_pos, self.domains, ignore=[single.domain_id, ])
 
+        pair_partners = []
+        for domain, _ in neighbors:
+            if (isinstance (domain, NonInteractionSingle) and domain.is_reset()):
+                # distance from the center of the particles/domains
+                pair_distance = self.world.distance(single_pos, domain.shell.shape.position)
+                pair_horizon  = (single_radius + domain.pid_particle_pair[1].radius) * self.SINGLE_SHELL_FACTOR
+                pair_partners.append((domain, pair_distance - pair_horizon))
+
+        
+        # Potential partners are also surfaces but only if the particle is in 3D
+        interaction_partners = []
+        if isinstance(single, SphericalSingle):
+            # TODO get a list of the surfaces sorted by distance instead of just the closest
+            closest_surface, surface_distance = \
+             get_closest_surface(self.world, single_pos, ignore=[single.structure.id])
+            if closest_surface:
+                surface_horizon = single_radius * self.SINGLE_SHELL_FACTOR
+                interaction_partners = [(closest_surface, surface_distance - surface_horizon), ]
+            # else no interaction is possible
+
+        pair_interaction_partners = pair_partners + interaction_partners
+        pair_interaction_partners = sorted(pair_interaction_partners, key=lambda domain_overlap: domain_overlap[1])
+
+
+        ### START LEGACY
+        partners = burst
         dists = []
         if partners:
+#            for domain, _ in partners:
+#            if isinstance(domain, NonInteractionSingle):
             # sort partners by distance
             dists = self.obj_distance_array(single_pos, partners)
             if len(dists) >= 2:
                 n = dists.argsort()
                 partners = numpy.take(partners, n)      # sort the potential partners using the index
                 dists = dists.take(n)                   # sort the distances using the index
-
-            closest_domain = partners[0]
-            domain_distance = dists[0]
-            rest_domains = partners[1:]
-            rest_dists = dists[1:]
-        else:
-            closest_domain = None
-            domain_distance = numpy.inf
-            rest_domains = []
-            rest_dists = []
-        
-        # Potential partners are also surfaces
-        closest_surface, surface_distance = \
-        get_closest_surface(self.world, single_pos, ignore=[single.structure.id])
-
+        ### END LEGACY
 
 
         # 2.4 calculate the thresholds (horizons) for trying to form the various domains.
         # Note that we do not differentiate between directions. This means that we
         # look around in a sphere, the horizons are spherical
-        surface_horizon = single_radius * self.SINGLE_SHELL_FACTOR
 
         # 2.4 check that the object is a potential partner for an
         # -Pair         (a zero dt NonInteractionSingle)
         # -Interaction  (a surface)
         # -Multi        (a zero dt NonInteractionSingle or Multi)
-        # TODO For a MixedPair, the surface can be closer than the particle, still a Pair should be attempted
-        if isinstance(closest_obj, NonInteractionSingle) and \
-           closest_obj.is_reset():
-                pair_horizon = (single_radius + \
-                       closest_obj.pid_particle_pair[1].radius) * self.SINGLE_SHELL_FACTOR
-                if closest_distance < pair_horizon:
-                    # try making a Pair (can still be Mixed Pair or Normal Pair)
-                    domain = self.try_pair (single, closest_obj)
-                else:
-                    domain = None
+        domain = None
+        for obj, hor_overlap in pair_interaction_partners:
 
-        elif isinstance(single, SphericalSingle) and \
-             (isinstance(closest_obj, CylindricalSurface) or isinstance(closest_obj, PlanarSurface)) and \
-             closest_distance < surface_horizon:
-#            surface_distance < domain_distance and \
-#            surface_distance < surface_horizon:
-                # try making an Interaction
-            domain = self.try_interaction (single, closest_obj)
-        else:
-            domain = None
+            if hor_overlap > 0.0:
+                break       # there are no more potential partners (everything is out of range)
+
+            if isinstance(obj, NonInteractionSingle):
+#                pair_horizon = (single_radius + \
+#                    closest_obj.pid_particle_pair[1].radius) * self.SINGLE_SHELL_FACTOR
+
+#                if closest_distance < pair_horizon:
+#                    # try making a Pair (can still be Mixed Pair or Normal Pair)
+                domain = self.try_pair (single, obj)
+
+            elif isinstance(obj, CylindricalSurface) or isinstance(obj, PlanarSurface):
+#                surface_horizon = single_radius * self.SINGLE_SHELL_FACTOR
+
+#                if closest_distance < surface_horizon:
+#                surface_distance < domain_distance and \
+#                surface_distance < surface_horizon:
+                    # try making an Interaction
+                domain = self.try_interaction (single, obj)
 
 
         if not domain:
             # No Pair or Interaction could be formed
             # Now choose between NonInteractionSingle and Multi
 
-            # TODO cleanup
-            if isinstance (closest_obj, NonInteractionSingle) and \
-               closest_obj.is_reset():
-                multi_horizon = (single_radius + \
-                    closest_obj.pid_particle_pair[1].radius) * self.MULTI_SHELL_FACTOR
+            # make a new list of potential partners
+            # Is now zero-dt NonInteractionSingles and Multi's
+            # TODO: combine with first selection such that we have to do this loop only once
+            multi_partners = []
+            for domain, dist_to_shell in neighbors:
+                if (isinstance (domain, NonInteractionSingle) and domain.is_reset()):
+                    multi_horizon = (single_radius + domain.pid_particle_pair[1].radius) * self.MULTI_SHELL_FACTOR
+                    # distance from the center of the particles/domains
+                    distance = self.world.distance(single_pos, domain.shell.shape.position)
+                    multi_partners.append((domain, distance - multi_horizon))
+
+                elif isinstance(domain, Multi):
+                    # The dist_to_shell = dist_to_particle - multi_horizon_of_target_particle
+                    # So only the horizon and distance of the current single needs to be taken into account
+                    # Note: this is built on the assumption that the shell of a Multi has the size of the horizon.
+                    multi_horizon = (single_radius * self.MULTI_SHELL_FACTOR)
+                    multi_partners.append((domain, dist_to_shell - multi_horizon))
+
+
+            # Potential partners are also surfaces
+            interaction_partners = []
+            if isinstance(single, SphericalSingle):
+                # TODO get a list of the surfaces sorted by distance instead of just the closest
+                closest_surface, surface_distance = \
+                    get_closest_surface(self.world, single_pos, ignore=[single.structure.id])
+                surface_horizon = single_radius * self.MULTI_SHELL_FACTOR
+                if closest_surface:
+                    interaction_partners = [(closest_surface, surface_distance - surface_horizon, surface_horizon), ]
+                # else no interaction is possible
+
+            multi_partners = multi_partners + interaction_partners
+
+
+            if multi_partners:
+                multi_partners = sorted(multi_partners, key=lambda domain_overlap: domain_overlap[1])
+#                log.debug('multi_partners: %s' % str(multi_partners))
+                closest_overlap = multi_partners[0][1]
             else:
-                multi_horizon = single_radius * self.MULTI_SHELL_FACTOR
+                # In case there is really nothing
+                closest_overlap = numpy.inf
 
+            log.debug('Single or Multi: closest_overlap: %s' % (FORMAT_DOUBLE % closest_overlap))
 
-            if closest_distance > multi_horizon: # and \
-#              surface_distance > multi_horizon:
+            if closest_overlap > 0.0: 
                 # just make a normal NonInteractionSingle
                 self.update_single(single)
                 self.add_domain_event(single)
             else:
-                # The closest object was too close to make a NonInteractionSingle
-                domain = self.form_multi(single, partners, dists)
+                # An object was closer than the Multi horizon
+                domain = self.form_multi(single, multi_partners)
 
         return domain
 
@@ -1510,7 +1562,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
 
     def process_pair_event(self, pair):
-        assert self.check_obj(pair)
+        assert self.check_domain(pair)
 
         if __debug__:
             log.info('FIRE PAIR: %s' % pair.event_type)
@@ -1677,8 +1729,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
 #        assert single1.shell.shape.radius == pid_particle_pair1[1].radius
 #        assert single2.shell.shape.radius == pid_particle_pair2[1].radius
 #        # even more checking
-#        assert self.check_obj(single1)
-#        assert self.check_obj(single2)
+#        assert self.check_domain(single1)
+#        assert self.check_domain(single2)
 #        # Now finally we are convinced that the singles were actually made correctly
 
 
@@ -1870,7 +1922,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
         self.remove_domain(single)
         # the event associated with the single will be removed by the scheduler.
 
-        #assert self.check_obj(interaction)
+        assert self.check_domain(interaction)
         self.add_domain_event(interaction)
 
         if __debug__:
@@ -2098,7 +2150,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
             # single1 will be removed by the scheduler.
             self.remove_event(single2)
 
-            assert self.check_obj(pair)
+            assert self.check_domain(pair)
             self.add_domain_event(pair)
 
             if __debug__:
@@ -2109,17 +2161,22 @@ class EGFRDSimulator(ParticleSimulatorBase):
             return None
     
 
-    def form_multi(self, single, neighbors, dists):
+    def form_multi(self, single, multi_partners):
         # form a Multi with the 'single'
-        # The 'neighbors' are neighboring NonInteractionSingles and Multi which
+        # The 'multi_partners' are neighboring NonInteractionSingles, Multis and surfaces which
         # can be added to the Multi (this can also be empty)
-        # 'dists' are the distances of the 'neighbors'
+
 
         # Filter out relevant neighbors if present
-        # only consider neighboring bursted domains that are within the Multi horizon
-        min_shell = single.pid_particle_pair[1].radius * self.MULTI_SHELL_FACTOR
-        dists = numpy.array(dists)      # FIXME Not sure why this is necessary, dists should already be array
-        neighbors = [neighbors[i] for i in (dists <= min_shell).nonzero()[0]]
+        # only consider objects that are within the Multi horizon
+        neighbors = [obj for obj, overlap in multi_partners if overlap < 0]
+        for partner in neighbors:
+            assert (isinstance(partner, NonInteractionSingle) or \
+                    isinstance(partner, Multi) or \
+                    isinstance(partner, PlanarSurface) or \
+                    isinstance(partner, CylindricalSurface)), \
+                    'multi_partner %s was not of proper type' % (partner)
+
         if neighbors:
             closest = neighbors[0]
         else:
@@ -2140,8 +2197,10 @@ class EGFRDSimulator(ParticleSimulatorBase):
         # 2. Add the single and neighbors to the Multi
         self.add_to_multi(single, multi)
         self.remove_domain(single)
-        for neighbor in neighbors:
-            self.add_to_multi_recursive(neighbor, multi)
+
+        # TODO add them here or let the scheduler handle this?
+#        for neighbor in neighbors:
+#            self.add_to_multi_recursive(neighbor, multi)
 
 
         # 3. Initialize and (re-)schedule
@@ -2155,28 +2214,40 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
 
     def add_to_multi_recursive(self, domain, multi):
+    # adds 'domain' (which can be zero-dt NonInteractionSingle or Multi) to 'multi'
+
         if isinstance(domain, NonInteractionSingle):
+            assert domain.is_reset()        # domain must be zero-dt NonInteractionSingle
+
             if multi.has_particle(domain.pid_particle_pair[0]):
                 # Already in the Multi.
+                if __debug__:
+                    log.debug('%s already in multi. skipping.' % domain)
                 return
-            assert domain.is_reset()
-            objpos = domain.shell.shape.position
+
+            dompos = domain.shell.shape.position
             
+            # 1. burst to make space for the multi shell
+            # TODO this is expensive/stupid -> fix
+            burstradius = domain.pid_particle_pair[1].radius * self.MULTI_SHELL_FACTOR
+            neighbor_ids = self.geometrycontainer.get_neighbors_within_radius_no_sort(
+                    dompos, burstradius, ignore=[domain.domain_id, multi.domain_id])
+            neighbors = [self.domains[domain_id] for domain_id in neighbor_ids]
+
+            burst = self.burst_non_multis(neighbors)
+
+            # 2. add domain to the multi
             self.add_to_multi(domain, multi)
             self.remove_domain(domain)
             self.remove_event(domain)
 
-            radius = domain.pid_particle_pair[1].radius * \
-                self.MULTI_SHELL_FACTOR
-            neighbor_ids = self.geometrycontainer.get_neighbors_within_radius_no_sort(
-                    objpos, radius, ignore=[domain.domain_id])
-            neighbors = [self.domains[domain_id] for domain_id in neighbor_ids]
-
-            burst = self.burst_non_multis(neighbors)
-            neighbor_dists = self.obj_distance_array(objpos, burst)
+            # get distances to closest shell of burst neighbors
+            neighbor_dists = self.obj_distance_array(dompos, burst)
+            # 3. select neighbors in the 'multi_horizon' for adding to the multi
             neighbors = [burst[i] for i
-                                  in (neighbor_dists <= radius).nonzero()[0]]
+                                  in (neighbor_dists <= burstradius).nonzero()[0]]
 
+            # 4. not sure we really want to do this
             for domain in neighbors:
                 self.add_to_multi_recursive(domain, multi)
 
@@ -2189,9 +2260,13 @@ class EGFRDSimulator(ParticleSimulatorBase):
             else:
                 self.merge_multis(domain, multi)
         else:
-            assert False, 'do not reach here.'  # Pairs are burst
+            # only NonInteractionSingles and Multi should be selected
+            assert False, 'Trying to add non Single or Multi to Multi.'
 
     def add_to_multi(self, single, multi):
+    # This method is similar to the 'create_' methods for pair and interaction, except it's now for a multi
+    # adding a single to the multi instead of creating a pair or interaction out of single(s)
+
         if __debug__:
             log.info('add to multi:\n  %s\n  %s' % (single, multi))
 
@@ -2231,7 +2306,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
     def domain_distance(self, pos, domain):
         # calculates the shortest distance from 'pos' to A shell (a Multi
         # can have multiple) of 'domain'.
-        # Note: it returns the distance between pos and the CENTER of the shell
+        # Note: it returns the distance between pos and the surface of the shell
         return min(self.world.distance(shell.shape, pos)
                    for i, (_, shell) in enumerate(domain.shell_list))
 
@@ -2290,78 +2365,166 @@ rejected moves = %d
     # consistency checkers
     #
 
-    def check_obj(self, obj):
-        obj.check()
+    def check_domain(self, domain):
+        domain.check()
 
-        if isinstance(obj, Multi):
+        if isinstance(domain, Multi):
             # Ignore all surfaces, multi shells can overlap with 
             # surfaces.
             ignores = [s.id for s in self.world.structures]
-        elif isinstance(obj, InteractionSingle):
+        elif isinstance(domain, InteractionSingle) or isinstance(domain, MixedPair):
             # Ignore surface of the particle and interaction surface
-            ignores = [obj.structure.id, obj.surface.id]
+            ignores = [domain.structure.id, domain.surface.id]
         else:
-            ignores = [obj.structure.id]
+            ignores = [domain.structure.id]
 
-        for shell_id, shell in obj.shell_list:
-            closest, distance = self.geometrycontainer.get_closest_obj(shell.shape.position,
-                                                                       self.domains,
-                                                                       ignore=[obj.domain_id],
-                                                                       ignores=ignores)
 
-#            distance_midpoints = self.world.distance(obj.shell.shape.position, closest.shell.shape.position)
-            distance_midpoints = 0
 
-        #TODO
-            if(type(shell.shape) is Cylinder and
-               closest and type(closest.shell.shape) is Sphere):
-                # Note: this case is special.
-                # Note: only checking if cylinder doesn't overlap with 
-                # closest sphere, like we do here, is not really 
-                # sufficient (but checking all spheres is too much 
-                # work).
-                shell_size = shell.shape.half_length
-                # Reverse overlap calculation: from closest sphere to 
-                # cylinder is easier than the other way around, because 
-                # the distance calculation from a point to a cylinder 
-                # is already implemented.
-                sphere = closest.shell.shape
-                diff = self.world.distance(shell.shape, sphere.position) - \
-                       sphere.radius
+        for shell_id, shell in domain.shell_list:
+
+#            closest, distance = self.geometrycontainer.get_closest_obj(shell.shape.position,
+#                                                                       self.domains,
+#                                                                       ignore=[domain.domain_id],
+#                                                                       ignores=ignores)
+
+#            distance_midpoints = self.world.distance(domain.shell.shape.position, closest.shell.shape.position)
+#            distance_midpoints = 0
+
+            # TODO should be replace by list of surface
+            surface, distance = get_closest_surface(self.world, shell.shape.position, ignores)
+            if surface:
+                surfaces = [(surface, distance), ]
+                for surface, distance in surfaces:
+                    assert self.check_surface_overlap(shell, surface), \
+                        '%s (%s) overlaps with %s.' % \
+                        (str(domain), str(shell), str(surface))
+
+
+            neighbors = self.geometrycontainer.get_neighbor_domains(shell.shape.position,
+                                                                    self.domains, ignore=[domain.domain_id])
+
+            for neighbor, _ in neighbors:
+                for _, neighbor_shell in neighbor.shell_list:
+                    assert self.check_shell_overlap(shell, neighbor_shell), \
+                        '%s (%s) overlaps with %s (%s).' % \
+                        (str(domain), str(shell), str(neighbor), str(neighbor_shell))
+
+#            # testing overlap criteria
+#            # TODO This doesn't work if closest is a Multi -> redesign this test
+#            if(type(shell.shape) is Cylinder and
+#               closest and type(closest.shell.shape) is Sphere):
+#                # Note: this case is special.
+#                # Note: only checking if cylinder doesn't overlap with 
+#                # closest sphere, like we do here, is not really 
+#                # sufficient (but checking all spheres is too much 
+#                # work).
+#                shell_size = shell.shape.half_length
+#                # Reverse overlap calculation: from closest sphere to 
+#                # cylinder is easier than the other way around, because 
+#                # the distance calculation from a point to a cylinder 
+#                # is already implemented.
+#                sphere = closest.shell.shape
+#                diff = self.world.distance(shell.shape, sphere.position) - \
+#                       sphere.radius
+#            else:
+#                if(type(domain) is CylindricalSurfaceSingle or
+#                   type(domain) is CylindricalSurfacePair or
+#                   type(domain) is CylindricalSurfaceInteraction):
+#                    # On CylindricalSurface, use half_lenghts.
+#                    # (assume all nearby other cylinders are on the 
+#                    # same surface)
+#                    shell_size = shell.shape.half_length
+#                else:
+#                    # Normally compare radii.
+#                    shell_size = shell.shape.radius
+#                diff = distance - shell_size
+
+            if (type(shell.shape) is Cylinder):
+                # the cylinder should at least fit in the maximal sphere
+                shell_size = math.sqrt(shell.shape.radius**2 + shell.shape.half_length**2)
+            elif (type(shell.shape) is Sphere):
+                shell_size = shell.shape.radius
             else:
-                if(type(obj) is CylindricalSurfaceSingle or
-                   type(obj) is CylindricalSurfacePair or
-                   type(obj) is CylindricalSurfaceInteraction):
-                    # On CylindricalSurface, use half_lenghts.
-                    # (assume all nearby other cylinders are on the 
-                    # same surface)
-                    shell_size = shell.shape.half_length
-                else:
-                    # Normally compare radii.
-                    shell_size = shell.shape.radius
-                diff = distance - shell_size
+                raise RuntimeError('check_domain error: Shell shape was not Cylinder of Sphere')
 
             assert shell_size <= self.geometrycontainer.get_user_max_shell_size(), \
-                '%s shell size larger than user-set max shell size' % \
-                str(shell_id)
+                '%s shell size larger than user-set max shell size, shell_size = %s, max = %s.' % \
+                (str(shell_id), FORMAT_DOUBLE % shell_size, FORMAT_DOUBLE % self.geometrycontainer.get_user_max_shell_size())
 
             assert shell_size <= self.geometrycontainer.get_max_shell_size(), \
-                '%s shell size larger than simulator cell size / 2' % \
-                str(shell_id)
+                '%s shell size larger than simulator cell size / 2, shell_size = %s, max = %s.' % \
+                (str(shell_id), FORMAT_DOUBLE % shell_size, FORMAT_DOUBLE % self.geometrycontainer.get_max_shell_size())
 
-            assert diff >= 0.0, \
-                '%s overlaps with %s. (shell: %s, dist: %s, diff: %s, dist_midpoints: %s.' % \
-                (str(obj), str(closest), FORMAT_DOUBLE % shell_size,
-                 FORMAT_DOUBLE % distance,
-                 FORMAT_DOUBLE % diff,
-                 FORMAT_DOUBLE % distance_midpoints)
+#            assert diff >= 0.0, \
+#                '%s overlaps with %s. (shell: %s, dist: %s, diff: %s, dist_midpoints: %s.' % \
+#                (str(domain), str(closest), FORMAT_DOUBLE % shell_size,
+#                 FORMAT_DOUBLE % distance,
+#                 FORMAT_DOUBLE % diff,
+#                 FORMAT_DOUBLE % distance_midpoints)
 
         return True
 
-    def check_obj_for_all(self):
+    def check_shell_overlap(self, shell1, shell2):
+    # Returns True if the shells DO NOT overlap
+    # Returns False if the shells DO overlap
+
+        # overlap criterium when both shells are spherical
+        if (type(shell1.shape) is Sphere) and (type(shell2.shape) is Sphere):
+            distance = self.world.distance(shell1.shape.position, shell2.shape.position)
+            return (shell1.shape.radius + shell2.shape.radius) < distance
+
+        # overlap criterium when both shells are cylindrical 
+        elif (type(shell1.shape) is Cylinder) and (type(shell2.shape) is Cylinder):
+            # assuming that the cylinders are always parallel
+            assert abs(numpy.dot (shell1.shape.unit_z, shell2.shape.unit_z)) == 1
+            shell1_pos = shell1.shape.position
+            shell2_pos = shell2.shape.position
+            shell2_post = self.world.cyclic_transpose(shell1_pos, shell2_pos)
+            inter_pos = shell1_pos - shell2_pos
+            inter_pos_z = shell1.shape.unit_z * numpy.dot(inter_pos, shell1.shape.unit_z)
+            inter_pos_r = inter_pos - inter_pos_z
+            return not (((shell1.shape.half_length + shell2.shape.half_length) > length(inter_pos_z)) and \
+                       ((shell1.shape.radius + shell2.shape.radius) > length(inter_pos_r)))
+
+        # overlap criterium when one shell is spherical and the other is cylindrical
+        elif (type(shell1.shape) is Sphere) and (type(shell2.shape) is Cylinder):
+            distance = self.world.distance(shell2.shape, shell1.shape.position)
+            return (shell1.shape.radius) < distance
+
+        # the other way around
+        elif (type(shell1.shape) is Cylinder) and (type(shell2.shape) is Sphere):
+            distance = self.world.distance(shell1.shape, shell2.shape.position)
+            return (shell2.shape.radius) < distance
+
+        # something was wrong (wrong type of shell provided)
+        else:
+            raise RuntimeError('check_shell_overlap: wrong shell type(s) provided.')
+
+    def check_surface_overlap(self, shell, surface):
+        if (type(shell.shape) is Sphere):
+            distance = self.world.distance(surface.shape, shell.shape.position)
+            return shell.shape.radius < distance
+
+        elif (type(shell.shape) is Cylinder):
+            distance = self.world.distance(surface.shape, shell.shape.position)
+
+            # Only take shells into account that have unit_z perpendicular to unit_z of surface
+            if (type(surface.shape) is Plane):
+                return shell.shape.radius < distance
+            elif (type(surface.shape) is Cylinder):
+                return shell.shape.half_length < distance
+            else:
+                raise RuntimeError('check_surface_overlap: Surface was not Plane of Cylinder.')
+
+        # something was wrong (wrong type of shell provided)
+        else:
+            raise RuntimeError('check_surface_overlap: wrong shell type provided.')
+
+
+    def check_domain_for_all(self):
         for id, event in self.scheduler:
             domain = self.domains[event.data]
-            self.check_obj(domain)
+            self.check_domain(domain)
 
     def check_event_stoichiometry(self):
     # checks if the number of particles in the world is equal to the number
@@ -2401,6 +2564,8 @@ rejected moves = %d
                                (shell_population, matrix_population))
 
     def check_domains(self):
+    # checks that the events in the scheduler are consistent with the domains
+
         # make set of event_id that are stored in all the domains
         event_ids = set(domain.event_id
                         for domain in self.domains.itervalues())
@@ -2465,7 +2630,7 @@ rejected moves = %d
         self.check_domains()
         self.check_event_stoichiometry()
         
-        self.check_obj_for_all()
+        self.check_domain_for_all()
 
     #
     # methods for debugging.
