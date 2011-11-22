@@ -2169,7 +2169,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
         # Filter out relevant neighbors if present
         # only consider objects that are within the Multi horizon
-        neighbors = [obj for obj, overlap in multi_partners if overlap < 0]
+        neighbors = [obj for (obj, overlap) in multi_partners if overlap < 0]
         for partner in neighbors:
             assert (isinstance(partner, NonInteractionSingle) or \
                     isinstance(partner, Multi) or \
@@ -2405,9 +2405,10 @@ rejected moves = %d
 
             for neighbor, _ in neighbors:
                 for _, neighbor_shell in neighbor.shell_list:
-                    assert self.check_shell_overlap(shell, neighbor_shell), \
-                        '%s (%s) overlaps with %s (%s).' % \
-                        (str(domain), str(shell), str(neighbor), str(neighbor_shell))
+                    overlap = self.check_shell_overlap(shell, neighbor_shell)
+                    assert overlap >= 0.0, \
+                        '%s (%s) overlaps with %s (%s) by %s.' % \
+                        (domain, str(shell), str(neighbor), str(neighbor_shell), FORMAT_DOUBLE % overlap)
 
 #            # testing overlap criteria
 #            # TODO This doesn't work if closest is a Multi -> redesign this test
@@ -2467,38 +2468,48 @@ rejected moves = %d
     def check_shell_overlap(self, shell1, shell2):
     # Returns True if the shells DO NOT overlap
     # Returns False if the shells DO overlap
+    # Return the amount of overlap (positive number means no overlap, negative means overlap)
 
         # overlap criterium when both shells are spherical
         if (type(shell1.shape) is Sphere) and (type(shell2.shape) is Sphere):
             distance = self.world.distance(shell1.shape.position, shell2.shape.position)
-            return (shell1.shape.radius + shell2.shape.radius) < distance
+            return distance - (shell1.shape.radius + shell2.shape.radius)
 
         # overlap criterium when both shells are cylindrical 
         elif (type(shell1.shape) is Cylinder) and (type(shell2.shape) is Cylinder):
             # assuming that the cylinders are always parallel
-            assert abs(numpy.dot (shell1.shape.unit_z, shell2.shape.unit_z)) == 1
+            assert feq(abs(numpy.dot (shell1.shape.unit_z, shell2.shape.unit_z)), 1.0), \
+                'shells are not oriented parallel, dot(unit_z1, unit_z2) = %s' % \
+                (abs(numpy.dot (shell1.shape.unit_z, shell2.shape.unit_z)))
+
             shell1_pos = shell1.shape.position
             shell2_pos = shell2.shape.position
             shell2_post = self.world.cyclic_transpose(shell1_pos, shell2_pos)
             inter_pos = shell1_pos - shell2_pos
             inter_pos_z = shell1.shape.unit_z * numpy.dot(inter_pos, shell1.shape.unit_z)
             inter_pos_r = inter_pos - inter_pos_z
-            return not (((shell1.shape.half_length + shell2.shape.half_length) > length(inter_pos_z)) and \
-                       ((shell1.shape.radius + shell2.shape.radius) > length(inter_pos_r)))
+            overlap_r = length(inter_pos_r) - (shell1.shape.radius + shell2.shape.radius)
+            overlap_z = length(inter_pos_z) - (shell1.shape.half_length + shell2.shape.half_length)
+            if (overlap_r < 0.0) and (overlap_z < 0.0):
+                return -1           # TODO: find better number for overlap measure
+            else:
+                return 1
+
 
         # overlap criterium when one shell is spherical and the other is cylindrical
         elif (type(shell1.shape) is Sphere) and (type(shell2.shape) is Cylinder):
             distance = self.world.distance(shell2.shape, shell1.shape.position)
-            return (shell1.shape.radius) < distance
+            return distance - shell1.shape.radius
 
         # the other way around
         elif (type(shell1.shape) is Cylinder) and (type(shell2.shape) is Sphere):
             distance = self.world.distance(shell1.shape, shell2.shape.position)
-            return (shell2.shape.radius) < distance
+            return distance - shell2.shape.radius
 
         # something was wrong (wrong type of shell provided)
         else:
             raise RuntimeError('check_shell_overlap: wrong shell type(s) provided.')
+
 
     def check_surface_overlap(self, shell, surface):
         if (type(shell.shape) is Sphere):

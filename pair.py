@@ -201,6 +201,7 @@ class SimplePair(Pair):
         sigma = radius1 + radius2
         r0 = geometrycontainer.world.distance(pos1, pos2)
 #        distance_from_sigma = r0 - sigma        # the distance between the surfaces of the particles
+
         assert r0 >= sigma, \
             'distance_from_sigma (pair gap) between %s and %s = %s < 0' % \
             (single1, single2, FORMAT_DOUBLE % (r0 - sigma))
