@@ -31,60 +31,171 @@ Real GreensFunction1DAbsSinkAbs::root_f (Real x, void *p)
     // L_Lm = Lr + Ll / Lr - Ll
     // x    = q * L
 
-    if( h <= 10.0 )
-        return x * sin(x) + h * ( cos(x * Lm_L) - cos(x) );
-    else
-        return Real();
+    return x * sin(x) + h * ( cos(x * Lm_L) - cos(x) );
+
 }
 
-/* Calculates the roots of root_f */
-Real GreensFunction1DAbsSinkAbs::root_n(int const& n) const
+/* Calculates the first n roots of root_f */
+void GreensFunction1DAbsSinkAbs::calculate_n_roots(int const& n) const
 {
-    const Real L( getLr() + getLl() );
-    const Real Lm( getLr() - getLl() );
+    const Real Lr( getLr() );
+    const Real Ll( getLl() );
+    const Real L( Lr + Lr );
+    const Real Lm( Lr - Ll );
+    const Real Lm_L( Lm / L );
     const Real h( getk() * L / ( 2 * getD() ) );
     
-    Real upper, lower;  
+    Real root_i;
+    unsigned int i = 0;
 
-    /* h sets how strong second term in root function is pronounced. 
-       The second term makes the rootfinding more complex. */
-    if ( h <= 10.0 )
-    {
-	    // 1E-10 to make sure that he doesn't include the transition 
-	    lower = (n-.5)*M_PI;
-	    // (asymptotic) from infinity to -infinity
-	    upper = (n+.5)*M_PI;
-    }
-    else
-    {
-        //TODO: more complicated scheme needed.
-        THROW_UNLESS( std::invalid_argument, h < 1 );
-        lower = (n-.5)*M_PI;
-	    upper = (n+.5)*M_PI;      
-    }
+    /* Stores the last roots found with a low and a high
+       frequency resp. */
+    real_pair last_roots, lower_upper_pair;
 
+    /* set params needed for get lower and upper function */
+    lower_upper_params lo_up_params;
+    lo_up_params.h = h;
+    lo_up_params.Lm_L = Lm_L;
+    lo_up_params.long_half_wave = max( L/Lr * M_PI, L/Ll * M_PI );
+    lo_up_params.short_half_wave = min( L/Lr * M_PI, L/Ll * M_PI );
+
+    /* Define the root function. */
     gsl_function F;
-    struct root_f_params params = { Lm / L, h };
+    struct root_f_params params = { Lm_L, h };
      
     F.function = &GreensFunction1DAbsSinkAbs::root_f;
     F.params = &params;
 
-    // define a new solver type brent
+    /* define and ad a new solver type brent */
     const gsl_root_fsolver_type* solverType( gsl_root_fsolver_brent );
-
-    // make a new solver instance
-    // TODO: incl typecast?
     gsl_root_fsolver* solver( gsl_root_fsolver_alloc( solverType ) );
-    // get the root = run the rootsolver
-    const Real root( findRoot( F, solver, lower, upper, 1.0*EPSILON, EPSILON,
-                            "GreensFunction1DAbsSinkAbs::root_f" ) );
+
+    /* Find the n roots */
+    while(i++ < n)
+    {
+        lower_upper_pair = get_lower_and_upper( last_roots, lower_upper_params );
+
+        root_i = findRoot( F, solver, lower_upper_pair.first, lower_upper_pair.second, 
+                           1.0*EPSILON, EPSILON, "GreensFunction1DAbsSinkAbs::root_f" );
+
+        assert( root_i > get_last_root() - EPSILON );
+
+        ad_to_rootList( root_i );       
+
+        if( root_i - last_roots.first < root_i - last_roots.second )
+            last_roots.first = root_i;
+        else
+            last_roots.second = root_i;
+    }
+
     gsl_root_fsolver_free( solver );
-    
-    return root/L;
+}
+
+/* Function returns two points on the x-axis which straddle the next root. */
+real_pair GreensFunction1DAbsSinkAbs::get_lower_and_upper( real_pair& last_roots, 
+                                                           lower_upper_params const& params )
+{
+    const Real root_n( get_last_root() );
+    const Real safety( .75 );
+
+    Real lower, upper, next_root_est, max_offset;
+
+    if( params.h / root_n < 1 )
+    {
+        max_offset = M_PI;
+        next_root_est = root_n + M_PI;
+    }
+    else
+    {
+        const Real next_root_long( last_roots.first + params.long_half_wave );
+        const Real next_root_short( last_roots.second + params.short_half_wave );
+
+        if( next_root_long < next_root_short )
+        {
+            next_root_est = next_root_long;
+
+            max_offset = min( next_root_short - next_root_est, 
+                              params.long_half_wave );
+        }
+        else
+        {
+            next_root_est = root_n + next_root_short;
+            
+            max_offset = min( next_root_long - next_root_est, 
+                              params.short_half_wave );
+        }
+    }
+       
+    lower = next_root_est - safety * max_offset;
+    upper = next_root_est + safety * max_offset;
+
+    struct root_f_params p = { params.Lm_L, params.h };
+
+    Real f_lower( root_f( lower, p ) );
+    Real f_upper( root_f( upper, p ) );
+    bool odd( (get_rootList.size() + 1)%2 );
+    /* if 'endpoints do not straddle' */
+    if( f_lower * f_higher > 0 )
+    {
+        std::cerr << "An endpoints do not straddle is imminent!" << std::endl;
+        std::cerr << "f_low(" << lower << ") = " << f_lower << ", f_high(" 
+                  << upper << ") = " << f_upper << std::endl;
+        /*
+        if( odd )
+        {
+            while( f_lower < 0 )
+            {
+                
+            }
+                
+
+        }
+        else
+        {
+
+        }
+        */
+    }    
+
+    return real_pair( lower, upper );
+}
+
+/* returns a guess for the number of terms needed for 
+   the greensfunction to converge at time t */
+unsigned int GreensFunction1DAbsSinkAbs::guess_maxi(Real t) const
+{
+    const unsigned int safety(2);
+
+    if (t >= INFINITY)
+    {
+        return safety;
+    }
+
+    const Real D( getD() );
+
+    const Real root0( get_root( 0 ) );
+    const Real Dt(D * t);
+
+    const Real thr(exp(- Dt * root0 * root0) * this->TOLERANCE * 1e-1);
+
+    if (thr <= 0.0)
+    {
+        return this->MAX_TERMS;
+    }
+
+    const Real max_root(sqrt(root0 * root0 - log(thr) / Dt));
+
+    const unsigned int 
+        maxi(safety + 
+             static_cast<unsigned int>(max_alpha * getL() / M_PI));
+
+    return std::min(maxi, MAX_TERMS);
 }
 
 /* Standart form of the greensfunction */
-inline Real GreensFunction1DAbsSinkAbs::Greens_fn(Real const& t, Real const& root_n, Real const& root_n2) const
+inline Real GreensFunction1DAbsSinkAbs::Greens_fn(Real const& t, 
+                                                  Real const& root_n, 
+                                                  Real const& root_n2) const
 {
     return exp( - getD() * root_n2 * t ) / p_denominator( root_n );
 }
@@ -133,7 +244,7 @@ Real GreensFunction1DAbsSinkAbs::p_survival(Real t) const
 	    }
 	    prev_term = numerator;
     
-        root_n = this->root_n(n);
+        root_n = get_root(n);
         term1 = sin( root_n * L ) - sin( root_n * (Lr - L0) ) - sin( root_n * (Ll + L0) );
         term2 = sin( root_n * Lr ) - sin( root_n * L0 ) - sin( root_n * (Lr - L0) );
         
@@ -220,7 +331,7 @@ Real GreensFunction1DAbsSinkAbs::prob_r(Real r, Real t) const
 	        }
 	        prev_term = term_n;
 
-	        root_n = this->root_n(n);
+	        root_n = get_root(n);
 
             numerator =  D * root_n * sin( root_n * LlpL0 ) + 
                 k * sin( root_n * Ll ) * sin( root_n * L0);
@@ -333,7 +444,7 @@ Real GreensFunction1DAbsSinkAbs::flux_tot(Real t) const
         }
         prev_term = term_n;
     
-        root_n = this->root_n(n);
+        root_n = get_root(n);
         root_n2 = gsl_pow_2( root_n );
 
         term1 = sin( root_n * L ) - sin( root_n * LrmL0 ) - sin( root_n * LlpL0 );
@@ -375,7 +486,7 @@ Real GreensFunction1DAbsSinkAbs::flux_abs_Lr(Real t) const
         }
         prev_term = term_n;
     
-        root_n = this->root_n(n);
+        root_n = get_root(n);
         
         numerator = k * sin( root_n * Ll ) * sin ( root_n * L0 ) + D * root_n * sin( root_n * LlpL0 );
         numerator *= root_n;
@@ -412,7 +523,7 @@ Real GreensFunction1DAbsSinkAbs::flux_abs_Ll(Real t) const
         }
         prev_term = term_n;
     
-        root_n = this->root_n(n);
+        root_n = get_root(n);
         root_n2 = gsl_pow_2( root_n );        
         
         numerator = root_n2 * sin( root_n * LrmL0 );
@@ -546,7 +657,7 @@ Real GreensFunction1DAbsSinkAbs::drawTime(Real rnd) const
        coefficients should be calculated on demand->TODO or not TODO? */
     for (int n = 0; n < MAX_TERMS; n++)
     {
-        root_n = this->root_n( n + 1 );	
+        root_n = get_root( n + 1 );	
 
         term1 = sin( root_n * L ) - sin( root_n * (Lr - L0) ) - sin( root_n * (Ll + L0) );
         term2 = sin( root_n * Lr ) - sin( root_n * L0 ) - sin( root_n * (Lr - L0) );
@@ -781,17 +892,19 @@ Real GreensFunction1DAbsSinkAbs::drawR(Real rnd, Real t) const
 
     assert(S >= 0.0);
 
-    // produce the coefficients and the terms in the exponent and put them
-    // in the params structure //TODO: MAX_TERM -> CONVERGENCE_TERMS
+    /* produce the coefficients and the terms in the exponent and put them
+       in the params structure //TODO: MAX_TERM -> CONVERGENCE_TERMS */
     for (int n = 0; n < MAX_TERMS; n++)
     {
-	    root_n = this->root_n(n+1);
+	    root_n = get_root(n+1);
        	root_n2 = gsl_pow_2( root_n );
-      	// store the roots in the structure
-	    parameters.root_n[n] = root_n;
+
         // also store the exponent and denominator.
         parameters.exp_and_denominator[n] = Greens_fn( t, root_n, root_n2 );
     }
+
+    //Store pointer to the rootList in params.
+    parameters.rootListPtr = get_rootListPtr();
     
     // The normalization.
     parameters.prefactor = 2.0 / S;

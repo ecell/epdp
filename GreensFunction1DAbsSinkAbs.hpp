@@ -40,6 +40,9 @@ private:
     static const int MIN_TERMS = 20;
 
 public:
+    typedef std::pair<Real, Real> real_pair;
+    typedef vector<Real> RealVector;
+
     GreensFunction1DAbsSinkAbs(Real D, Real k, Real r0, Real rsink, Real sigma, Real a)
 	: GreensFunction(D), v(0.0), k(k), r0(r0), sigma(sigma), a(a), rsink(rsink), l_scale(L_TYPICAL), t_scale(T_TYPICAL)
     {
@@ -187,15 +190,31 @@ public:
     {
         return "GreensFunction1DAbsSinkAbs";
     }
-
-    // Calculates the roots of x * sin(x) + k * L / (2 * D) * ( cos(x * (Lr - Ll)/L) - cos(x) ) 
-    Real root_n(int const& n) const;
     
 private:
 
+    /* return a reference to the rootList */
+    RealVecor& get_rootList() const
+    {
+        return rootList;
+    }
+
+    /* returns last root. */
+    Real get_last_root() const
+    {
+        return rootList.back();
+    }
+
+    /* return the n'th root */
+    Real get_root( unsigned inst const n ) const
+    {
+        return rootList[ n ];
+    }
+
     struct drawR_params
     {
-	    Real root_n[MAX_TERMS];
+        //Real root_n[MAX_TERMS];
+        vector<Real> *rootListPtr;
 	    Real exp_and_denominator[MAX_TERMS];
 	    Real prefactor;
         Real L0;
@@ -223,21 +242,35 @@ private:
 	    Real Lm_L;
 	    Real h;
     };
-       
+
+    /* Try to guess number of terms needed for convergence, given t. */
+    unsigned int guess_maxi( Real t ) const;
+
+    /* Function needed for rootfinding */
+    static Real root_f(Real x, void *p);
+
+    /* Function returns i'th element in rootList */
+    Real get_root(unsigned int i) const;
+    
+    /* Denominator of the Greens function */
     inline Real p_denominator( Real const& root_n ) const;
     
+    /* Standard form of Greens Function: exp( -Dt root_n ** 2 ) / denominator */
     inline Real Greens_fn(Real const& t, Real const& root_n, Real const& root_n2) const;
 
+    /* p_int_r(r') for r' in left domain */
     static Real p_int_r_leftdomain(Real const& rr, Real const& root_n, drawR_params const& params);
 
+    /* p_int_r(r') for r' in right domain, left of r0 */
     static Real p_int_r_rightdomainA(Real const& rr, Real const& root_n, drawR_params const& params);
 
+    /* p_int_r(r') for r' in right domain, right of r0 */
     static Real p_int_r_rightdomainB(Real const& rr, Real const& root_n, drawR_params const& params);
 
-    static Real root_f (Real x, void *p);
-
+    /* Function for drawR */
     static Real drawT_f (Real t, void *p);
 
+    /* Function for drawTime */
     static Real drawR_f (Real t, void *p);
 
     /* Class variables */
@@ -267,5 +300,8 @@ private:
     Real Ll;
     // Distance between the sink and r0.
     Real L0;
+
+    // Stores all the roots.
+    RealVector rootList;
 };
 #endif // __GREENSFUNCTION1DRADABS_HPP

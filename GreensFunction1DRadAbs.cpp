@@ -32,7 +32,7 @@ GreensFunction1DRadAbs::tan_f (double x, void *p)
     const Real h = (params->h);
     const Real h_a (h*a);
 
-    if ( h_a < 1 )
+    if ( fabs( h_a ) < 1 )
     {
 	// h = k/D
 	return 1/tan(x) + (h_a)/x;
