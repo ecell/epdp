@@ -233,6 +233,9 @@ class NonInteractionSingle(Single):
             # asymmetric 1D domain (r0 != 0, or drift), since draw_r always 
             # returns a distance relative to the centre of the shell (r=0), 
             # not relative to r0.
+
+            # note that we need to make sure that the shell.shape.position and displacement vector
+            # are in the structure to prevent the particle leaving the structure due to numerical errors
             newpos = self.shell.shape.position + displacement
 
         return newpos
@@ -351,14 +354,21 @@ class PlanarSurfaceSingle(NonInteractionSingle):
         # particle undergoes an unbinding reaction we still have to 
         # clear the target volume and the move may be rejected (NoSpace 
         # error).
-        orientation = normalize(
-            utils.crossproduct(self.structure.shape.unit_x,
-                               self.structure.shape.unit_y))
+#        orientation = normalize(
+#            utils.crossproduct(self.structure.shape.unit_x,
+#                               self.structure.shape.unit_y))
+
+        # express the position into the surface unit vectors to make sure that the coordinates are in the surface
+        pos_x = self.structure.shape.unit_x * numpy.dot(position, self.structure.shape.unit_x)
+        pos_y = self.structure.shape.unit_y * numpy.dot(position, self.structure.shape.unit_y)
+        position = pos_x + pos_y
+        orientation = self.structure.shape.unit_z
         half_length = self.pid_particle_pair[1].radius
         return CylindricalShell(self.domain_id, Cylinder(position, radius, 
                                                     orientation, half_length))
 
     def create_position_vector(self, r):
+        # project the vector onto the surface unit vectors to make sure that the coordinates are in the surface
         x, y = random_vector2D(r)
         return x * self.structure.shape.unit_x + y * self.structure.shape.unit_y
 
@@ -404,9 +414,14 @@ class CylindricalSurfaceSingle(NonInteractionSingle):
         # The radius of a rod is not more than it has to be (namely the 
         # radius of the particle), so if the particle undergoes an 
         # unbinding reaction we still have to clear the target volume 
-        # and the move may be rejected (NoSpace error).
+        # and the move may be rejected.
+
+        unit_z = self.structure.shape.unit_z
+
+        # express the position into the surface unit vectors to make sure that the coordinates are in the surface
+        position = unit_z * numpy.dot(position, unit_z)
         radius = self.pid_particle_pair[1].radius
-        orientation = self.structure.shape.unit_z
+        orientation = unit_z
         return CylindricalShell(self.domain_id, Cylinder(position, radius, 
                                                     orientation, half_length))
 
@@ -417,6 +432,8 @@ class CylindricalSurfaceSingle(NonInteractionSingle):
             # both boundaries at the escape time
             # TODO, include drift
             z = myrandom.choice(-1, 1) * z 
+
+        # project the com onto the surface unit vectors to make sure that the coordinates are in the surface
         return z * self.shell.shape.unit_z
 
     def __str__(self):
@@ -582,6 +599,8 @@ class PlanarSurfaceInteraction(InteractionSingle):
                 r = draw_r_wrapper(gf, dt, a)
 
             x, y = random_vector2D(r)
+            # express the r vector in the unit vectors of the surface to make sure the particle is
+            # parallel to the surface (due to numerical problem)
             vector_r = x * self.surface.shape.unit_x + y * self.surface.shape.unit_y
 
             # calculate z vector
@@ -606,9 +625,13 @@ class PlanarSurfaceInteraction(InteractionSingle):
                 gf_iv = self.iv_greens_function()
                 z = draw_r_wrapper(gf_iv, dt, z_not_surface, z_surface) # last two args= a, sigma
 
+            # express the vector_z in the unit vectors of the surface to prevent the particle from
+            # leaving the surface due to numerical problem
             vector_z = z * self.shell.shape.unit_z
 
             # The new position is relative to the center of the shell
+            # note that we need to make sure that the shell.shape.position and vector_r and vector_z
+            # are correct (in the structure) to prevent the particle leaving the structure due to numerical errors
             newpos = self.shell.shape.position + vector_r + vector_z
 
         return newpos
@@ -692,9 +715,11 @@ class CylindricalSurfaceInteraction(InteractionSingle):
                 gf = self.greens_function()
                 z = draw_r_wrapper(gf, dt, self.get_inner_dz_left())
 
-            # Direction matters, so use shell.shape.unit_z instead of 
-            # structure.shape.unit_z.
-            z_vector = z * self.shell.shape.unit_z
+            # Direction matters, so determine the direction of the shell relative to the surface
+            # first
+            direction = cmp(numpy.dot(self.shell.shape.unit_z, self.structure.shape.unit_z), 0)
+            # express the z_vector into the surface unit vectors to make sure that the coordinates are in the surface
+            z_vector = z * direction * self.structure.shape.unit_z
 
 
             # 2) Draw r and theta.

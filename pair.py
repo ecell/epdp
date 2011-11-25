@@ -127,16 +127,9 @@ class Pair(ProtectiveDomain):
         inter-particle vector.
 
         """
-#        # If the two particles have reacted this returns the
-#        # new position twice
-#        # The positions are relative to the center of the shell
         new_com = self.draw_new_com(dt, event_type)
-
-#        if event_type == EventType.IV_REACTION:
-#            newpos1 = new_com
-#            newpos2 = new_com
-#        else:
         new_iv = self.draw_new_iv(dt, r0, old_iv, event_type)
+
         newpos1, newpos2 = self.do_back_transform(new_com, new_iv)
 
         return newpos1, newpos2
@@ -149,12 +142,13 @@ class Pair(ProtectiveDomain):
             gf = self.com_greens_function()
             r = draw_r_wrapper(gf, dt, self.a_R)
 
-        return self.com + self.create_com_vector(r)
-
         # Add displacement to old CoM. This assumes (correctly) that 
         # r0=0 for the CoM. Compare this to 1D singles, where r0 is not  
         # necesseraly 0.
-#        return displacement
+
+        # note that we need to make sure that the com and com_vector are in the structure to prevent
+        # the particle leaving the structure due to numerical errors
+        return self.com + self.create_com_vector(r)
 
     def draw_new_iv(self, dt, r0, old_iv, event_type):
         gf = self.choose_pair_greens_function(r0, dt)
@@ -165,6 +159,8 @@ class Pair(ProtectiveDomain):
         else:
             r = draw_r_wrapper(gf, dt, self.a_r, self.sigma)
 
+        # note that we need to make sure that the interparticle vector is in the structure to prevent
+        # the particle leaving the structure due to numerical errors
         return self.create_interparticle_vector(gf, r, dt, r0, old_iv)
 
     def check(self):
@@ -334,6 +330,8 @@ class SimplePair(Pair):
 
         com = world.calculate_pair_CoM(pos1, pos2, D1, D2)
         com = world.apply_boundary(com)
+        # make sure that the com is in the structure of the particle (assume that this is done correctly in
+        # calculate_pair_CoM)
 
         pos2t = world.cyclic_transpose(pos2, pos1)
         iv = pos2t - pos1
@@ -341,6 +339,9 @@ class SimplePair(Pair):
         return com, iv
 
     def do_back_transform(self, com, iv):
+    # here we assume that the com and iv are really in the structure and no adjustments have to be
+    # made
+
         D1 = self.pid_particle_pair1[1].D
         D2 = self.pid_particle_pair2[1].D
 
@@ -503,33 +504,10 @@ class SphericalPair(SimplePair):
         return random_vector(r)
 
     def create_interparticle_vector(self, gf, r, dt, r0, old_iv): 
-        # FIXME code doesn't handle r=0 
 
         if __debug__:
             log.debug("create_interparticle_vector: r=%g, dt=%g", r, dt)
         theta = draw_theta_wrapper(gf, r, dt)
-
-#        new_inter_particle_s = numpy.array([r, theta, phi])
-#        new_iv = spherical_to_cartesian(new_inter_particle_s)
-
-        # calculate the old_iv theta (theta is the angle with the zenith (z-axis) of the system)
-#        old_iv_theta = vector_angle_against_z_axis(old_iv)
-        # the old_iv phi is taken to be zero. This means that the theta is in the plane of
-        # the z-axis and the old_iv
-
-            # We now rotate the new interparticle vector in the plane of
-            # the old_iv and the z axis. This menas along the
-            # rotation axis that is perpendicular to both the
-            # z-axis and the original interparticle vector. The rotation
-            # angle is the angle between the old_iv and z axis.
-        
-            # the rotation axis is a normalized cross product of
-            # the z-axis and the original vector.
-            # rotation_axis = crossproduct([0,0,1], inter_particle)
-
-#            rotation_axis = crossproduct_against_z_axis(old_iv)
-#            rotation_axis = normalize(rotation_axis)
-#            new_iv = rotate_vector(new_iv, rotation_axis, old_iv_theta)
 
         if theta == 0.0:
             # no rotation is necessary -> new_iv = new_iv
@@ -541,14 +519,16 @@ class SphericalPair(SimplePair):
             rotation_axis = normalize(rotation_axis)
             new_iv = rotate_vector(old_iv, rotation_axis, theta)
 
-            # rotate the new_iv around the old_iv with angle phi and adjust length
+            # rotate the new_iv around the old_iv with angle phi
             phi = myrandom.uniform() * 2 * Pi
-            old_iv = normalize(old_iv)
-            new_iv = rotate_vector(new_iv, old_iv, phi)
+            rotation_axis = normalize(old_iv)
+            new_iv = rotate_vector(new_iv, rotation_axis, phi)
         else:
-            # angle == numpi.pi -> just mirror the old_iv 
+            # theta == numpi.pi -> just mirror the old_iv 
             new_iv = -old_iv
 
+        # adjust length of the vector
+        # note that r0 = length (old_iv)
         new_iv = (r/r0) * new_iv
 
         return new_iv
@@ -630,31 +610,29 @@ class PlanarSurfacePair(SimplePair):
 
     def create_com_vector(self, r):
         x, y = random_vector2D(r)
+        # project the com onto the surface unit vectors to make sure that the coordinates are in the surface
         return x * self.structure.shape.unit_x + y * self.structure.shape.unit_y
 
     def create_interparticle_vector(self, gf, r, dt, r0, old_iv): 
-        # note that r0 = length (old_iv)
 
         if __debug__:
             log.debug("create_interparticle_vector: r=%g, dt=%g", r, dt)
         theta = draw_theta_wrapper(gf, r, dt)
 
-#        unit_x = self.structure.shape.unit_x
-#        unit_y = self.structure.shape.unit_y
-#        angle = vector_angle(unit_x, old_iv)
-        # FIXME THIS IS WRONG: angle returns the angle between the vectors regardsless of order
-        #       now we do not see the different if the old_iv is mirrored in the unit_x
-        # Todo. Test if nothing changes when theta == 0.
-#        new_angle = angle + theta
-#
-#        new_iv = r * math.cos(new_angle) * unit_x + \
-#                 r * math.sin(new_angle) * unit_y
-
+        # note that r0 = length (old_iv)
         new_iv = (r/r0) * rotate_vector(old_iv, self.structure.shape.unit_z, theta)
         # note that unit_z can point two ways rotating the vector clockwise or counterclockwise
         # Since theta is symmetric this doesn't matter.
 
-        return new_iv
+        # project the new_iv down on the unit vectors of the surface to prevent the particle from
+        # leaving the surface due to numerical problem
+        unit_x = self.structure.shape.unit_x
+        unit_y = self.structure.shape.unit_y
+
+        new_iv_x = unit_x * numpy.dot(new_iv, unit_x)
+        new_iv_y = unit_y * numpy.dot(new_iv, unit_y)
+
+        return new_iv_x + new_iv_y
 
     def __str__(self):
         return 'PlanarSurface' + Pair.__str__(self)
@@ -707,16 +685,22 @@ class CylindricalSurfacePair(SimplePair):
         return self.iv_greens_function(r0)
 
     def create_com_vector(self, r):
+        # project the com onto the surface unit vector to make sure that the coordinates are in the surface
         return r * self.structure.shape.unit_z
 
     def create_interparticle_vector(self, gf, r, dt, r0, old_iv): 
-        # note that r0 = length (old_iv)
         if __debug__:
             log.debug("create_interparticle_vector: r=%g, dt=%g", r, dt)
-        # Note: using self.structure.shape.unit_z here might accidently 
-        # interchange the particles.
-        # That's why we would use self.shell.shape.unit_z right?!
-        return (r/r0) * old_iv
+
+        # note that r0 = length (old_iv)
+        new_iv = (r/r0) * old_iv
+
+        # project the new_iv down on the unit vectors of the surface to prevent the particle from
+        # leaving the surface due to numerical problem
+        unit_z = self.surface.shape.unit_z
+        new_iv_z = unit_z * numpy.dot(new_iv, unit_z)
+
+        return new_iv_z
 
     def get_shell_size(self):
         # Heads up.
@@ -1235,7 +1219,7 @@ class MixedPair(Pair):
 
         # the CoM is calculated in a similar way to a normal 3D pair
         com = (D_2 * pos1 + D_1 * pos2) / (D_1 + D_2)
-        # and then projected onto the plane
+        # and then projected onto the plane to make sure the CoM is in the surface
         com = world.cyclic_transpose(com, surface.shape.position)
         com, _ = surface.projected_point (com)
         com = world.apply_boundary(com)
@@ -1259,11 +1243,16 @@ class MixedPair(Pair):
         return com, iv
 
     def do_back_transform(self, com, iv):
+    # here we assume that the com and iv are really in the structure and no adjustments have to be
+    # made
+
         D1 = self.pid_particle_pair1[1].D
         D2 = self.pid_particle_pair2[1].D
 
         weight1 = D1 / self.D_tot
         weight2 = D2 / self.D_tot
+
+        min_iv_z_length = self.pid_particle_pair2[1].radius
 
         # get the coordinates of the iv relative to the system of the surface (or actually the shell)
         iv_x = self.surface.shape.unit_x * numpy.dot(iv, self.surface.shape.unit_x)
@@ -1272,20 +1261,20 @@ class MixedPair(Pair):
         # reflect the coordinates in the unit_z direction back to the side of the membrane
         # where the domain is. Note that it's implied that the origin of the coordinate system lies in the
         # plane of the membrane
-        iv_z_length = abs(numpy.dot(iv, self.shell.shape.unit_z))
+        iv_z_length = abs(numpy.dot(iv, self.shell.shape.unit_z))   # FIXME maybe first project the shell unit_z onto the 
+                                                                    # surface unit_z to prevent numerical problems?
         # do the reverse scaling
         iv_z_length = iv_z_length / self.z_scaling_factor
 
         # if the particle is overlapping with the membrane, make sure it doesn't
-        if iv_z_length < self.pid_particle_pair2[1].radius:
-            iv_z_length = self.pid_particle_pair2[1].radius * MINIMAL_SEPARATION_FACTOR
+        if iv_z_length < min_iv_z_length:
+            iv_z_length = min_iv_z_length * MINIMAL_SEPARATION_FACTOR
 
         iv_z = self.shell.shape.unit_z * iv_z_length
 
         pos1 = com - weight1 * (iv_x + iv_y)
         pos2 = com + weight2 * (iv_x + iv_y) + \
-               iv_z #/self.z_scaling_factor + \
-#               self.shell.shape.unit_z * self.pid_particle_pair2[1].radius
+               iv_z 
 
         return pos1, pos2
 
@@ -1325,10 +1314,10 @@ class MixedPair(Pair):
 
     def create_com_vector(self, r):
         x, y = random_vector2D(r)
+        # project the com onto the surface unit vectors to make sure that the coordinates are in the surface
         return x * self.surface.shape.unit_x + y * self.surface.shape.unit_y
 
     def create_interparticle_vector(self, gf, r, dt, r0, old_iv):
-        # Note: old_iv is actually the r0_vector
         # FIXME This is actually the same method as for SphericalPair
 
         if __debug__:
@@ -1346,13 +1335,14 @@ class MixedPair(Pair):
 
             # rotate the new_iv around the old_iv with angle phi
             phi = myrandom.uniform() * 2 * Pi
-            old_iv = normalize(old_iv)
-            new_iv = rotate_vector(new_iv, old_iv, phi)
+            rotation_axis = normalize(old_iv)
+            new_iv = rotate_vector(new_iv, rotation_axis, phi)
         else:
             # theta == Pi -> just mirror the old_iv
             new_iv = -old_iv
 
-        #adjust length of the vector to new r
+        # adjust length of the vector to new r
+        # note that r0 = length (old_iv)
         new_iv = (r/r0) * new_iv
 
         return new_iv
@@ -1364,6 +1354,9 @@ class MixedPair3D1D(Pair):
 
     @classmethod
     def do_back_transform(cls, com, iv, D1, D2, radius1, radius2, surface):
+    # here we assume that the com and iv are really in the structure and no adjustments have to be
+    # made
+
         D_tot = D1 + D2
         weight1 = D1 / D_tot
         weight2 = D2 / D_tot
