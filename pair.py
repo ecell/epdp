@@ -350,10 +350,7 @@ class SimplePair(Pair):
     # here we assume that the com and iv are really in the structure and no adjustments have to be
     # made
 
-#        D1 = self.pid_particle_pair1[1].D
-#        D2 = self.pid_particle_pair2[1].D
         D_tot = D1 + D2
-
         pos1 = com - iv * (D1 / D_tot)
         pos2 = com + iv * (D2 / D_tot)
 
@@ -1264,9 +1261,6 @@ class MixedPair(Pair):
     def do_back_transform(cls, com, iv, D1, D2, radius1, radius2, surface, unit_z):
     # here we assume that the com and iv are really in the structure and no adjustments have to be
     # made
-
-#        D1 = self.pid_particle_pair1[1].D
-#        D2 = self.pid_particle_pair2[1].D
 
         D_tot = D1 + D2
         weight1 = D1 / D_tot

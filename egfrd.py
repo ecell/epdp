@@ -792,8 +792,6 @@ class EGFRDSimulator(ParticleSimulatorBase):
                 # figure out which product stays in the surface and which one goes to 3D
                 if isinstance(product2_structure, CuboidalRegion):
                     # product2 goes to 3D and is now particleB (product1 is particleA)
-                    productA_displacement = product1_displacement
-                    productB_displacement = product2_displacement
                     productA_radius = product1_radius
                     productB_radius = product2_radius
                     DA = D1
@@ -801,8 +799,6 @@ class EGFRDSimulator(ParticleSimulatorBase):
                     default = True      # we like to think of this as the default
                 else:
                     # product1 goes to 3D and is now particleB (product2 is particleA)
-                    productA_displacement = product2_displacement
-                    productB_displacement = product1_displacement
                     productA_radius = product2_radius
                     productB_radius = product1_radius
                     DA = D2
@@ -820,13 +816,9 @@ class EGFRDSimulator(ParticleSimulatorBase):
                         # draw the random angle for the 3D particle relative to the particle left in the membrane
                         # not all angles are available because particle cannot intersect with the membrane
 
-#                        weightA = DA/(DA + DB)
-#                        weightB = DB/(DA + DB)
-
-                        # Basically do the backtransform with a random iv with length such that the particles are at contact
+                        # do the backtransform with a random iv with length such that the particles are at contact
                         # Note we make the iv slightly longer because otherwise the anisotropic transform will produce illegal
                         # positions
-
                         iv = random_vector(particle_radius12 * MixedPair.calc_z_scaling_factor(DA, DB))
                         iv *= MINIMAL_SEPARATION_FACTOR
 
@@ -835,22 +827,6 @@ class EGFRDSimulator(ParticleSimulatorBase):
                                                                        productA_radius, productB_radius,
                                                                        reactant_structure, unit_z)
 
-#                        # backtransform. TODO use backtransform from MixedPair class
-#                        iv_x = reactant_structure.shape.unit_x * numpy.dot(iv, reactant_structure.shape.unit_x)
-#                        iv_y = reactant_structure.shape.unit_y * numpy.dot(iv, reactant_structure.shape.unit_y)
-#                        orientation_vector_z  = reactant_structure.shape.unit_z * myrandom.choice(-1, 1)
-#                        iv_z_length = abs(numpy.dot(iv, orientation_vector_z))
-#                        # do the reverse scaling
-#                        iv_z_length /= z_scaling_factor
-#
-#                        # if the particle is overlapping with the membrane, make sure it doesn't
-#                        if iv_z_length < productB_radius:
-#                            iv_z_length = productB_radius * MINIMAL_SEPARATION_FACTOR
-#
-#                        iv_z = iv_z_length * orientation_vector_z
-#
-#                        newposA = reactant_pos - weightA * (iv_x + iv_y)
-#                        newposB = reactant_pos + weightB * (iv_x + iv_y) + iv_z
                         newposA = self.world.apply_boundary(newposA)
                         newposB = self.world.apply_boundary(newposB)
 
@@ -899,8 +875,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
                 # TODO Make this into a generator
                 product_pos_list = []
                 for _ in range(self.dissociation_retry_moves):
-                    # calculate a random vector in the structure with unit length
                     # FIXME for particles on the cylinder there are only two possibilities
+                    # calculate a random vector in the structure with unit length
                     orientation_vector = _random_vector(reactant_structure, 1.0, self.rng)
             
                     newpos1 = reactant_pos + product1_displacement * orientation_vector
