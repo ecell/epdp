@@ -130,7 +130,14 @@ class Pair(ProtectiveDomain):
         new_com = self.draw_new_com(dt, event_type)
         new_iv = self.draw_new_iv(dt, r0, old_iv, event_type)
 
-        newpos1, newpos2 = self.do_back_transform(new_com, new_iv)
+        unit_z = self.get_shell_direction()
+        newpos1, newpos2 = self.do_back_transform(new_com, new_iv,
+                                                  self.pid_particle_pair1[1].D,
+                                                  self.pid_particle_pair2[1].D,
+                                                  self.pid_particle_pair1[1].radius,
+                                                  self.pid_particle_pair2[1].radius,
+                                                  self.structure,
+                                                  unit_z)
 
         return newpos1, newpos2
 
@@ -338,15 +345,17 @@ class SimplePair(Pair):
 
         return com, iv
 
-    def do_back_transform(self, com, iv):
+    @ classmethod
+    def do_back_transform(cls, com, iv, D1, D2, radius1, radius2, surface, unit_z):
     # here we assume that the com and iv are really in the structure and no adjustments have to be
     # made
 
-        D1 = self.pid_particle_pair1[1].D
-        D2 = self.pid_particle_pair2[1].D
+#        D1 = self.pid_particle_pair1[1].D
+#        D2 = self.pid_particle_pair2[1].D
+        D_tot = D1 + D2
 
-        pos1 = com - iv * (D1 / self.D_tot)
-        pos2 = com + iv * (D2 / self.D_tot)
+        pos1 = com - iv * (D1 / D_tot)
+        pos2 = com + iv * (D2 / D_tot)
 
         return pos1, pos2
 
@@ -460,6 +469,9 @@ class SphericalPair(SimplePair):
     def create_new_shell(self, position, radius, domain_id):
         return SphericalShell(domain_id, Sphere(position, radius))
 
+    def get_shell_direction(self):
+        return random_vector(1.0)
+
     # selects between the full solution or an approximation where one of
     # the boundaries is ignored
     def choose_pair_greens_function(self, r0, t):
@@ -566,6 +578,9 @@ class PlanarSurfacePair(SimplePair):
                           self.pid_particle_pair2[1].radius)
         return CylindricalShell(domain_id, Cylinder(position, radius, 
                                                     orientation, half_length))
+
+    def get_shell_direction(self):
+        return self.shell.shape.unit_z
 
     def choose_pair_greens_function(self, r0, t):
         # selects between the full solution or an approximation where one of
@@ -679,6 +694,9 @@ class CylindricalSurfacePair(SimplePair):
         orientation = self.structure.shape.unit_z
         return CylindricalShell(domain_id, Cylinder(position, radius, 
                                                     orientation, half_length))
+
+    def get_shell_direction(self):
+        return self.shell.shape.unit_z
 
     def choose_pair_greens_function(self, r0, t):
         # Todo
@@ -1242,39 +1260,40 @@ class MixedPair(Pair):
 
         return com, iv
 
-    def do_back_transform(self, com, iv):
+    @ classmethod
+    def do_back_transform(cls, com, iv, D1, D2, radius1, radius2, surface, unit_z):
     # here we assume that the com and iv are really in the structure and no adjustments have to be
     # made
 
-        D1 = self.pid_particle_pair1[1].D
-        D2 = self.pid_particle_pair2[1].D
+#        D1 = self.pid_particle_pair1[1].D
+#        D2 = self.pid_particle_pair2[1].D
 
-        weight1 = D1 / self.D_tot
-        weight2 = D2 / self.D_tot
+        D_tot = D1 + D2
+        weight1 = D1 / D_tot
+        weight2 = D2 / D_tot
 
-        min_iv_z_length = self.pid_particle_pair2[1].radius
+        min_iv_z_length = radius2
 
         # get the coordinates of the iv relative to the system of the surface (or actually the shell)
-        iv_x = self.surface.shape.unit_x * numpy.dot(iv, self.surface.shape.unit_x)
-        iv_y = self.surface.shape.unit_y * numpy.dot(iv, self.surface.shape.unit_y)
+        iv_x = surface.shape.unit_x * numpy.dot(iv, surface.shape.unit_x)
+        iv_y = surface.shape.unit_y * numpy.dot(iv, surface.shape.unit_y)
 
         # reflect the coordinates in the unit_z direction back to the side of the membrane
         # where the domain is. Note that it's implied that the origin of the coordinate system lies in the
         # plane of the membrane
-        iv_z_length = abs(numpy.dot(iv, self.shell.shape.unit_z))   # FIXME maybe first project the shell unit_z onto the 
-                                                                    # surface unit_z to prevent numerical problems?
+        iv_z_length = abs(numpy.dot(iv, unit_z))   # FIXME maybe first project the shell unit_z onto the 
+                                                   # surface unit_z to prevent numerical problems?
         # do the reverse scaling
-        iv_z_length = iv_z_length / self.z_scaling_factor
+        iv_z_length = iv_z_length / cls.calc_z_scaling_factor(D1, D2)
 
         # if the particle is overlapping with the membrane, make sure it doesn't
         if iv_z_length < min_iv_z_length:
             iv_z_length = min_iv_z_length * MINIMAL_SEPARATION_FACTOR
 
-        iv_z = self.shell.shape.unit_z * iv_z_length
+        iv_z = unit_z * iv_z_length
 
         pos1 = com - weight1 * (iv_x + iv_y)
-        pos2 = com + weight2 * (iv_x + iv_y) + \
-               iv_z 
+        pos2 = com + weight2 * (iv_x + iv_y) + iv_z 
 
         return pos1, pos2
 
@@ -1311,6 +1330,9 @@ class MixedPair(Pair):
 
     def get_shell_size(self):
         return self.shell.shape.radius
+
+    def get_shell_direction(self):
+        return self.shell.shape.unit_z
 
     def create_com_vector(self, r):
         x, y = random_vector2D(r)
@@ -1353,9 +1375,10 @@ class MixedPair(Pair):
 class MixedPair3D1D(Pair):
 
     @classmethod
-    def do_back_transform(cls, com, iv, D1, D2, radius1, radius2, surface):
+    def do_back_transform(cls, com, iv, D1, D2, radius1, radius2, surface, unit_z):
     # here we assume that the com and iv are really in the structure and no adjustments have to be
     # made
+    # unit_z is a putatively different unit_z than that available in the surface object
 
         D_tot = D1 + D2
         weight1 = D1 / D_tot
@@ -1388,4 +1411,7 @@ class MixedPair3D1D(Pair):
     @classmethod
     def calc_r_scaling_factor(cls, D1, D2):
         return math.sqrt((D1 + D2)/D2)
+
+    def get_shell_direction(self):
+        return self.shell.shape.unit_z
 
