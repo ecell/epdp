@@ -358,10 +358,8 @@ class PlanarSurfaceSingle(NonInteractionSingle):
 #            utils.crossproduct(self.structure.shape.unit_x,
 #                               self.structure.shape.unit_y))
 
-        # express the position into the surface unit vectors to make sure that the coordinates are in the surface
-        pos_x = self.structure.shape.unit_x * numpy.dot(position, self.structure.shape.unit_x)
-        pos_y = self.structure.shape.unit_y * numpy.dot(position, self.structure.shape.unit_y)
-        position = pos_x + pos_y
+        # Note that the calculateion of the position of the shell needs to make sure that the
+        # coordinates are in the surface
         orientation = self.structure.shape.unit_z
         half_length = self.pid_particle_pair[1].radius
         return CylindricalShell(self.domain_id, Cylinder(position, radius, 
@@ -418,8 +416,8 @@ class CylindricalSurfaceSingle(NonInteractionSingle):
 
         unit_z = self.structure.shape.unit_z
 
-        # express the position into the surface unit vectors to make sure that the coordinates are in the surface
-        position = unit_z * numpy.dot(position, unit_z)
+        # Note that the calculation of the position of the shell has to make sure that the
+        # coordinates are in the surface
         radius = self.pid_particle_pair[1].radius
         orientation = unit_z
         return CylindricalShell(self.domain_id, Cylinder(position, radius, 
