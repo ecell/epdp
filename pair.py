@@ -1006,12 +1006,12 @@ class MixedPair(Pair):
             scalecenter_shell_dist /= 1.1
 
             if phi <= Pi/4:
-                print "scale z first."
+#                print "scale z first."
                 z1_new = min(z1, scalecenter_h0 + cos_phi * scalecenter_shell_dist)
                 r_new  = min(r, r1_function(single1, single2, r0, z1_new))
                 z2_new = min(z2, z2_function(single1, single2, r0, r_new))
             else:
-                print "scale r first."
+#                print "scale r first."
                 r_new = min(r, scalecenter_r0 + sin_phi * scalecenter_shell_dist)
                 z1_new = min(z1, z1_function(single1, single2, r0, r_new))
                 z2_new = min(z2, z2_function(single1, single2, r0, r_new))
