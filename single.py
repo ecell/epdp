@@ -41,7 +41,6 @@ class Single(ProtectiveDomain):
         self.reactionrules = reactionrules              # the reaction rules for mono molecular reactions
         self.rrule = None                               # the reaction rule of the actual reaction (property reactionrule)
         self.k_tot = self.calc_ktot(reactionrules)
-        #self.updatek_tot()                             # RENAME to calc_ktot and MOVE to ProtectiveDomain
 
     def getD(self):
         return self.pid_particle_pair[1].D
@@ -112,28 +111,6 @@ class Single(ProtectiveDomain):
 
         event_type = EventType.SINGLE_ESCAPE    # TODO Event is not an ESCAPE when in 1D there is drift
         return dt, event_type
-
-#    def updatek_tot(self):
-#       # MOVE to ProtectiveDomain class. See also reasoning above for
-#       # draw_reaction_time_tuple
-#        self.k_tot = 0
-#
-#        if not self.reactionrules:
-#            return
-#
-#        for rr in self.reactionrules:
-#            self.k_tot += rr.k
-#
-#    def draw_reaction_rule(self):
-#       # MOVE to ProtectiveDomain class
-#        k_array = [rr.k for rr in self.reactionrules]
-#        k_array = numpy.add.accumulate(k_array)
-#        k_max = k_array[-1]
-#
-#        rnd = myrandom.uniform()
-#        i = numpy.searchsorted(k_array, rnd * k_max)
-#
-#        return self.reactionrules[i]
 
     def check(self):
     # performs an internal consistency check
@@ -354,9 +331,6 @@ class PlanarSurfaceSingle(NonInteractionSingle):
         # particle undergoes an unbinding reaction we still have to 
         # clear the target volume and the move may be rejected (NoSpace 
         # error).
-#        orientation = normalize(
-#            utils.crossproduct(self.structure.shape.unit_x,
-#                               self.structure.shape.unit_y))
 
         # Note that the calculateion of the position of the shell needs to make sure that the
         # coordinates are in the surface
@@ -571,11 +545,8 @@ class PlanarSurfaceInteraction(InteractionSingle):
     def iv_greens_function(self):
         # The green's function that also modelles the association of the particle
         # with the planar surface.
-        # TODO choose interactionrule
         return GreensFunction1DRadAbs(self.D, self.interaction_ktot, self.z0,
                                       -self.get_inner_dz_left(), self.get_inner_dz_right())
-#        return GreensFunction1DRadAbs(self.D, 0, self.z0,
-#                                     -self.get_inner_dz_left(), self.get_inner_dz_right())
 
     def draw_new_position(self, dt, event_type):
         """Draws a new position for the particle for a given event type at a given time
@@ -602,10 +573,6 @@ class PlanarSurfaceInteraction(InteractionSingle):
             vector_r = x * self.surface.shape.unit_x + y * self.surface.shape.unit_y
 
             # calculate z vector
-            # Todo. Cartesian coordinate will return absolute position.
-            # Heads up. size_of_domain is different from the half_length of 
-            # the cylinder, because the domain ends where the surface 
-            # starts, while the cylinder is continuing into the surface.
             z_surface = -self.get_inner_dz_left()       # left side of the inner domain
             z_not_surface = self.get_inner_dz_right()   # right side of the inner domain (away from the surface)
 

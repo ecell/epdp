@@ -1233,20 +1233,11 @@ class EGFRDSimulator(ParticleSimulatorBase):
                             # or a domain was formed successfully previously
 
             if isinstance(obj, NonInteractionSingle):
-#                pair_horizon = (single_radius + \
-#                    closest_obj.pid_particle_pair[1].radius) * self.SINGLE_SHELL_FACTOR
-
-#                if closest_distance < pair_horizon:
-#                    # try making a Pair (can still be Mixed Pair or Normal Pair)
+                # try making a Pair (can still be Mixed Pair or Normal Pair)
                 domain = self.try_pair (single, obj)
 
             elif isinstance(obj, CylindricalSurface) or isinstance(obj, PlanarSurface):
-#                surface_horizon = single_radius * self.SINGLE_SHELL_FACTOR
-
-#                if closest_distance < surface_horizon:
-#                surface_distance < domain_distance and \
-#                surface_distance < surface_horizon:
-                    # try making an Interaction
+                # try making an Interaction
                 domain = self.try_interaction (single, obj)
 
 
@@ -1867,8 +1858,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
         dr /= SAFETY
         dz_right /= SAFETY
-#        This will break the conditions below for membrane interaction
-#        dz_left /= SAFETY
+        # Don't tweak dz_left, this will break the conditions below for membrane interaction
 
         # Decide if interaction domain is possible.
         if dr < min_dr or dz_left < min_dz_left or dz_right < min_dz_right:
@@ -2361,6 +2351,7 @@ rejected moves = %d
 
 
 
+        # TODO maybe don't check all the shells, this takes a lot of time
         for shell_id, shell in domain.shell_list:
 
 #            closest, distance = self.geometrycontainer.get_closest_obj(shell.shape.position,
@@ -2384,6 +2375,7 @@ rejected moves = %d
             neighbors = self.geometrycontainer.get_neighbor_domains(shell.shape.position,
                                                                     self.domains, ignore=[domain.domain_id])
 
+            # testing overlap criteria
             for neighbor, _ in neighbors:
                 for _, neighbor_shell in neighbor.shell_list:
                     overlap = self.check_shell_overlap(shell, neighbor_shell)
@@ -2391,36 +2383,8 @@ rejected moves = %d
                         '%s (%s) overlaps with %s (%s) by %s.' % \
                         (domain, str(shell), str(neighbor), str(neighbor_shell), FORMAT_DOUBLE % overlap)
 
-#            # testing overlap criteria
-#            # TODO This doesn't work if closest is a Multi -> redesign this test
-#            if(type(shell.shape) is Cylinder and
-#               closest and type(closest.shell.shape) is Sphere):
-#                # Note: this case is special.
-#                # Note: only checking if cylinder doesn't overlap with 
-#                # closest sphere, like we do here, is not really 
-#                # sufficient (but checking all spheres is too much 
-#                # work).
-#                shell_size = shell.shape.half_length
-#                # Reverse overlap calculation: from closest sphere to 
-#                # cylinder is easier than the other way around, because 
-#                # the distance calculation from a point to a cylinder 
-#                # is already implemented.
-#                sphere = closest.shell.shape
-#                diff = self.world.distance(shell.shape, sphere.position) - \
-#                       sphere.radius
-#            else:
-#                if(type(domain) is CylindricalSurfaceSingle or
-#                   type(domain) is CylindricalSurfacePair or
-#                   type(domain) is CylindricalSurfaceInteraction):
-#                    # On CylindricalSurface, use half_lenghts.
-#                    # (assume all nearby other cylinders are on the 
-#                    # same surface)
-#                    shell_size = shell.shape.half_length
-#                else:
-#                    # Normally compare radii.
-#                    shell_size = shell.shape.radius
-#                diff = distance - shell_size
 
+            # checking wether the shell don't exceed the maximum size
             if (type(shell.shape) is Cylinder):
                 # the cylinder should at least fit in the maximal sphere
                 shell_size = math.sqrt(shell.shape.radius**2 + shell.shape.half_length**2)
@@ -2436,13 +2400,6 @@ rejected moves = %d
             assert shell_size <= self.geometrycontainer.get_max_shell_size(), \
                 '%s shell size larger than simulator cell size / 2, shell_size = %s, max = %s.' % \
                 (str(shell_id), FORMAT_DOUBLE % shell_size, FORMAT_DOUBLE % self.geometrycontainer.get_max_shell_size())
-
-#            assert diff >= 0.0, \
-#                '%s overlaps with %s. (shell: %s, dist: %s, diff: %s, dist_midpoints: %s.' % \
-#                (str(domain), str(closest), FORMAT_DOUBLE % shell_size,
-#                 FORMAT_DOUBLE % distance,
-#                 FORMAT_DOUBLE % diff,
-#                 FORMAT_DOUBLE % distance_midpoints)
 
         return True
 

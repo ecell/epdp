@@ -203,7 +203,6 @@ class SimplePair(Pair):
 #        assert (pos1 - single1.shell.shape.position).sum() == 0        # TODO Not sure why this is here
         sigma = radius1 + radius2
         r0 = geometrycontainer.world.distance(pos1, pos2)
-#        distance_from_sigma = r0 - sigma        # the distance between the surfaces of the particles
 
         assert r0 >= sigma, \
             'distance_from_sigma (pair gap) between %s and %s = %s < 0' % \
@@ -256,27 +255,15 @@ class SimplePair(Pair):
         # shortcut
         # if closest_distance <0 then neighbor particle overlaps with center of mass ->
         # neighboring particle is actually closer to the CoM than any of the two member particles
+        # this can happen because we also try to make pairs with the next nearest neighbor if the nearest
+        # neighbor fails
         if closest_distance <= 0:
             return 0
 
-
         # 3. Check if bursted Singles can still make a minimal shell.
-        # TODO This should be changed to a more general algorithm
-        # that checks if the closest nearest relevant shell is a
-        # NonInteractionSingle or smt else.
-        # Now it only processes the shells that were actually bursted before.
-
-#        closest, closest_shell_distance = None, numpy.inf
-#        for b in burst:
-#            if isinstance(b, NonInteractionSingle):
-#                bpos = b.shell.shape.position
-#                d = self.world.distance(shell_center, bpos) - \
-#                    b.pid_particle_pair[1].radius * self.SINGLE_SHELL_FACTOR
-#                if d < closest_shell_distance:
-#                    closest, closest_shell_distance = b, d
-#
-
-
+        # TODO this is not correct. If the closest domain is not a NonInteractionSingle
+        # we still have to make sure that the (non closest) NonInteractionSingles have
+        # the required space
         if isinstance(closest, NonInteractionSingle):
             closest_particle_distance = geometrycontainer.world.distance(
                     shell_center, closest.pid_particle_pair[1].position)
@@ -290,15 +277,13 @@ class SimplePair(Pair):
             shell_size = min(closest_distance, closest_particle_distance - closest_min_shell)
             assert shell_size <= closest_distance
 
-        # TODO this is not correct. If the closest domain is not a NonInteractionSingle
-        # we still have to make sure that the (non closest) NonInteractionSingles have
-        # the required space
         else:
             assert isinstance(closest, (InteractionSingle, Pair, Multi, Surface, None.__class__))
             shell_size = closest_distance 
 
         # FIXME Bloody ugly tweak to make sure that in case of a cylinder the 'maximum size' (which is
         # actually the radius) does not stick out of the maximum sphere (which is the real hard max).
+        # BLoody UGLY because it now applies to ALL SimplePairs.
         sigma = max(single1.pid_particle_pair[1].radius, single2.pid_particle_pair[1].radius)
         max_shell_size = math.sqrt(geometrycontainer.get_max_shell_size()**2 - sigma**2)
 
@@ -1001,6 +986,7 @@ class MixedPair(Pair):
             scalecenter_shell_dist = (shell_scalecenter_len * cos_psi - math.sqrt(a_sq - ss_sq*sin_psi*sin_psi) )
             # FIXME UGLY FIX BELOW
             scalecenter_shell_dist /= 1.1
+            scalecenter_shell_dist /= SAFETY
 
             if phi <= Pi/4:
 #                print "scale z first."
