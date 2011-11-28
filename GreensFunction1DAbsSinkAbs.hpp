@@ -135,52 +135,57 @@ public:
 	    return v;
     }
 
-    
     /* Calculates the probability density of finding the particle at 
        location z at timepoint t, given that the particle is still in the 
        domain. */
-    Real calcpcum(Real r, Real t);
+    Real calcpcum(Real r, Real t) const;
 
     /* Determine which event has occured at time t. Either an escape 
        (left or right boundary) or a reaction with the sink. 
        Based on the fluxes through the boundaries at the given time. */
-    EventKind drawEventType( Real rnd, Real t );
+    EventKind drawEventType( Real rnd, Real t ) const;
 
     /* Draws the first passage time from the propensity function */
-    Real drawTime(Real rnd);
+    Real drawTime(Real rnd) const;
 
     /* Draws the position of the particle at a given time, assuming that 
        the particle is still in the domain. */
-    Real drawR(Real rnd, Real t);
+    Real drawR(Real rnd, Real t) const;
 
     /* Calculates the probability flux leaving the domain through the right 
        absorbing boundary at time t. */
-    Real flux_leavea(Real t);
+    Real flux_leavea(Real t) const;
 
     /* Calculates the probability flux leaving the domain through the left 
        absorbing boundary at time t. */
-    Real flux_leaves(Real t);
+    Real flux_leaves(Real t) const;
+
+    /* Calculates the probability flux leaving the domain through the sink 
+       at time t. */
+    Real flux_sink(Real t) const;
+
+    /* Calculates the probability of finding the particle inside the 
+       domain at time t -> the survival probability */
+    Real p_survival(Real t, RealVector& psurvTable) const;
+
+    /* c.d.f. of the greensfunction with respect to position. */
+    Real p_int_r( Real const& rr, Real const& t, RealVector& table ) const;
 
 
     /* TODO: Private methods which are public for now - debugging */
 
-    // Calculates the probability of finding the particle inside the 
-    // domain at time t -> the survival probability
-    Real p_survival(Real t);
-
-    // Calculates the total probability flux leaving the domain at time t
-    Real flux_tot(Real t);
+    /* Calculates the total probability flux leaving the domain at time t. */
+    Real flux_tot(Real t, uint const& maxi) const;
 
     /* Calculates the probability flux leaving the domain through the 
-       sink, sub-domain containing r0 via absorbing boundary and sub-domain
-       not containing r0 via sink, respectivily. */
-    Real flux_sink(Real t);
-    Real flux_abs_Lr(Real t);
-    Real flux_abs_Ll(Real t);
+       sub-domain containing r0 via the absorbing boundary and the flux 
+       leaving the sub-domain not containing r0 via the absorbing boundary. */
+    Real flux_abs_Lr(Real t, uint const& maxi) const;
+    Real flux_abs_Ll(Real t, uint const& maxi) const;
 
-    // Calculates the probability density of finding the particle at 
-    // location r at time t.
-    Real prob_r(Real r, Real t);
+    /* Calculates the probability density of finding the particle at 
+       location r at time t. */
+    Real prob_r(Real r, Real t) const;
     
     std::string dump() const;
 
@@ -190,59 +195,11 @@ public:
     }
 
 private:
-    
-    /* return the rootList size */
-    uint rootList_size() const
-    {
-        return rootList.size();
-    }
-
-    /* returns the last root. */
-    Real get_last_root() const
-    {
-        return rootList.back();
-    }
-
-    /* ads a root to rootList */
-    void ad_to_rootList( Real const& root_i )
-    {
-        rootList.push_back( root_i );
-    }
-
-    /* remove n'th root from rootList */
-    void remove_from_rootList(uint const& n)
-    {
-        rootList.erase( rootList.begin() + n );
-    }
-
-    /* Fills the rootList with the first n roots */
-    void calculate_n_roots( uint const& n );
-
-    /* return the n'th root */
-    Real get_root( unsigned int const& n )
-    {
-        if( n < rootList.size() )
-            return rootList[ n ];
-        else
-            calculate_n_roots( n );
-    }
-
-    /* Guess the number of terms needed for convergence, given t. */
-    uint guess_maxi( Real const& t );
-
-    Real p_survival_i( uint const& i, Real const& t, RealVector& table ) const;
-
-    Real p_survival_table_i( Real const& root_i ) const;
-    
-    void createPsurvTable( Realvector& table );
-
-    Real prob_r_r0_i(uint const& i, Real const& rr, Real const& t);
-
-    Real prob_r_nor0_i( uint const& i, Real const& rr, Real const& t);
+    /* used structures */
 
     struct drawR_params
     {
-        GreensFunction1DAbsSinkAbs const* const gf;
+        GreensFunction1DAbsSinkAbs const* gf;
         const Real t;
    	    RealVector& table;
 	    const Real rnd;
@@ -250,7 +207,7 @@ private:
 
     struct drawT_params
     {
-	    GreensFunction1DAbsSinkAbs const* const gf;
+	    GreensFunction1DAbsSinkAbs const* gf;
 	    RealVector& table;
 	    const Real rnd;
     };
@@ -265,17 +222,103 @@ private:
     {
         Real h;
         Real Lm_L;
-        Real long_half_wave;
-        Real short_half_wave;
+        Real long_period;
+        Real short_period;
         uint last_long_root;
         uint last_short_root;
     };
 
-    /* Function returns two positions on the x-axis which straddle the next root. */
-    real_pair get_lower_and_upper( lower_upper_params& params );
 
-    /* Function needed for rootfinding */
+    /* Functions managing the rootList */
+    
+    /* return the rootList size */
+    uint rootList_size() const
+    {
+        return rootList.size();
+    }
+
+    /* returns the last root. */
+    Real get_last_root() const
+    {
+        return rootList.back();
+    }
+
+    /* ad a root to the rootList */
+    void ad_to_rootList( Real const& root_i ) const
+    {
+        rootList.push_back( root_i );
+    }
+
+    /* remove n'th root from rootList */
+    void remove_from_rootList(uint const& n) const
+    {
+        rootList.erase( rootList.begin() + n );
+    }
+
+    /* return the n'th root */
+    Real get_root( uint const& n ) const
+    {
+        if( n < rootList.size() )
+            return rootList[ n ];
+        else
+        {
+            calculate_n_roots( n );
+            return rootList[ n ];
+        }
+    }
+
+
+    /* Functions concerned with finding the roots. */
+
+    /* Fills the rootList with the first n roots */
+    void calculate_n_roots( uint const& n ) const;
+    
+    /* Function returns two positions on the x-axis which straddle the next root. */
+    real_pair get_lower_and_upper( lower_upper_params& params ) const;
+
+    /* Function of which we need the roots. */
     static Real root_f(Real x, void *p);
+
+    /* Guess the number of terms needed for convergence, given t. */
+    uint guess_maxi( Real const& t ) const;
+
+
+    /* Function for calculating the survival probability. */
+    Real p_survival_i( uint i, Real const& t, RealVector const& table ) const;
+
+    Real p_survival_table_i( Real const& root_i ) const;
+    
+    void createPsurvTable( RealVector& table ) const;
+
+
+    /* Functions for calculating thegreensfunction. */
+    Real prob_r_r0_i(uint i, Real const& rr, Real const& t) const;
+
+    Real prob_r_nor0_i( uint i, Real const& rr, Real const& t) const;
+
+
+    /* Functions for calculating the fluxes. */
+    Real flux_tot_i(uint i, Real const& t) const;
+
+    Real flux_abs_Lr_i(uint i, Real const& t) const;
+
+    Real flux_abs_Ll_i(uint i, Real const& t) const;
+
+
+
+    /* functions for calculating the c.d.f. */
+
+    /* i'th term of p_int_r(r') for r' in left domain */
+    Real p_int_r_leftdomain(uint i, Real const& rr, RealVector const& table) const;
+
+    /* i'th term of p_int_r(r') for r' in right domain, left of r0 */
+    Real p_int_r_rightdomainA(uint i, Real const& rr, RealVector const& table) const;
+
+    /* i'th term of p_int_r(r') for r' in right domain, right of r0 */
+    Real p_int_r_rightdomainB(uint i, Real const& rr, RealVector const& table) const;
+
+    void createP_int_r_Table( Real const& t, RealVector& table ) const;
+
 
     /* Denominator of the Greens function */
     inline Real p_denominator_i( Real const& root_n ) const;
@@ -283,22 +326,15 @@ private:
     /* Standard form of Greens Function: exp( -Dt root_n ** 2 ) / denominator */
     inline Real p_exp_den_i(Real const& t, Real const& root_n, Real const& root_n2) const;
 
-    /* p_int_r(r') for r' in left domain */
-    static Real p_int_r_leftdomain(Real const& rr, Real const& root_n, GreensFunction1DAbsSinkAbs const& obj);
-
-    /* p_int_r(r') for r' in right domain, left of r0 */
-    static Real p_int_r_rightdomainA(Real const& rr, Real const& root_n, GreensFunction1DAbsSinkAbs const& obj);
-
-    /* p_int_r(r') for r' in right domain, right of r0 */
-    static Real p_int_r_rightdomainB(Real const& rr, Real const& root_n, GreensFunction1DAbsSinkAbs const& obj);
-
     /* Function for drawR */
     static Real drawT_f (Real t, void *p);
 
     /* Function for drawTime */
     static Real drawR_f (Real t, void *p);
 
+    
     /* Class variables */
+
     // The drift velocity
     const Real v;
     // The reaction constant
@@ -327,9 +363,9 @@ private:
     Real L0;
 
     // Stores all the roots.
-    RealVector rootList;
+    mutable RealVector rootList;
 
     // Stores params for rootfiner.
-    struct lower_upper_params lo_up_params;
+    mutable struct lower_upper_params lo_up_params;
 };
 #endif // __GREENSFUNCTION1DRADABS_HPP
