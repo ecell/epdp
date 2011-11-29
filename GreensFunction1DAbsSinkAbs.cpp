@@ -43,7 +43,7 @@ void GreensFunction1DAbsSinkAbs::calculate_n_roots(uint const& n) const
 {
     const Real Lr( getLr() );
     const Real Ll( getLl() );
-    const Real L( Lr + Lr );
+    const Real L( Lr + Ll );
     const Real Lm( Lr - Ll );
     const Real Lm_L( Lm / L );
     const Real h( getk() * L / ( 2 * getD() ) );
@@ -53,7 +53,6 @@ void GreensFunction1DAbsSinkAbs::calculate_n_roots(uint const& n) const
 
     real_pair lower_upper_pair;
 
-    /* set params needed for get lower and upper function */
     lo_up_params.h = h;
     lo_up_params.Lm_L = Lm_L;
     lo_up_params.long_period = std::max( L/Lr * M_PI, L/Ll * M_PI );
@@ -70,41 +69,35 @@ void GreensFunction1DAbsSinkAbs::calculate_n_roots(uint const& n) const
     const gsl_root_fsolver_type* solverType( gsl_root_fsolver_brent );
     gsl_root_fsolver* solver( gsl_root_fsolver_alloc( solverType ) );
 
-    /* Find all the roots up to the nth*/
     i = rootList_size();
 
-    /* If rootList is empty, add first root: 0. Will be removed later. */
-    uint n_adapt( n );
+    /* Stores the last root with long or short period. */
     if(i == 0)
     {
-        /* Stores pointers to last root with long/short wavelength. */
-        lo_up_params.last_long_root = 0;
-        lo_up_params.last_short_root = 0;
-        ad_to_rootList( 0.0 );
-        n_adapt++;
+        lo_up_params.last_long_root = 0.0;
+        lo_up_params.last_short_root = 0.0;
     }
 
-    while(i++ < n_adapt)
+    /* Find all the roots up to the nth */
+    while(i++ < n)
     {
-        lower_upper_pair = get_lower_and_upper( lo_up_params );
+        lower_upper_pair = get_lower_and_upper();
 
         root_i = findRoot( F, solver, lower_upper_pair.first, lower_upper_pair.second, 
                            1.0*EPSILON, EPSILON, "GreensFunction1DAbsSinkAbs::root_f" );
 
-        assert( root_i > get_last_root() - EPSILON );
+        assert( root_i > std::max(lo_up_params.last_long_root, 
+                                  lo_up_params.last_short_root) 
+                - EPSILON );
 
-        ad_to_rootList( root_i );
-    }
+        ad_to_rootList( root_i / L );
 
-    /* Remove first root */
-    if( get_root( 0 ) == 0.0 )
-    {
-        remove_from_rootList( 0 );
-        /* correct pointers for removal */
-        if( lo_up_params.last_long_root > 0 ) 
-            lo_up_params.last_long_root--;
-        if( lo_up_params.last_short_root > 0 ) 
-            lo_up_params.last_short_root--;
+        if(lo_up_params.last_was_long)
+            lo_up_params.last_long_root = root_i;
+        else
+            lo_up_params.last_short_root = root_i;
+
+        std::cerr << "root#: " << rootList_size() << " - " << get_last_root() << std::endl;
     }
 
     gsl_root_fsolver_free( solver );
@@ -112,52 +105,54 @@ void GreensFunction1DAbsSinkAbs::calculate_n_roots(uint const& n) const
 
 
 /* returns two points on the x-axis which straddle the next root. */
-std::pair<Real, Real> GreensFunction1DAbsSinkAbs::get_lower_and_upper( 
-                          lower_upper_params& params ) const
+std::pair<Real, Real> GreensFunction1DAbsSinkAbs::get_lower_and_upper() const
 {
-    const Real root_n( get_last_root() );
+    const Real root_n( std::max(lo_up_params.last_long_root, 
+                                lo_up_params.last_short_root) );
     const Real safety( .75 );
 
     Real lower, upper, next_root_est, left_offset, right_offset;
 
-    if( params.h / root_n < 1 )
+    const Real last_root( root_n ==  0.0 ? M_PI : root_n );
+
+    if( lo_up_params.h / last_root < 1 )
     {
         right_offset = M_PI;
         next_root_est = root_n + M_PI;
     }
     else
     {
-        const Real next_root_long( get_root( params.last_long_root ) 
-                                   + params.long_period );
-        const Real next_root_short( get_root( params.last_short_root ) 
-                                    + params.short_period );
+        const Real next_root_long( lo_up_params.last_long_root 
+                                   + lo_up_params.long_period );
+        const Real next_root_short( lo_up_params.last_short_root
+                                    + lo_up_params.short_period );
 
         if( next_root_long < next_root_short )
         {
             next_root_est = next_root_long;
 
             right_offset = std::min( next_root_short - next_root_est, 
-                              params.long_period );
+                              lo_up_params.long_period );
 
-            params.last_long_root = rootList_size() + 1;
+            lo_up_params.last_was_long = true;
         }
         else
         {
             next_root_est = next_root_short;
             
             right_offset = std::min( next_root_long - next_root_est, 
-                              params.short_period );
+                              lo_up_params.short_period );
 
-            params.last_short_root = rootList_size() + 1;                        
+            lo_up_params.last_was_long = false;                        
         }
     }
     
-    left_offset = next_root_est - root_n - EPSILON;      
+    left_offset = next_root_est - root_n - 1000 * EPSILON;      
 
     lower = next_root_est - left_offset;
     upper = next_root_est + safety * right_offset;
 
-    struct root_f_params p = { params.Lm_L, params.h };
+    struct root_f_params p = { lo_up_params.Lm_L, lo_up_params.h };
 
     Real f_lower( root_f( lower, &p ) );
     Real f_upper( root_f( upper, &p ) );
@@ -165,12 +160,12 @@ std::pair<Real, Real> GreensFunction1DAbsSinkAbs::get_lower_and_upper(
     /* set the parity operator for the next root: 
        +1 for an even root.
        -1 for an odd root. */
-    const bool parity_op( 2 * ( rootList_size()%2 ) - 1 );
+    const int parity_op( 2 * ( rootList_size()%2 ) - 1 );
 
     /* f_lower must have correct sign. */
-    if( f_lower * parity_op < 0 )
+    if( f_lower * parity_op > 0 )
     {
-        std::cerr << "{Parity error in lower of root# " << rootList_size() + 1 
+        std::cerr << "Parity error in lower of root# " << rootList_size() + 1 
                       << " in GF::AbsSinkAbs " << std::endl;
         std::cerr << "f_low(" << lower << ") = " << f_lower << ", f_high(" 
                   << upper << ") = " << f_upper << std::endl;
@@ -259,9 +254,15 @@ inline Real GreensFunction1DAbsSinkAbs::p_denominator_i(Real const& root_n) cons
 }
 
 
-/* Calculates survival probability. 
+Real GreensFunction1DAbsSinkAbs::p_survival(Real t) const
+{
+    RealVector table;
+    return p_survival_table(t, table);
+}
+
+/* Calculates survival probability using a table. 
    Switchbox for which greensfunction to use. */
-Real GreensFunction1DAbsSinkAbs::p_survival(Real t, RealVector& psurvTable) const
+Real GreensFunction1DAbsSinkAbs::p_survival_table(Real t, RealVector& psurvTable) const
 {
     THROW_UNLESS( std::invalid_argument, t >= 0.0 );
 
@@ -341,7 +342,8 @@ Real GreensFunction1DAbsSinkAbs::p_survival(Real t, RealVector& psurvTable) cons
 
 
 /* Calculates the i'th term of the p_survival sum. */
-Real GreensFunction1DAbsSinkAbs::p_survival_i( uint i, Real const& t, 
+Real GreensFunction1DAbsSinkAbs::p_survival_i( uint i, 
+                                               Real const& t, 
                                                RealVector const& table) const
 {
     const Real root_i( get_root( i ) );
@@ -367,7 +369,7 @@ Real GreensFunction1DAbsSinkAbs::p_survival_table_i( Real const& root_i ) const
                       - sin( root_i * LrmL0 ) );
         
     Real numerator( D * term1 + k * sin( root_i * Ll ) * term2 / root_i ); 
-    numerator *= 2;
+    numerator *= 2.0;
 
     return numerator / p_denominator_i( root_i );
 }
@@ -392,8 +394,21 @@ Real GreensFunction1DAbsSinkAbs::prob_r_r0_i(uint i,
                                              Real const& t) const
 {
     const Real root_i( get_root(i) );
+    const Real Lr( getLr() );
+    const Real Ll( getLl() );
+    Real L0( getL0() );
+    Real rr2( rr );
+    
+    /* Check if r is left or right of the starting position r0.
+       If so, interchange rr with L0. */
+    if( rr < L0 )
+    {
+        rr2 = L0;
+        L0 = rr;
+    }
+
     const Real LlpL0( Ll + L0 );
-    const Real Lrmrr( Lr - rr );
+    const Real Lrmrr( Lr - rr2 );
     
     Real numerator( getD() * root_i * sin( root_i * LlpL0 ) + 
                     getk() * sin( root_i * Ll ) * sin( root_i * L0) );
@@ -410,12 +425,16 @@ Real GreensFunction1DAbsSinkAbs::prob_r_nor0_i(uint i,
                                                Real const&t) const
 {
     const Real root_i( get_root(i) );
+    const Real Lr( getLr() );
+    const Real Ll( getLl() );
+    const Real L0( getL0() );
+
     const Real LrmL0( Lr - L0 );
     const Real Llprr( Ll + rr );
 
     const Real numerator( getD() * root_i * sin( root_i * Llprr ) * sin( root_i * LrmL0 ) );
 
-    return -2.0 * p_exp_den_i(t, root_i, gsl_pow_2( root_i ) ) * numerator;
+    return - 2.0 * p_exp_den_i(t, root_i, gsl_pow_2( root_i ) ) * numerator;
 }
 
 
@@ -430,10 +449,6 @@ Real GreensFunction1DAbsSinkAbs::prob_r(Real r, Real t) const
     const Real Lr( getLr() );
     const Real Ll( getLl() );
     const Real L( Lr + Ll );    
-    
-    Real L0( getL0() );
-    Real rr( r - getrsink() ) ;
-    Real p;  
 
     // if there was no time change or zero diffusivity => no movement
     if (t == 0 || D == 0)
@@ -455,33 +470,23 @@ Real GreensFunction1DAbsSinkAbs::prob_r(Real r, Real t) const
 	    return 0.0;
     }
 
+    const Real rr( getr0() - getrsink() >= 0 ? r - rsink : rsink - r  );
+
+    Real p;  
+
     const uint maxi( guess_maxi( t ) );
+    calculate_n_roots( maxi );
 
     /* Determine wether rr lies in the same sub-domain as r0.
        A different function is caculated when this is the case. */
-    if( rr * ( getr0() - getrsink() ) >= 0 )
-    {
-        if(rr < 0)
-            rr *= -1;
-
-        /* Check if r is left or right of the starting position r0.
-           If so, interchange r with r0. */
-        if( rr < L0 )
-        {
-            const Real temp( rr );
-            rr = L0;
-            L0 = temp;
-        }
-    
+    if( rr >= 0 )
+    {   
         p = funcSum_all(boost::bind(&GreensFunction1DAbsSinkAbs::prob_r_r0_i, 
                                     this, _1, rr, t),
                         maxi);
 	}
     else
     {
-        if( rr > 0 )
-            rr *= -1;
-
         p = funcSum_all(boost::bind(&GreensFunction1DAbsSinkAbs::prob_r_nor0_i, 
                                     this, _1, rr, t),
                         maxi);
@@ -491,12 +496,11 @@ Real GreensFunction1DAbsSinkAbs::prob_r(Real r, Real t) const
 }
 
 
-/* Calculates the probability density of finding the particle at location z at
-   timepoint t, given that the particle is still in the domain. */
+/* Calculates the probability density of finding the particle at location r at
+   time t, given that the particle is still in the domain. */
 Real GreensFunction1DAbsSinkAbs::calcpcum(Real r, Real t) const
 {
-    RealVector table;
-    return prob_r(r, t)/p_survival(t, table);
+    return prob_r(r, t)/p_survival( t );
 }
 
 
@@ -510,10 +514,10 @@ Real GreensFunction1DAbsSinkAbs::flux_leaves(Real t) const
 
     const Real maxi( guess_maxi( t ) );
 
-    if( getr0() > getrsink() )
+    if( getr0() >= getrsink() )
         return flux_abs_Ll( t, maxi );
     else
-        return flux_abs_Lr( t, maxi );
+        return - flux_abs_Lr( t, maxi );
 }
 
 
@@ -528,7 +532,7 @@ Real GreensFunction1DAbsSinkAbs::flux_leavea(Real t) const
     const Real maxi( guess_maxi( t ) );
 
     if( getr0() < getrsink() )
-        return flux_abs_Ll( t, maxi );
+        return - flux_abs_Ll( t, maxi );
     else
         return flux_abs_Lr( t, maxi );
 }
@@ -537,10 +541,12 @@ Real GreensFunction1DAbsSinkAbs::flux_leavea(Real t) const
 /* Calculates the total probability flux leaving the domain at time t
    This is simply the negative of the time derivative of the survival prob.
    at time t [-dS(t')/dt' for t'=t]. */
-Real GreensFunction1DAbsSinkAbs::flux_tot(Real t, uint const& maxi) const
+Real GreensFunction1DAbsSinkAbs::flux_tot(Real t) const
 {
     const Real D( getD() );
     Real p;
+
+    const Real maxi( guess_maxi( t ) );
 
     p = funcSum_all(boost::bind(&GreensFunction1DAbsSinkAbs::flux_tot_i, 
                                 this, _1, t),
@@ -556,7 +562,8 @@ Real GreensFunction1DAbsSinkAbs::flux_tot_i(uint i, Real const& t) const
     const Real root_i( get_root( i ) );
     const Real root_i2( gsl_pow_2( root_i ) );
 
-    return root_i2 * p_survival_table_i( root_i );
+    return root_i2 * exp( - getD() * t * root_i2 ) * 
+        p_survival_table_i( root_i );
 }
 
 
@@ -599,7 +606,7 @@ Real GreensFunction1DAbsSinkAbs::flux_abs_Ll(Real t, uint const& maxi) const
     const Real D2( gsl_pow_2( getD() ) );
     Real p;
 
-    p = funcSum_all(boost::bind(&GreensFunction1DAbsSinkAbs::flux_abs_Lr_i, 
+    p = funcSum_all(boost::bind(&GreensFunction1DAbsSinkAbs::flux_abs_Ll_i, 
                                 this, _1, t),
                         maxi);
     
@@ -653,8 +660,8 @@ GreensFunction1DAbsSinkAbs::drawEventType( Real rnd, Real t ) const
        (1) Leave through left or right boundary - IV_ESCAPE
        (2) Leave through sink - IV_REACTION
     */
-    const Real maxi( guess_maxi( t ) );
-    rnd *= flux_tot( t, maxi );
+
+    rnd *= flux_tot( t );
 
     const Real p_sink( flux_sink( t ) );
     if (rnd < p_sink)
@@ -673,7 +680,7 @@ GreensFunction1DAbsSinkAbs::drawEventType( Real rnd, Real t ) const
 Real GreensFunction1DAbsSinkAbs::drawT_f(Real t, void *p)
 {
     struct drawT_params *params = (struct drawT_params *)p;
-    return params->rnd - params->gf->p_survival( t, params->table );
+    return params->rnd - params->gf->p_survival_table( t, params->table );
 }
 
 
@@ -715,8 +722,8 @@ Real GreensFunction1DAbsSinkAbs::drawTime(Real rnd) const
     t_guess = dist * dist / ( 2.0 * D );
     t_guess *= .1;
 
-    const uint n_max_guess( guess_maxi( t_guess ) );
-    calculate_n_roots( n_max_guess );
+    const uint maxi( guess_maxi( t_guess ) );
+    calculate_n_roots( maxi );
 
     /* Define the function for the rootfinder */
     gsl_function F;
@@ -782,7 +789,7 @@ Real GreensFunction1DAbsSinkAbs::drawTime(Real rnd) const
     // make a new solver instance
     gsl_root_fsolver* solver( gsl_root_fsolver_alloc( solverType ) );
     const Real t( findRoot( F, solver, low, high, t_scale*EPSILON, EPSILON,
-                            "GreensFunction1DAnsSinkAbs::drawTime" ) );
+                            "GreensFunction1DAbsSinkAbs::drawTime" ) );
     // return the drawn time
     return t;
 }
@@ -790,19 +797,25 @@ Real GreensFunction1DAbsSinkAbs::drawTime(Real rnd) const
 
 /* Retrurns the c.d.f. with respect to the position at time t. 
    - Also a switchbox for which GF to choose. */
-Real GreensFunction1DAbsSinkAbs::p_int_r(Real const& rr, 
-                                         Real const& t, 
-                                         RealVector& table) const
+Real GreensFunction1DAbsSinkAbs::p_int_r_table(Real const& r, 
+                                               Real const& t, 
+                                               RealVector& table) const
 {
     Real p;
+    const Real rsink( getrsink() );
 
-    const uint maxi( guess_maxi(t) );       
+    /* when r0 lies left of the sink, mirror the domain around rsink
+       : rr -> -rr. */
+    const Real rr( getr0() - rsink >= 0 ? r - rsink : rsink - r  );
+
+    const uint maxi( guess_maxi(t) );    
+   
     if (table.size() < maxi + 1)
     {
         calculate_n_roots( maxi );  // this updates the table
         createP_int_r_Table( t, table );
     }
-    
+
     /* Determine in which part of the domain rr lies, and
        thus which function to use. */
     Real (GreensFunction1DAbsSinkAbs::*p_int_r_i)
@@ -823,25 +836,29 @@ Real GreensFunction1DAbsSinkAbs::p_int_r(Real const& rr,
 }
 
 
+Real GreensFunction1DAbsSinkAbs::p_int_r(Real const& r, 
+                                         Real const& t) const
+{
+    THROW_UNLESS( std::invalid_argument, r >= getsigma() && r <= geta() );
+    THROW_UNLESS( std::invalid_argument, t >= 0.0 );
+
+    RealVector table;
+    return p_int_r_table(r, t, table) / p_survival( t );
+}
+
+
 void GreensFunction1DAbsSinkAbs::createP_int_r_Table( Real const& t, 
                                                       RealVector& table ) const
 {
     const uint root_nbr( rootList_size() );
-    uint i (table.size() );
+    uint i( table.size() );
 
-    while( i <= root_nbr )
+    while( i < root_nbr )
     {
         const Real root_i( get_root( i ) );
         table.push_back( p_exp_den_i(t, root_i, gsl_pow_2( root_i ) ) );
+        i++;
     }
-}
-
-
-/* Function for GFL rootfinder of drawR. */
-Real GreensFunction1DAbsSinkAbs::drawR_f(Real rr, void *p)
-{
-    struct drawR_params *params = (struct drawR_params *)p;
-    return params->gf->p_int_r(rr, params->t, params->table) - params->rnd;
 }
 
 
@@ -906,6 +923,14 @@ Real GreensFunction1DAbsSinkAbs::p_int_r_rightdomainB(uint i,
 }
 
 
+/* Function for GFL rootfinder of drawR. */
+Real GreensFunction1DAbsSinkAbs::drawR_f(Real r, void *p)
+{
+    struct drawR_params *params = (struct drawR_params *)p;
+    return params->gf->p_int_r_table(r, params->t, params->table) - params->rnd;
+}
+
+
 Real GreensFunction1DAbsSinkAbs::drawR(Real rnd, Real t) const
 {
     THROW_UNLESS( std::invalid_argument, 0.0 <= rnd && rnd <= 1.0 );
@@ -914,7 +939,7 @@ Real GreensFunction1DAbsSinkAbs::drawR(Real rnd, Real t) const
     const Real D( getD() );
     const Real Lr( getLr() );
     const Real Ll( getLl() );
-    const Real rsink( getrsink() );
+    const Real r0( getr0() );
     const Real L( Lr + Ll );
 
     if (t == 0.0 || (D == 0.0 && v == 0.0) )
@@ -931,17 +956,16 @@ Real GreensFunction1DAbsSinkAbs::drawR(Real rnd, Real t) const
 
     if ( rnd <= EPSILON )
     {
-        return -Ll;        
+        return getsigma();        
     }
 
     if( rnd >= ( 1 - EPSILON ) )
     {
-        return Lr;
+        return geta();
     }
 
     // the structure to store the numbers to calculate r.
-    RealVector table;
-    const Real S( p_survival(t, table) );
+    const Real S( p_survival( t ) );
 
     RealVector drawR_table;
     drawR_params parameters = { this, t, drawR_table, rnd * S };
@@ -955,14 +979,11 @@ Real GreensFunction1DAbsSinkAbs::drawR(Real rnd, Real t) const
     const gsl_root_fsolver_type* solverType( gsl_root_fsolver_brent );
 
     gsl_root_fsolver* solver( gsl_root_fsolver_alloc( solverType ) );
-    Real rr( findRoot( F, solver, -Ll, Lr, EPSILON*L, EPSILON,
-                            "GreensFunction1DRadAbs::drawR" ) );
+    Real r( findRoot( F, solver, getsigma(), geta(), 
+                      EPSILON*L, EPSILON, "GreensFunction1AbsSinkAbs::drawR" ) );
 
     // Convert the position rr to 'world' coordinates and return it.
-    if( getr0() < rsink )
-        return rsink - rr;
-    else
-        return rsink + rr;
+    return r;
 }
 
 

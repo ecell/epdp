@@ -63,6 +63,8 @@ public:
 	        Lr = rsink - sigma; 
 	        Ll = a - rsink;
 	    }
+
+        calculate_n_roots( 1 );
     }
 
     /* The constructor is overloaded and can be called with or without drift v
@@ -83,6 +85,8 @@ public:
 	        Lr = rsink - sigma; 
 	        Ll = a - rsink;
 	    }
+
+        calculate_n_roots( 1 );
     }
 
     ~GreensFunction1DAbsSinkAbs()
@@ -166,16 +170,17 @@ public:
 
     /* Calculates the probability of finding the particle inside the 
        domain at time t -> the survival probability */
-    Real p_survival(Real t, RealVector& psurvTable) const;
+    Real p_survival(Real t) const;
 
     /* c.d.f. of the greensfunction with respect to position. */
-    Real p_int_r( Real const& rr, Real const& t, RealVector& table ) const;
+    Real p_int_r_table( Real const& r, Real const& t, RealVector& table ) const;
 
+    Real p_int_r(Real const& r, Real const& t) const;
 
     /* TODO: Private methods which are public for now - debugging */
 
     /* Calculates the total probability flux leaving the domain at time t. */
-    Real flux_tot(Real t, uint const& maxi) const;
+    Real flux_tot(Real t) const;
 
     /* Calculates the probability flux leaving the domain through the 
        sub-domain containing r0 via the absorbing boundary and the flux 
@@ -224,8 +229,9 @@ private:
         Real Lm_L;
         Real long_period;
         Real short_period;
-        uint last_long_root;
-        uint last_short_root;
+        Real last_long_root;
+        Real last_short_root;
+        bool last_was_long;
     };
 
 
@@ -274,7 +280,7 @@ private:
     void calculate_n_roots( uint const& n ) const;
     
     /* Function returns two positions on the x-axis which straddle the next root. */
-    real_pair get_lower_and_upper( lower_upper_params& params ) const;
+    real_pair get_lower_and_upper() const;
 
     /* Function of which we need the roots. */
     static Real root_f(Real x, void *p);
@@ -284,6 +290,8 @@ private:
 
 
     /* Function for calculating the survival probability. */
+    Real p_survival_table(Real t, RealVector& psurvTable) const;
+
     Real p_survival_i( uint i, Real const& t, RealVector const& table ) const;
 
     Real p_survival_table_i( Real const& root_i ) const;
@@ -330,7 +338,7 @@ private:
     static Real drawT_f (Real t, void *p);
 
     /* Function for drawTime */
-    static Real drawR_f (Real t, void *p);
+    static Real drawR_f (Real r, void *p);
 
     
     /* Class variables */
