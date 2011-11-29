@@ -20,6 +20,41 @@
 #include "Defs.hpp"
 
 
+/* returns a guess for the number of terms needed for 
+   the greensfunction to converge at time t */
+uint GreensFunction1DAbsAbs::guess_maxi(Real const& t) const
+{
+    const uint safety(2);
+
+    if (t >= INFINITY)
+    {
+        return safety;
+    }
+
+    const Real D( getD() );
+    const Real L( fabs( geta() - getsigma() ) );
+
+    const Real root0( M_PI );
+    const Real Dt(D * t);
+
+    const Real thr(exp(- Dt * root0 * root0) * EPSILON * 1e-1);
+
+    if (thr <= 0.0)
+    {
+        return MAX_TERMS;
+    }
+
+    const Real max_root( sqrt(root0 * root0 - log(thr) / Dt) );
+
+    const uint maxi(std::max( safety + 
+                              static_cast<uint>
+                              (max_root * L  / M_PI),
+                              MIN_TERMS )
+                    );
+
+    return std::min(maxi, MAX_TERMS);
+}
+
 // Calculates the probability of finding the particle inside the domain at 
 // time t
 Real
@@ -58,54 +93,53 @@ GreensFunction1DAbsAbs::p_survival (Real t) const
 
 
     // Sum
-    Real n=1;
+    Real n = 1;
     // different calculations depending on whether v=0 or not
     if(v==0.0)	// case without drift (v==0); in this case the summation is simpler, so do the complicated caluclation only if necessary
     {
       do
       {
-	  if (n >= MAX_TERMS )
-	  {
-	      std::cerr << "Too many terms for GF1DAbs::p_survival. N: " << n << std::endl;
-	      break;
-	  }
+          if (n >= MAX_TERMS )
+          {
+              std::cerr << "Too many terms for GF1DAbs::p_survival. N: " << n << std::endl;
+              break;
+          }
 	  
-	  prev_term = term;
-	  nPI = (Real)n*M_PI;
-	  term = exp(nPI*nPI*expo) * sin(nPI*r0s_L) * (1.0 - cos(nPI)) / nPI;
-	  sum += term;
-	  n++;
+          prev_term = term;
+          nPI = (Real)n*M_PI;
+          term = exp(nPI*nPI*expo) * sin(nPI*r0s_L) * (1.0 - cos(nPI)) / nPI;
+          sum += term;
+          n++;
       }
       // Is 1 a good measure or will this fail at some point?
       while (	fabs(term/sum) > EPSILON*1.0 ||
-		fabs(prev_term/sum) > EPSILON*1.0 ||
-		n < MIN_TERMS );
+                fabs(prev_term/sum) > EPSILON*1.0 ||
+                n < MIN_TERMS );
 
-      sum = 2.0*sum;	// This is a prefactor of every term, so do only one multiplication here
+      sum = 2.0 * sum;	// This is a prefactor of every term, so do only one multiplication here
     }
     else	// case with drift (v<>0)
     {
-      do
-      {
-	  if (n >= MAX_TERMS )
-	  {
-	      std::cerr << "Too many terms for p_survival. N: " << n << std::endl;
-	      break;
-	  }
+        do
+        {
+            if (n >= MAX_TERMS )
+            {
+                std::cerr << "Too many terms for p_survival. N: " << n << std::endl;
+                break;
+            }
 	  
-	  nPI = (Real)n*M_PI;
-	  prev_term = term;
-	  term = exp(nPI*nPI*expo) * (exp(sigmav2D) - cos(nPI)*exp(av2D)) * nPI/(Lv2D*Lv2D+nPI*nPI) * sin(nPI*r0s_L);
-	  sum += term;
-	  n++;
-      }
-      // TODO: Is 1 a good measure or will this fail at some point?
-      while (	fabs(term/sum) > EPSILON*1.0 ||
-		fabs(prev_term/sum) > EPSILON*1.0 ||
-		n < MIN_TERMS );
+            nPI = (Real)n*M_PI;
+            prev_term = term;
+            term = exp(nPI*nPI*expo) * (exp(sigmav2D) - cos(nPI)*exp(av2D)) * nPI/(Lv2D*Lv2D+nPI*nPI) * sin(nPI*r0s_L);
+            sum += term;
+            n++;
+        }
+        // TODO: Is 1 a good measure or will this fail at some point?
+        while (	fabs(term/sum) > EPSILON*1.0 ||
+                fabs(prev_term/sum) > EPSILON*1.0 ||
+                n < MIN_TERMS );
       
-      sum = 2.0*exp(vexpo) * sum;	// prefactor containing the drift
-
+        sum = 2.0 * exp(vexpo) * sum;	// prefactor containing the drift
     }
 
     return sum;
@@ -130,18 +164,18 @@ GreensFunction1DAbsAbs::prob_r (Real r, Real t) const
     if (t == 0 || D == 0)
     {
 	// the probability density function is a delta function
-	if (r == r0)
-	{
-	    return INFINITY;
-	}
-	else
-	{      
-	    return 0.0;
-	}
+        if (r == r0)
+        {
+            return INFINITY;
+        }
+        else
+        {      
+            return 0.0;
+        }
     }
     else if ( fabs(r-sigma) < L*EPSILON || fabs(a-r) < L*EPSILON || L < 0.0 )
     {
-	return 0.0;
+        return 0.0;
     }
 
     // Set values that are constant in this calculation
@@ -155,25 +189,25 @@ GreensFunction1DAbsAbs::prob_r (Real r, Real t) const
     Real sum = 0, term = 0, prev_term = 0;
 
     // Sum
-    int n=1;
+    uint n = 1;
     do
     {
-	if (n >= MAX_TERMS )
-	{
-	    std::cerr << "Too many terms for GF1DAbs::prob_r. N: " << n << std::endl;
-	    break;
-	}
+        if (n >= MAX_TERMS )
+        {
+            std::cerr << "Too many terms for GF1DAbs::prob_r. N: " << n << std::endl;
+            break;
+        }
 
-	prev_term = term;
+        prev_term = term;
 
-	nPI = n*M_PI;
-	term = exp(nPI*nPI*expo) * sin(nPI*r0s_L) * sin(nPI*rs_L);
-	sum += term;
-	n++;
+        nPI = n*M_PI;
+        term = exp(nPI*nPI*expo) * sin(nPI*r0s_L) * sin(nPI*rs_L);
+        sum += term;
+        n++;
     }
     while (fabs(term/sum) > EPSILON*PDENS_TYPICAL ||
-	fabs(prev_term/sum) > EPSILON*PDENS_TYPICAL ||
-	n <= MIN_TERMS);
+           fabs(prev_term/sum) > EPSILON*PDENS_TYPICAL ||
+           n <= MIN_TERMS);
 
     return 2.0/L * exp(vexpo) * sum;
 }
@@ -201,14 +235,14 @@ GreensFunction1DAbsAbs::leaves(Real t) const
 
     if ( fabs(r0-sigma) < L*EPSILON || fabs(a-r0) < L*EPSILON || L < 0.0 )
     {
-	// The flux of a zero domain is INFINITY. Also if the particle 
-	// started on the left boundary (leaking out immediately).
-	return INFINITY;
+        // The flux of a zero domain is INFINITY. Also if the particle 
+        // started on the left boundary (leaking out immediately).
+        return INFINITY;
     }
     else if ( t < EPSILON*this->t_scale )
     {
-	// if t=0.0 the flux must be zero
-	return 0.0;
+        // if t=0.0 the flux must be zero
+        return 0.0;
     }
 
 
@@ -219,24 +253,24 @@ GreensFunction1DAbsAbs::leaves(Real t) const
     const Real r0s_L((r0-sigma)/L);
     const Real vexpo(-v*v*t/4.0/D - v*(r0-sigma)/2.0/D);
     
-    Real n=1;
+    Real n = 1;
     do
     {
-	if (n >= MAX_TERMS )
-	{
-	    std::cerr << "Too many terms for GF1DAbs::leaves. N: " << n << std::endl;
-	    break;
-	}
+        if (n >= MAX_TERMS )
+        {
+            std::cerr << "Too many terms for GF1DAbs::leaves. N: " << n << std::endl;
+            break;
+        }
 
-	nPI = n*M_PI;
-	prev_term = term;
-	term = nPI * exp(nPI*nPI*expo) * sin(nPI*r0s_L);
-	sum += term;
-	n++;
+        nPI = n*M_PI;
+        prev_term = term;
+        term = nPI * exp(nPI*nPI*expo) * sin(nPI*r0s_L);
+        sum += term;
+        n++;
     }
     while (fabs(term/sum) > EPSILON*PDENS_TYPICAL ||
-	fabs(prev_term/sum) > EPSILON*PDENS_TYPICAL ||
-	n < MIN_TERMS );
+           fabs(prev_term/sum) > EPSILON*PDENS_TYPICAL ||
+           n < MIN_TERMS );
 
     return 2.0*D_L_sq * exp(vexpo) * sum;
 }
@@ -256,14 +290,14 @@ GreensFunction1DAbsAbs::leavea(Real t) const
 
     if ( fabs(r0-sigma) < L*EPSILON || fabs(a-r0) < L*EPSILON || L < 0.0 )
     {
-	// The flux of a zero domain is INFINITY. Also if the particle 
-	// started on the right boundary (leaking out immediately).
-	return INFINITY;
+        // The flux of a zero domain is INFINITY. Also if the particle 
+        // started on the right boundary (leaking out immediately).
+        return INFINITY;
     }
     else if ( t < EPSILON*this->t_scale )
     {
-	// if t=0.0 the flux must be zero
-	return 0.0;
+        // if t=0.0 the flux must be zero
+        return 0.0;
     }
 
 
@@ -277,23 +311,23 @@ GreensFunction1DAbsAbs::leavea(Real t) const
     Real n=1;
     do
      {
-       if (n >= MAX_TERMS )
-       {
-	 std::cerr << "Too many terms for GF1DAbs::leavea. N: " << n << std::endl;
-	 break;
-       }
+         if (n >= MAX_TERMS )
+         {
+             std::cerr << "Too many terms for GF1DAbs::leavea. N: " << n << std::endl;
+             break;
+         }
        
-       nPI = n*M_PI;
-       prev_term = term;
-       term = nPI * exp(nPI*nPI*expo) * cos(nPI) * sin(nPI*r0s_L);
-       sum += term;
-       n++;
+         nPI = n*M_PI;
+         prev_term = term;
+         term = nPI * exp(nPI*nPI*expo) * cos(nPI) * sin(nPI*r0s_L);
+         sum += term;
+         n++;
      }
      while (fabs(term/sum) > EPSILON*PDENS_TYPICAL ||
-	    fabs(prev_term/sum) > EPSILON*PDENS_TYPICAL ||
-	    n < MIN_TERMS );
+            fabs(prev_term/sum) > EPSILON*PDENS_TYPICAL ||
+            n < MIN_TERMS );
      
-     return -2.0*D_L_sq * exp(vexpo) * sum;
+     return - 2.0 * D_L_sq * exp(vexpo) * sum;
 }
 
 // This draws an eventtype of time t based on the flux through the left (z=sigma) 
@@ -315,13 +349,13 @@ GreensFunction1DAbsAbs::drawEventType( Real rnd, Real t ) const
     // For particles at the boundaries
     if ( fabs(a-r0) < EPSILON*L )
     {
-	// if the particle started on the right boundary
-	return IV_ESCAPE;
+        // if the particle started on the right boundary
+        return IV_ESCAPE;
     }
     else if ( fabs(r0-sigma) < EPSILON*L )
     {
-	// if the particle started on the left boundary
-	return IV_REACTION;
+        // if the particle started on the left boundary
+        return IV_REACTION;
     }
 
     const Real leaves_s (this->leaves(t));
@@ -331,20 +365,109 @@ GreensFunction1DAbsAbs::drawEventType( Real rnd, Real t ) const
 
     if (rnd > fluxratio )
     {
-    return IV_ESCAPE; //escape through a.
+        return IV_ESCAPE; //escape through a.
     }
     else
     {
-	return IV_REACTION; //escape through sigma.
+        return IV_REACTION; //escape through sigma.
     }
 }
 
-// This is a help function that casts the drawT_params parameter structure into
-// the right form and calculates the survival probability from it (and returns it).
-// The routine drawTime uses this one to sample the next-event time from the
-// survival probability using a rootfinder from GSL.
-Real
-GreensFunction1DAbsAbs::drawT_f (Real t, void *p)
+
+/* Returns i'th term of table or fills a table with 
+   i exp arguments for drawT. */
+Real GreensFunction1DAbsAbs::drawT_exponent_table( uint const& i, 
+                                                   RealVector& table) const
+{
+    uint n( table.size() );
+
+    if(i < n)
+        return table[i];
+    else
+    {
+        const Real L(this->geta() - this->getsigma());
+        const Real expo(-D/(L*L));
+        Real nPi;
+
+        if( v== 0)
+        {
+            while(n++ < i)
+            {
+                nPi = ((Real)(n+1)) * M_PI;
+                table.push_back( nPi * nPi * expo );
+            }
+        }
+        else
+        {
+            const Real vexpo_t(-v*v/4.0/D);
+
+            while(n++ < i)
+            {
+                nPi = ((Real)(n+1)) * M_PI;
+                table.push_back( nPi * nPi * expo + vexpo_t );
+            }
+        }
+
+        return table.back();
+    }
+}
+
+
+/* Returns i'th term of table or fills the table with 
+   i numerators for drawT. */
+Real GreensFunction1DAbsAbs::drawT_Xn_table( uint const& i, 
+                                             RealVector& table) const
+{
+    uint n( table.size() );
+
+    if(i < n)
+        return table[i];
+    else
+    {
+        Real nPI;
+
+        const Real a(this->geta());
+        const Real sigma(this->getsigma());
+        const Real L(this->geta() - this->getsigma());
+        const Real r0(this->getr0());
+        const Real D(this->getD());
+        const Real v(this->getv());
+    
+        const Real r0s_L((r0-sigma)/L);
+
+        if( v== 0)
+        {
+
+            while(n++ < i)
+            {
+                nPI = ((Real)(n+1))*M_PI;
+                table.push_back( sin( nPI * r0s_L ) 
+                                 * (1.0 - cos(nPI)) / nPI );
+            }
+        }
+        else
+        {
+            const Real sigmav2D(sigma*v/2.0/D);
+            const Real av2D(a*v/2.0/D);
+            const Real Lv2D(L*v/2.0/D);
+
+            while(n++ < i)
+            {
+                nPI = ((Real)(n+1))*M_PI;
+                table.push_back( (exp(sigmav2D) - cos(nPI)*exp(av2D)) * 
+                                 nPI/(Lv2D*Lv2D+nPI*nPI) * sin(nPI*r0s_L) );
+            }
+        }
+        return table.back();
+    }
+}
+
+
+/* This is a help function that casts the drawT_params parameter structure into
+   the right form and calculates the survival probability from it (and returns it).
+   The routine drawTime uses this one to sample the next-event time from the
+   survival probability using a rootfinder from GSL.*/
+Real GreensFunction1DAbsAbs::drawT_f (Real t, void *p)
 {   
     // casts p to type 'struct drawT_params *'
     struct drawT_params *params = (struct drawT_params *)p;
@@ -352,30 +475,31 @@ GreensFunction1DAbsAbs::drawT_f (Real t, void *p)
     Real sum = 0, term = 0, prev_term = 0;
     Real Xn, exponent, prefactor;
     // the maximum number of terms in the params table
-    int    terms = params->terms;
+    uint terms = params->terms;
     // the timescale used
-    Real   tscale = params->tscale;
+    Real tscale = params->tscale;
 
-    int n=0;
+    uint n = 0;
     do
     {
-	if ( n >= terms )
-	{
-	    std::cerr << "Too many terms needed for DrawTime. N: "
-	              << n << std::endl;
-	    break;
-	}
-	prev_term = term;
+        if ( n >= terms )
+        {
+            std::cerr << "Too many terms needed for DrawTime. N: "
+                      << n << std::endl;
+            break;
+        }
+        prev_term = term;
 
-	Xn = params->Xn[n];
-	exponent = params->exponent[n];
-	term = Xn * exp(exponent * t);
-	sum += term;
-	n++;
+        Xn = params->gf->drawT_Xn_table(n, params->Xn_table);
+        exponent = params->gf->drawT_exponent_table(n, params->exponent_table);
+
+        term = Xn * exp(exponent * t);
+        sum += term;
+        n++;
     }
     while (fabs(term/sum) > EPSILON*tscale ||
-	fabs(prev_term/sum) > EPSILON*tscale ||
-	n <= MIN_TERMS );
+           fabs(prev_term/sum) > EPSILON*tscale ||
+           n < MIN_TERMS );
 
     prefactor = params->prefactor;
     
@@ -398,75 +522,58 @@ GreensFunction1DAbsAbs::drawTime (Real rnd) const
     const Real r0(this->getr0());
     const Real D(this->getD());
     const Real v(this->getv());
-    
+
     if (D == 0.0 )
     {
-	return INFINITY;
+        return INFINITY;
     }
     else if ( L < 0.0 || fabs(a-r0) < EPSILON*L || fabs(r0-sigma) > (1.0 - EPSILON)*L )
     {
-	// if the domain had zero size
-	return 0.0;
+        // if the domain had zero size
+        return 0.0;
     }
 
-    const Real expo(-D/(L*L));
-    const Real r0s_L((r0-sigma)/L);
-    // some abbreviations for terms appearing in the sums with drift<>0
-    const Real sigmav2D(sigma*v/2.0/D);
-    const Real av2D(a*v/2.0/D);
-    const Real Lv2D(L*v/2.0/D);
     // exponent of the prefactor present in case of v<>0; has to be split because it has a t-dep. and t-indep. part
-    const Real vexpo_t(-v*v/4.0/D);
     const Real vexpo_pref(-v*r0/2.0/D);
+    Real prefactor;
+    
+    // Find a good interval to determine the first passage time in
+    const Real dist( std::min(r0-sigma, a-r0) );
 
-    // the structure to store the numbers to calculate the numbers for 1-S
-    struct drawT_params parameters;
-    Real Xn, exponent, prefactor;
+    // construct a guess: MSD = sqrt (2*d*D*t)
+    Real t_guess( dist * dist / ( 2.0 * D ) );
+
+    // A different guess has to be made in case of nonzero drift to account for the displacement due to it
+    // When drifting towards the closest boundary...
+    if( ( r0-sigma >= L/2.0 && v > 0.0 ) || 
+        ( r0-sigma <= L/2.0 && v < 0.0 ) )	
+        t_guess = sqrt(D*D/(v*v*v*v)+dist*dist/(v*v)) - D/(v*v);
+
+    // When drifting away from the closest boundary...
+    if( ( r0-sigma  < L/2.0 && v > 0.0 ) || 
+        ( r0-sigma  > L/2.0 && v < 0.0 ) )	
+        t_guess = D/(v*v) - sqrt(D*D/(v*v*v*v)-dist*dist/(v*v));
+      
+    t_guess *= .1;
+
+    /* Guess number of terms needed for convergence */
+    const uint maxi( guess_maxi( t_guess ) );
     
-    Real nPI;
-    
-    // Construct the coefficients and the terms in the exponent and put them 
-    // into the params structure
-    int n = 0;
-    // a simpler sum has to be computed for the case w/o drift, so distinguish here
-    if(v==0)
-    {
-      do
-      {
-	  nPI = ((Real)(n+1))*M_PI;	// why n+1 : this loop starts at n=0 (1st index of the arrays), while the sum starts at n=1 !
-	  Xn = sin(nPI*r0s_L) * (1.0 - cos(nPI)) / nPI; 
-	  exponent = nPI*nPI*expo;
-	  
-	  // store the coefficients in the structure
-	  parameters.Xn[n] = Xn;	
-	  // also store the values for the exponent
-	  parameters.exponent[n]=exponent;
-	  n++;
-      }
-      // TODO: Modify this later to include a cutoff when changes are small
-      while (n<MAX_TERMS);
-    }
-    else	// case with drift<>0
-    {
-     do
-      {
-	  nPI = ((Real)(n+1))*M_PI;	// why n+1 : this loop starts at n=0 (1st index of the arrays), while the sum starts at n=1 !
-	  Xn = (exp(sigmav2D) - cos(nPI)*exp(av2D)) * nPI/(Lv2D*Lv2D+nPI*nPI) * sin(nPI*r0s_L);
-	  exponent = nPI*nPI*expo + vexpo_t;
-	  
-	  // store the coefficients in the structure
-	  parameters.Xn[n] = Xn;	
-	  // also store the values for the exponent
-	  parameters.exponent[n]=exponent;
-	  n++;
-      }
-       // TODO: Modify this later to include a cutoff when changes are small
-      while (n<MAX_TERMS);
-    }
+    /* Build tables of factor not depending on t */
+    RealVector exponent_table;
+    RealVector Xn_table;
+    drawT_exponent_table( maxi, exponent_table );
+    drawT_Xn_table( maxi, Xn_table );
+
+    /* Set params structure. */
+    struct drawT_params parameters = {this, exponent_table, Xn_table};
 
     // the prefactor of the sum is also different in case of drift<>0 :
-    if(v == 0)	prefactor = 2.0;
-    else	prefactor = 2.0*exp(vexpo_pref);
+    if(v == 0)	
+        prefactor = 2.0;
+    else	
+        prefactor = 2.0*exp(vexpo_pref);
+
     parameters.prefactor = prefactor;
     
     parameters.rnd = rnd;
@@ -477,18 +584,6 @@ GreensFunction1DAbsAbs::drawTime (Real rnd) const
     F.function = &drawT_f;
     F.params = &parameters;
 
-    // Find a good interval to determine the first passage time in
-    const Real dist( std::min(r0-sigma, a-r0) );
-
-    // construct a guess: MSD = sqrt (2*d*D*t)
-    Real t_guess( dist * dist / ( 2.0 * D ) );
-    // A different guess has to be made in case of nonzero drift to account for the displacement due to it
-    // When drifting towards the closest boundary...
-    if( ( r0-sigma >= L/2.0 && v > 0.0 ) || ( r0-sigma <= L/2.0 && v < 0.0 ) )	t_guess = sqrt(D*D/(v*v*v*v)+dist*dist/(v*v)) - D/(v*v);
-    // When drifting away from the closest boundary...
-    if( ( r0-sigma  < L/2.0 && v > 0.0 ) || ( r0-sigma  > L/2.0 && v < 0.0 ) )	t_guess = D/(v*v) - sqrt(D*D/(v*v*v*v)-dist*dist/(v*v));
-    
-    
     Real value( GSL_FN_EVAL( &F, t_guess ) );
     Real low( t_guess );
     Real high( t_guess );
@@ -506,39 +601,39 @@ GreensFunction1DAbsAbs::drawTime (Real rnd) const
 
 	    if( fabs( high ) >= t_guess * 1e6 )
 	    {
-		std::cerr << "Couldn't adjust high. F(" << high << ") = "
-		          << value << std::endl;
-		throw std::exception();
+            std::cerr << "Couldn't adjust high. F(" << high << ") = "
+                      << value << std::endl;
+            throw std::exception();
 	    }
 	}
 	while ( value <= 0.0 );
     }
     else
     {
-	// if the guess was too high initialize with 2 so the test 
-	// below survives the first iteration
-	Real value_prev( 2.0 );
-	do
-	{
-	    if( fabs( low ) <= t_guess * 1.0e-6 ||
-	        fabs(value-value_prev) < EPSILON*this->t_scale )
-	    {
-		std::cerr << "GF1DAbs::drawTime Couldn't adjust low. F(" << low << ") = "
-		          << value << " t_guess: " << t_guess << " diff: "
-		          << (value - value_prev) << " value: " << value
-		          << " value_prev: " << value_prev << std::endl;
-		return low;
-	    }
+        // if the guess was too high initialize with 2 so the test 
+        // below survives the first iteration
+        Real value_prev( 2.0 );
+        do
+        {
+            if( fabs( low ) <= t_guess * 1.0e-6 ||
+                fabs(value-value_prev) < EPSILON*this->t_scale )
+            {
+                std::cerr << "GF1DAbs::drawTime Couldn't adjust low. F(" << low << ") = "
+                          << value << " t_guess: " << t_guess << " diff: "
+                          << (value - value_prev) << " value: " << value
+                          << " value_prev: " << value_prev << std::endl;
+                return low;
+            }
 
-	    value_prev = value;
-	    // keep decreasing the lower boundary until the 
-	    // function straddles
-	    low *= 0.1;
-	    // get the accompanying value
-	    value = GSL_FN_EVAL( &F, low );
-
-	}
-	while ( value >= 0.0 );
+            value_prev = value;
+            // keep decreasing the lower boundary until the 
+            // function straddles
+            low *= 0.1;
+            // get the accompanying value
+            value = GSL_FN_EVAL( &F, low );
+            
+        }
+        while ( value >= 0.0 );
     }
 
     // find the intersection on the y-axis between the random number and 
@@ -573,36 +668,41 @@ GreensFunction1DAbsAbs::drawR_f (Real r, drawR_params const* params)
 {   
     Real sum = 0, term = 0, prev_term = 0;
     Real S_Cn_An, n_L;
-    int    terms = params->terms;
+    uint terms = params->terms;
     Real sigma = params->H[0];
     Real v2D = params->H[1];	// =v/(2D)
 
-    int n=0;
+    uint n = 0;
     do
     {
-	if (n >= terms )
-	{
-	    std::cerr << "Too many terms for DrawR. N: " << n << std::endl;
-	    break;
-	}
-	prev_term = term;
+        if (n >= terms )
+        {
+            std::cerr << "Too many terms for DrawR. N: " << n << std::endl;
+            break;
+        }
+        prev_term = term;
+        
+        S_Cn_An = params->S_Cn_An[n];
+        n_L = params->n_L[n];	// this is n*pi/L
+        if(v2D==0.0)	
+            term = S_Cn_An * ( 1.0 - cos(n_L*(r-sigma)) );
+        else		
+            term = S_Cn_An * ( exp(v2D*sigma) + exp(v2D*r)*
+                               ( v2D/n_L*sin(n_L*(r-sigma)) 
+                                 - cos(n_L*(r-sigma)) ));
 
-	S_Cn_An = params->S_Cn_An[n];
-	n_L = params->n_L[n];	// this is n*pi/L
-	if(v2D==0.0)	term = S_Cn_An * ( 1.0 - cos(n_L*(r-sigma)) );
-	else		term = S_Cn_An * ( exp(v2D*sigma) + exp(v2D*r)*( v2D/n_L*sin(n_L*(r-sigma)) - cos(n_L*(r-sigma)) ));
 	  // S_Cn_An contains all expon. prefactors, the 1/S(t) term and all parts
 	  // of the terms that do not depend on r.
 	  //
 	  // In case of zero drift the terms become S_An_Cn * ( 1 - cos(nPi/L*(r-sigma)) )
 	  // as it should be. The if-statement is only to avoid calculation costs.
 
-	sum += term;
-	n++;
+        sum += term;
+        n++;
     }
     while (fabs(term/sum) > EPSILON ||
-	fabs(prev_term/sum) > EPSILON ||
-	n <= MIN_TERMS );
+           fabs(prev_term/sum) > EPSILON ||
+           n < MIN_TERMS );
 
     // find the intersection with the random number
     return sum - params->rnd;
@@ -647,6 +747,8 @@ GreensFunction1DAbsAbs::drawR (Real rnd, Real t) const
     F.params = &parameters;
     Real psurv;
 
+    const uint maxi( guess_maxi( t ) );
+
     if ((r0 + vt - sigma) <= thresholdDistance || (a - r0 - vt) <= thresholdDistance)
     {
         psurv = p_survival(t);
@@ -670,7 +772,7 @@ GreensFunction1DAbsAbs::drawR (Real rnd, Real t) const
 
         // Construct the coefficients and the terms in the exponent and put them 
         // in the params structure
-        int n=0;
+        uint n = 0;
         do
         {
 	        nPI = ((Real)(n+1))*M_PI;	    // note: summation starting with n=1, indexing with n=0, therefore we need n+1 here
@@ -688,7 +790,7 @@ GreensFunction1DAbsAbs::drawR (Real rnd, Real t) const
 	        parameters.n_L[n]    = nPI/L;
 	        n++;
         }
-        while (n<MAX_TERMS);
+        while (n<maxi);
     
         F.function = reinterpret_cast<typeof(F.function)>(&drawR_f);
     }
@@ -711,7 +813,7 @@ GreensFunction1DAbsAbs::drawR (Real rnd, Real t) const
     // store the random number for the probability
     parameters.rnd = rnd ;
     // store the number of terms used
-    parameters.terms = MAX_TERMS;
+    parameters.terms = maxi;
    
 
     // find the intersection on the y-axis between the random number and the function
