@@ -62,6 +62,162 @@ Real W(Real a, Real b)
     return std::exp(- a * a) * expxsq_erfc(a + b);
 }
 
+
+/* List of 1D functions used as approximations for the greensfunctions
+   of the full domain. For small t, a particle only scans part of the domain
+   and thus not al the boundary conditions have to be included. Because the
+   greensfunctions converge bad for small t, we use these approximations.
+
+   note: drift not included yet!
+
+   *** Naming: 
+   All 1D function names start with an X, followed by:
+
+   P for position density function.
+   S for survival probability function.
+   I for culumative distribution function of position.
+
+   ** Last two numer give boundaries 
+   (By J.V. Beck - Heat Conduction in Green's Functions)
+
+   0 - No boundary.
+   1 - Absorbing boundary.
+   2 - Reflective boundary.
+   3 - Radiation boundary with rate ka.
+ */
+
+Real XP00( Real r, Real t, Real r0, Real D )
+{
+    const Real fourDt( 4 * D * t );
+    const Real rminr02( gsl_pow_2( r - r0 ) );
+
+    return 1. / sqrt( fourDt * M_PI ) * exp( - rminr02 / fourDt );
+}
+
+
+Real XI00( Real r, Real t, Real r0, Real D )
+{
+    const Real sqrt4Dt( sqrt( 4 * D * t ) );
+    const Real rminr0( r - r0 );
+
+    return 0.5 * ( 1.0 + erf( rminr0 / sqrt4Dt ) );
+}
+
+
+Real XS00( Real r, Real t, Real r0, Real D )
+{
+    return 1;
+}
+
+
+Real XP10( Real r, Real t, Real r0, Real D )
+{
+    const Real fourDt( 4 * D * t );
+    const Real rminr02( gsl_pow_2( r - r0 ) );
+    const Real rplusr02( gsl_pow_2( r + r0 ) );
+
+    return 1. / sqrt( fourDt * M_PI ) * 
+        ( exp( - rminr02 / fourDt ) - exp( - rplusr02 / fourDt ) );
+}
+
+
+Real XI10( Real r, Real t, Real r0, Real D )
+{
+    const Real sqrt4Dt( sqrt( 4 * D * t ) );
+    const Real rminr0( r - r0 );
+    const Real rplusr0( r + r0 );
+
+    const Real temp( 2.0 * erf( r0 / sqrt4Dt ) 
+                     + erf( rminr0/sqrt4Dt ) - erf( rplusr0/sqrt4Dt ) );
+
+    return 0.5 * temp;
+}
+
+
+Real XS10( Real r, Real t, Real r0, Real D )
+{
+    const Real sqrt4Dt( sqrt( 4 * D * t ) );
+
+    return erf( r0 / sqrt4Dt );
+}
+
+
+Real XP20( Real r, Real t, Real r0, Real D )
+{
+    const Real fourDt( 4 * D * t );
+    const Real rminr02( gsl_pow_2( r - r0 ) );
+    const Real rplusr02( gsl_pow_2( r + r0 ) );
+
+    return 1. / sqrt( fourDt * M_PI ) * 
+        ( exp( - rminr02 / fourDt ) + exp( - rplusr02 / fourDt ) );
+}
+
+
+Real XI20( Real r, Real t, Real r0, Real D )
+{
+    const Real sqrt4Dt( sqrt( 4 * D * t ) );
+
+    const Real temp( erf( (r - r0)/sqrt4Dt ) - erf( (r + r0)/sqrt4Dt ) );
+
+    return 0.5 * temp;
+}
+
+
+Real XS20( Real r, Real t, Real r0, Real D )
+{
+    return 1;
+}
+
+
+Real XP30term( Real r, Real t, Real r0, Real ka, Real D )
+{
+    const Real fourDt( 4 * D * t );
+    const Real k_D( ka / D );
+    const Real rplusr02( gsl_pow_2( r + r0 ) );
+    const Real arg( (r + r0)/sqrt(fourDt) + ka * sqrt( t / D ) );
+        
+    return -k_D * exp( - rplusr02 / fourDt ) * expxsq_erfc( arg );
+}
+
+
+Real XP30( Real r, Real t, Real r0, Real ka, Real D )
+{        
+    return XP20(r, t, r0, D) + XP30term(r, t, r0, ka, D);
+}
+
+
+Real XI30term( Real r, Real t, Real r0, Real ka, Real D )
+{
+    const Real sqrt4Dt( sqrt(4 * D * t) );
+    const Real k_D( ka / D );
+    const Real rplusr02( gsl_pow_2( r + r0 ) );
+        
+    const Real term1( erf( r0/sqrt4Dt ) - erf( (r+r0)/sqrt4Dt ) );
+
+    const Real term2( exp( k_D * (ka * t + r0) ) * erfc( (2 * ka * t + r0)/sqrt4Dt ) );
+
+    const Real term3( exp( k_D * (ka * t + r0 + r) ) * erfc( (2 * ka * t + r0 + r)/sqrt4Dt ) );
+
+    return term1 + term2 - term3;
+}
+
+
+Real XI30( Real r, Real t, Real r0, Real ka, Real D )
+{
+    return XI20(r, t, r0, D) + XI30term(r, t, r0, ka, D);
+}
+
+
+Real XS30( Real t, Real r0, Real ka, Real D )
+{
+    const Real sqrt4Dt( sqrt( 4 * D * t ) );
+    const Real k_D( ka / D );
+
+    return erf( r0 / sqrt4Dt ) + 
+        exp( k_D * ka * t + k_D * r0 ) * erfc( (2 * ka * t + r0) / sqrt4Dt );
+}
+
+
 Real __p_irr(Real r, Real t, Real r0, Real kf, Real D, Real sigma, Real alpha)
 {
     //  printf("irrp %.16g %.16g %.16g\n",r,r0,t);

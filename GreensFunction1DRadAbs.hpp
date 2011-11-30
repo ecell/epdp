@@ -257,7 +257,6 @@ private:
         RealVector& exponent_table;
         RealVector& Xn_table;
         double prefactor;
-        uint   terms;
         // the timescale used for convergence
         Real   tscale;
         // the random number associated with the time

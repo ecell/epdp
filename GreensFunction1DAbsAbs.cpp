@@ -474,15 +474,22 @@ Real GreensFunction1DAbsAbs::drawT_f (Real t, void *p)
     
     Real sum = 0, term = 0, prev_term = 0;
     Real Xn, exponent, prefactor;
-    // the maximum number of terms in the params table
-    uint terms = params->terms;
     // the timescale used
     Real tscale = params->tscale;
+
+    const uint maxi( params->gf->guess_maxi( t ) );
+
+    if( params->exponent_table.size() < maxi + 1 &&
+        params->Xn_table.size() < maxi + 1 )
+    {
+        IGNORE_RETURN params->gf->drawT_exponent_table( maxi, params->exponent_table );
+        IGNORE_RETURN params->gf->drawT_Xn_table( maxi, params->Xn_table );
+    }
 
     uint n = 0;
     do
     {
-        if ( n >= terms )
+        if ( n >= maxi )
         {
             std::cerr << "Too many terms needed for DrawTime. N: "
                       << n << std::endl;
@@ -577,7 +584,6 @@ GreensFunction1DAbsAbs::drawTime (Real rnd) const
     parameters.prefactor = prefactor;
     
     parameters.rnd = rnd;
-    parameters.terms = MAX_TERMS;
     parameters.tscale = this->t_scale;
 
     gsl_function F;

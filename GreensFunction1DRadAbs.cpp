@@ -552,14 +552,22 @@ double GreensFunction1DRadAbs::drawT_f (double t, void *p)
     struct drawT_params *params = (struct drawT_params *)p;
     Real Xn = 0, exponent = 0;
     Real prefactor = params->prefactor;
-    uint terms = params->terms;
+
+    const uint maxi( params->gf->guess_maxi( t ) );
+    
+    if( params->exponent_table.size() < maxi + 1 &&
+        params->Xn_table.size() < maxi + 1 )
+    {
+        params->gf->calculate_n_roots( maxi );
+        IGNORE_RETURN params->gf->drawT_exponent_table( maxi, params->exponent_table );
+        IGNORE_RETURN params->gf->drawT_Xn_table( maxi, params->Xn_table );
+    }
 
     Real sum = 0, term = 0, prev_term = 0;
-
     uint n = 0;
     do
     {
-        if ( n >= terms )
+        if ( n >= maxi )
         {
             std::cerr << "Too many terms needed for GF1DRad::DrawTime. N: "
                       << n << ", conv arg: " << exponent * t <<  std::endl;
@@ -635,17 +643,9 @@ GreensFunction1DRadAbs::drawTime (Real rnd) const
     // When drifting away from the closest boundary
     //if( ( r0 < a/2.0 && v > 0.0) || ( r0 > a/2.0 && v < 0.0) )	t_guess = D/(v*v) - sqrt(D*D/(v*v*v*v)-dist*dist/(v*v));  
 
-    /* Guess nbr of terms needed for convergence. */
-    const uint maxi( guess_maxi( t_guess ) );
-    calculate_n_roots( maxi );
-
-    /* Build tables of factor not depending on t */
+    /* Set params structure. */
     RealVector exponent_table;
     RealVector Xn_table;
-    drawT_exponent_table( maxi, exponent_table );
-    drawT_Xn_table( maxi, Xn_table );
-
-    /* Set params structure. */
     struct drawT_params parameters = {this, exponent_table, Xn_table};
     
     // the prefactor of the sum is also different in case of drift<>0 :
@@ -659,7 +659,6 @@ GreensFunction1DRadAbs::drawTime (Real rnd) const
     // store the random number for the probability
     parameters.rnd = rnd;
     // store the number of terms used
-    parameters.terms = MAX_TERMS;
     parameters.tscale = this->t_scale;
 
     // Define the function for the rootfinder

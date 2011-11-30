@@ -176,7 +176,6 @@ private:
         RealVector& exponent_table;
         RealVector& Xn_table;
         Real prefactor;
-        uint terms;
         Real tscale;
         Real rnd;
     };

@@ -326,7 +326,11 @@ Real GreensFunction1DAbsSinkAbs::p_survival_table(Real t, RealVector& psurvTable
     */
 
     const uint maxi( guess_maxi(t) );
-            
+    
+    if( maxi == MAX_TERMS )
+        std::cerr << "1DSink::drawT: maxi was cut to MAX_TERMS for t = " 
+                  << t << std::endl;
+        
     if (psurvTable.size() < maxi + 1)
     {
         calculate_n_roots( maxi );  // this updates the table
@@ -722,9 +726,6 @@ Real GreensFunction1DAbsSinkAbs::drawTime(Real rnd) const
     t_guess = dist * dist / ( 2.0 * D );
     t_guess *= .1;
 
-    const uint maxi( guess_maxi( t_guess ) );
-    calculate_n_roots( maxi );
-
     /* Define the function for the rootfinder */
     gsl_function F;
     F.function = &GreensFunction1DAbsSinkAbs::drawT_f;
@@ -808,7 +809,11 @@ Real GreensFunction1DAbsSinkAbs::p_int_r_table(Real const& r,
        : rr -> -rr. */
     const Real rr( getr0() - rsink >= 0 ? r - rsink : rsink - r  );
 
-    const uint maxi( guess_maxi(t) );    
+    const uint maxi( guess_maxi(t) );
+
+    if( maxi == MAX_TERMS )
+        std::cerr << "1DSink::p_int_r_table: maxi was cut to MAX_TERMS for t = " 
+                  << t << std::endl;
    
     if (table.size() < maxi + 1)
     {
