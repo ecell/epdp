@@ -1170,9 +1170,9 @@ class EGFRDSimulator(ParticleSimulatorBase):
         # zero-shell NonInteractionSingle -> Pair or Multi
         # Multi -> Multi
         # Surface -> Interaction
-        closest_obj, closest_distance = self.geometrycontainer.get_closest_obj(single_pos, self.domains,
-                                                                        ignore=[single.domain_id],
-                                                                        ignores=[single.structure.id])
+#        closest_obj, closest_distance = self.geometrycontainer.get_closest_obj(single_pos, self.domains,
+#                                                                        ignore=[single.domain_id],
+#                                                                        ignores=[single.structure.id])
 
         # New situation -> re-get the neighbors
         # TODO: modify the existing neighbor list by removing burst domains, and adding the new ones + distance
@@ -1202,19 +1202,19 @@ class EGFRDSimulator(ParticleSimulatorBase):
         pair_interaction_partners = sorted(pair_interaction_partners, key=lambda domain_overlap: domain_overlap[1])
 
 
-        ### START LEGACY
-        partners = burst
-        dists = []
-        if partners:
-#            for domain, _ in partners:
-#            if isinstance(domain, NonInteractionSingle):
-            # sort partners by distance
-            dists = self.obj_distance_array(single_pos, partners)
-            if len(dists) >= 2:
-                n = dists.argsort()
-                partners = numpy.take(partners, n)      # sort the potential partners using the index
-                dists = dists.take(n)                   # sort the distances using the index
-        ### END LEGACY
+#        ### START LEGACY
+#        partners = burst
+#        dists = []
+#        if partners:
+##            for domain, _ in partners:
+##            if isinstance(domain, NonInteractionSingle):
+#            # sort partners by distance
+#            dists = self.obj_distance_array(single_pos, partners)
+#            if len(dists) >= 2:
+#                n = dists.argsort()
+#                partners = numpy.take(partners, n)      # sort the potential partners using the index
+#                dists = dists.take(n)                   # sort the distances using the index
+#        ### END LEGACY
 
 
         # 2.4 calculate the thresholds (horizons) for trying to form the various domains.
@@ -1251,10 +1251,10 @@ class EGFRDSimulator(ParticleSimulatorBase):
             multi_partners = []
             for domain, dist_to_shell in neighbors:
                 if (isinstance (domain, NonInteractionSingle) and domain.is_reset()):
-                    multi_horizon = (single_radius ) * self.MULTI_SHELL_FACTOR
+                    multi_horizon = (single_radius + domain.pid_particle_pair[1].radius) * self.MULTI_SHELL_FACTOR
                     # distance from the center of the particles/domains
                     distance = self.world.distance(single_pos, domain.shell.shape.position)
-                    multi_partners.append((domain, dist_to_shell - multi_horizon))
+                    multi_partners.append((domain, distance - multi_horizon))
 
                 elif isinstance(domain, Multi):
                     # The dist_to_shell = dist_to_particle - multi_horizon_of_target_particle
@@ -1294,6 +1294,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
                 self.add_domain_event(single)
             else:
                 # An object was closer than the Multi horizon
+                # Form a multi with everything that is in the multi_horizon
                 domain = self.form_multi(single, multi_partners)
 
         return domain
@@ -2141,8 +2142,9 @@ class EGFRDSimulator(ParticleSimulatorBase):
         # Filter out relevant neighbors if present
         # only consider objects that are within the Multi horizon
         neighbors = [obj for (obj, overlap) in multi_partners if overlap < 0]
+
         for partner in neighbors:
-            assert (isinstance(partner, NonInteractionSingle) or \
+            assert ((isinstance(partner, NonInteractionSingle) and partner.is_reset()) or \
                     isinstance(partner, Multi) or \
                     isinstance(partner, PlanarSurface) or \
                     isinstance(partner, CylindricalSurface)), \
@@ -2158,7 +2160,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
         if isinstance(closest, Multi):
         # if the closest to this Single is a Multi, reuse the Multi.
             multi = closest
-            neighbors = neighbors[1:]   # the rest of the neighbors are added
+            neighbors = neighbors[1:]   # don't add the closest multi with add_to_multi_recursive below
         else: 
         # the closest is not a Multi. Can be NonInteractionSingle, surface or
         # nothing. Create new Multi
@@ -2169,16 +2171,23 @@ class EGFRDSimulator(ParticleSimulatorBase):
         self.add_to_multi(single, multi)
         self.remove_domain(single)
 
-        # TODO add them here or let the scheduler handle this?
-#        for neighbor in neighbors:
-#            self.add_to_multi_recursive(neighbor, multi)
+        # add everything in the horizon to the multi
+        for neighbor in neighbors:
+            if (isinstance(neighbor, NonInteractionSingle) and neighbor.is_reset()) or \
+               isinstance(neighbor, Multi):
+                self.add_to_multi_recursive(neighbor, multi)
+            else:
+                # neighbor is a surface
+                log.debug('add_to_multi: object(%s) is surface, not added to multi.' % neighbor)
 
 
         # 3. Initialize and (re-)schedule
         multi.initialize(self.t)
         if isinstance(closest, Multi):
+            # Multi existed before
             self.update_domain_event(self.t + multi.dt, multi)
         else:
+            # In case of new multi
             self.add_domain_event(multi)
 
         return multi
@@ -2186,6 +2195,10 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
     def add_to_multi_recursive(self, domain, multi):
     # adds 'domain' (which can be zero-dt NonInteractionSingle or Multi) to 'multi'
+
+
+        if __debug__:
+            log.debug('add_to_multi_recursive.\n domain: %s, multi: %s' % (domain, multi))
 
         if isinstance(domain, NonInteractionSingle):
             assert domain.is_reset()        # domain must be zero-dt NonInteractionSingle
@@ -2213,14 +2226,37 @@ class EGFRDSimulator(ParticleSimulatorBase):
             self.remove_event(domain)
 
             # get distances to closest shell of burst neighbors
-            neighbor_dists = self.obj_distance_array(dompos, burst)
-            # 3. select neighbors in the 'multi_horizon' for adding to the multi
-            neighbors = [burst[i] for i
-                                  in (neighbor_dists <= burstradius).nonzero()[0]]
+#            neighbor_dists = self.obj_distance_array(dompos, burst)
+            neighbors = [(burst_domain, self.domain_distance(dompos, burst_domain)) for burst_domain in burst]
 
-            # 4. not sure we really want to do this
-            for domain in neighbors:
-                self.add_to_multi_recursive(domain, multi)
+            # 3. select neighbors in the 'multi_horizon' for adding to the multi
+#            neighbors = [burst[i] for i
+#                                  in (neighbor_dists <= burstradius).nonzero()[0]]
+
+            multi_partners = []
+            for neighbor, dist_to_shell in neighbors:
+                if (isinstance (neighbor, NonInteractionSingle) and neighbor.is_reset()):
+                    multi_horizon = (domain.pid_particle_pair[1].radius + neighbor.pid_particle_pair[1].radius) * \
+                                    self.MULTI_SHELL_FACTOR
+                    # distance from the center of the particles/domains
+                    distance = self.world.distance(dompos, neighbor.shell.shape.position)
+                    multi_partners.append((neighbor, distance - multi_horizon))
+
+                elif isinstance(neighbor, Multi):
+                    # The dist_to_shell = dist_to_particle - multi_horizon_of_target_particle
+                    # So only the horizon and distance of the current single needs to be taken into account
+                    # Note: this is built on the assumption that the shell of a Multi has the size of the horizon.
+                    multi_horizon = (domain.pid_particle_pair[1].radius * self.MULTI_SHELL_FACTOR)
+                    multi_partners.append((neighbor, dist_to_shell - multi_horizon))
+
+                else:
+                    if __debug__:
+                        assert False, 'add_to_multi_recursive: burst neighbor is not dt-zero NonInteractionSingle or Multi'
+
+            # 4. if the burst neighbors are still in the horizon -> add to multi
+            for neighbor, overlap in multi_partners:
+                if overlap < 0:
+                    self.add_to_multi_recursive(neighbor, multi)
 
         elif isinstance(domain, Multi):
             for pp in multi.particles:
@@ -2248,6 +2284,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
         self.geometrycontainer.move_shell(shell_id_shell_pair)
         multi.add_shell(shell_id_shell_pair)
         multi.add_particle(single.pid_particle_pair)
+
+        # TODO maybe also cache the singles in the Multi for reuse?
 
     def merge_multis(self, multi1, multi2):
         # merge multi1 into multi2. multi1 will be removed.
