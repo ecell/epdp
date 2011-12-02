@@ -415,20 +415,22 @@ Real GreensFunction1DAbsAbs::drawT_exponent_table( uint const& i,
 
         if( v == 0.0 )
         {
-            while(n++ < i)
+            while(n < i)
             {
                 nPi = ((Real)(n+1)) * M_PI;
                 table.push_back( nPi * nPi * expo );
+                n++;
             }
         }
         else
         {
             const Real vexpo_t(-v*v/4.0/D);
 
-            while(n++ < i)
+            while(n < i)
             {
                 nPi = ((Real)(n+1)) * M_PI;
                 table.push_back( nPi * nPi * expo + vexpo_t );
+                n++;
             }
         }
 
@@ -461,11 +463,12 @@ Real GreensFunction1DAbsAbs::drawT_Xn_table( uint const& i,
 
         if( v == 0.0 )
         {
-            while(n++ < i)
+            while(n < i)
             {
                 nPI = ((Real)(n+1))*M_PI;
                 table.push_back( sin( nPI * r0s_L ) 
                                  * (1.0 - cos(nPI)) / nPI );
+                n++;
             }
         }
         else
@@ -474,11 +477,12 @@ Real GreensFunction1DAbsAbs::drawT_Xn_table( uint const& i,
             const Real av2D(a*v/2.0/D);
             const Real Lv2D(L*v/2.0/D);
 
-            while(n++ < i)
+            while(n < i)
             {
                 nPI = ((Real)(n+1))*M_PI;
                 table.push_back( (exp(sigmav2D) - cos(nPI)*exp(av2D)) * 
                                  nPI/(Lv2D*Lv2D+nPI*nPI) * sin(nPI*r0s_L) );
+                n++;
             }
         }
         return table.back();
@@ -559,11 +563,6 @@ Real GreensFunction1DAbsAbs::drawT_f (Real t, void *p)
 
     prefactor = params->prefactor;
     
-    
-    std::cerr << "S(" << t << ") = " << prefactor * sum << ", rnd = " << params->rnd 
-              << " " << params->rnd - prefactor*sum << std::endl;  
-    
-
     // find intersection with the random number
     return params->rnd - prefactor * sum; 
 }
@@ -640,8 +639,6 @@ GreensFunction1DAbsAbs::drawTime (Real rnd) const
     Real low( t_guess );
     Real high( t_guess );
 
-    std::cerr << "F(" << t_guess << ") =  " << value << std::endl;
-
     if( value < 0.0 )
     {
 	// scale the interval around the guess such that the function 
@@ -689,9 +686,6 @@ GreensFunction1DAbsAbs::drawTime (Real rnd) const
         }
         while ( value >= 0.0 );
     }
-
-    std::cerr << "F(" << low << ") = " << value << std::endl;
-
 
     // find the intersection on the y-axis between the random number and 
     // the function

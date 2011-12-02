@@ -494,10 +494,11 @@ Real GreensFunction1DRadAbs::drawT_exponent_table( uint const& i,
         const Real vexpo_t(-v2/4.0/D);
         Real root_n2;
 
-        while(n++ < i)
+        while(n < i)
         {
             root_n2 = gsl_pow_2( get_root( n ) );
             table.push_back( -D * root_n2 + vexpo_t );
+            n++;
         }
         
         return table.back();
@@ -527,7 +528,7 @@ Real GreensFunction1DRadAbs::drawT_Xn_table( uint const& i,
 
         if( v == 0.0)
         {
-            while(n++ < i)
+            while(n < i)
             {
                 root_n      = get_root(n);	
                 root_n2	    = root_n * root_n;
@@ -538,6 +539,7 @@ Real GreensFunction1DRadAbs::drawT_Xn_table( uint const& i,
                 table.push_back( (h*sin(root_n_r0_s) + root_n*cos(root_n_r0_s)) 
                                  / (L*(root_n2+h*h)+h) * ( h_root_n + sin(root_n_L) 
                                                            - h_root_n*cos(root_n_L) ) );
+                n++;
             }
         }
         else
@@ -546,7 +548,7 @@ Real GreensFunction1DRadAbs::drawT_Xn_table( uint const& i,
             const Real exp_av2D(exp(a*v2D));
             const Real exp_sigmav2D(exp(sigma*v2D));
 
-            while(n++ < i)
+            while(n < i)
             {
                 root_n      = get_root(n);	
                 root_n2	    = root_n * root_n;
@@ -560,6 +562,7 @@ Real GreensFunction1DRadAbs::drawT_Xn_table( uint const& i,
                                                         cos(root_n_L)) / 
                                  (h_root_n * (root_n2 + v2D*v2D))  
                                  );
+                n++;
             }
         }
         return table.back();
