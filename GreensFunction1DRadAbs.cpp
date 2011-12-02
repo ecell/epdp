@@ -207,6 +207,7 @@ GreensFunction1DRadAbs::p_survival (Real t) const
     const Real L(this->geta()-this->getsigma());
     const Real r0_s(this->getr0() - this->getsigma());
     const Real h((this->getk()+this->getv()/2.0)/this->getD());
+    const Real r0( getr0() );
 
     if (t == 0.0 || (D == 0.0 && v == 0.0) )
     {
@@ -215,6 +216,28 @@ GreensFunction1DRadAbs::p_survival (Real t) const
         return 1.0;
     }
 
+    /* First check if we need full solution. 
+       Else we use approximation. */
+    const Real distToa( geta() - r0 );
+    const Real distTos( r0 - getsigma() );
+    const Real maxDist( CUTOFF_H * sqrt(2.0 * D * t) );
+
+    //TODO: No drift included for approximations.
+    if( v == 0.0 )
+    {
+        if( distToa > maxDist ) //Absorbing boundary 'not in sight'.
+        {
+            if( distTos > maxDist ) //Radiation boundary 'not in sight'.
+                return 1.0; //No prob. outflux.
+            else
+                return XS30(t, distTos, getk(), getD()); //Only radiation BCn.
+        }
+        else
+        {
+            if( distTos > maxDist )
+                return XS10(t, distToa, getD() ); //Only absorbing BCn.
+        }
+    }
 
     Real root_n;
     Real sum = 0, term = 0, term_prev = 0;
@@ -502,7 +525,7 @@ Real GreensFunction1DRadAbs::drawT_Xn_table( uint const& i,
 
         Real root_n, root_n2, root_n_r0_s, root_n_L, h_root_n;	  
 
-        if( v== 0)
+        if( v == 0.0)
         {
             while(n++ < i)
             {
@@ -550,17 +573,44 @@ double GreensFunction1DRadAbs::drawT_f (double t, void *p)
 {
     // casts p to type 'struct drawT_params *'
     struct drawT_params *params = (struct drawT_params *)p;
+    GreensFunction1DRadAbs const* gf = params->gf;
+    const Real r0( gf->getr0() );
+
+    /* First check if we need full solution. 
+       Else we use approximation. */
+    const Real distToa( gf->geta() - r0 );
+    const Real distTos( r0 - gf->getsigma() );
+    const Real maxDist( CUTOFF_H * sqrt(2.0 * gf->getD() * t) );
+    
+    //TODO: No drift included for approximations.
+    if( gf->getv() == 0.0 )
+    {
+        if( distToa > maxDist ) //Absorbing boundary 'not in sight'.
+        {
+            if( distTos > maxDist )//And radiation boundary 'not in sight'.
+                return params->rnd - 1.0; //No prob. outflux.
+            else
+                return params->rnd - XS30(t, distTos, gf->getk(), gf->getD()); //Only radiation BCn.
+        }
+        else
+        {
+            if( distTos > maxDist )
+                return params->rnd - XS10(t, distToa, gf->getD() ); //Only absorbing BCn.
+        }
+    }
+
+
     Real Xn = 0, exponent = 0;
     Real prefactor = params->prefactor;
 
-    const uint maxi( params->gf->guess_maxi( t ) );
+    const uint maxi( gf->guess_maxi( t ) );
     
     if( params->exponent_table.size() < maxi + 1 &&
         params->Xn_table.size() < maxi + 1 )
     {
         params->gf->calculate_n_roots( maxi );
-        IGNORE_RETURN params->gf->drawT_exponent_table( maxi, params->exponent_table );
-        IGNORE_RETURN params->gf->drawT_Xn_table( maxi, params->Xn_table );
+        IGNORE_RETURN gf->drawT_exponent_table( maxi, params->exponent_table );
+        IGNORE_RETURN gf->drawT_Xn_table( maxi, params->Xn_table );
     }
 
     Real sum = 0, term = 0, prev_term = 0;
@@ -611,7 +661,7 @@ GreensFunction1DRadAbs::drawTime (Real rnd) const
         return INFINITY;
     }
 
-    if ( rnd <= EPSILON || L < 0.0 || fabs(a-r0) < EPSILON*L )
+    if ( rnd > 1 - EPSILON || L < 0.0 || fabs(a-r0) < EPSILON*L )
     {
         return 0.0;
     }

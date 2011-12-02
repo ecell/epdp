@@ -65,7 +65,7 @@ Real W(Real a, Real b)
 
 /* List of 1D functions used as approximations for the greensfunctions
    of the full domain. For small t, a particle only scans part of the domain
-   and thus not al the boundary conditions have to be included. Because the
+   and thus not all the boundary conditions have to be included. Because the
    greensfunctions converge bad for small t, we use these approximations.
 
    note: drift not included yet!
@@ -84,6 +84,10 @@ Real W(Real a, Real b)
    1 - Absorbing boundary.
    2 - Reflective boundary.
    3 - Radiation boundary with rate ka.
+
+   Approximation for greensfunction with sink has 3 boundaries: 030
+   left absorbing boundary, sink, right absorbing boundary.
+   
  */
 
 Real XP00( Real r, Real t, Real r0, Real D )
@@ -104,7 +108,7 @@ Real XI00( Real r, Real t, Real r0, Real D )
 }
 
 
-Real XS00( Real r, Real t, Real r0, Real D )
+Real XS00( Real t, Real r0, Real D )
 {
     return 1;
 }
@@ -134,7 +138,7 @@ Real XI10( Real r, Real t, Real r0, Real D )
 }
 
 
-Real XS10( Real r, Real t, Real r0, Real D )
+Real XS10( Real t, Real r0, Real D )
 {
     const Real sqrt4Dt( sqrt( 4 * D * t ) );
 
@@ -175,13 +179,15 @@ Real XP30term( Real r, Real t, Real r0, Real ka, Real D )
     const Real k_D( ka / D );
     const Real rplusr02( gsl_pow_2( r + r0 ) );
     const Real arg( (r + r0)/sqrt(fourDt) + ka * sqrt( t / D ) );
-        
+    r0 = fabs( r0 );
+
     return -k_D * exp( - rplusr02 / fourDt ) * expxsq_erfc( arg );
 }
 
 
 Real XP30( Real r, Real t, Real r0, Real ka, Real D )
-{        
+{
+    r0 = fabs( r0 );
     return XP20(r, t, r0, D) + XP30term(r, t, r0, ka, D);
 }
 
@@ -190,13 +196,15 @@ Real XI30term( Real r, Real t, Real r0, Real ka, Real D )
 {
     const Real sqrt4Dt( sqrt(4 * D * t) );
     const Real k_D( ka / D );
-    const Real rplusr02( gsl_pow_2( r + r0 ) );
+    r0 = fabs( r0 );
         
     const Real term1( erf( r0/sqrt4Dt ) - erf( (r+r0)/sqrt4Dt ) );
 
-    const Real term2( exp( k_D * (ka * t + r0) ) * erfc( (2 * ka * t + r0)/sqrt4Dt ) );
+    const Real term2( exp( k_D * (ka * t + r0) ) * 
+                      erfc( (2 * ka * t + r0)/sqrt4Dt ) );
 
-    const Real term3( exp( k_D * (ka * t + r0 + r) ) * erfc( (2 * ka * t + r0 + r)/sqrt4Dt ) );
+    const Real term3( exp( k_D * (ka * t + r0 + r) ) * 
+                      erfc( (2 * ka * t + r0 + r)/sqrt4Dt ) );
 
     return term1 + term2 - term3;
 }
@@ -204,6 +212,7 @@ Real XI30term( Real r, Real t, Real r0, Real ka, Real D )
 
 Real XI30( Real r, Real t, Real r0, Real ka, Real D )
 {
+    r0 = fabs( r0 );
     return XI20(r, t, r0, D) + XI30term(r, t, r0, ka, D);
 }
 
@@ -212,9 +221,38 @@ Real XS30( Real t, Real r0, Real ka, Real D )
 {
     const Real sqrt4Dt( sqrt( 4 * D * t ) );
     const Real k_D( ka / D );
+    r0 = fabs( r0 );
 
     return erf( r0 / sqrt4Dt ) + 
         exp( k_D * ka * t + k_D * r0 ) * erfc( (2 * ka * t + r0) / sqrt4Dt );
+}
+
+
+Real XP030( Real r, Real t, Real r0, Real ka, Real D )
+{
+    r0 = fabs( r0 );
+
+    return XP00(r, t, r0, D) + .5 * XP30term(fabs(r), t, r0, .5 * ka, D);
+}
+
+
+Real XI030( Real r, Real t, Real r0, Real ka, Real D )
+{
+    ka *= .5;
+    r0 = fabs( r0 );
+    Real sign( 1 );
+
+    if( r < 0 )
+        sign *= -1;
+
+    return XI00(r, t, r0, D) + .5 * ( ( XS30(t, r0, ka, D) - 1 ) + 
+                                      sign * XI30term( fabs(r), t, r0, ka, D ) );
+}
+
+
+Real XS030( Real t, Real r0, Real ka, Real D )
+{
+    return XS30( t, fabs( r0 ), 0.5 * ka, D );
 }
 
 

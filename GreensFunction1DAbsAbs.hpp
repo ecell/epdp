@@ -22,6 +22,7 @@
 #include "Defs.hpp"
 #include "OldDefs.hpp"			// TODO: this must be removed at some point!
 #include "funcSum.hpp"
+#include "freeFunctions.hpp"
 
 #include "GreensFunction.hpp"
 #include "PairGreensFunction.hpp"	// needed to declare EventType

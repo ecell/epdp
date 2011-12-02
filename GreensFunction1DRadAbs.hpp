@@ -20,6 +20,7 @@
 
 #include "findRoot.hpp"
 #include "funcSum.hpp" 
+#include "freeFunctions.hpp"
 #include "Defs.hpp"
 #include "OldDefs.hpp"			// TODO: this must be removed at some point!
 #include "GreensFunction.hpp"
@@ -43,6 +44,9 @@ private:
     static const uint MAX_TERMS = 500;
     // The minimum number of terms
     static const uint MIN_TERMS = 20;
+    /* Cutoff distance: When H * sqrt(2Dt) < a - r0 OR ro - sigma
+       use free greensfunction instead of absorbing. */
+    static const Real CUTOFF_H = 6.0;
 
 public:
     GreensFunction1DRadAbs(Real D, Real k, Real r0, Real sigma, Real a)
@@ -185,9 +189,6 @@ public:
     {
         return "GreensFunction1DRadAbs";
     }
-
-    // Calculates the roots of tan(a*x)=-xk/h
-    Real root_n(int n) const;
     
 private:
 
@@ -237,8 +238,8 @@ private:
             return rootList[ n ];
         else
         {
-            root_n( n );
-            return rootList[ n ];
+            calculate_n_roots( n );
+            return rootList.back();
         }
     }
 

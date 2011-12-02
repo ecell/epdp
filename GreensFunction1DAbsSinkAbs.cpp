@@ -17,7 +17,6 @@
 #include <gsl/gsl_roots.h>
 
 #include "findRoot.hpp"
-#include "funcSum.hpp"
 #include "GreensFunction1DAbsSinkAbs.hpp"
 
 /* This is the appropriate definition of the function defining
@@ -96,8 +95,6 @@ void GreensFunction1DAbsSinkAbs::calculate_n_roots(uint const& n) const
             lo_up_params.last_long_root = root_i;
         else
             lo_up_params.last_short_root = root_i;
-
-        std::cerr << "root#: " << rootList_size() << " - " << get_last_root() << std::endl;
     }
 
     gsl_root_fsolver_free( solver );
@@ -165,7 +162,7 @@ std::pair<Real, Real> GreensFunction1DAbsSinkAbs::get_lower_and_upper() const
     /* f_lower must have correct sign. */
     if( f_lower * parity_op > 0 )
     {
-        std::cerr << "Parity error in lower of root# " << rootList_size() + 1 
+        std::cerr << "Parity error in x_lower of root# " << rootList_size() + 1 
                       << " in GF::AbsSinkAbs " << std::endl;
         std::cerr << "f_low(" << lower << ") = " << f_lower << ", f_high(" 
                   << upper << ") = " << f_upper << std::endl;
@@ -269,15 +266,9 @@ Real GreensFunction1DAbsSinkAbs::p_survival_table(Real t, RealVector& psurvTable
     Real p;
 
     const Real D( getD() );
-    //const Real sigma(getsigma());
-    //const Real a( geta() );
-
-    //    const Real L0( getL0() );
-    //    const Real distToa(a - r0);
-    //    const Real distTos(r0 - sigma);
-
-    //    const Real H(6.0); // a fairly strict criterion for safety.
-    //    const Real maxDist(H * sqrt(2.0 * D * t));
+    const Real sigma(getsigma());
+    const Real a( geta() );
+    const Real L0( getL0() ); 
 
     if (t == 0.0 || (D == 0.0 && v == 0.0) )
     {
@@ -285,45 +276,26 @@ Real GreensFunction1DAbsSinkAbs::p_survival_table(Real t, RealVector& psurvTable
 	    return 1.0;
     }
 
-    /*
-    if (distToa > maxDist)
+    /* First check if we need full solution. 
+       Else we use approximation. */
+    const Real maxDist(CUTOFF_H * sqrt(2.0 * D * t));
+    // dist to nearest absorbing boundary.
+    const Real distToAbs( std::min(a - r0, r0 -sigma) );
+
+    if( L0 > maxDist ) //Sink not in sight
     {
-        if (distTos > maxDist) // far from anything; it'll survive.
-        {
-            if( L0 > maxDist )
-                p = 1.0;
-        }
-        else // close only to s, ignore a
-        {
-            const Real sigma(this->getSigma());
-            const Real kf(this->getkf());
-            p = p_survival_irr(t, r0, kf, D, sigma);
-        }
+        if( distToAbs > maxDist )
+            return 1.0;
+        else
+            return XS10( t, distToAbs, D );  
     }
     else
     {
-        if (distTos > maxDist)  // close only to a.
+        if( distToAbs > maxDist ) //Only sink in sight.
         {
-            p = p_survival_nocollision(t, r0, D, a);
-        }
-        else  // close to both boundaries.  do the normal calculation.
-        {
-            const unsigned int maxi(guess_maxi(t));
-            
-            if (psurvTable.size() < maxi + 1)
-            {
-                IGNORE_RETURN getAlpha0(maxi);  // this updates the table
-                this->createPsurvTable(psurvTable);
-            }
-
-            p = funcSum_all(boost::bind(&GreensFunction3DRadAbs::
-                                          p_survival_i_exp_table, 
-                                          this,
-                                          _1, t, psurvTable),
-                             maxi);
+            return XS030( t, L0, getk(), getD() );
         }
     }
-    */
 
     const uint maxi( guess_maxi(t) );
     
@@ -548,8 +520,13 @@ Real GreensFunction1DAbsSinkAbs::flux_leavea(Real t) const
 Real GreensFunction1DAbsSinkAbs::flux_tot(Real t) const
 {
     const Real D( getD() );
-    Real p;
 
+    if( t == 0 || ( D == 0 && getr0() != getrsink() ) )
+    {
+        return 0.0;
+    }
+
+    Real p;
     const Real maxi( guess_maxi( t ) );
 
     p = funcSum_all(boost::bind(&GreensFunction1DAbsSinkAbs::flux_tot_i, 
@@ -635,6 +612,13 @@ Real GreensFunction1DAbsSinkAbs::flux_abs_Ll_i(uint i, Real const& t) const
    at time t */
 Real GreensFunction1DAbsSinkAbs::flux_sink(Real t) const
 {
+    const Real D( getD() );
+
+    if( t == 0 || ( D == 0 && getr0() != getrsink() ) )
+    {
+        return 0.0;
+    }
+
     return getk() * prob_r(getrsink(), t);
 }
 
@@ -698,6 +682,7 @@ Real GreensFunction1DAbsSinkAbs::drawTime(Real rnd) const
     const Real a( geta() );    
     const Real r0( getr0() );
     const Real D( getD() );
+    //const Real k( getk() );
     const Real Lr( getLr() );
     const Real Ll( getLl() );
     const Real L0( getL0() );
@@ -708,7 +693,7 @@ Real GreensFunction1DAbsSinkAbs::drawTime(Real rnd) const
 	    return INFINITY;
     }
 
-    if ( rnd <= EPSILON || L < 0.0 || fabs( a - r0 ) < EPSILON * L )
+    if ( rnd > (1 - EPSILON) || L < 0.0 || fabs( a - r0 ) < EPSILON * L )
     {
 	    return 0.0;
     }
@@ -719,11 +704,12 @@ Real GreensFunction1DAbsSinkAbs::drawTime(Real rnd) const
 
     /* Find a good interval to determine the first passage time.
        First we get the distance to one of the absorbing boundaries or the sink. */
-    Real t_guess;
     Real dist( std::min(Lr - L0, Ll + L0) );
-    dist = std::min( dist, L0 );
+    Real t_guess( dist * dist / ( 2.0 * D ) );
 
-    t_guess = dist * dist / ( 2.0 * D );
+    if( dist > 10 * L0 )
+        t_guess = std::min(D * 0.01 / ( k * k ), t_guess);
+
     t_guess *= .1;
 
     /* Define the function for the rootfinder */
@@ -745,8 +731,13 @@ Real GreensFunction1DAbsSinkAbs::drawTime(Real rnd) const
             // function straddles
             high *= 10;
             value = GSL_FN_EVAL( &F, high );
-            
-            if( fabs( high ) >= t_guess * 1e6 )
+
+            /*
+            std::cerr << "t: " << high << " maxDist: " << CUTOFF_H * sqrt(2.0 * D * high) <<
+                " f(t): " << value << std::endl;
+            */
+
+            if( fabs( high ) >= t_guess * 1e10 )
             {
                 std::cerr << "GF1DSink::drawTime Couldn't adjust high. F("
                           << high << ") = " << value << std::endl;
@@ -763,7 +754,7 @@ Real GreensFunction1DAbsSinkAbs::drawTime(Real rnd) const
 	    Real value_prev( 2 );
 	    do
 	    {
-	        if( fabs( low ) <= t_guess * 1e-6 ||
+	        if( fabs( low ) <= t_guess * 1e-10 ||
 	            fabs(value-value_prev) < EPSILON*1.0 )
 	        {
 		    std::cerr << "GF1DSink::drawTime Couldn't adjust low. F(" << low << ") = "

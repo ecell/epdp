@@ -14,19 +14,19 @@ Real XP00( Real r, Real t, Real r0, Real D );
 
 Real XI00( Real r, Real t, Real r0, Real D );
 
-Real XS00( Real r, Real t, Real r0, Real D );
+Real XS00( Real t, Real r0, Real D );
 
 Real XP10( Real r, Real t, Real r0, Real D );
 
 Real XI10( Real r, Real t, Real r0, Real D );
 
-Real XS10( Real r, Real t, Real r0, Real D );
+Real XS10( Real t, Real r0, Real D );
 
 Real XP20( Real r, Real t, Real r0, Real D );
 
 Real XI20( Real r, Real t, Real r0, Real D );
 
-Real XS20( Real r, Real t, Real r0, Real D );
+Real XS20( Real t, Real r0, Real D );
 
 Real XP30term( Real r, Real t, Real r0, Real ka, Real D );
 
@@ -37,6 +37,12 @@ Real XI30term( Real r, Real t, Real r0, Real ka, Real D );
 Real XI30( Real r, Real t, Real r0, Real ka, Real D );
 
 Real XS30( Real t, Real r0, Real ka, Real D );
+
+Real XP030( Real r, Real t, Real r0, Real ka, Real D );
+
+Real XI030( Real r, Real t, Real r0, Real ka, Real D );
+
+Real XS030( Real t, Real r0, Real ka, Real D );
 
 /* 3D functions below. */
 

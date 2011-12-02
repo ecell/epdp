@@ -23,6 +23,9 @@ BOOST_PYTHON_MODULE( _greens_functions )
 
     //import_array();
     // free functions
+    def( "XP030", XP030 );
+    def( "XS030", XS030 );
+    def( "XI030", XI030 );
     def( "p_irr", p_irr );
     def( "p_survival_irr", p_survival_irr );
     def( "p_theta_free", p_theta_free );

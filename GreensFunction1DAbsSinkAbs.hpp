@@ -22,6 +22,8 @@
 #include "Defs.hpp"
 #include "OldDefs.hpp"			// TODO: this must be removed at some point!
 #include "GreensFunction.hpp"
+#include "funcSum.hpp"
+#include "freeFunctions.hpp"
 
 class GreensFunction1DAbsSinkAbs: public GreensFunction
 {
@@ -43,6 +45,10 @@ private:
     static const uint MAX_TERMS = 500;
     // The minimum number of terms
     static const uint MIN_TERMS = 20;
+    /* Cutoff distance: When H * sqrt(2Dt) < a - r0 OR ro - sigma
+       use free greensfunction instead of absorbing. */
+    static const Real CUTOFF_H = 6.0;
+
 
 public:
     GreensFunction1DAbsSinkAbs(Real D, Real k, Real r0, Real rsink, Real sigma, Real a)
@@ -269,7 +275,7 @@ private:
         else
         {
             calculate_n_roots( n );
-            return rootList[ n ];
+            return rootList.back();
         }
     }
 
@@ -299,7 +305,7 @@ private:
     void createPsurvTable( RealVector& table ) const;
 
 
-    /* Functions for calculating thegreensfunction. */
+    /* Functions for calculating the greensfunction. */
     Real prob_r_r0_i(uint i, Real const& rr, Real const& t) const;
 
     Real prob_r_nor0_i( uint i, Real const& rr, Real const& t) const;

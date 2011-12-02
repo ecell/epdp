@@ -71,9 +71,33 @@ GreensFunction1DAbsAbs::p_survival (Real t) const
 
     if ( fabs(r0-sigma) < L*EPSILON || fabs(a-r0) < L*EPSILON || L < 0.0 )
     {
-	// The survival probability of a zero domain is zero
-	return 0.0;
+        // The survival probability of a zero domain is zero
+        return 0.0;
     }
+
+    /* First check if we need full solution. 
+       Else we use approximation. */
+    const Real distToa( geta() - r0 );
+    const Real distTos( r0 - getsigma() );
+    const Real maxDist( CUTOFF_H * sqrt(2.0 * D * t) );
+    
+    //TODO: No drift included for approximations.
+    if( v == 0.0 )
+    {
+        if( distToa > maxDist ) //Absorbing boundary 'not in sight'.
+        {
+            if( distTos > maxDist )//And radiation boundary 'not in sight'.
+                return 1.0; //No prob. outflux.
+            else
+                return XS10(t, distTos, D); //Only absorbing BCn of s.
+        }
+        else
+        {
+            if( distTos > maxDist )
+                return XS10(t, distToa, D ); //Only absorbing BCn of a.
+        }
+    }
+
 
     // Set values that are constant in this calculation
     const Real expo(-D*t/(L*L));   // part of the exponent -D n^2 PI^2 t / L^2
@@ -389,7 +413,7 @@ Real GreensFunction1DAbsAbs::drawT_exponent_table( uint const& i,
         const Real expo(-D/(L*L));
         Real nPi;
 
-        if( v== 0)
+        if( v == 0.0 )
         {
             while(n++ < i)
             {
@@ -435,9 +459,8 @@ Real GreensFunction1DAbsAbs::drawT_Xn_table( uint const& i,
     
         const Real r0s_L((r0-sigma)/L);
 
-        if( v== 0)
+        if( v == 0.0 )
         {
-
             while(n++ < i)
             {
                 nPI = ((Real)(n+1))*M_PI;
@@ -471,19 +494,45 @@ Real GreensFunction1DAbsAbs::drawT_f (Real t, void *p)
 {   
     // casts p to type 'struct drawT_params *'
     struct drawT_params *params = (struct drawT_params *)p;
+    GreensFunction1DAbsAbs const* gf( params->gf );
+    const Real r0( gf->getr0() );
+
+    /* First check if we need full solution. 
+       Else we use approximation. */
+    const Real distToa( gf->geta() - r0 );
+    const Real distTos( r0 - gf->getsigma() );
+    const Real maxDist( CUTOFF_H * sqrt(2.0 * gf->getD() * t) );
     
+    //TODO: No drift included for approximations.
+    if( gf->getv() == 0.0 )
+    {
+        if( distToa > maxDist ) //Absorbing boundary 'not in sight'.
+        {
+            if( distTos > maxDist )//And radiation boundary 'not in sight'.
+                return params->rnd - 1.0; //No prob. outflux.
+            else  //Only absorbing BCn at s.
+                return params->rnd - XS10(t, distTos, gf->getD() );
+        }
+        else
+        {
+            if( distTos > maxDist ) //Only absorbing BCn at a.
+                return params->rnd - XS10(t, distToa, gf->getD() ); 
+        }
+    }
+    
+
     Real sum = 0, term = 0, prev_term = 0;
     Real Xn, exponent, prefactor;
     // the timescale used
     Real tscale = params->tscale;
 
-    const uint maxi( params->gf->guess_maxi( t ) );
+    const uint maxi( gf->guess_maxi( t ) );
 
     if( params->exponent_table.size() < maxi + 1 &&
         params->Xn_table.size() < maxi + 1 )
     {
-        IGNORE_RETURN params->gf->drawT_exponent_table( maxi, params->exponent_table );
-        IGNORE_RETURN params->gf->drawT_Xn_table( maxi, params->Xn_table );
+        IGNORE_RETURN gf->drawT_exponent_table( maxi, params->exponent_table );
+        IGNORE_RETURN gf->drawT_Xn_table( maxi, params->Xn_table );
     }
 
     uint n = 0;
@@ -497,8 +546,8 @@ Real GreensFunction1DAbsAbs::drawT_f (Real t, void *p)
         }
         prev_term = term;
 
-        Xn = params->gf->drawT_Xn_table(n, params->Xn_table);
-        exponent = params->gf->drawT_exponent_table(n, params->exponent_table);
+        Xn = gf->drawT_Xn_table(n, params->Xn_table);
+        exponent = gf->drawT_exponent_table(n, params->exponent_table);
 
         term = Xn * exp(exponent * t);
         sum += term;
@@ -510,8 +559,13 @@ Real GreensFunction1DAbsAbs::drawT_f (Real t, void *p)
 
     prefactor = params->prefactor;
     
+    
+    std::cerr << "S(" << t << ") = " << prefactor * sum << ", rnd = " << params->rnd 
+              << " " << params->rnd - prefactor*sum << std::endl;  
+    
+
     // find intersection with the random number
-    return params->rnd - prefactor*sum; 
+    return params->rnd - prefactor * sum; 
 }
 
 // Draws the first passage time from the propensity function.
@@ -536,7 +590,6 @@ GreensFunction1DAbsAbs::drawTime (Real rnd) const
     }
     else if ( L < 0.0 || fabs(a-r0) < EPSILON*L || fabs(r0-sigma) > (1.0 - EPSILON)*L )
     {
-        // if the domain had zero size
         return 0.0;
     }
 
@@ -545,7 +598,7 @@ GreensFunction1DAbsAbs::drawTime (Real rnd) const
     Real prefactor;
     
     // Find a good interval to determine the first passage time in
-    const Real dist( std::min(r0-sigma, a-r0) );
+    const Real dist( std::min(r0 - sigma, a - r0) );
 
     // construct a guess: MSD = sqrt (2*d*D*t)
     Real t_guess( dist * dist / ( 2.0 * D ) );
@@ -563,23 +616,16 @@ GreensFunction1DAbsAbs::drawTime (Real rnd) const
       
     t_guess *= .1;
 
-    /* Guess number of terms needed for convergence */
-    const uint maxi( guess_maxi( t_guess ) );
-    
-    /* Build tables of factor not depending on t */
+    /* Set params structure. */
     RealVector exponent_table;
     RealVector Xn_table;
-    drawT_exponent_table( maxi, exponent_table );
-    drawT_Xn_table( maxi, Xn_table );
-
-    /* Set params structure. */
     struct drawT_params parameters = {this, exponent_table, Xn_table};
 
     // the prefactor of the sum is also different in case of drift<>0 :
-    if(v == 0)	
+    if(v == 0.0)	
         prefactor = 2.0;
     else	
-        prefactor = 2.0*exp(vexpo_pref);
+        prefactor = 2.0 * exp(vexpo_pref);
 
     parameters.prefactor = prefactor;
     
@@ -593,6 +639,8 @@ GreensFunction1DAbsAbs::drawTime (Real rnd) const
     Real value( GSL_FN_EVAL( &F, t_guess ) );
     Real low( t_guess );
     Real high( t_guess );
+
+    std::cerr << "F(" << t_guess << ") =  " << value << std::endl;
 
     if( value < 0.0 )
     {
@@ -641,6 +689,9 @@ GreensFunction1DAbsAbs::drawTime (Real rnd) const
         }
         while ( value >= 0.0 );
     }
+
+    std::cerr << "F(" << low << ") = " << value << std::endl;
+
 
     // find the intersection on the y-axis between the random number and 
     // the function
@@ -746,7 +797,9 @@ GreensFunction1DAbsAbs::drawR (Real rnd, Real t) const
     // From here on the problem is well defined
 
 
-    const Real thresholdDistance(this->CUTOFF_H * sqrt(2.0 * D * t));
+    const Real maxDist(CUTOFF_H * sqrt(2.0 * D * t));
+    const Real distToa( a - r0 - vt );
+    const Real distTos( r0 + vt - sigma );
 
     struct drawR_params parameters;
     gsl_function F;
@@ -755,7 +808,7 @@ GreensFunction1DAbsAbs::drawR (Real rnd, Real t) const
 
     const uint maxi( guess_maxi( t ) );
 
-    if ((r0 + vt - sigma) <= thresholdDistance || (a - r0 - vt) <= thresholdDistance)
+    if (distTos < maxDist || distToa < maxDist)
     {
         psurv = p_survival(t);
 
