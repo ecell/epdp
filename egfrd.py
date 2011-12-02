@@ -2435,16 +2435,7 @@ rejected moves = %d
 
 
 
-        # TODO maybe don't check all the shells, this takes a lot of time
         for shell_id, shell in domain.shell_list:
-
-#            closest, distance = self.geometrycontainer.get_closest_obj(shell.shape.position,
-#                                                                       self.domains,
-#                                                                       ignore=[domain.domain_id],
-#                                                                       ignores=ignores)
-
-#            distance_midpoints = self.world.distance(domain.shell.shape.position, closest.shell.shape.position)
-#            distance_midpoints = 0
 
             # TODO should be replace by list of surface
             surface, distance = get_closest_surface(self.world, shell.shape.position, ignores)
@@ -2458,6 +2449,7 @@ rejected moves = %d
 
             neighbors = self.geometrycontainer.get_neighbor_domains(shell.shape.position,
                                                                     self.domains, ignore=[domain.domain_id])
+            # TODO maybe don't check all the shells, this takes a lot of time
 
             # testing overlap criteria
             for neighbor, _ in neighbors:
