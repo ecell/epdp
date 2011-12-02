@@ -121,6 +121,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
         self.SINGLE_SHELL_FACTOR = 2.0          # This is the threshold for when the algorithm switches from
                                                 # NonInteractionSingles to a Pair or Interaction. It also defines
                                                 # the radius in which the NonInteractionSingle will burst.
+                                                # NOTE THAT ABOVE CONSTANTS ARE ALSO IN domain.py
         self.MAX_NUM_DT0_STEPS = 1000
 
         self.MAX_TIME_STEP = 10
