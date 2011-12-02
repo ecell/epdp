@@ -713,7 +713,7 @@ class CylindricalSurfacePair(SimplePair):
 
         # project the new_iv down on the unit vectors of the surface to prevent the particle from
         # leaving the surface due to numerical problem
-        unit_z = self.surface.shape.unit_z
+        unit_z = self.structure.shape.unit_z
         new_iv_z = unit_z * numpy.dot(new_iv, unit_z)
 
         return new_iv_z
