@@ -260,17 +260,37 @@ class NonInteractionSingle(Single):
         # NonInteractionSingles on the dna and membrane this is quite inefficient-> want to
         # size in the appropriate coordinate (r or z).
         singlepos = self.pid_particle_pair[1].position
-        closest, distance_to_shell = \
-            geometrycontainer.get_closest_obj(singlepos, domains, ignore=[self.domain_id],
-                                              ignores=[self.structure.id])
+#        closest, distance_to_shell = \
+#            geometrycontainer.get_closest_obj(singlepos, domains, ignore=[self.domain_id],
+#                                              ignores=[self.structure.id])
 
-        # 2. In case the nearest neighbor was a NonInteractionSingle we need to tweak the size
+        neighbor_domains = geometrycontainer.get_neighbor_domains(singlepos, domains, ignore=[self.domain_id, ])
+        neighbor_surfaces = geometrycontainer.get_neighbor_surfaces(singlepos, ignores=[self.structure.id])
+        neighbors = neighbor_domains + neighbor_surfaces
+
+        # 2. Calculate the maximum allowed radius of the spherical domain
+        # check ALL domains, not just nearest neighbor but also next nearest etc, and get the nearest one.
+        # In case the neighbor was a NonInteractionSingle we may need to tweak the distance
+        distance_domain_closest = (numpy.inf, None)
+        for domain, distance in neighbors:
+            if isinstance(domain, NonInteractionSingle):
+                # leave at least MULTI_SHELL_FACTOR space for another NonInteractionSingle (to make sure that
+                # the other single will not have an overlapping multi shell when starting to multi
+                distance_max = geometrycontainer.world.distance(singlepos, domain.pid_particle_pair[1].position)
+                distance = min(distance, distance_max - domain.pid_particle_pair[1].radius * Domain.MULTI_SHELL_FACTOR)
+                # TODO check this!
+
+            # get the minimum of currect and previous minimum
+            distance_domain = (distance, domain)
+            distance_domain_closest = min(distance_domain_closest, distance_domain)
+
+        distance_to_shell, closest = distance_domain_closest
+
+        # 3. Apply still other rules if the nearest is another NonInteractionSingle (optimization)
         # TODO shell size has no real meaning for cylinderical domains
         if isinstance(closest, NonInteractionSingle):
             new_shell_size = self.calculate_shell_size_to_single(closest, distance_to_shell,
                                                                  geometrycontainer)
-        # TODO This is incorrect. The closest can be a Pair but still NonInteractionSingles may need
-        # more space
         else:  # Pair or Multi or Surface
             new_shell_size = distance_to_shell / SAFETY
 
