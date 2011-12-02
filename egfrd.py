@@ -2243,25 +2243,31 @@ class EGFRDSimulator(ParticleSimulatorBase):
                     dompos, burstradius, ignore=[domain.domain_id, multi.domain_id])
             neighbors = [self.domains[domain_id] for domain_id in neighbor_ids]
 
-            # TODO this should only burst domains in which time has passed, it is assumed that other domains
+            # This should only burst domains in which time has passed, it is assumed that other domains
             # have been made 'socially', meaning that they leave enough space for this particle to make a multi
             # shell without overlapping. neighbors should therefor contain no domains in which no time has passed
-            # TODO burst should contain all the domains in the neighborhood
-            burst, _ = self.burst_non_multis(neighbors)
+
+            burst, non_bursted = self.burst_non_multis(neighbors)
+            # burst contains all the domains in the neighborhood that can be added to the multi
+            # -> zero-dt NonInteractionSingles and Multi's
+            # at this point there should be no domains in the multi_horizon that cannot be bursted
+            assert non_bursted == [], 'add_to_multi_recursive: unburstable domains in multi_horizon. %s' % \
+                                      non_bursted
 
             # 2. add domain to the multi
             self.add_to_multi(domain, multi)
             self.remove_domain(domain)
             self.remove_event(domain)
 
-            # get distances to closest shell of burst neighbors
-            # We want all zero-dt NonInteractionSingles and Multi's in the multi-horizon
+            # 3. select neighbors in the 'multi_horizon' for adding to the multi
+            # 3.1 get distances to closest shell of burst neighbors
+            # TODO clean this up! line below is not necessary!!
             neighbors = [(burst_domain, self.domain_distance(dompos, burst_domain)) for burst_domain in burst]
 
-            # 3. select neighbors in the 'multi_horizon' for adding to the multi
 #            neighbors = [burst[i] for i
 #                                  in (neighbor_dists <= burstradius).nonzero()[0]]
 
+            # 3.2 calculate if the domains are within the multi horizon
             multi_partners = []
             for neighbor, dist_to_shell in neighbors:
                 if (isinstance (neighbor, NonInteractionSingle) and neighbor.is_reset()):
@@ -2297,7 +2303,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
                         log.debug('%s already added. skipping.' % domain)
                     break
             else:
-                # 1.   No bursting is needed, since the shells in the multi already exist
+                # 1.   No bursting is needed, since the shells in the multi already exist and no space has be made
                 # 2.   Add the domain (the partner multi) to the existing multi
                 self.merge_multis(domain, multi)
 
