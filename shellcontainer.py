@@ -170,6 +170,13 @@ class ShellContainer(object):
     def sort_domain_distance(self, neighbor_domains):
         return sorted(neighbor_domains, key=lambda domain_dist: domain_dist[1])
 
+    def get_neighbor_surfaces(self, position, ignores=[]):
+        # analogous to get_neighbor domains, this returns a list of (surface, distance) tuples
+
+        # TODO return a list of neighboring surfaces
+        surface, distance = get_closest_surface(self.world, position, ignores)
+        return [(surface, distance), ]
+
     def get_neighbors_within_radius_no_sort(self, pos, radius, ignore=[]):
         # Get neighbor domains within given radius.
         # Note that the function returns a generator
