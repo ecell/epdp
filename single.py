@@ -354,6 +354,11 @@ class PlanarSurfaceSingle(NonInteractionSingle):
 
         # Note that the calculateion of the position of the shell needs to make sure that the
         # coordinates are in the surface
+        position = position - self.structure.shape.position     # TODO this can go wrong if either positions are near the boundaries
+        pos_x = self.structure.shape.unit_x * numpy.dot (position, self.structure.shape.unit_x)
+        pos_y = self.structure.shape.unit_y * numpy.dot (position, self.structure.shape.unit_y)
+
+        position = self.structure.shape.position + pos_x + pos_y
         orientation = self.structure.shape.unit_z
         half_length = self.pid_particle_pair[1].radius
         return CylindricalShell(self.domain_id, Cylinder(position, radius, 
@@ -408,10 +413,13 @@ class CylindricalSurfaceSingle(NonInteractionSingle):
         # unbinding reaction we still have to clear the target volume 
         # and the move may be rejected.
 
-        unit_z = self.structure.shape.unit_z
-
         # Note that the calculation of the position of the shell has to make sure that the
         # coordinates are in the surface
+        unit_z = self.structure.shape.unit_z
+        position = position - self.structure.shape.position     # TODO this can go wrong if either positions are near the boundaries
+        pos_z = unit_z * numpy.dot (position, unit_z)
+
+        position = self.structure.shape.position + pos_z
         radius = self.pid_particle_pair[1].radius
         orientation = unit_z
         return CylindricalShell(self.domain_id, Cylinder(position, radius, 
