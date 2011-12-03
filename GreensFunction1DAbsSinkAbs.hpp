@@ -52,33 +52,11 @@ private:
 
 public:
     GreensFunction1DAbsSinkAbs(Real D, Real k, Real r0, Real rsink, Real sigma, Real a)
-	: GreensFunction(D), v(0.0), k(k), r0(r0), sigma(sigma), a(a), rsink(rsink), l_scale(L_TYPICAL), t_scale(T_TYPICAL)
+	: GreensFunction(D), k(k), r0(r0), sigma(sigma), a(a), rsink(rsink), l_scale(L_TYPICAL), t_scale(T_TYPICAL)
     {
 	    /* Set variables which define a domain with the sink at the origin. 
 	       Futhermore r0 is assumed to be ringht from the sink. */
 	    assert( a > sigma );
-	    
-	    L0 = fabs( r0 - rsink ); 
-	    if( r0 >= rsink )
-	    {
-	        Lr = a - rsink; 
-	        Ll = rsink - sigma;	        
-	    }
-	    else
-	    {
-	        Lr = rsink - sigma; 
-	        Ll = a - rsink;
-	    }
-
-        calculate_n_roots( 1 );
-    }
-
-    /* The constructor is overloaded and can be called with or without drift v
-       copy constructor including drift variable v */
-    GreensFunction1DAbsSinkAbs(Real D, Real v, Real k, Real r0, Real rsink, Real sigma, Real a)
-	: GreensFunction(D), v(v), k(k), r0(r0), sigma(sigma), a(a), rsink(rsink), l_scale(L_TYPICAL), t_scale(T_TYPICAL)
-    {
-		assert( a > sigma );
 	    
 	    L0 = fabs( r0 - rsink ); 
 	    if( r0 >= rsink )
@@ -138,11 +116,6 @@ public:
     Real getk() const
     {
 	    return k;
-    }
-
-    Real getv() const
-    {
-	    return v;
     }
 
     /* Calculates the probability density of finding the particle at 
@@ -349,8 +322,6 @@ private:
     
     /* Class variables */
 
-    // The drift velocity
-    const Real v;
     // The reaction constant
     const Real k;
     //starting position

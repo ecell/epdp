@@ -270,7 +270,7 @@ Real GreensFunction1DAbsSinkAbs::p_survival_table(Real t, RealVector& psurvTable
     const Real a( geta() );
     const Real L0( getL0() ); 
 
-    if (t == 0.0 || (D == 0.0 && v == 0.0) )
+    if (t == 0.0 || D == 0.0 )
     {
 	    //particle can't escape.
 	    return 1.0;
@@ -707,6 +707,10 @@ Real GreensFunction1DAbsSinkAbs::drawTime(Real rnd) const
     Real dist( std::min(Lr - L0, Ll + L0) );
     Real t_guess( dist * dist / ( 2.0 * D ) );
 
+    /* For a particle at contact, the time after a probability P
+       has dissapeared into the radiation boundary is to first order:
+       t = D * P / (pi * k * k ), we use tis as a guess for the next 
+       event time when a particle is close to the Abs boundary. */
     if( dist > 10 * L0 )
         t_guess = std::min(D * 0.01 / ( k * k ), t_guess);
 
@@ -938,7 +942,7 @@ Real GreensFunction1DAbsSinkAbs::drawR(Real rnd, Real t) const
     const Real r0( getr0() );
     const Real L( Lr + Ll );
 
-    if (t == 0.0 || (D == 0.0 && v == 0.0) )
+    if (t == 0.0 || D == 0.0 )
     {
 	    // the trivial case
 	    return r0;

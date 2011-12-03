@@ -87,11 +87,9 @@ BOOST_PYTHON_MODULE( _greens_functions )
         
     class_<GreensFunction1DAbsSinkAbs>("GreensFunction1DAbsSinkAbs",
                                    init<Real, Real, Real, Real, Real, Real>() )
-        .def( init<Real, Real, Real, Real, Real, Real, Real>())
         .def( "getName", &GreensFunction1DAbsSinkAbs::getName )
         .def( "getk", &GreensFunction1DAbsSinkAbs::getk )
         .def( "getD", &GreensFunction1DAbsSinkAbs::getD )
-        .def( "getv", &GreensFunction1DAbsSinkAbs::getv )
         .def( "getsigma", &GreensFunction1DAbsSinkAbs::getsigma )
         .def( "geta", &GreensFunction1DAbsSinkAbs::geta )
         .def( "getr0", &GreensFunction1DAbsSinkAbs::getr0 )
