@@ -4,6 +4,7 @@
 #include <exception>
 #include <vector>
 
+#include <boost/bind.hpp>
 #include <gsl/gsl_math.h>
 #include <gsl/gsl_sf_trig.h>
 #include <gsl/gsl_sum.h>
@@ -185,8 +186,7 @@ GreensFunction1DRadAbs::Bn (Real root_n) const
 // appearing in the survival prob. and prop. function.
 //
 // Also here the root is the one refering to the interval of length L.
-Real
-GreensFunction1DRadAbs::Cn (Real root_n, Real t)
+Real GreensFunction1DRadAbs::Cn (Real root_n, Real t)
 const
 {
     const Real D(this->getD());
@@ -194,26 +194,39 @@ const
     return std::exp(-D*root_n*root_n*t);
 }
 
-// Calculates the probability of finding the particle inside the domain
-// at time t, the survival probability.
-Real
-GreensFunction1DRadAbs::p_survival (Real t) const
+
+Real GreensFunction1DRadAbs::p_survival(Real t) const
+{
+    RealVector table;
+    return p_survival_table(t, table);
+}
+
+
+/* Calculates survival probability using a table. 
+   Switchbox for which greensfunction to use. */
+Real GreensFunction1DRadAbs::p_survival_table(Real t, RealVector& psurvTable) const
 {
     THROW_UNLESS( std::invalid_argument, t >= 0.0 );
-  
+
+    Real p;
+
+    const Real a(this->geta());
+    const Real sigma(this->getsigma());
+    const Real L(this->geta() - this->getsigma());
+    const Real r0(this->getr0());
     const Real D(this->getD());
     const Real v(this->getv());
-    const Real vexpo(-v*v*t/4.0/D - v*r0/2.0/D);
-    const Real L(this->geta()-this->getsigma());
-    const Real r0_s(this->getr0() - this->getsigma());
-    const Real h((this->getk()+this->getv()/2.0)/this->getD());
-    const Real r0( getr0() );
+
+    if ( fabs(r0-sigma) < L*EPSILON || fabs(a-r0) < L*EPSILON || L < 0.0 )
+    {
+        // The survival probability of a zero domain is zero
+        return 0.0;
+    }
 
     if (t == 0.0 || (D == 0.0 && v == 0.0) )
     {
-        // if there was no time or no movement the particle was always
-        // in the domain
-        return 1.0;
+	    //particle can't escape.
+	    return 1.0;
     }
 
     /* First check if we need full solution. 
@@ -239,70 +252,119 @@ GreensFunction1DRadAbs::p_survival (Real t) const
         }
     }
 
-    Real root_n;
-    Real sum = 0, term = 0, term_prev = 0;
-    uint n = 0;
-
-    const uint maxi( guess_maxi( t ) );
-    calculate_n_roots( maxi );
-
-    if(h != 0.0)
+    const uint maxi( guess_maxi(t) );
+    
+    if( maxi == MAX_TERMS )
+        std::cerr << "1DRad::drawT: maxi was cut to MAX_TERMS for t = " 
+                  << t << std::endl;
+    
+    if ( psurvTable.size() < maxi )
     {
-        do
-        {
-            if ( n >= MAX_TERMS )
-            {
-                std::cerr << "Too many terms needed for GF1DRad::prob_r. N: "
-                          << n << std::endl;
-                break;
-            }
+        calculate_n_roots( maxi );
+        createPsurvTable( psurvTable );
+    }
 
-	        root_n = this->get_root(n);
-	        term_prev = term;
-    	    term = this->Cn(root_n, t) * this->An(root_n) * this->Bn(root_n);
-	        sum += term;
-	        n++;
-        }
-        while ( fabs(term/sum) > EPSILON  ||
-                fabs(term_prev/sum) > EPSILON ||
-                n < MIN_TERMS);
-
+    p = funcSum_all(boost::bind(&GreensFunction1DRadAbs::p_survival_i, 
+                                this, _1, t, psurvTable),
+                    maxi);
+    
+    if( v == 0.0 )
+    {   
+        p *= 2.0;
     }
     else
-    {
-
-        do
-        {
-            if ( n >= MAX_TERMS )
-            {
-                std::cerr << "Too many terms needed for GF1DRad::prob_r. N: "
-                          << n << std::endl;
-                break;
-            }
-
-	        root_n = this->get_root(n);
-	        term_prev = term;
-    	    
-            term = this->Cn(root_n, t) * cos( root_n * r0_s ) * sin( root_n * L ) / 
-                ( L * root_n );
-
-	        sum += term;
-	        n++;
-        }
-        while ( fabs(term/sum) > EPSILON  ||
-                fabs(term_prev/sum) > EPSILON ||
-                n < MIN_TERMS);
-
+    {       
+        const Real vexpo(-v*v*t/4.0/D - v*r0/2.0/D);
+        p *= 2.0 * exp( vexpo );
     }
-    return 2.0 * exp(vexpo) * sum;
+
+    return p;
 }
 
 
-// Calculates the probability density of finding the particle at location r
-// at time t.
-Real
-GreensFunction1DRadAbs::prob_r (Real r, Real t)
-const
+/* Calculates the i'th term of the p_survival sum */
+Real GreensFunction1DRadAbs::p_survival_i( uint i, 
+                                           Real const& t, 
+                                           RealVector const& table) const
+{
+    return exp( - getD() * t * gsl_pow_2( get_root( i ) ) ) * table[ i ];
+}
+
+
+/* Calculates the part of the i'th term of p_surv not dependent on t, with drift */
+Real GreensFunction1DRadAbs::p_survival_table_i_v( uint const& i ) const
+{
+    const Real sigma( getsigma() );
+    const Real L( geta() - getsigma() );
+    const Real r0( getr0() );
+    const Real D( getD() );
+    const Real v( getv() );
+    const Real h( (getk()+v/2.0)/D );
+
+    const Real v2D(v/2.0/D);
+    const Real exp_av2D(exp(a*v2D));
+    const Real exp_sigmav2D(exp(sigma*v2D));
+    
+    const Real root_n( get_root( i ) );	
+    const Real root_n2     = root_n * root_n;
+    const Real root_n_r0_s = root_n * (r0-sigma);
+    const Real root_n_L    = root_n * L;
+    const Real h_root_n    = h / root_n;
+    
+    return ( h * sin( root_n_r0_s ) + root_n * cos( root_n_r0_s ) ) / 
+        ( L * ( root_n2 + h * h) + h ) * ( exp_sigmav2D * h * k / D - 
+                               exp_av2D * ( root_n2 + h * h )*
+                               cos( root_n_L ) ) / 
+            ( h_root_n * (root_n2 + v2D * v2D) );
+}
+
+
+/* Calculates the part of the i'th term of p_surv not dependent on t, without drift */
+Real GreensFunction1DRadAbs::p_survival_table_i_nov( uint const& i ) const
+{
+    const Real sigma( getsigma() );
+    const Real L( geta() - sigma );
+    const Real r0( getr0() );
+    const Real h( (getk()+getv()/2.0)/getD());
+
+    const Real root_n ( get_root( i ) );	
+    const Real root_n2( root_n * root_n );
+    const Real root_n_r0_s( root_n * (r0-sigma) );
+    const Real root_n_L( root_n * L );
+    const Real h_root_n( h / root_n );
+    
+    return (h*sin(root_n_r0_s) + root_n*cos(root_n_r0_s)) 
+        / (L*(root_n2+h*h)+h) * ( h_root_n + sin(root_n_L) 
+                                  - h_root_n*cos(root_n_L) );
+}
+
+
+/* Fills table with terms in the p_survival sum which don't depend on t */
+void GreensFunction1DRadAbs::createPsurvTable( RealVector& table) const
+{
+    const uint root_nbr( rootList_size() );
+    uint i( table.size() );
+
+    if( getv() == 0.0 )
+    {
+        while( i < root_nbr )
+        {
+            table.push_back( p_survival_table_i_nov( i++ ) );
+        }
+    }
+    else
+    {
+        while( i < root_nbr )
+        {
+            table.push_back( p_survival_table_i_v( i++ ) );
+        }
+    }
+}
+
+
+/* Calculates the probability density of finding the particle at location r
+   at time t. */
+Real GreensFunction1DRadAbs::prob_r (Real r, Real t) const
 {
     THROW_UNLESS( std::invalid_argument, t >= 0.0 );
     THROW_UNLESS( std::invalid_argument, (r-sigma) >= 0.0 && r <= a 
@@ -371,20 +433,18 @@ const
 }
 
 
-// Calculates the probability density of finding the particle at location z at
-// timepoint t, given that the particle is still in the domain.
-Real
-GreensFunction1DRadAbs::calcpcum (Real r, Real t) const
+/* Calculates the probability density of finding the particle at location z at
+   timepoint t, given that the particle is still in the domain. */
+Real GreensFunction1DRadAbs::calcpcum (Real r, Real t) const
 {
     return prob_r(r, t)/p_survival(t);
 }
 
 
-// Calculates the total probability flux leaving the domain at time t
-// This is simply the negative of the time derivative of the survival prob.
-// at time t [-dS(t')/dt' for t'=t].
-Real
-GreensFunction1DRadAbs::flux_tot (Real t) const
+/* Calculates the total probability flux leaving the domain at time t
+   This is simply the negative of the time derivative of the survival prob.
+   at time t [-dS(t')/dt' for t'=t]. */
+Real GreensFunction1DRadAbs::flux_tot (Real t) const
 {
     Real root_n;
     const Real D(this->getD());
@@ -424,8 +484,7 @@ GreensFunction1DRadAbs::flux_tot (Real t) const
 
 /* Calculates the probability flux leaving the domain through the radiative
    boundary at time t */
-Real
-GreensFunction1DRadAbs::flux_rad (Real t) const
+Real GreensFunction1DRadAbs::flux_rad (Real t) const
 {
     return this->getk() * prob_r(this->getsigma(), t);
 }
@@ -435,15 +494,14 @@ GreensFunction1DRadAbs::flux_rad (Real t) const
    fraction of the total flux. This is the probability that the particle left
    the domain through the radiative boundary instead of the absorbing
    boundary. */
-Real
-GreensFunction1DRadAbs::fluxRatioRadTot (Real t) const
+Real GreensFunction1DRadAbs::fluxRatioRadTot (Real t) const
 {
     return flux_rad(t)/flux_tot(t);
 }
 
-// Determine which event has occured, an escape or a reaction. Based on the
-// fluxes through the boundaries at the given time. Beware: if t is not a
-// first passage time you still get an answer!
+/* Determine which event has occured, an escape or a reaction. Based on the
+   fluxes through the boundaries at the given time. Beware: if t is not a
+   first passage time you still get an answer! */
 GreensFunction1DRadAbs::EventKind
 GreensFunction1DRadAbs::drawEventType( Real rnd, Real t )
 const
@@ -477,177 +535,18 @@ const
 }
 
 
-
-/* Returns i'th term of table or fills a table with 
-   i exp arguments for drawT. */
-Real GreensFunction1DRadAbs::drawT_exponent_table( uint const& i, 
-                                                   RealVector& table) const
+/* This function is needed to cast the math. form of the function
+   into the form needed by the GSL root solver. */
+Real GreensFunction1DRadAbs::drawT_f (double t, void *p)
 {
-    uint n( table.size() );
-
-    if(i < n)
-        return table[i];
-    else
-    {
-        const Real D( getD() );
-        const Real v2( gsl_pow_2( getv() ) );
-        const Real vexpo_t(-v2/4.0/D);
-        Real root_n2;
-
-        while(n < i)
-        {
-            root_n2 = gsl_pow_2( get_root( n ) );
-            table.push_back( -D * root_n2 + vexpo_t );
-            n++;
-        }
-        
-        return table.back();
-    }
-}
-
-
-/* Returns i'th term of table or fills the table with 
-   i numerators for drawT. */
-Real GreensFunction1DRadAbs::drawT_Xn_table( uint const& i, 
-                                             RealVector& table) const
-{
-    uint n( table.size() );
-
-    if(i < n)
-        return table[i];
-    else
-    {
-        const Real sigma(this->getsigma());
-        const Real L(this->geta() - this->getsigma());
-        const Real r0(this->getr0());
-        const Real D(this->getD());
-        const Real v(this->getv());
-        const Real h((getk()+getv()/2.0)/getD());
-
-        Real root_n, root_n2, root_n_r0_s, root_n_L, h_root_n;	  
-
-        if( v == 0.0)
-        {
-            while(n < i)
-            {
-                root_n      = get_root(n);	
-                root_n2	    = root_n * root_n;
-                root_n_r0_s = root_n * (r0-sigma);
-                root_n_L    = root_n * L;
-                h_root_n    = h / root_n;
-
-                table.push_back( (h*sin(root_n_r0_s) + root_n*cos(root_n_r0_s)) 
-                                 / (L*(root_n2+h*h)+h) * ( h_root_n + sin(root_n_L) 
-                                                           - h_root_n*cos(root_n_L) ) );
-                n++;
-            }
-        }
-        else
-        {
-            const Real v2D(v/2.0/D);
-            const Real exp_av2D(exp(a*v2D));
-            const Real exp_sigmav2D(exp(sigma*v2D));
-
-            while(n < i)
-            {
-                root_n      = get_root(n);	
-                root_n2	    = root_n * root_n;
-                root_n_r0_s = root_n * (r0-sigma);
-                root_n_L    = root_n * L;
-                h_root_n    = h / root_n;
-
-                table.push_back( (h*sin(root_n_r0_s) + root_n*cos(root_n_r0_s)) / 
-                                 (L*(root_n2+h*h)+h) * (exp_sigmav2D*h*k/D - 
-                                                        exp_av2D*(root_n2+h*h)*
-                                                        cos(root_n_L)) / 
-                                 (h_root_n * (root_n2 + v2D*v2D))  
-                                 );
-                n++;
-            }
-        }
-        return table.back();
-    }
-}
-
-
-// This function is needed to cast the math. form of the function
-// into the form needed by the GSL root solver.
-double GreensFunction1DRadAbs::drawT_f (double t, void *p)
-{
-    // casts p to type 'struct drawT_params *'
     struct drawT_params *params = (struct drawT_params *)p;
-    GreensFunction1DRadAbs const* gf = params->gf;
-    const Real r0( gf->getr0() );
-
-    /* First check if we need full solution. 
-       Else we use approximation. */
-    const Real distToa( gf->geta() - r0 );
-    const Real distTos( r0 - gf->getsigma() );
-    const Real maxDist( CUTOFF_H * sqrt(2.0 * gf->getD() * t) );
-    
-    //TODO: No drift included for approximations.
-    if( gf->getv() == 0.0 )
-    {
-        if( distToa > maxDist ) //Absorbing boundary 'not in sight'.
-        {
-            if( distTos > maxDist )//And radiation boundary 'not in sight'.
-                return params->rnd - 1.0; //No prob. outflux.
-            else
-                return params->rnd - XS30(t, distTos, gf->getk(), gf->getD()); //Only radiation BCn.
-        }
-        else
-        {
-            if( distTos > maxDist )
-                return params->rnd - XS10(t, distToa, gf->getD() ); //Only absorbing BCn.
-        }
-    }
-
-
-    Real Xn = 0, exponent = 0;
-    Real prefactor = params->prefactor;
-
-    const uint maxi( gf->guess_maxi( t ) );
-    
-    if( params->exponent_table.size() < maxi + 1 &&
-        params->Xn_table.size() < maxi + 1 )
-    {
-        params->gf->calculate_n_roots( maxi );
-        IGNORE_RETURN gf->drawT_exponent_table( maxi, params->exponent_table );
-        IGNORE_RETURN gf->drawT_Xn_table( maxi, params->Xn_table );
-    }
-
-    Real sum = 0, term = 0, prev_term = 0;
-    uint n = 0;
-    do
-    {
-        if ( n >= maxi )
-        {
-            std::cerr << "Too many terms needed for GF1DRad::DrawTime. N: "
-                      << n << ", conv arg: " << exponent * t <<  std::endl;
-            break;
-        }
-        prev_term = term;
-        
-        Xn = params->gf->drawT_Xn_table(n, params->Xn_table);
-        exponent = params->gf->drawT_exponent_table(n, params->exponent_table);
-        term = Xn * exp(exponent * t);
-
-        sum += term;
-        n++;
-    }
-    while (fabs(term/sum) > EPSILON*1.0 ||
-           fabs(prev_term/sum) > EPSILON*1.0 ||
-           n < MIN_TERMS );
-
-    // find the intersection with the random number
-    return params->rnd - prefactor*sum;
+    return params->rnd - params->gf->p_survival_table( t, params->psurvTable );
 }
 
-// Draws the first passage time from the survival probability,
-// using an assistance function drawT_f that casts the math. function
-// into the form needed by the GSL root solver.
-Real
-GreensFunction1DRadAbs::drawTime (Real rnd) const
+/* Draws the first passage time from the survival probability,
+   using an assistance function drawT_f that casts the math. function
+   into the form needed by the GSL root solver. */
+Real GreensFunction1DRadAbs::drawTime (Real rnd) const
 {
     THROW_UNLESS( std::invalid_argument, 0.0 <= rnd && rnd < 1.0 );
   
@@ -657,7 +556,6 @@ GreensFunction1DRadAbs::drawTime (Real rnd) const
     const Real r0(this->getr0());
     const Real k(this->getk());
     const Real D(this->getD());
-    const Real v(this->getv());   
 
     if ( D == 0.0 || L == INFINITY )
     {
@@ -669,14 +567,11 @@ GreensFunction1DRadAbs::drawTime (Real rnd) const
         return 0.0;
     }
 
-    // some temporary variables
-    const Real vexpo_pref(-v*r0/2.0/D);
-    Real prefactor;
-
     /* Find a good interval to determine the first passage time. */
     Real t_guess;
     Real dist;
 
+    //TODO: make tguess for particle at contact with Rad boundary.
     if (k != 0)
     {
         dist = std::min(a - r0, r0 - sigma);
@@ -698,23 +593,10 @@ GreensFunction1DRadAbs::drawTime (Real rnd) const
 
     /* Set params structure. */
     RealVector exponent_table;
-    RealVector Xn_table;
-    struct drawT_params parameters = {this, exponent_table, Xn_table};
+    RealVector psurvTable;
+    struct drawT_params parameters = {this, psurvTable, rnd};
     
-    // the prefactor of the sum is also different in case of drift<>0 :
-    if(v == 0)
-        prefactor = 2.0;
-    else
-        prefactor = 2.0 * exp(vexpo_pref);
-
-    parameters.prefactor  = prefactor;
-    
-    // store the random number for the probability
-    parameters.rnd = rnd;
-    // store the number of terms used
-    parameters.tscale = this->t_scale;
-
-    // Define the function for the rootfinder
+    /* Define the function for the rootfinder. */
     gsl_function F;
     F.function = &GreensFunction1DRadAbs::drawT_f;
     F.params = &parameters;
@@ -770,12 +652,9 @@ GreensFunction1DRadAbs::drawTime (Real rnd) const
         while ( value >= 0.0 );
     }
 
-    // find the intersection on the y-axis between the random number and
-    // the function
-    
-    // define a new solver type brent
+    /* define a new solver type brent */
     const gsl_root_fsolver_type* solverType( gsl_root_fsolver_brent );
-    // make a new solver instance
+    /* make a new solver instance */
     gsl_root_fsolver* solver( gsl_root_fsolver_alloc( solverType ) );
     const Real t( findRoot( F, solver, low, high, t_scale*EPSILON, EPSILON,
                             "GreensFunction1DRadAbs::drawTime" ) );
@@ -793,7 +672,7 @@ GreensFunction1DRadAbs::drawR_f (double z, void *p)
     Real costerm 	= params->H[1];	// = k/D
     Real sinterm 	= params->H[2];	// = h*v2D
     Real sigma 		= params->H[3];	// = sigma
-    uint  terms = params->terms;
+    uint terms      = params->terms;
 
     Real expsigma(exp(sigma*v2D));
     Real zs(z-sigma);

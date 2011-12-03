@@ -252,23 +252,30 @@ private:
     /* this is the appropriate definition of the function in gsl. */
     static double tan_f (double x, void *p);
 
+
+    /* Functions for drawTime */
+
     struct drawT_params
     {
         GreensFunction1DRadAbs const* gf;
-        RealVector& exponent_table;
-        RealVector& Xn_table;
-        double prefactor;
-        // the timescale used for convergence
-        Real   tscale;
-        // the random number associated with the time
-        double rnd;
+        RealVector& psurvTable;
+        Real rnd;
     };
 
+    Real p_survival_table( Real  t, RealVector& psurvTable ) const;
+
+    Real p_survival_i(uint i, Real const& t, RealVector const& table ) const;
+
+    Real p_survival_table_i_v( uint const& i ) const;
+
+    Real p_survival_table_i_nov( uint const& i ) const;
+
+    void createPsurvTable( RealVector& table) const;
+
+    
+    /* functions for drawR */
+
     static double drawT_f (double t, void *p);
-
-    Real drawT_exponent_table( uint const& i, RealVector& table) const;
-
-    Real drawT_Xn_table( uint const& i, RealVector& table) const;
 
     struct drawR_params
     {
@@ -283,6 +290,9 @@ private:
 
     static double drawR_f (double z, void *p);
 
+
+    /* Member variables */
+
     // The diffusion constant and drift velocity
     Real v;
     // The reaction constant
@@ -296,6 +306,7 @@ private:
     // This is the time scale of the system.
     Real t_scale;
 
+    /* vector containing the roots 0f tan_f. */
     mutable RealVector rootList;
 };
 #endif // __GREENSFUNCTION1DRADABS_HPP

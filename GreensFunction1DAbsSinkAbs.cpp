@@ -303,7 +303,7 @@ Real GreensFunction1DAbsSinkAbs::p_survival_table(Real t, RealVector& psurvTable
         std::cerr << "1DSink::drawT: maxi was cut to MAX_TERMS for t = " 
                   << t << std::endl;
         
-    if (psurvTable.size() < maxi + 1)
+    if (psurvTable.size() < maxi )
     {
         calculate_n_roots( maxi );  // this updates the table
         createPsurvTable( psurvTable );
@@ -357,7 +357,7 @@ void GreensFunction1DAbsSinkAbs::createPsurvTable(RealVector& table) const
     uint const root_nbr( rootList_size() );
     uint i( table.size() );
 
-    while( i <= root_nbr )
+    while( i < root_nbr )
     {
         table.push_back( p_survival_table_i( get_root( i++ ) ) );
     }
@@ -806,7 +806,7 @@ Real GreensFunction1DAbsSinkAbs::p_int_r_table(Real const& r,
         std::cerr << "1DSink::p_int_r_table: maxi was cut to MAX_TERMS for t = " 
                   << t << std::endl;
    
-    if (table.size() < maxi + 1)
+    if (table.size() < maxi )
     {
         calculate_n_roots( maxi );  // this updates the table
         createP_int_r_Table( t, table );

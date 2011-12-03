@@ -174,18 +174,21 @@ private:
     struct drawT_params
     {
         GreensFunction1DAbsAbs const* gf;
-        RealVector& exponent_table;
-        RealVector& Xn_table;
-        Real prefactor;
-        Real tscale;
+        RealVector& psurvTable;
         Real rnd;
     };
 
     static double drawT_f (double t, void *p);
 
-    Real drawT_exponent_table( uint const& i, RealVector& table) const;
+    Real p_survival_table( Real  t, RealVector& psurvTable ) const;
 
-    Real drawT_Xn_table( uint const& i, RealVector& table) const;
+    Real p_survival_i(uint i, Real const& t, RealVector const& table ) const;
+
+    Real p_survival_table_i_v( uint const& i ) const;
+
+    Real p_survival_table_i_nov( uint const& i ) const;
+
+    void createPsurvTable( uint const& maxi, RealVector& table) const;
 
     struct drawR_params
     {
