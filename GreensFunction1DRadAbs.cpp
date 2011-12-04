@@ -571,17 +571,18 @@ Real GreensFunction1DRadAbs::drawTime (Real rnd) const
     Real t_guess;
     Real dist;
 
-    //TODO: make tguess for particle at contact with Rad boundary.
-    if (k != 0)
+    if( k != 0.0 )
     {
-        dist = std::min(a - r0, r0 - sigma);
+        const Real t_Abs( gsl_pow_2( a - r0 ) / D );
+        const Real t_Rad( D / (k * k) + gsl_pow_2( r0 - sigma ) / D );
+
+        t_guess = std::min(t_Abs, t_Rad );
     }
     else
     {
-        dist = a - r0;
+        t_guess = gsl_pow_2( a - r0 ) / D;
     }
 
-    t_guess = dist * dist / ( 2.0 * D );
     t_guess *= .1;
 
     // A different guess has to be made in case of nonzero drift to account for the displacement due to it

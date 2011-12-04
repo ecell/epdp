@@ -705,15 +705,16 @@ Real GreensFunction1DAbsSinkAbs::drawTime(Real rnd) const
     /* Find a good interval to determine the first passage time.
        First we get the distance to one of the absorbing boundaries or the sink. */
     Real dist( std::min(Lr - L0, Ll + L0) );
-    Real t_guess( dist * dist / ( 2.0 * D ) );
 
-    /* For a particle at contact, the time after a probability P
-       has dissapeared into the radiation boundary is to first order:
-       t = D * P / (pi * k * k ), we use tis as a guess for the next 
-       event time when a particle is close to the Abs boundary. */
-    if( dist > 10 * L0 )
-        t_guess = std::min(D * 0.01 / ( k * k ), t_guess);
+    /* For a particle at contact, the time for the particle to be absorbed by the 
+       radiation boundary is 4 D / (k*k). If the particle is at a distace x0 from the
+       radiation boundary, we approximate the gues for the next event-time by:
+       t_guess = D / (k*k) + x0 * x0 / D.
+    */
+    const Real t_Abs( gsl_pow_2( dist ) / D );
+    const Real t_Rad( 4 * D / (k * k) + gsl_pow_2( L0 ) / D );
 
+    t_guess = std::min(t_Abs, t_Rad );
     t_guess *= .1;
 
     /* Define the function for the rootfinder */
