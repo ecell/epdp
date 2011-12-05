@@ -1131,12 +1131,9 @@ class EGFRDSimulator(ParticleSimulatorBase):
             return single
 
 
+        # 0. Get generic info
         single_pos = single.pid_particle_pair[1].position
         single_radius = single.pid_particle_pair[1].radius
-
-        # We prefer to make NonInteractionSingles for efficiency.
-        # But if objects (Shells and surfaces) get close enough (closer than
-        # reaction_threshold) we want to try Interaction and/or Pairs
 
         # 1.0 Get neighboring domains and surfacesget neighboring domains and surfaces
         neighbors = self.geometrycontainer.get_neighbor_domains(single_pos, self.domains, ignore=[single.domain_id, ])
@@ -1149,8 +1146,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
         # Check if there are shells with the burst radius (reaction_threshold)
         # of the particle (intruders). Note that we approximate the reaction_volume
         # with a sphere (should be cylinder for 2D or 1D particle)
-        reaction_threshold = single.pid_particle_pair[1].radius * \
-                             self.SINGLE_SHELL_FACTOR
+        reaction_threshold = single_radius * self.SINGLE_SHELL_FACTOR
+
 
         # TODO redundant
         intruders = self.geometrycontainer.filter_distance(neighbors, reaction_threshold)
@@ -1158,35 +1155,18 @@ class EGFRDSimulator(ParticleSimulatorBase):
             log.debug("intruders: %s" %
                       (', '.join(str(i) for i in intruders)))
 
+
+        # 2.2 Burst the shells with the following conditions
+        # -shell is in the reaction_threshold (intruder)
+        # -shell is burstable (not Multi)
+        # -shell is not newly made
+        # -shell is not already a zero shell (just bursted)
         neighbor_distances = self.burst_non_multis(neighbors, reaction_threshold)
 
-#        # 2.2 Burst the shells with the following conditions
-#        # -shell is in the burst radius (intruder)
-#        # -shell is burstable (not Multi)
-#        # -shell is not newly made
-#        # -shell is not already a zero shell (just bursted)
-#        burst = []
-#        if intruders:
-#
-#            # TODO replace this with burst_non_multis
-#            for domain, _ in intruders:
-#                if not isinstance(domain, Multi) and \
-#                   not self.t == domain.last_time and \
-#                   not domain.dt == 0.0:
-#                    # domain is Single or Pair of some subclass
-#                    single_list = self.burst_domain(domain)
-#                    burst.extend(single_list)
-#                elif isinstance(domain, Multi):
-#                    # domain is a Multi
-#                    burst.append(domain)
-#
-#            # burst now contains all the Domains resulting from the burst.
-#            # These are NonInteractionSingles and Multis
 
-
-#        # New situation -> re-get the neighbors
-#        # TODO: modify the existing neighbor list by removing burst domains, and adding the new ones + distance
-#        neighbors = self.geometrycontainer.get_neighbor_domains(single_pos, self.domains, ignore=[single.domain_id, ])
+        # We prefer to make NonInteractionSingles for efficiency.
+        # But if objects (Shells and surfaces) get close enough (closer than
+        # reaction_threshold) we want to try Interaction and/or Pairs
 
         # 2.3 From the updated list of neighbors, we calculate the thresholds (horizons) for trying to form
         #     the various domains. The domains can be:
@@ -1195,24 +1175,23 @@ class EGFRDSimulator(ParticleSimulatorBase):
         # -Multi -> Multi
         # Note that we do not differentiate between directions. This means that we
         # look around in a sphere, the horizons are spherical
-        pair_partners = []
+        pair_interaction_partners = []
         for domain, _ in neighbor_distances:
             if (isinstance (domain, NonInteractionSingle) and domain.is_reset()):
                 # distance from the center of the particles/domains
                 pair_distance = self.world.distance(single_pos, domain.shell.shape.position)
                 pair_horizon  = (single_radius + domain.pid_particle_pair[1].radius) * self.SINGLE_SHELL_FACTOR
-                pair_partners.append((domain, pair_distance - pair_horizon))
+                pair_interaction_partners.append((domain, pair_distance - pair_horizon))
         
-        interaction_partners = []
-        for surface, distance in surface_distances:
+        for surface, surface_distance in surface_distances:
             surface_horizon = single_radius * self.SINGLE_SHELL_FACTOR
-            interaction_partners.append((surface, distance - surface_horizon))
+            pair_interaction_partners.append((surface, surface_distance - surface_horizon))
 
-        pair_interaction_partners = pair_partners + interaction_partners
         pair_interaction_partners = sorted(pair_interaction_partners, key=lambda domain_overlap: domain_overlap[1])
 
+        log.debug('pair_interaction_partners: %s' % str(pair_interaction_partners))
 
-        # For each particles/particle or particle/surface pair, check if a pair of interaction can be
+        # For each particles/particle or particle/surface pair, check if a pair or interaction can be
         # made. Note that we check the closest one first and only check if the object are within the horizon
         domain = None
         for obj, hor_overlap in pair_interaction_partners:
@@ -1257,7 +1236,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
             for surface, distance in surface_distances:
                 surface_horizon = single_radius * self.MULTI_SHELL_FACTOR
                 multi_partners.append((surface, distance - surface_horizon))
-                # else no interaction is possible
+
 
             # get the closest object (if there)
             if multi_partners:
