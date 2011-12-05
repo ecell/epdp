@@ -287,13 +287,13 @@ Real GreensFunction1DAbsSinkAbs::p_survival_table(Real t, RealVector& psurvTable
         if( distToAbs > maxDist )
             return 1.0;
         else
-            return XS10( t, distToAbs, D );  
+            return XS10( t, distToAbs, D, 0.0 );  
     }
     else
     {
         if( distToAbs > maxDist ) //Only sink in sight.
         {
-            return XS030( t, L0, getk(), getD() );
+            return XS030( t, L0, getk(), D );
         }
     }
 
@@ -705,6 +705,7 @@ Real GreensFunction1DAbsSinkAbs::drawTime(Real rnd) const
     /* Find a good interval to determine the first passage time.
        First we get the distance to one of the absorbing boundaries or the sink. */
     Real dist( std::min(Lr - L0, Ll + L0) );
+    Real t_guess;
 
     /* For a particle at contact, the time for the particle to be absorbed by the 
        radiation boundary is 4 D / (k*k). If the particle is at a distace x0 from the
@@ -732,22 +733,16 @@ Real GreensFunction1DAbsSinkAbs::drawTime(Real rnd) const
         // if the guess was too low
         do
         {
-            // keep increasing the upper boundary until the
-            // function straddles
-            high *= 10;
-            value = GSL_FN_EVAL( &F, high );
-
-            /*
-            std::cerr << "t: " << high << " maxDist: " << CUTOFF_H * sqrt(2.0 * D * high) <<
-                " f(t): " << value << std::endl;
-            */
-
             if( fabs( high ) >= t_guess * 1e10 )
             {
                 std::cerr << "GF1DSink::drawTime Couldn't adjust high. F("
                           << high << ") = " << value << std::endl;
                 throw std::exception();
             }
+            // keep increasing the upper boundary until the
+            // function straddles
+            high *= 10;
+            value = GSL_FN_EVAL( &F, high );
         }
         while ( value <= 0.0 );
     }

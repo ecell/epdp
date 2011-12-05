@@ -10,33 +10,35 @@ Real W(Real a, Real b);
 /* Functions needed in 1D Green's functions. For
    explanation, see the cpp file. */
 
-Real XP00( Real r, Real t, Real r0, Real D );
+Real XP00( Real r, Real t, Real r0, Real D, Real v );
 
-Real XI00( Real r, Real t, Real r0, Real D );
+Real XI00( Real r, Real t, Real r0, Real D, Real v );
 
-Real XS00( Real t, Real r0, Real D );
+Real XS00( Real t, Real r0, Real D, Real v );
 
-Real XP10( Real r, Real t, Real r0, Real D );
+Real XP10( Real r, Real t, Real r0, Real D, Real v );
 
-Real XI10( Real r, Real t, Real r0, Real D );
+Real XI10( Real r, Real t, Real r0, Real D, Real v );
 
-Real XS10( Real t, Real r0, Real D );
+Real XS10( Real t, Real r0, Real D, Real v );
 
-Real XP20( Real r, Real t, Real r0, Real D );
+Real XP20( Real r, Real t, Real r0, Real D, Real v );
 
-Real XI20( Real r, Real t, Real r0, Real D );
+Real XI20( Real r, Real t, Real r0, Real D, Real v );
 
-Real XS20( Real t, Real r0, Real D );
+Real XS20( Real t, Real r0, Real D, Real v );
 
-Real XP30term( Real r, Real t, Real r0, Real ka, Real D );
+Real XP30term_nov( Real r, Real t, Real r0, Real ka, Real D );
 
-Real XP30( Real r, Real t, Real r0, Real ka, Real D );
+Real XP30term_v( Real r, Real t, Real r0, Real ka, Real D, Real v );
 
-Real XI30term( Real r, Real t, Real r0, Real ka, Real D );
+Real XP30( Real r, Real t, Real r0, Real ka, Real D, Real v );
 
-Real XI30( Real r, Real t, Real r0, Real ka, Real D );
+Real XI30term_nov( Real r, Real t, Real r0, Real ka, Real D );
 
-Real XS30( Real t, Real r0, Real ka, Real D );
+Real XI30( Real r, Real t, Real r0, Real ka, Real D, Real v );
+
+Real XS30( Real t, Real r0, Real ka, Real D, Real v );
 
 Real XP030( Real r, Real t, Real r0, Real ka, Real D );
 

@@ -36,7 +36,7 @@ uint GreensFunction1DAbsAbs::guess_maxi(Real const& t) const
     const Real D( getD() );
     const Real L( fabs( geta() - getsigma() ) );
 
-    const Real root0( M_PI );
+    const Real root0( M_PI / L);
     const Real Dt(D * t);
 
     const Real thr(exp(- Dt * root0 * root0) * EPSILON * 1e-1);
@@ -98,20 +98,17 @@ Real GreensFunction1DAbsAbs::p_survival_table(Real t, RealVector& psurvTable) co
     const Real maxDist( CUTOFF_H * sqrt(2.0 * D * t) );
     
     //TODO: No drift included for approximations.
-    if( v == 0.0 )
+    if( distToa > maxDist ) //Absorbing boundary 'not in sight'.
     {
-        if( distToa > maxDist ) //Absorbing boundary 'not in sight'.
-        {
-            if( distTos > maxDist )//And radiation boundary 'not in sight'.
-                return 1.0; //No prob. outflux.
-            else
-                return XS10(t, distTos, D); //Only absorbing BCn of s.
-        }
+        if( distTos > maxDist )//And radiation boundary 'not in sight'.
+            return 1.0; //No prob. outflux.
         else
-        {
-            if( distTos > maxDist )
-                return XS10(t, distToa, D ); //Only absorbing BCn of a.
-        }
+            return XS10(t, distTos, D, v); //Only absorbing BCn of s.
+    }
+    else
+    {
+        if( distTos > maxDist )
+            return XS10(t, distToa, D, v ); //Only absorbing BCn of a.
     }
 
     const uint maxi( guess_maxi(t) );
@@ -148,7 +145,8 @@ Real GreensFunction1DAbsAbs::p_survival_i( uint i,
                                            Real const& t, 
                                            RealVector const& table) const
 {
-    return exp( - getD() * t * gsl_pow_2( (i + 1) * M_PI ) ) * table[ i ];
+    const Real L( geta() - getsigma() );
+    return exp( - getD() * t * gsl_pow_2( (i + 1) * M_PI / L ) ) * table[ i ];
 }
 
 
@@ -177,15 +175,14 @@ Real GreensFunction1DAbsAbs::p_survival_table_i_v( uint const& i ) const
 /* Calculates the part of the i'th term of p_surv not dependent on t, without drift */
 Real GreensFunction1DAbsAbs::p_survival_table_i_nov( uint const& i ) const
 {
-    Real nPI;
+    Real nPI( ((Real)(i+1))*M_PI );
 
-    const Real sigma(this->getsigma());
-    const Real L(this->geta() - this->getsigma());
-    const Real r0(this->getr0());
+    const Real sigma( getsigma() );
+    const Real L( geta() - getsigma() );
+    const Real r0( getr0() );
     
-    const Real r0s_L((r0-sigma)/L);
+    const Real r0s_L( (r0-sigma) / L );
         
-    nPI = ((Real)(i+1))*M_PI;
     return sin( nPI * r0s_L ) * (1.0 - cos(nPI)) / nPI;
 }
 
@@ -513,23 +510,22 @@ GreensFunction1DAbsAbs::drawTime (Real rnd) const
 
     if( value < 0.0 )
     {
-	// scale the interval around the guess such that the function 
-	// straddles if the guess was too low
-	do
-	{
-	    // keep increasing the upper boundary until the 
-	    // function straddles
-	    high *= 10.0;
-	    value = GSL_FN_EVAL( &F, high );
-
-	    if( fabs( high ) >= t_guess * 1e6 )
-	    {
-            std::cerr << "Couldn't adjust high. F(" << high << ") = "
-                      << value << std::endl;
-            throw std::exception();
-	    }
-	}
-	while ( value <= 0.0 );
+        // scale the interval around the guess such that the function 
+        // straddles if the guess was too low
+        do
+        {
+            if( fabs( high ) >= t_guess * 1e6 )
+            {
+                std::cerr << "Couldn't adjust high. F(" << high << ") = "
+                          << value << std::endl;
+                throw std::exception();
+            }
+            // keep increasing the upper boundary until the 
+            // function straddles
+            high *= 10.0;
+            value = GSL_FN_EVAL( &F, high );            
+        }
+        while ( value <= 0.0 );
     }
     else
     {

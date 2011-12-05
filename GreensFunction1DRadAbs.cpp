@@ -243,12 +243,12 @@ Real GreensFunction1DRadAbs::p_survival_table(Real t, RealVector& psurvTable) co
             if( distTos > maxDist ) //Radiation boundary 'not in sight'.
                 return 1.0; //No prob. outflux.
             else
-                return XS30(t, distTos, getk(), getD()); //Only radiation BCn.
+                return XS30(t, distTos, getk(), D, v); //Only radiation BCn.
         }
         else
         {
             if( distTos > maxDist )
-                return XS10(t, distToa, getD() ); //Only absorbing BCn.
+                return XS10(t, distToa, D, v); //Only absorbing BCn.
         }
     }
 
@@ -569,7 +569,6 @@ Real GreensFunction1DRadAbs::drawTime (Real rnd) const
 
     /* Find a good interval to determine the first passage time. */
     Real t_guess;
-    Real dist;
 
     if( k != 0.0 )
     {
@@ -612,17 +611,16 @@ Real GreensFunction1DRadAbs::drawTime (Real rnd) const
         // if the guess was too low
         do
         {
-            // keep increasing the upper boundary until the
-            // function straddles
-            high *= 10;
-            value = GSL_FN_EVAL( &F, high );
-
             if( fabs( high ) >= t_guess * 1e6 )
             {
                 std::cerr << "GF1DRad::drawTime Couldn't adjust high. F("
                           << high << ") = " << value << std::endl;
                 throw std::exception();
             }
+            // keep increasing the upper boundary until the
+            // function straddles
+            high *= 10;
+            value = GSL_FN_EVAL( &F, high );
         }
         while ( value <= 0.0 );
     }

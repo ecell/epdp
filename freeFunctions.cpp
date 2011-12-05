@@ -85,114 +85,187 @@ Real W(Real a, Real b)
    2 - Reflective boundary.
    3 - Radiation boundary with rate ka.
 
-   Approximation for greensfunction with sink has 3 boundaries: 030
+   The approximation for the greensfunction with a sink has 3 boundaries: 030
    left absorbing boundary, sink, right absorbing boundary.
    
  */
 
-Real XP00( Real r, Real t, Real r0, Real D )
+Real XP00( Real r, Real t, Real r0, Real D, Real v )
 {
     const Real fourDt( 4 * D * t );
-    const Real rminr02( gsl_pow_2( r - r0 ) );
+    const Real rminr0minv2( gsl_pow_2( r - r0 - v * t) );
 
-    return 1. / sqrt( fourDt * M_PI ) * exp( - rminr02 / fourDt );
+    return 1. / sqrt( fourDt * M_PI ) * exp( - rminr0minv2 / fourDt );
 }
 
 
-Real XI00( Real r, Real t, Real r0, Real D )
+Real XI00( Real r, Real t, Real r0, Real D, Real v )
 {
     const Real sqrt4Dt( sqrt( 4 * D * t ) );
-    const Real rminr0( r - r0 );
+    const Real rminr0minv( r - r0 - v * t);
 
-    return 0.5 * ( 1.0 + erf( rminr0 / sqrt4Dt ) );
+    return 0.5 * ( 1.0 + erf( rminr0minv / sqrt4Dt ) );
 }
 
 
-Real XS00( Real t, Real r0, Real D )
+Real XS00( Real t, Real r0, Real D, Real v )
 {
     return 1;
 }
 
 
-Real XP10( Real r, Real t, Real r0, Real D )
+Real XP10( Real r, Real t, Real r0, Real D, Real v )
 {
     const Real fourDt( 4 * D * t );
     const Real rminr02( gsl_pow_2( r - r0 ) );
     const Real rplusr02( gsl_pow_2( r + r0 ) );
+    const Real v_2( v /2.0 );
 
-    return 1. / sqrt( fourDt * M_PI ) * 
+    Real drift_prefac;
+    if( v == 0.0 )
+        drift_prefac = 1.0;
+    else
+        drift_prefac = exp( v_2 / D * ( r - r0 - v_2 * t ) );   
+
+    return drift_prefac / sqrt( fourDt * M_PI ) * 
         ( exp( - rminr02 / fourDt ) - exp( - rplusr02 / fourDt ) );
 }
 
 
-Real XI10( Real r, Real t, Real r0, Real D )
+Real XI10( Real r, Real t, Real r0, Real D, Real v )
 {
     const Real sqrt4Dt( sqrt( 4 * D * t ) );
     const Real rminr0( r - r0 );
     const Real rplusr0( r + r0 );
 
-    const Real temp( 2.0 * erf( r0 / sqrt4Dt ) 
-                     + erf( rminr0/sqrt4Dt ) - erf( rplusr0/sqrt4Dt ) );
+    if( v == 0.0 )
+    {
 
-    return 0.5 * temp;
+        const Real temp( 2.0 * erf( r0 / sqrt4Dt ) 
+                         + erf( rminr0/sqrt4Dt ) - erf( rplusr0/sqrt4Dt ) );
+
+        return 0.5 * temp;
+    }
+    else
+    {
+        //TODO: include c.d.f. with drift. It exists, but is not included yet.
+        return Real();
+    }
 }
 
 
-Real XS10( Real t, Real r0, Real D )
+Real XS10( Real t, Real r0, Real D, Real v )
 {
     const Real sqrt4Dt( sqrt( 4 * D * t ) );
+    const Real vt( v * t );
 
-    return erf( r0 / sqrt4Dt );
+    if( v == 0.0 )
+        return erf( r0 / sqrt4Dt );
+    else
+    {
+        const Real temp( erfc( -(r0 + vt) / sqrt4Dt ) - 
+                         exp(- v * r0 / D ) * erfc( (r0 - vt) / sqrt4Dt) );
+        return 0.5 * temp;
+    }
 }
 
 
-Real XP20( Real r, Real t, Real r0, Real D )
+Real XP20( Real r, Real t, Real r0, Real D, Real v )
 {
     const Real fourDt( 4 * D * t );
+    const Real sqrt4Dt( fourDt );
     const Real rminr02( gsl_pow_2( r - r0 ) );
     const Real rplusr02( gsl_pow_2( r + r0 ) );
 
-    return 1. / sqrt( fourDt * M_PI ) * 
-        ( exp( - rminr02 / fourDt ) + exp( - rplusr02 / fourDt ) );
+    const Real XP20_nov( 1. / sqrt( fourDt * M_PI ) * 
+                         ( exp( - rminr02 / fourDt ) + 
+                           exp( - rplusr02 / fourDt ) ) );
+
+    if( v == 0.0 )
+    {
+        return XP20_nov;
+    }
+    else
+    {
+        const Real v_2( v / 2.0 );
+        const Real drift_prefac( exp( v_2 / D * ( r - r0 - v_2 * t ) ) );
+
+        const Real XP20_v( exp(v_2 / D * (r + r0) + v_2 * v_2 / D * t) 
+                           * erfc( (r + r0 + v * t)/sqrt4Dt ) );
+
+        return drift_prefac * ( v_2 / D * XP20_v + XP20_nov );
+    }
 }
 
 
-Real XI20( Real r, Real t, Real r0, Real D )
+Real XI20( Real r, Real t, Real r0, Real D, Real v )
 {
     const Real sqrt4Dt( sqrt( 4 * D * t ) );
 
-    const Real temp( erf( (r - r0)/sqrt4Dt ) - erf( (r + r0)/sqrt4Dt ) );
-
-    return 0.5 * temp;
+    if( v == 0.0 )
+    {
+        const Real temp( erf( (r - r0)/sqrt4Dt ) - erf( (r + r0)/sqrt4Dt ) );
+        return 0.5 * temp;
+    }
+    else
+    {
+        //TODO: c.d.f. not with drift. But it does exist!
+        return Real();
+    }
 }
 
 
-Real XS20( Real r, Real t, Real r0, Real D )
+Real XS20( Real r, Real t, Real r0, Real D, Real v )
 {
     return 1;
 }
 
 
-Real XP30term( Real r, Real t, Real r0, Real ka, Real D )
+Real XP30term_nov( Real r, Real t, Real r0, Real ka, Real D )
 {
+    r0 = fabs( r0 );
     const Real fourDt( 4 * D * t );
     const Real k_D( ka / D );
     const Real rplusr02( gsl_pow_2( r + r0 ) );
     const Real arg( (r + r0)/sqrt(fourDt) + ka * sqrt( t / D ) );
-    r0 = fabs( r0 );
 
     return -k_D * exp( - rplusr02 / fourDt ) * expxsq_erfc( arg );
 }
 
 
-Real XP30( Real r, Real t, Real r0, Real ka, Real D )
+Real XP30term_v( Real r, Real t, Real r0, Real ka, Real D, Real v )
 {
     r0 = fabs( r0 );
-    return XP20(r, t, r0, D) + XP30term(r, t, r0, ka, D);
+    const Real sqrt4Dt( sqrt( 4 * D * t ) );
+    const Real v_2( v / 2.0 );
+    const Real kplusv2( ka + v_2 );
+
+    const Real erfc_arg( (r + r0 + 2 * kplusv2 * t ) / sqrt4Dt);
+
+    const Real exp_arg( 1 / D * ( kplusv2 * kplusv2 * t + 
+                                  kplusv2 * (r + r0) ) );
+
+    return -exp( exp_arg ) * erfc( erfc_arg );
 }
 
 
-Real XI30term( Real r, Real t, Real r0, Real ka, Real D )
+Real XP30( Real r, Real t, Real r0, Real ka, Real D, Real v )
+{
+    r0 = fabs( r0 );
+    if( v == 0.0 )
+        return XP20(r, t, r0, D, 0.0) + XP30term_nov(r, t, r0, ka, D);
+    else
+    {
+        const Real v_2( v / 2.0 );
+        const Real drift_prefac( exp( v_2 / D * ( r - r0 - v_2 * t ) ) );
+        
+        return drift_prefac * ( XP20(r, t, r0, D, 0.0) + 
+                                1/D * (ka - v/2) * XP30term_v(r, t, r0, ka, D, v) );
+    }
+}
+
+
+Real XI30term_nov( Real r, Real t, Real r0, Real ka, Real D, Real v )
 {
     const Real sqrt4Dt( sqrt(4 * D * t) );
     const Real k_D( ka / D );
@@ -210,21 +283,42 @@ Real XI30term( Real r, Real t, Real r0, Real ka, Real D )
 }
 
 
-Real XI30( Real r, Real t, Real r0, Real ka, Real D )
+Real XI30( Real r, Real t, Real r0, Real ka, Real D, Real v )
 {
     r0 = fabs( r0 );
-    return XI20(r, t, r0, D) + XI30term(r, t, r0, ka, D);
+    if( v == 0.0 )
+        return XI20(r, t, r0, D, 0.0) + XI30term_nov(r, t, r0, ka, D);
+    else
+        //TODO: c.d.f with drift not included yet. Does exist!
+        return Real();
 }
 
 
-Real XS30( Real t, Real r0, Real ka, Real D )
+Real XS30( Real t, Real r0, Real ka, Real D, Real v )
 {
+    r0 = fabs( r0 );
     const Real sqrt4Dt( sqrt( 4 * D * t ) );
     const Real k_D( ka / D );
-    r0 = fabs( r0 );
 
-    return erf( r0 / sqrt4Dt ) + 
-        exp( k_D * ka * t + k_D * r0 ) * erfc( (2 * ka * t + r0) / sqrt4Dt );
+    if( v == 0.0 )
+        return erf( r0 / sqrt4Dt ) + 
+            exp( k_D * ka * t + k_D * r0 ) * erfc( (2 * ka * t + r0) / sqrt4Dt );
+    else
+    {
+        const Real v_2( v / 2.0 );
+        const Real kplusv2( ka + v_2 );
+        const Real r0plusvt( r0 + v * t );
+        const Real r0minvt( r0 - v * t );
+
+        const Real erfc_arg( ( r0 + 2 * kplusv2 * t ) / sqrt4Dt);
+
+        const Real exp_arg( k_D * ( r0 + (ka + r0) * t ) );
+
+        const Real term2( erfc( -r0plusvt / sqrt4Dt ) - 
+                          ka / (ka + v) * exp(v / D * r0) * erfc( r0minvt/sqrt4Dt ) );
+        
+        return (ka + v_2)/(ka + v) * exp( exp_arg ) * erfc( erfc_arg ) + 0.5 * term2;
+    }
 }
 
 
@@ -232,7 +326,7 @@ Real XP030( Real r, Real t, Real r0, Real ka, Real D )
 {
     r0 = fabs( r0 );
 
-    return XP00(r, t, r0, D) + .5 * XP30term(fabs(r), t, r0, .5 * ka, D);
+    return XP00(r, t, r0, D, 0.0) + .5 * XP30term_nov(fabs(r), t, r0, .5 * ka, D);
 }
 
 
@@ -245,14 +339,14 @@ Real XI030( Real r, Real t, Real r0, Real ka, Real D )
     if( r < 0 )
         sign *= -1;
 
-    return XI00(r, t, r0, D) + .5 * ( ( XS30(t, r0, ka, D) - 1 ) + 
-                                      sign * XI30term( fabs(r), t, r0, ka, D ) );
+    return XI00(r, t, r0, D, 0.0) + .5 * ( ( XS30(t, r0, ka, D, 0.0) - 1 ) + 
+                                           sign * XI30term_nov( fabs(r), t, r0, ka, D ) );
 }
 
 
 Real XS030( Real t, Real r0, Real ka, Real D )
 {
-    return XS30( t, fabs( r0 ), 0.5 * ka, D );
+    return XS30( t, fabs( r0 ), 0.5 * ka, D, 0.0 );
 }
 
 
