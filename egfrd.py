@@ -1135,7 +1135,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
         single_pos = single.pid_particle_pair[1].position
         single_radius = single.pid_particle_pair[1].radius
 
-        # 1.0 Get neighboring domains and surfacesget neighboring domains and surfaces
+        # 1.0 Get neighboring domains and surfaces
         neighbors = self.geometrycontainer.get_neighbor_domains(single_pos, self.domains, ignore=[single.domain_id, ])
         # Get also surfaces but only if the particle is in 3D
         surface_distances = []
@@ -1221,7 +1221,6 @@ class EGFRDSimulator(ParticleSimulatorBase):
             for domain, dist_to_shell in neighbor_distances:
                 if (isinstance (domain, NonInteractionSingle) and domain.is_reset()):
                     multi_horizon = (single_radius + domain.pid_particle_pair[1].radius) * self.MULTI_SHELL_FACTOR
-                    # distance from the center of the particles/domains
                     distance = self.world.distance(single_pos, domain.shell.shape.position)
                     multi_partners.append((domain, distance - multi_horizon))
 
