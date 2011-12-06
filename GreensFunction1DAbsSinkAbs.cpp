@@ -162,10 +162,11 @@ std::pair<Real, Real> GreensFunction1DAbsSinkAbs::get_lower_and_upper() const
     /* f_lower must have correct sign. */
     if( f_lower * parity_op > 0 )
     {
-        std::cerr << "Parity error in x_lower of root# " << rootList_size() + 1 
-                      << " in GF::AbsSinkAbs " << std::endl;
-        std::cerr << "f_low(" << lower << ") = " << f_lower << ", f_high(" 
-                  << upper << ") = " << f_upper << std::endl;
+        log_.warn("Parity error in x_lower of root# %6u .",
+                  rootList_size() + 1);
+
+        log_.warn("f_low( %.16g ) =  %.16g , f_high( %.16g ) = %.16g",
+                  lower, f_lower, upper, f_upper);
     }
 
     /* If the parity is incorrect -> correct it */
@@ -186,10 +187,10 @@ std::pair<Real, Real> GreensFunction1DAbsSinkAbs::get_lower_and_upper() const
 
         if(cntr >= 10)
         {
-            std::cerr << "Failed to straddle root # " << rootList_size() + 1 
-                      << " in GF::AbsSinkAbs " << std::endl;
-            std::cerr << "f_low(" << lower << ") = " << f_lower << ", f_high(" 
-                  << upper << ") = " << f_upper << std::endl;
+            log_.warn("Failed to straddle root# %6u . ",
+                      rootList_size() + 1);
+            log_.warn("f_low( %.16g ) =  %.16g , f_high( %.16g ) = %.16g",
+                  lower, f_lower, upper, f_upper);
         }
 
     }
@@ -300,8 +301,7 @@ Real GreensFunction1DAbsSinkAbs::p_survival_table(Real t, RealVector& psurvTable
     const uint maxi( guess_maxi(t) );
     
     if( maxi == MAX_TERMS )
-        std::cerr << "1DSink::drawT: maxi was cut to MAX_TERMS for t = " 
-                  << t << std::endl;
+        log_.info("drawT: maxi was cut to MAX_TERMS for t = %.16g", t);
         
     if (psurvTable.size() < maxi )
     {
@@ -735,8 +735,8 @@ Real GreensFunction1DAbsSinkAbs::drawTime(Real rnd) const
         {
             if( fabs( high ) >= t_guess * 1e10 )
             {
-                std::cerr << "GF1DSink::drawTime Couldn't adjust high. F("
-                          << high << ") = " << value << std::endl;
+                log_.error("drawTime: couldn't adjust high. F( %.16g ) = %.16g"
+                          , high, value);
                 throw std::exception();
             }
             // keep increasing the upper boundary until the
@@ -757,12 +757,16 @@ Real GreensFunction1DAbsSinkAbs::drawTime(Real rnd) const
 	        if( fabs( low ) <= t_guess * 1e-10 ||
 	            fabs(value-value_prev) < EPSILON*1.0 )
 	        {
-		    std::cerr << "GF1DSink::drawTime Couldn't adjust low. F(" << low << ") = "
-		              << value << " t_guess: " << t_guess << " diff: "
-		              << (value - value_prev) << " value: " << value
-		              << " value_prev: " << value_prev << " rnd: "
-		              << rnd << std::endl;
-		    return low;
+                log_.warn("drawTime Couldn't adjust low. F( %.16g ) = %.16g"
+                          , low, value);
+                /*
+                  std::cerr << "GF1DSink::drawTime Couldn't adjust low. F(" << low << ") = "
+                  << value << " t_guess: " << t_guess << " diff: "
+                  << (value - value_prev) << " value: " << value
+                  << " value_prev: " << value_prev << " rnd: "
+                  << rnd << std::endl;
+                */
+                return low;
 	        }
 	        value_prev = value;
 	        // keep decreasing the lower boundary until the function straddles
@@ -803,8 +807,8 @@ Real GreensFunction1DAbsSinkAbs::p_int_r_table(Real const& r,
     const uint maxi( guess_maxi(t) );
 
     if( maxi == MAX_TERMS )
-        std::cerr << "1DSink::p_int_r_table: maxi was cut to MAX_TERMS for t = " 
-                  << t << std::endl;
+        log_.warn("p_int_r_table: maxi was cut to MAX_TERMS for t = %.16g"
+                  , t);
    
     if (table.size() < maxi )
     {
@@ -994,3 +998,5 @@ std::string GreensFunction1DAbsSinkAbs::dump() const
     return ss.str();
 }
 
+Logger& GreensFunction1DAbsSinkAbs::log_(
+        Logger::get_logger("GreensFunction1DAbsSinkAbs"));

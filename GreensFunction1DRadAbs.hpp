@@ -24,6 +24,7 @@
 #include "Defs.hpp"
 #include "OldDefs.hpp"			// TODO: this must be removed at some point!
 #include "GreensFunction.hpp"
+#include "Logger.hpp"
 
 class GreensFunction1DRadAbs: public GreensFunction
 {
@@ -308,5 +309,7 @@ private:
 
     /* vector containing the roots 0f tan_f. */
     mutable RealVector rootList;
+
+    static Logger& log_;
 };
 #endif // __GREENSFUNCTION1DRADABS_HPP

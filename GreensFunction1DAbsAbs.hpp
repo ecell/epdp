@@ -23,6 +23,7 @@
 #include "OldDefs.hpp"			// TODO: this must be removed at some point!
 #include "funcSum.hpp"
 #include "freeFunctions.hpp"
+#include "Logger.hpp"
 
 #include "GreensFunction.hpp"
 #include "PairGreensFunction.hpp"	// needed to declare EventType
@@ -40,7 +41,7 @@ private:
     // The typical timescale of the system, may also not be true!!
     static const Real T_TYPICAL = 1E-6;
     // measure of 'sameness' when comparing floating points numbers
-    static const Real EPSILON = 1E-12;
+    static const Real EPSILON = 1E-10;
     //E3; Is 1E3 a good measure for the probability density?!
     static const Real PDENS_TYPICAL = 1;
     // The maximum number of terms in the sum
@@ -178,7 +179,18 @@ private:
         Real rnd;
     };
 
-    static double drawT_f (double t, void *p);
+   struct drawR_params
+    {
+        GreensFunction1DAbsAbs const* gf;
+        const Real t;
+        RealVector table;
+        Real rnd;
+    };
+
+    uint guess_maxi(Real const& t ) const;
+
+
+    static Real drawT_f (Real t, void *p);
 
     Real p_survival_table( Real  t, RealVector& psurvTable ) const;
 
@@ -190,21 +202,12 @@ private:
 
     void createPsurvTable( uint const& maxi, RealVector& table) const;
 
-    struct drawR_params
-    {
-        Real S_Cn_An[MAX_TERMS];
-        Real n_L[MAX_TERMS];
-        // variables H: for additional terms appearing as multiplicative factors etc.
-        Real H[5];
-        uint terms;
-        // random number
-        Real rnd;
-    };
 
-    uint guess_maxi(Real const& t ) const;
+    static Real drawR_f (Real z, void* p);
 
-    static Real drawR_f (Real z, drawR_params const* params);
-    static Real drawR_free_f (Real z, drawR_params const* params);
+    Real p_int_r_table(Real const& r, Real const& t, RealVector& table) const;
+
+    void createP_int_r_Table( Real const& t, uint const& maxi, RealVector& table ) const;
 
 private:
     // The diffusion constant and drift velocity
@@ -218,5 +221,7 @@ private:
     Real l_scale;
     // This is the time scale of the system, used by drawTime_f
     Real t_scale;
+
+    static Logger& log_;
 };
 #endif // __GREENSFUNCTION1DABSABS_HPP

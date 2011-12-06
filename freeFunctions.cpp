@@ -303,8 +303,8 @@ Real XS30( Real t, Real r0, Real ka, Real D, Real v )
     const Real k_D( ka / D );
 
     if( v == 0.0 )
-        return erf( r0 / sqrt4Dt ) + 
-            exp( k_D * ka * t + k_D * r0 ) * erfc( (2 * ka * t + r0) / sqrt4Dt );
+        return erf( r0 / sqrt4Dt ) + W( r0 / sqrt4Dt, 2 * ka * t / sqrt4Dt );
+    // exp( k_D * ka * t + k_D * r0 ) * erfc( (2 * ka * t + r0) / sqrt4Dt );
     else
     {
         const Real v_2( v / 2.0 );

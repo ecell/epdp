@@ -24,6 +24,7 @@
 #include "GreensFunction.hpp"
 #include "funcSum.hpp"
 #include "freeFunctions.hpp"
+#include "Logger.hpp"
 
 class GreensFunction1DAbsSinkAbs: public GreensFunction
 {
@@ -352,5 +353,7 @@ private:
 
     // Stores params for rootfiner.
     mutable struct lower_upper_params lo_up_params;
+
+    static Logger& log_;
 };
 #endif // __GREENSFUNCTION1DRADABS_HPP

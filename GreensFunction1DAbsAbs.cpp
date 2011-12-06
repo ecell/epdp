@@ -113,9 +113,8 @@ Real GreensFunction1DAbsAbs::p_survival_table(Real t, RealVector& psurvTable) co
 
     const uint maxi( guess_maxi(t) );
     
-    if( maxi == MAX_TERMS )
-        std::cerr << "1DAbs::drawT: maxi was cut to MAX_TERMS for t = " 
-                  << t << std::endl;
+    if( maxi >= MAX_TERMS )
+        log_.warn("drawT: maxi was cut to MAX_TERMS for t = %.16g", t);
     
     if (psurvTable.size() < maxi)
     {
@@ -257,7 +256,7 @@ Real GreensFunction1DAbsAbs::prob_r (Real r, Real t) const
     {
         if (n >= MAX_TERMS )
         {
-            std::cerr << "Too many terms for GF1DAbs::prob_r. N: " << n << std::endl;
+            log_.warn("Too many terms for prob_r. N: %6u", n);
             break;
         }
 
@@ -317,16 +316,16 @@ GreensFunction1DAbsAbs::leaves(Real t) const
     const Real r0s_L((r0-sigma)/L);
     const Real vexpo(-v*v*t/4.0/D - v*(r0-sigma)/2.0/D);
     
-    Real n = 0;
+    uint n = 0;
     do
     {
         if (n >= MAX_TERMS )
         {
-            std::cerr << "Too many terms for GF1DAbs::leaves. N: " << n << std::endl;
+            log_.warn("Too many terms for leaves. N: %6u", n);
             break;
         }
 
-        nPI = (n + 1) * M_PI;
+        nPI = (Real (n + 1.0)) * M_PI;
         prev_term = term;
         term = nPI * exp( nPI * nPI * expo) * sin( nPI * r0s_L );
         sum += term;
@@ -377,7 +376,7 @@ GreensFunction1DAbsAbs::leavea(Real t) const
      {
          if (n >= MAX_TERMS )
          {
-             std::cerr << "Too many terms for GF1DAbs::leavea. N: " << n << std::endl;
+             log_.warn("Too many terms for leavea. N: %6u ", n);
              break;
          }
        
@@ -516,8 +515,8 @@ GreensFunction1DAbsAbs::drawTime (Real rnd) const
         {
             if( fabs( high ) >= t_guess * 1e6 )
             {
-                std::cerr << "Couldn't adjust high. F(" << high << ") = "
-                          << value << std::endl;
+                log_.error("drawTime: couldn't adjust high. F( %.16g ) = %.16g"
+                          , high, value);
                 throw std::exception();
             }
             // keep increasing the upper boundary until the 
@@ -537,10 +536,14 @@ GreensFunction1DAbsAbs::drawTime (Real rnd) const
             if( fabs( low ) <= t_guess * 1.0e-6 ||
                 fabs(value-value_prev) < EPSILON*this->t_scale )
             {
+                log_.warn("drawTime: couldn't adjust low. F( %.16g ) = %.16g"
+                          , low, value);
+                /*
                 std::cerr << "GF1DAbs::drawTime Couldn't adjust low. F(" << low << ") = "
                           << value << " t_guess: " << t_guess << " diff: "
                           << (value - value_prev) << " value: " << value
                           << " value_prev: " << value_prev << std::endl;
+                */
                 return low;
             }
 
@@ -569,40 +572,55 @@ GreensFunction1DAbsAbs::drawTime (Real rnd) const
     return t;
 }
 
-Real GreensFunction1DAbsAbs::drawR_free_f(Real r, drawR_params const* params)
-{
-    const Real D(params->H[0]);
-    const Real vt(params->H[1]*params->H[2]);
-    const Real sqrt4Dt(sqrt( 4 * D * params->H[2] ));
-
-    return 0.5*( 1.0 + erf( (r - vt) / sqrt4Dt ) ) - params->rnd;
-}
-
-// This is a help function that casts the drawR_params parameter structure into
-// the right form and calculates the survival probability from it (and returns it).
-// The routine drawR uses this function to sample the exit point, making use of the
-// GSL root finder to draw the random position.
-Real
-GreensFunction1DAbsAbs::drawR_f (Real r, drawR_params const* params)
+Real GreensFunction1DAbsAbs::p_int_r_table(Real const& r, 
+                                           Real const& t, 
+                                           RealVector& table) const
 {   
+    const Real a( geta() );
+    const Real sigma( getsigma() );
+    const Real L( a - sigma );
+    const Real r0( getr0() );
+    const Real D( getD() );
+    const Real v( getv() );
+    const Real vt( v*t );
+    const Real v2D( getv()/(2*D) );
+
     Real sum = 0, term = 0, prev_term = 0;
     Real S_Cn_An, n_L;
-    uint terms = params->terms;
-    Real sigma = params->H[0];
-    Real v2D = params->H[1];	// =v/(2D)
+
+    const Real maxDist(CUTOFF_H * sqrt(2.0 * D * t));
+    const Real distToAbs( std::min(a - r0 - vt, r0 + vt - sigma ) );
+    if ( distToAbs > maxDist )
+    {
+        return XI00(r, t, r0, D, v);
+    }
+
+
+    const uint maxi( guess_maxi( t ) );
+    if( table.size() < maxi )
+    {
+        createP_int_r_Table(t, maxi, table);
+    }
+    
+    if( maxi >= MAX_TERMS )
+    {
+        log_.warn("drawR: maxi was cut to MAX_TERMS for t = %.16g", t);
+        std::cerr << dump();
+        std::cerr << "L: " <<  L << " r0: " << r0 - sigma << std::endl;
+    }
 
     uint n = 0;
     do
     {
-        if (n >= terms )
+        if (n >= maxi )
         {
-            std::cerr << "Too many terms for DrawR. N: " << n << std::endl;
+            log_.info("Too many terms needed for DrawR. N: %6u", n );
             break;
         }
         prev_term = term;
         
-        S_Cn_An = params->S_Cn_An[n];
-        n_L = params->n_L[n];	// this is n*pi/L
+        S_Cn_An = table[n];
+        n_L = ((Real)(n + 1.0)) * M_PI / L;
         if(v2D==0.0)	
             term = S_Cn_An * ( 1.0 - cos(n_L*(r-sigma)) );
         else		
@@ -610,11 +628,10 @@ GreensFunction1DAbsAbs::drawR_f (Real r, drawR_params const* params)
                                ( v2D/n_L*sin(n_L*(r-sigma)) 
                                  - cos(n_L*(r-sigma)) ));
 
-	  // S_Cn_An contains all expon. prefactors, the 1/S(t) term and all parts
-	  // of the terms that do not depend on r.
-	  //
-	  // In case of zero drift the terms become S_An_Cn * ( 1 - cos(nPi/L*(r-sigma)) )
-	  // as it should be. The if-statement is only to avoid calculation costs.
+        // S_Cn_An contains all expon. prefactors, the 1/S(t) term and all parts
+        // of the terms that do not depend on r.
+        // In case of zero drift the terms become S_An_Cn * ( 1 - cos(nPi/L*(r-sigma)) )
+        // as it should be. The if-statement is only to avoid calculation costs.
 
         sum += term;
         n++;
@@ -623,14 +640,59 @@ GreensFunction1DAbsAbs::drawR_f (Real r, drawR_params const* params)
            fabs(prev_term/sum) > EPSILON ||
            n < MIN_TERMS );
 
-    // find the intersection with the random number
-    return sum - params->rnd;
+    return sum;
 }
 
-// Draws the position of the particle at a given time from p(r,t), assuming 
-// that the particle is still in the domain
-Real
-GreensFunction1DAbsAbs::drawR (Real rnd, Real t) const
+/* Fills table for p_int_r of factors independent of r. */
+void GreensFunction1DAbsAbs::createP_int_r_Table( Real const& t,
+                                                  uint const& maxi,
+                                                  RealVector& table ) const
+{    
+    uint n( table.size() );
+
+    const Real sigma( getsigma() );
+    const Real L( geta() - getsigma() );
+    const Real r0( getr0() );
+    const Real D( getD() );
+    const Real v( getv() );
+
+    const Real expo (-D*t/(L*L));
+    const Real r0s_L((r0-sigma)/L);
+    const Real Lv2D(L*v/2.0/D);
+    const Real vexpo(-v*v*t/4.0/D - v*r0/2.0/D);
+
+    Real S_Cn_An;
+    Real nPI;
+    Real psurv;
+
+    psurv = p_survival(t);
+    assert(psurv >= 0.0);
+    const Real S = 2.0*exp(vexpo)/psurv;
+
+    while( n < maxi )
+    {
+        nPI = ((Real)(n+1))*M_PI;	    // note: summation starting with n=1, indexing with n=0, therefore we need n+1 here
+	    
+        if( v == 0.0 )
+            S_Cn_An = S * exp(nPI*nPI*expo) * sin(nPI*r0s_L) / nPI;
+        else
+            S_Cn_An = S * exp(nPI*nPI*expo) * sin(nPI*r0s_L) * nPI/(nPI*nPI + Lv2D*Lv2D);
+
+        table.push_back( S_Cn_An );
+        n++;
+    }
+}
+
+/* Function for GSL rootfinder of drawR. */
+Real GreensFunction1DAbsAbs::drawR_f(Real r, void *p)
+{
+    struct drawR_params *params = (struct drawR_params *)p;
+    return params->gf->p_int_r_table(r, params->t, params->table) - params->rnd;
+}
+
+/* Draws the position of the particle at a given time from p(r,t), assuming 
+   that the particle is still in the domain */
+Real GreensFunction1DAbsAbs::drawR (Real rnd, Real t) const
 {
     THROW_UNLESS( std::invalid_argument, 0.0 <= rnd && rnd < 1.0 );
     THROW_UNLESS( std::invalid_argument, t >= 0.0 );
@@ -641,112 +703,35 @@ GreensFunction1DAbsAbs::drawR (Real rnd, Real t) const
     const Real r0(this->getr0());
     const Real D(this->getD());
     const Real v(this->getv());
-    const Real vt( v*t );
 
     // the trivial case: if there was no movement or the domain was zero
-    if ( (D==0.0 && v==0.0) || L<0.0 || t==0.0)
+    if ( (D == 0.0 && v == 0.0) || L < 0.0 || t == 0.0)
     {
-	return r0;
+        return r0;
     }
     else
     {
-	// if the initial condition is at the boundary, raise an error
-	// The particle can only be at the boundary in the ABOVE cases
-	THROW_UNLESS( std::invalid_argument,
-	              (r0-sigma) >= L*EPSILON && (r0-sigma) <= L*(1.0-EPSILON) );
+        // if the initial condition is at the boundary, raise an error
+        // The particle can only be at the boundary in the ABOVE cases
+        THROW_UNLESS( std::invalid_argument,
+                      (r0-sigma) >= L*EPSILON && (r0-sigma) <= L*(1.0-EPSILON) );
     }
-    // else the normal case
-    // From here on the problem is well defined
-
-
-    const Real maxDist(CUTOFF_H * sqrt(2.0 * D * t));
-    const Real distToa( a - r0 - vt );
-    const Real distTos( r0 + vt - sigma );
-
-    struct drawR_params parameters;
+    
+    RealVector pintTable;
+    struct drawR_params parameters = { this, t, pintTable, rnd};
     gsl_function F;
-    F.params = &parameters;
-    Real psurv;
-
-    const uint maxi( guess_maxi( t ) );
-
-    if (distTos < maxDist || distToa < maxDist)
-    {
-        psurv = p_survival(t);
-
-        assert(psurv >= 0.0);
-
-        // structure to store the numbers to calculate numbers for 1-S(t)
-        Real S_Cn_An;
-        Real nPI;
-        const Real expo (-D*t/(L*L));
-        const Real r0s_L((r0-sigma)/L);
-        const Real v2D(v/2.0/D);
-        const Real Lv2D(L*v/2.0/D);
-        const Real vexpo(-v*v*t/4.0/D - v*r0/2.0/D);	// exponent of the drift-prefactor, same as in survival prob.
-        const Real S = 2.0*exp(vexpo)/psurv;	// This is a prefactor to every term, so it also contains there
-							// exponential drift-prefactor.
-
-        // store needed constants
-        parameters.H[0] = sigma;
-        parameters.H[1] = v2D;
-
-        // Construct the coefficients and the terms in the exponent and put them 
-        // in the params structure
-        uint n = 0;
-        do
-        {
-	        nPI = ((Real)(n+1))*M_PI;	    // note: summation starting with n=1, indexing with n=0, therefore we need n+1 here
-	    
-	        if(v==0.0)	S_Cn_An = S * exp(nPI*nPI*expo) * sin(nPI*r0s_L) / nPI;
-	        else		S_Cn_An = S * exp(nPI*nPI*expo) * sin(nPI*r0s_L) * nPI/(nPI*nPI + Lv2D*Lv2D);
-	        // The rest is the z-dependent part, which has to be defined directly in drawR_f(z).
-	        // Of course also the summation happens there because the terms now are z-dependent.
-	        // The last term originates from the integrated prob. density including drift.
-	        //
-	        // In case of zero drift this expression becomes: 2.0/p_survival(t) * exp(nPI*nPI*expo) * sin(nPI*r0s_L) / nPI
-	      
-	        // also store the values for the exponent, so they don't have to be recalculated in drawR_f
-	        parameters.S_Cn_An[n]= S_Cn_An;
-	        parameters.n_L[n]    = nPI/L;
-	        n++;
-        }
-        while (n<maxi);
-    
-        F.function = reinterpret_cast<typeof(F.function)>(&drawR_f);
-    }
-    else
-    {
-        parameters.H[0] = D;
-        parameters.H[1] = v;
-        parameters.H[3] = t;
-
-        // drawR_f < drawR_free_f
-        if (drawR_free_f(L, &parameters) < rnd)
-        {
-            std::cerr << "drawR_free_f(L, t) < rnd, returning (r0 - sigma) <= (a - r0) ? sigma : a" << std::endl;
-            return (r0 - sigma) <= (a - r0) ? sigma : a;
-        }
-    
-        F.function = reinterpret_cast<typeof(F.function)>(&drawR_free_f);
-    }
-    
-    // store the random number for the probability
-    parameters.rnd = rnd ;
-    // store the number of terms used
-    parameters.terms = maxi;
-   
+    F.function = &drawR_f;
+    F.params = &parameters; 
 
     // find the intersection on the y-axis between the random number and the function
     // define a new solver type brent
     const gsl_root_fsolver_type* solverType( gsl_root_fsolver_brent );
+
     // make a new solver instance
-    // TODO: incl typecast?
     gsl_root_fsolver* solver( gsl_root_fsolver_alloc( solverType ) );
     const Real r( findRoot( F, solver, sigma, a, L*EPSILON, EPSILON,
                             "GreensFunction1DAbsAbs::drawR" ) );
 
-    // return the drawn position
     return r;
 }
 
@@ -757,3 +742,6 @@ std::string GreensFunction1DAbsAbs::dump() const
         ", a = " << this->geta() << std::endl;
     return ss.str();
 }
+
+Logger& GreensFunction1DAbsAbs::log_(
+        Logger::get_logger("GreensFunction1DAbsAbs"));

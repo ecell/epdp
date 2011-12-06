@@ -57,10 +57,13 @@ void GreensFunction1DRadAbs::calculate_n_roots(uint const& n) const
     uint i( rootList_size() );
 
     //No drift, and k = 0, use reflective solution.
-    if (h < EPSILON)
+    if (getk() < EPSILON && fabs( getv() ) < EPSILON )
     {
-        while(i++ < n)
-            ad_to_rootList( M_PI * ( n - 1./2 ) / L );
+        while(i < n)
+        {
+            ad_to_rootList( M_PI * ( i + 1.0/2 ) / L );
+            i++;
+        }
         return;
     }
     
@@ -251,9 +254,8 @@ Real GreensFunction1DRadAbs::p_survival_table(Real t, RealVector& psurvTable) co
 
     const uint maxi( guess_maxi(t) );
     
-    if( maxi == MAX_TERMS )
-        std::cerr << "1DRad::drawT: maxi was cut to MAX_TERMS for t = " 
-                  << t << std::endl;
+    if( maxi >= MAX_TERMS )
+        log_.warn("drawT: maxi was cut to MAX_TERMS for t = %.16g", t);
     
     if ( psurvTable.size() < maxi )
     {
@@ -408,8 +410,7 @@ Real GreensFunction1DRadAbs::prob_r (Real r, Real t) const
     {
         if ( n >= MAX_TERMS )
         {
-            std::cerr << "Too many terms needed for GF1DRad::prob_r. N: "
-                      << n << std::endl;
+            log_.warn("Too many terms needed for prob_r. N: %5u", n);
             break;
         }
 
@@ -460,8 +461,7 @@ Real GreensFunction1DRadAbs::flux_tot (Real t) const
     {
         if ( n >= MAX_TERMS )
         {
-            std::cerr << "Too many terms needed for GF1DRad::flux_tot. N: "
-                      << n << std::endl;
+            log_.warn("Too many terms needed for flux_tot. N: %5u", n );
             break;
         }
 
@@ -610,8 +610,8 @@ Real GreensFunction1DRadAbs::drawTime (Real rnd) const
         {
             if( fabs( high ) >= t_guess * 1e10 )
             {
-                std::cerr << "GF1DRad::drawTime Couldn't adjust high. F("
-                          << high << ") = " << value << std::endl;
+                log_.error("drawTime: couldn't adjust high. F( %.16g ) = %.16g"
+                          , high, value);
                 throw std::exception();
             }
             // keep increasing the upper boundary until the
@@ -632,11 +632,15 @@ Real GreensFunction1DRadAbs::drawTime (Real rnd) const
             if( fabs( low ) <= t_guess * 1e-10 ||
                 fabs(value-value_prev) < EPSILON*1.0 )
             {
+                log_.warn("drawTime: couldn't adjust low. F( %.16g ) = %.16g"
+                          , low, value);
+                /*
                 std::cerr << "GF1DRad::drawTime Couldn't adjust low. F(" << low << ") = "
                           << value << " t_guess: " << t_guess << " diff: "
                           << (value - value_prev) << " value: " << value
                           << " value_prev: " << value_prev << " rnd: "
                           << rnd << std::endl;
+                */
                 return low;
             }
             value_prev = value;
@@ -659,8 +663,7 @@ Real GreensFunction1DRadAbs::drawTime (Real rnd) const
     return t;
 }
 
-double
-GreensFunction1DRadAbs::drawR_f (double z, void *p)
+Real GreensFunction1DRadAbs::drawR_f (double z, void *p)
 {
     // casts p to type 'struct drawR_params *'
     struct drawR_params *params = (struct drawR_params *)p;
@@ -681,8 +684,7 @@ GreensFunction1DRadAbs::drawR_f (double z, void *p)
     {
         if ( n >= terms )
         {
-            std::cerr << "GF1DRad: Too many terms needed for DrawR. N: "
-                      << n << std::endl;
+            log_.info("Too many terms needed for DrawR. N: %6u", n );
             break;
         }
         prev_term = term;
@@ -746,6 +748,10 @@ GreensFunction1DRadAbs::drawR (Real rnd, Real t) const
     assert(p_survival(t) >= 0.0);
 
     const uint maxi( guess_maxi( t ) );
+
+    if( maxi >= MAX_TERMS )
+        log_.warn("drawR: maxi was cut to MAX_TERMS for t = %.16g", t);
+
     calculate_n_roots( maxi );
 
     // produce the coefficients and the terms in the exponent and put them
@@ -803,3 +809,5 @@ std::string GreensFunction1DRadAbs::dump() const
     return ss.str();
 }
 
+Logger& GreensFunction1DRadAbs::log_(
+        Logger::get_logger("GreensFunction1DRadAbs"));
