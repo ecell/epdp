@@ -110,7 +110,7 @@ Real XI00( Real r, Real t, Real r0, Real D, Real v )
 
 Real XS00( Real t, Real r0, Real D, Real v )
 {
-    return 1;
+    return 1.0;
 }
 
 
@@ -204,20 +204,20 @@ Real XI20( Real r, Real t, Real r0, Real D, Real v )
 
     if( v == 0.0 )
     {
-        const Real temp( erf( (r - r0)/sqrt4Dt ) - erf( (r + r0)/sqrt4Dt ) );
+        const Real temp( erf( (r - r0)/sqrt4Dt ) + erf( (r + r0)/sqrt4Dt ) );
         return 0.5 * temp;
     }
     else
     {
-        //TODO: c.d.f. not with drift. But it does exist!
+        //TODO: c.d.f. not with drift. It exist!
         return Real();
     }
 }
 
 
-Real XS20( Real r, Real t, Real r0, Real D, Real v )
+Real XS20( Real t, Real r0, Real D, Real v )
 {
-    return 1;
+    return 1.0;
 }
 
 
@@ -242,8 +242,8 @@ Real XP30term_v( Real r, Real t, Real r0, Real ka, Real D, Real v )
 
     const Real erfc_arg( (r + r0 + 2 * kplusv2 * t ) / sqrt4Dt);
 
-    const Real exp_arg( 1 / D * ( kplusv2 * kplusv2 * t + 
-                                  kplusv2 * (r + r0) ) );
+    const Real exp_arg( 1.0 / D * ( kplusv2 * kplusv2 * t + 
+                                    kplusv2 * (r + r0) ) );
 
     return -exp( exp_arg ) * erfc( erfc_arg );
 }
@@ -252,20 +252,22 @@ Real XP30term_v( Real r, Real t, Real r0, Real ka, Real D, Real v )
 Real XP30( Real r, Real t, Real r0, Real ka, Real D, Real v )
 {
     r0 = fabs( r0 );
+    const Real XP20temp( XP20(r, t, r0, D, 0.0) );
+
     if( v == 0.0 )
-        return XP20(r, t, r0, D, 0.0) + XP30term_nov(r, t, r0, ka, D);
+        return XP20temp + XP30term_nov(r, t, r0, ka, D);
     else
     {
         const Real v_2( v / 2.0 );
         const Real drift_prefac( exp( v_2 / D * ( r - r0 - v_2 * t ) ) );
         
-        return drift_prefac * ( XP20(r, t, r0, D, 0.0) + 
-                                1/D * (ka - v/2) * XP30term_v(r, t, r0, ka, D, v) );
+        return drift_prefac * ( XP20temp + 
+                                1/D * (ka + v/2) * XP30term_v(r, t, r0, ka, D, v) );
     }
 }
 
 
-Real XI30term_nov( Real r, Real t, Real r0, Real ka, Real D, Real v )
+Real XI30term_nov( Real r, Real t, Real r0, Real ka, Real D )
 {
     const Real sqrt4Dt( sqrt(4 * D * t) );
     const Real k_D( ka / D );
@@ -312,10 +314,10 @@ Real XS30( Real t, Real r0, Real ka, Real D, Real v )
 
         const Real erfc_arg( ( r0 + 2 * kplusv2 * t ) / sqrt4Dt);
 
-        const Real exp_arg( k_D * ( r0 + (ka + r0) * t ) );
+        const Real exp_arg( k_D * ( r0 + (ka + v) * t ) );
 
         const Real term2( erfc( -r0plusvt / sqrt4Dt ) - 
-                          ka / (ka + v) * exp(v / D * r0) * erfc( r0minvt/sqrt4Dt ) );
+                          ka / (ka + v) * exp(- v / D * r0) * erfc( r0minvt/sqrt4Dt ) );
         
         return (ka + v_2)/(ka + v) * exp( exp_arg ) * erfc( erfc_arg ) + 0.5 * term2;
     }

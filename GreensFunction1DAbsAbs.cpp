@@ -108,7 +108,7 @@ Real GreensFunction1DAbsAbs::p_survival_table(Real t, RealVector& psurvTable) co
     else
     {
         if( distTos > maxDist )
-            return XS10(t, distToa, D, v ); //Only absorbing BCn of a.
+            return XS10(t, distToa, D, -v); //Only absorbing BCn of a.
     }
 
     const uint maxi( guess_maxi(t) );

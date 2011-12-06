@@ -26,6 +26,15 @@ BOOST_PYTHON_MODULE( _greens_functions )
     def( "XP030", XP030 );
     def( "XS030", XS030 );
     def( "XI030", XI030 );
+    
+    def( "XP30", XP30 );
+    def( "XI30", XI30 );
+    def( "XS30", XS30 );
+    
+    def( "XP20", XP20 );
+    def( "XI20", XI20 );
+    def( "XS20", XS20 );
+    
     def( "p_irr", p_irr );
     def( "p_survival_irr", p_survival_irr );
     def( "p_theta_free", p_theta_free );

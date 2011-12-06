@@ -212,12 +212,12 @@ Real GreensFunction1DRadAbs::p_survival_table(Real t, RealVector& psurvTable) co
 
     const Real a(this->geta());
     const Real sigma(this->getsigma());
-    const Real L(this->geta() - this->getsigma());
+    const Real L(a - sigma );
     const Real r0(this->getr0());
     const Real D(this->getD());
     const Real v(this->getv());
 
-    if ( fabs(r0-sigma) < L*EPSILON || fabs(a-r0) < L*EPSILON || L < 0.0 )
+    if ( fabs(a-r0) < L*EPSILON || L < 0.0 )
     {
         // The survival probability of a zero domain is zero
         return 0.0;
@@ -236,20 +236,17 @@ Real GreensFunction1DRadAbs::p_survival_table(Real t, RealVector& psurvTable) co
     const Real maxDist( CUTOFF_H * sqrt(2.0 * D * t) );
 
     //TODO: No drift included for approximations.
-    if( v == 0.0 )
+    if( distToa > maxDist ) //Absorbing boundary 'not in sight'.
     {
-        if( distToa > maxDist ) //Absorbing boundary 'not in sight'.
-        {
-            if( distTos > maxDist ) //Radiation boundary 'not in sight'.
-                return 1.0; //No prob. outflux.
-            else
-                return XS30(t, distTos, getk(), D, v); //Only radiation BCn.
-        }
+        if( distTos > maxDist ) //Radiation boundary 'not in sight'.
+            return 1.0; //No prob. outflux.
         else
-        {
-            if( distTos > maxDist )
-                return XS10(t, distToa, D, v); //Only absorbing BCn.
-        }
+            return XS30(t, distTos, getk(), D, v); //Only radiation BCn.
+    }
+    else
+    {
+        if( distTos > maxDist )
+            return XS10(t, distToa, D, -v); //Only absorbing BCn.
     }
 
     const uint maxi( guess_maxi(t) );
@@ -295,11 +292,11 @@ Real GreensFunction1DRadAbs::p_survival_i( uint i,
 Real GreensFunction1DRadAbs::p_survival_table_i_v( uint const& i ) const
 {
     const Real sigma( getsigma() );
-    const Real L( geta() - getsigma() );
+    const Real L( geta() - sigma );
     const Real r0( getr0() );
     const Real D( getD() );
     const Real v( getv() );
-    const Real h( (getk()+v/2.0)/D );
+    const Real h( (getk() + v / 2.0) / D );
 
     const Real v2D(v/2.0/D);
     const Real exp_av2D(exp(a*v2D));
@@ -325,7 +322,7 @@ Real GreensFunction1DRadAbs::p_survival_table_i_nov( uint const& i ) const
     const Real sigma( getsigma() );
     const Real L( geta() - sigma );
     const Real r0( getr0() );
-    const Real h( (getk()+getv()/2.0)/getD());
+    const Real h( getk()/getD() );
 
     const Real root_n ( get_root( i ) );	
     const Real root_n2( root_n * root_n );
@@ -611,7 +608,7 @@ Real GreensFunction1DRadAbs::drawTime (Real rnd) const
         // if the guess was too low
         do
         {
-            if( fabs( high ) >= t_guess * 1e6 )
+            if( fabs( high ) >= t_guess * 1e10 )
             {
                 std::cerr << "GF1DRad::drawTime Couldn't adjust high. F("
                           << high << ") = " << value << std::endl;
@@ -632,7 +629,7 @@ Real GreensFunction1DRadAbs::drawTime (Real rnd) const
         Real value_prev( 2 );
         do
         {
-            if( fabs( low ) <= t_guess * 1e-6 ||
+            if( fabs( low ) <= t_guess * 1e-10 ||
                 fabs(value-value_prev) < EPSILON*1.0 )
             {
                 std::cerr << "GF1DRad::drawTime Couldn't adjust low. F(" << low << ") = "
