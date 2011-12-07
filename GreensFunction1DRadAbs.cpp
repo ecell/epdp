@@ -213,12 +213,12 @@ Real GreensFunction1DRadAbs::p_survival_table(Real t, RealVector& psurvTable) co
 
     Real p;
 
-    const Real a(this->geta());
-    const Real sigma(this->getsigma());
+    const Real a( geta() );
+    const Real sigma( getsigma() );
     const Real L(a - sigma );
-    const Real r0(this->getr0());
-    const Real D(this->getD());
-    const Real v(this->getv());
+    const Real r0( getr0() );
+    const Real D( getD() );
+    const Real v( getv() );
 
     if ( fabs(a-r0) < L*EPSILON || L < 0.0 )
     {
@@ -234,11 +234,10 @@ Real GreensFunction1DRadAbs::p_survival_table(Real t, RealVector& psurvTable) co
 
     /* First check if we need full solution. 
        Else we use approximation. */
-    const Real distToa( geta() - r0 );
-    const Real distTos( r0 - getsigma() );
-    const Real maxDist( CUTOFF_H * sqrt(2.0 * D * t) );
+    const Real distToa( a - r0 );
+    const Real distTos( r0 - sigma );
+    const Real maxDist( CUTOFF_H * ( sqrt(2.0 * D * t) + fabs(v * t) ) );
 
-    //TODO: No drift included for approximations.
     if( distToa > maxDist ) //Absorbing boundary 'not in sight'.
     {
         if( distTos > maxDist ) //Radiation boundary 'not in sight'.
@@ -663,130 +662,173 @@ Real GreensFunction1DRadAbs::drawTime (Real rnd) const
     return t;
 }
 
-Real GreensFunction1DRadAbs::drawR_f (double z, void *p)
+/* Returns c.d.f. for drawR */
+Real GreensFunction1DRadAbs::p_int_r_table(Real const& r, 
+                                           Real const& t, 
+                                           RealVector& table) const
 {
-    // casts p to type 'struct drawR_params *'
-    struct drawR_params *params = (struct drawR_params *)p;
-    Real v2D 		= params->H[0];	// = v2D = v/(2D)
-    Real costerm 	= params->H[1];	// = k/D
-    Real sinterm 	= params->H[2];	// = h*v2D
-    Real sigma 		= params->H[3];	// = sigma
-    uint terms      = params->terms;
+    const Real a( geta() );
+    const Real sigma( getsigma() );
+    const Real L( a - sigma );
+    const Real r0( getr0() );
+    const Real D( getD() );
+    const Real k( getk() );
+    const Real v( getv() );
+    const Real h(( k + v/2.0)/ D );
+    const Real v2D( v/(2*D) );
+
+    /* If not all boundaries are 'visible' to the particle,
+       use approximation. */
+    const Real distToa( a - r0 );
+    const Real distTos( r0 - sigma );
+    const Real maxDist( CUTOFF_H * ( sqrt(2.0 * D * t) + fabs(v * t) ) );
+
+    //TODO: include XI30 (c.d.f) with drift.
+    if( distToa > maxDist ) //Absorbing boundary 'not in sight'.
+    {
+        if( distTos > maxDist ) //Radiation boundary 'not in sight'.
+            return XI00(r, t, r0, D, v); //free particle.
+        else
+        {
+            if( k != 0.0 && v == 0.0 )
+                return XI30(r - sigma, t, distTos, getk(), D, 0.0); //Only radiation BCn.
+            else if( k == 0.0 && v == 0.0 )
+                return XI20(r - sigma, t, distTos, D, 0.0); //Only reflecting BCn.
+        }
+    }
+    else
+    {
+        if( distTos > maxDist )
+            return XI10(a - r, t, distToa, D, -v); //Only absorbing BCn.
+    }
+
+    const uint maxi( guess_maxi( t ) );
+    if( table.size() < maxi )
+    {
+        createP_int_r_Table(t, maxi, table);
+    }
+    
+    if( maxi >= MAX_TERMS )
+    {
+        log_.warn("drawR: maxi was cut to MAX_TERMS for t = %.16g", t);
+        std::cerr << dump();
+        std::cerr << "L: " <<  L << " r0: " << r0 - sigma << std::endl;
+    }
+  
+    Real costerm( k / D );	
+    Real sinterm( h * v2D );
 
     Real expsigma(exp(sigma*v2D));
-    Real zs(z-sigma);
-    
+    Real zs(r - sigma);
+
     Real sum = 0, term = 0, prev_term = 0;
     Real root_n, S_Cn_root_n;
-    
+
     uint n = 0;
     do
     {
-        if ( n >= terms )
+        if (n >= maxi )
         {
             log_.info("Too many terms needed for DrawR. N: %6u", n );
             break;
         }
         prev_term = term;
         
-        S_Cn_root_n = params->S_Cn_root_n[n];
-        root_n  = params->root_n[n];
-        term = S_Cn_root_n * ( expsigma*costerm - exp(v2D*z)*
+        S_Cn_root_n = table[n];
+        root_n  = get_root( n );
+
+        term = S_Cn_root_n * ( expsigma*costerm - exp(v2D*r)*
                                ( costerm*cos(root_n*zs) - 
                                  (root_n+sinterm/root_n)*sin(root_n*zs) ));
 
         sum += term;
         n++;
     }
-    while (fabs(term/sum) > EPSILON*1.0 ||
-           fabs(prev_term/sum) > EPSILON*1.0 ||
+    while (fabs(term/sum) > EPSILON ||
+           fabs(prev_term/sum) > EPSILON ||
            n < MIN_TERMS );
 
-    // Find the intersection with the random number
-    return sum - params->rnd;
+    return sum;
 }
 
-Real
-GreensFunction1DRadAbs::drawR (Real rnd, Real t) const
-{
-    THROW_UNLESS( std::invalid_argument, 0.0 <= rnd && rnd < 1.0 );
-    THROW_UNLESS( std::invalid_argument, t >= 0.0 );
-    
-    const Real sigma(this->getsigma());
-    const Real a(this->geta());
-    const Real L(this->geta()-this->getsigma());
-    const Real r0(this->getr0());
-    const Real D(this->getD());
-    const Real v(this->getv());
-    const Real k(this->getk());
-    const Real h((this->getk()+this->getv()/2.0)/this->getD());
-    
+/* Fills table for p_int_r of factors independent of r. */
+void GreensFunction1DRadAbs::createP_int_r_Table( Real const& t,
+                                                  uint const& maxi,
+                                                  RealVector& table ) const
+{    
+    uint n( table.size() );
 
-    if (t==0.0 || (D==0.0 && v==0.0) )
-    {
-        // the trivial case
-        //return r0*this->l_scale;	// renormalized version, discontinued
-        return r0;
-    }
-    if ( a<0.0 )
-    {
-        // if the domain had zero size
-        return 0.0;
-    }
-
-    // the structure to store the numbers to calculate the numbers for 1-S
-    struct drawR_params parameters;
-    double root_n = 0;
-    double S_Cn_root_n;
-    double root_n2, root_n_r0_s;
+    const Real sigma( getsigma() );
+    const Real L( geta() - getsigma() );
+    const Real r0( getr0() );
+    const Real D( getD() );
+    const Real v( getv() );
+    const Real h(( k + v/2.0)/ D );
 
     const Real vexpo(-v*v*t/4.0/D - v*r0/2.0/D); // exponent of the drift-prefactor, same as in survival prob.
     const Real v2D(v/2.0/D);
     const Real v2Dv2D(v2D*v2D);
-    const Real S = 2.0*exp(vexpo)/p_survival(t); 
 
-    assert(p_survival(t) >= 0.0);
+    Real psurv;
+    Real S_Cn_root_n;
+    Real root_n2, root_n_r0_s, root_n;
 
-    const uint maxi( guess_maxi( t ) );
+    psurv = p_survival(t);
+    assert(psurv >= 0.0);
+    const Real S = 2.0*exp(vexpo)/psurv;
 
-    if( maxi >= MAX_TERMS )
-        log_.warn("drawR: maxi was cut to MAX_TERMS for t = %.16g", t);
-
-    calculate_n_roots( maxi );
-
-    // produce the coefficients and the terms in the exponent and put them
-    // in the params structure
-    for (uint n = 0; n < maxi; n++)
+    while( n < maxi )
     {
-	    root_n = this->get_root(n);  // get the n-th root of tan(alfa*a)=alfa/-k
+        root_n = get_root(n);
        	root_n2 = root_n * root_n;
        	root_n_r0_s = root_n * (r0-sigma);
+
        	S_Cn_root_n =	S * exp(-D*root_n2*t)
 	         * (root_n*cos(root_n_r0_s) + h*sin(root_n_r0_s)) / (L*(root_n2 + h*h) + h)
 	         * root_n / (root_n2 + v2Dv2D);
 
-      	// store the coefficients in the structure
-	    parameters.root_n[n] = root_n;
-        // also store the values for the exponent
-        parameters.S_Cn_root_n[n] = S_Cn_root_n;
+        table.push_back( S_Cn_root_n );
+        n++;
     }
+}
+
+/* Function for GSL rootfinder of drawR. */
+Real GreensFunction1DRadAbs::drawR_f(Real r, void *p)
+{
+    struct drawR_params *params = (struct drawR_params *)p;
+    return params->gf->p_int_r_table(r, params->t, params->table) - params->rnd;
+}
+
+/* Return new position */
+Real GreensFunction1DRadAbs::drawR (Real rnd, Real t) const
+{
+    THROW_UNLESS( std::invalid_argument, 0.0 <= rnd && rnd < 1.0 );
+    THROW_UNLESS( std::invalid_argument, t >= 0.0 );
     
-    // also store constant prefactors that appear in the calculation of the
-    // r-dependent terms
-    parameters.H[0] = v2D;		// appears together with z in one of the prefactors
-    parameters.H[1] = k/D;		// further constant terms of the cosine prefactor
-    parameters.H[2] = h*v2D;		// further constant terms of the sine prefactor
-    parameters.H[3] = sigma;
+    const Real sigma( getsigma() );
+    const Real a( geta() );
+    const Real L( a - sigma );
+    const Real r0( getr0() );
+    const Real D( getD() );
+    const Real v( getv() );
+    
+    if (t == 0.0 || (D == 0.0 && v == 0.0) )
+    {
+        return r0;
+    }
+    if ( a < 0.0 )
+    {
+        return 0.0;
+    }
+
+    // the structure to store the numbers to calculate the numbers for 1-S
+    RealVector pintTable;
+    struct drawR_params parameters = {this, t, pintTable, rnd};
 
     // define gsl function for rootfinder
     gsl_function F;
     F.function = &GreensFunction1DRadAbs::drawR_f;
     F.params = &parameters;
-
-    // store the random number for the probability
-    parameters.rnd = rnd;
-    // store the number of terms used
-    parameters.terms = maxi;
 
     // define a new solver type brent
     const gsl_root_fsolver_type* solverType( gsl_root_fsolver_brent );

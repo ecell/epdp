@@ -72,12 +72,12 @@ Real GreensFunction1DAbsAbs::p_survival_table(Real t, RealVector& psurvTable) co
 
     Real p;
 
-    const Real a(this->geta());
-    const Real sigma(this->getsigma());
-    const Real L(this->geta() - this->getsigma());
-    const Real r0(this->getr0());
-    const Real D(this->getD());
-    const Real v(this->getv());
+    const Real a( geta() );
+    const Real sigma( getsigma() );
+    const Real L( a - sigma );
+    const Real r0( getr0() );
+    const Real D( getD() );
+    const Real v( getv() );
 
     if ( fabs(r0-sigma) < L*EPSILON || fabs(a-r0) < L*EPSILON || L < 0.0 )
     {
@@ -93,9 +93,9 @@ Real GreensFunction1DAbsAbs::p_survival_table(Real t, RealVector& psurvTable) co
 
     /* First check if we need full solution. 
        Else we use approximation. */
-    const Real distToa( geta() - r0 );
-    const Real distTos( r0 - getsigma() );
-    const Real maxDist( CUTOFF_H * sqrt(2.0 * D * t) );
+    const Real distToa( a - r0 );
+    const Real distTos( r0 - sigma );
+    const Real maxDist( CUTOFF_H * (sqrt(2.0 * D * t) + fabs(v*t)) );
     
     //TODO: No drift included for approximations.
     if( distToa > maxDist ) //Absorbing boundary 'not in sight'.
@@ -582,19 +582,27 @@ Real GreensFunction1DAbsAbs::p_int_r_table(Real const& r,
     const Real r0( getr0() );
     const Real D( getD() );
     const Real v( getv() );
-    const Real vt( v*t );
     const Real v2D( getv()/(2*D) );
 
     Real sum = 0, term = 0, prev_term = 0;
     Real S_Cn_An, n_L;
 
-    const Real maxDist(CUTOFF_H * sqrt(2.0 * D * t));
-    const Real distToAbs( std::min(a - r0 - vt, r0 + vt - sigma ) );
-    if ( distToAbs > maxDist )
-    {
-        return XI00(r, t, r0, D, v);
-    }
+    const Real distToa( a - r0 );
+    const Real distTos( r0 - sigma );
+    const Real maxDist( CUTOFF_H * ( sqrt(2.0 * D * t) + fabs(v * t) ) );
 
+    if( distToa > maxDist ) //Absorbing boundary a 'not in sight'.
+    {
+        if( distTos > maxDist ) //Absorbing boundary sigma 'not in sight'.
+            return XI00(r, t, r0, D, v); //free particle.
+        else
+            return XI10(r - sigma, t, distTos, D, v); //Only absorbing BCn at sigma.
+    }
+    else
+    {
+        if( distTos > maxDist )
+            return XI10(a - r, t, distToa, D, -v); //Only absorbing BCn at a.
+    }
 
     const uint maxi( guess_maxi( t ) );
     if( table.size() < maxi )

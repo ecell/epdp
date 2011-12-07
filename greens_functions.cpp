@@ -31,9 +31,9 @@ BOOST_PYTHON_MODULE( _greens_functions )
     def( "XI30", XI30 );
     def( "XS30", XS30 );
     
-    def( "XP20", XP20 );
-    def( "XI20", XI20 );
-    def( "XS20", XS20 );
+    def( "XP10", XP10 );
+    def( "XI10", XI10 );
+    def( "XS10", XS10 );
     
     def( "p_irr", p_irr );
     def( "p_survival_irr", p_survival_irr );

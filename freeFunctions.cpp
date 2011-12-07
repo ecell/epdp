@@ -135,11 +135,11 @@ Real XP10( Real r, Real t, Real r0, Real D, Real v )
 Real XI10( Real r, Real t, Real r0, Real D, Real v )
 {
     const Real sqrt4Dt( sqrt( 4 * D * t ) );
-    const Real rminr0( r - r0 );
-    const Real rplusr0( r + r0 );
 
     if( v == 0.0 )
     {
+        const Real rminr0( r - r0 );
+        const Real rplusr0( r + r0 );
 
         const Real temp( 2.0 * erf( r0 / sqrt4Dt ) 
                          + erf( rminr0/sqrt4Dt ) - erf( rplusr0/sqrt4Dt ) );
@@ -148,8 +148,13 @@ Real XI10( Real r, Real t, Real r0, Real D, Real v )
     }
     else
     {
-        //TODO: include c.d.f. with drift. It exists, but is not included yet.
-        return Real();
+        const Real r0minvt( r0 - v*t);
+        const Real r0plusvt( r0 + v*t );
+
+        const Real term1( erfc( (r0minvt + r)/sqrt4Dt ) - erfc( r0minvt/sqrt4Dt ) );
+        const Real term2( erf( r0plusvt/sqrt4Dt ) - erf( (r0plusvt - r)/sqrt4Dt ) );
+
+        return 0.5 * ( exp(- v * r0 / D ) * term1 + term2 );
     }
 }
 
@@ -209,7 +214,7 @@ Real XI20( Real r, Real t, Real r0, Real D, Real v )
     }
     else
     {
-        //TODO: c.d.f. not with drift. It exist!
+        //TODO: c.d.f. with drift. It exist!
         return Real();
     }
 }
@@ -270,16 +275,17 @@ Real XP30( Real r, Real t, Real r0, Real ka, Real D, Real v )
 Real XI30term_nov( Real r, Real t, Real r0, Real ka, Real D )
 {
     const Real sqrt4Dt( sqrt(4 * D * t) );
-    const Real k_D( ka / D );
     r0 = fabs( r0 );
         
     const Real term1( erf( r0/sqrt4Dt ) - erf( (r+r0)/sqrt4Dt ) );
 
-    const Real term2( exp( k_D * (ka * t + r0) ) * 
-                      erfc( (2 * ka * t + r0)/sqrt4Dt ) );
+    const Real term2( W( r0/sqrt4Dt, 2*ka*t/sqrt4Dt ) );
 
-    const Real term3( exp( k_D * (ka * t + r0 + r) ) * 
-                      erfc( (2 * ka * t + r0 + r)/sqrt4Dt ) );
+    //exp( k_D * (ka * t + r0) ) * erfc( (2 * ka * t + r0)/sqrt4Dt ) );
+
+    const Real term3( W( (r + r0)/sqrt4Dt, 2*ka*t/sqrt4Dt ) ); 
+
+    //exp( k_D * (ka * t + r0 + r) ) * erfc( (2 * ka * t + r0 + r)/sqrt4Dt ) );
 
     return term1 + term2 - term3;
 }

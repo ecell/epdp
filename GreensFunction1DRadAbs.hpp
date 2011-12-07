@@ -205,6 +205,21 @@ private:
         Real h;
     };
 
+    struct drawT_params
+    {
+        GreensFunction1DRadAbs const* gf;
+        RealVector& psurvTable;
+        Real rnd;
+    };
+
+   struct drawR_params
+    {
+        GreensFunction1DRadAbs const* gf;
+        const Real t;
+        RealVector table;
+        Real rnd;
+    };
+
 
     /* Functions managing the rootList */
     
@@ -254,14 +269,9 @@ private:
     static double tan_f (double x, void *p);
 
 
-    /* Functions for drawTime */
+    /* functions for drawTime / p_survival */
 
-    struct drawT_params
-    {
-        GreensFunction1DRadAbs const* gf;
-        RealVector& psurvTable;
-        Real rnd;
-    };
+    static double drawT_f (double t, void *p);
 
     Real p_survival_table( Real  t, RealVector& psurvTable ) const;
 
@@ -273,24 +283,15 @@ private:
 
     void createPsurvTable( RealVector& table) const;
 
-    
+
     /* functions for drawR */
 
-    static double drawT_f (double t, void *p);
+    static Real drawR_f (Real z, void* p);
 
-    struct drawR_params
-    {
-        double root_n[MAX_TERMS];
-        double S_Cn_root_n[MAX_TERMS];
-        // variables H: for additional terms appearing as multiplicative factors etc.
-        double H[5];
-        uint terms;
-        // the random number associated with the time
-        double rnd;
-    };
+    Real p_int_r_table(Real const& r, Real const& t, RealVector& table) const;
 
-    static double drawR_f (double z, void *p);
-
+    void createP_int_r_Table( Real const& t, uint const& maxi, RealVector& table ) const;
+    
 
     /* Member variables */
 
