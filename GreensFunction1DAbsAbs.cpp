@@ -572,7 +572,8 @@ GreensFunction1DAbsAbs::drawTime (Real rnd) const
 }
 
 Real GreensFunction1DAbsAbs::p_int_r_table(Real const& r, 
-                                           Real const& t, 
+                                           Real const& t,
+                                           Real const& p_surv,
                                            RealVector& table) const
 {   
     const Real a( geta() );
@@ -595,12 +596,14 @@ Real GreensFunction1DAbsAbs::p_int_r_table(Real const& r,
         if( distTos > maxDist ) //Absorbing boundary sigma 'not in sight'.
             return XI00(r, t, r0, D, v); //free particle.
         else
-            return XI10(r - sigma, t, distTos, D, v); //Only absorbing BCn at sigma.
+            //Only absorbing BCn at sigma.
+            return XI10(r - sigma, t, distTos, D, v) / p_surv; 
     }
     else
     {
         if( distTos > maxDist )
-            return XI10(a - r, t, distToa, D, -v); //Only absorbing BCn at a.
+            //Only absorbing BCn at a.
+            return XI10(a - r, t, distToa, D, -v) / p_surv;
     }
 
     const uint maxi( guess_maxi( t ) );
@@ -694,7 +697,8 @@ void GreensFunction1DAbsAbs::createP_int_r_Table( Real const& t,
 Real GreensFunction1DAbsAbs::drawR_f(Real r, void *p)
 {
     struct drawR_params *params = (struct drawR_params *)p;
-    return params->gf->p_int_r_table(r, params->t, params->table) - params->rnd;
+    return params->gf->p_int_r_table(r, params->t, params->p_surv, params->table) 
+        - params->rnd;
 }
 
 /* Draws the position of the particle at a given time from p(r,t), assuming 
@@ -725,7 +729,7 @@ Real GreensFunction1DAbsAbs::drawR (Real rnd, Real t) const
     }
     
     RealVector pintTable;
-    struct drawR_params parameters = { this, t, pintTable, rnd};
+    struct drawR_params parameters = { this, t, pintTable, rnd, p_survival( t )};
     gsl_function F;
     F.function = &drawR_f;
     F.params = &parameters; 

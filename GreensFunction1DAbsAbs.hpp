@@ -185,6 +185,7 @@ private:
         const Real t;
         RealVector table;
         Real rnd;
+        Real p_surv;
     };
 
     uint guess_maxi(Real const& t ) const;
@@ -205,7 +206,8 @@ private:
 
     static Real drawR_f (Real z, void* p);
 
-    Real p_int_r_table(Real const& r, Real const& t, RealVector& table) const;
+    Real p_int_r_table(Real const& r, Real const& t, Real const& p_surv, 
+                       RealVector& table) const;
 
     void createP_int_r_Table( Real const& t, uint const& maxi, RealVector& table ) const;
 

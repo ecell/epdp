@@ -664,7 +664,8 @@ Real GreensFunction1DRadAbs::drawTime (Real rnd) const
 
 /* Returns c.d.f. for drawR */
 Real GreensFunction1DRadAbs::p_int_r_table(Real const& r, 
-                                           Real const& t, 
+                                           Real const& t,
+                                           Real const& p_surv,
                                            RealVector& table) const
 {
     const Real a( geta() );
@@ -691,15 +692,18 @@ Real GreensFunction1DRadAbs::p_int_r_table(Real const& r,
         else
         {
             if( k != 0.0 && v == 0.0 )
-                return XI30(r - sigma, t, distTos, getk(), D, 0.0); //Only radiation BCn.
+                //Only radiation BCn.
+                return XI30(r - sigma, t, distTos, getk(), D, 0.0) / p_surv;
             else if( k == 0.0 && v == 0.0 )
-                return XI20(r - sigma, t, distTos, D, 0.0); //Only reflecting BCn.
+                //Only reflecting BCn.
+                return XI20(r - sigma, t, distTos, D, 0.0);
         }
     }
     else
     {
         if( distTos > maxDist )
-            return XI10(a - r, t, distToa, D, -v); //Only absorbing BCn.
+            //Only absorbing BCn.
+            return XI10(a - r, t, distToa, D, -v) / p_surv;
     }
 
     const uint maxi( guess_maxi( t ) );
@@ -796,7 +800,8 @@ void GreensFunction1DRadAbs::createP_int_r_Table( Real const& t,
 Real GreensFunction1DRadAbs::drawR_f(Real r, void *p)
 {
     struct drawR_params *params = (struct drawR_params *)p;
-    return params->gf->p_int_r_table(r, params->t, params->table) - params->rnd;
+    return params->gf->p_int_r_table(r, params->t, params->p_surv, params->table) 
+        - params->rnd;
 }
 
 /* Return new position */
@@ -823,7 +828,7 @@ Real GreensFunction1DRadAbs::drawR (Real rnd, Real t) const
 
     // the structure to store the numbers to calculate the numbers for 1-S
     RealVector pintTable;
-    struct drawR_params parameters = {this, t, pintTable, rnd};
+    struct drawR_params parameters = {this, t, pintTable, rnd, p_survival( t )};
 
     // define gsl function for rootfinder
     gsl_function F;
