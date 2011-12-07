@@ -97,7 +97,6 @@ Real GreensFunction1DAbsAbs::p_survival_table(Real t, RealVector& psurvTable) co
     const Real distTos( r0 - sigma );
     const Real maxDist( CUTOFF_H * (sqrt(2.0 * D * t) + fabs(v*t)) );
     
-    //TODO: No drift included for approximations.
     if( distToa > maxDist ) //Absorbing boundary 'not in sight'.
     {
         if( distTos > maxDist )//And radiation boundary 'not in sight'.
