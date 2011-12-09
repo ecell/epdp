@@ -1821,6 +1821,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
         dr /= SAFETY
         dz_right /= SAFETY
         # Don't tweak dz_left, this will break the conditions below for membrane interaction
+        if isinstance(surface, CylindricalSurface):
+            dz_left /= SAFETY
 
         # Decide if interaction domain is possible.
         if dr < min_dr or dz_left < min_dz_left or dz_right < min_dz_right:
