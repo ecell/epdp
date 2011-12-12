@@ -712,7 +712,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
                 if isinstance(reactant_structure, PlanarSurface):
                     a = myrandom.choice(-1, 1)
                     directions = [-a,a]
-                    vector_length = (product_radius + 0.0) * MINIMAL_SEPARATION_FACTOR  # the thickness of the membrane is 0.0
+                    # place the center of mass of the particle 'at contact' with the membrane
+                    vector_length = (product_radius + 0.0) * (MINIMAL_SEPARATION_FACTOR - 1.0)  # the thickness of the membrane is 0.0
                     product_pos_list = [reactant_pos + vector_length * reactant_structure.shape.unit_z * direction \
                                         for direction in directions]
 
@@ -847,7 +848,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
                         newposB = self.world.apply_boundary(newposB)
 
                         assert (self.world.distance(newposA, newposB) >= particle_radius12)
-                        assert (self.world.distance(reactant_structure.shape, newposB) >= productB_radius)
+#                        assert (self.world.distance(reactant_structure.shape, newposB) >= productB_radius)
 
                         if default:
                             newpos1, newpos2 = newposA, newposB
@@ -1184,7 +1185,12 @@ class EGFRDSimulator(ParticleSimulatorBase):
                 pair_interaction_partners.append((domain, pair_distance - pair_horizon))
         
         for surface, surface_distance in surface_distances:
-            surface_horizon = single_radius * self.SINGLE_SHELL_FACTOR
+            if isinstance(surface, PlanarSurface):
+                # with a planar surface it is the center of mass that 'looks around'
+                surface_horizon = single_radius * (self.SINGLE_SHELL_FACTOR - 1.0)
+            else:
+                # with a cylindrical surface it is the surface of the particle
+                surface_horizon = single_radius * self.SINGLE_SHELL_FACTOR
             pair_interaction_partners.append((surface, surface_distance - surface_horizon))
 
         pair_interaction_partners = sorted(pair_interaction_partners, key=lambda domain_overlap: domain_overlap[1])
@@ -1233,7 +1239,12 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
             # Also add surfaces
             for surface, distance in surface_distances:
-                surface_horizon = single_radius * self.MULTI_SHELL_FACTOR
+                if isinstance(surface, PlanarSurface):
+                    # with a planar surface it is the center of mass that 'looks around'
+                    surface_horizon = single_radius * (self.MULTI_SHELL_FACTOR - 1.0)
+                else:
+                    # with a cylindrical surface it is the surface of the particle
+                    surface_horizon = single_radius * self.MULTI_SHELL_FACTOR
                 multi_partners.append((surface, distance - surface_horizon))
 
 
@@ -2355,6 +2366,9 @@ rejected moves = %d
             # Ignore all surfaces, multi shells can overlap with 
             # surfaces.
             ignores = [s.id for s in self.world.structures]
+        elif isinstance(domain, SphericalSingle):
+            # 3D NonInteractionSingles can overlap with planar surfaces but not with rods
+            ignores = [s.id for s in self.world.structures if isinstance(s, PlanarSurface)]
         elif isinstance(domain, InteractionSingle) or isinstance(domain, MixedPair):
             # Ignore surface of the particle and interaction surface
             ignores = [domain.structure.id, domain.surface.id]

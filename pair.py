@@ -1268,7 +1268,9 @@ class MixedPair(Pair):
         weight1 = D1 / D_tot
         weight2 = D2 / D_tot
 
-        min_iv_z_length = radius2
+#        min_iv_z_length = radius2
+        # get a sence of scale of the separation between the particle and the membrane
+        min_iv_z_length = (radius1 + radius2) * 0.5 * (MINIMAL_SEPARATION_FACTOR - 1.0)
 
         # get the coordinates of the iv relative to the system of the surface (or actually the shell)
         iv_x = surface.shape.unit_x * numpy.dot(iv, surface.shape.unit_x)
@@ -1283,8 +1285,9 @@ class MixedPair(Pair):
         iv_z_length = iv_z_length / cls.calc_z_scaling_factor(D1, D2)
 
         # if the particle is overlapping with the membrane, make sure it doesn't
+        # IS THIS STILL NECESSARY?
         if iv_z_length < min_iv_z_length:
-            iv_z_length = min_iv_z_length * MINIMAL_SEPARATION_FACTOR
+            iv_z_length = min_iv_z_length #* MINIMAL_SEPARATION_FACTOR
 
         iv_z = unit_z * iv_z_length
 

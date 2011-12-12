@@ -279,6 +279,8 @@ class NonInteractionSingle(Single):
                 distance_max = geometrycontainer.world.distance(singlepos, domain.pid_particle_pair[1].position)
                 distance = min(distance, distance_max - domain.pid_particle_pair[1].radius * Domain.MULTI_SHELL_FACTOR)
                 # TODO check this!
+            elif isinstance(domain, PlanarSurface):
+                distance = distance + self.pid_particle_pair[1].radius
 
             # get the minimum of currect and previous minimum
             distance_domain = (distance, domain)
@@ -563,7 +565,7 @@ class PlanarSurfaceInteraction(InteractionSingle):
         # of the planar surface by the particle radius, and that the surface
         # has no thickness.
         dist_to_surface = self.shell.shape.half_length - self.pid_particle_pair[1].radius
-        return dist_to_surface - self.pid_particle_pair[1].radius
+        return dist_to_surface #- self.pid_particle_pair[1].radius
 
     def greens_function(self):
         # This is the Greens function that does not produce REACTION event
