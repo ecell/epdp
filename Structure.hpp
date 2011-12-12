@@ -75,7 +75,7 @@ public:
     
     virtual Real get_1D_rate_geminate( Real const& k, length_type const& r01) const = 0;
     
-    virtual Real get_1D_rate_surface( Real const& k ) const = 0;
+    virtual Real get_1D_rate_surface( Real const& k, length_type const& r0 ) const = 0;
 
     virtual Real particle_reaction_volume( length_type const& r01, length_type const& rl ) const = 0;
     

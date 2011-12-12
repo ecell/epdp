@@ -70,7 +70,7 @@ public:
         return k / (2 * M_PI * r01);    
     }
     
-    virtual Real get_1D_rate_surface( Real const& k ) const
+    virtual Real get_1D_rate_surface( Real const& k, length_type const& r0 ) const
     {
         return k;    
     }

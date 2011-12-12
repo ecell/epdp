@@ -81,9 +81,9 @@ public:
         return k;
     }
     
-    virtual Real get_1D_rate_surface( Real const& k ) const
+    virtual Real get_1D_rate_surface( Real const& k, length_type const& r0 ) const
     {
-        return k / ( 2 * M_PI * base_type::shape().radius() );
+        return k / ( 2 * M_PI * (base_type::shape().radius() + r0 ) );
     }
 
     virtual Real particle_reaction_volume( length_type const& r01, length_type const& rl ) const

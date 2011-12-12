@@ -72,9 +72,9 @@ public:
         return k / ( 4 * M_PI * r01 * r01 );    
     }
     
-    virtual Real get_1D_rate_surface( Real const& k ) const
+    virtual Real get_1D_rate_surface( Real const& k, length_type const& r0 ) const
     {
-        return Real(); //No reaction rates with bulk;    
+        return Real(); //No reaction rates with bulk;
     }
 
     virtual Real particle_reaction_volume( length_type const& r01, length_type const& rl ) const

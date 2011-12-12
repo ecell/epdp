@@ -57,7 +57,7 @@ public:
         return Real(); //TODO
     }
     
-    virtual Real get_1D_rate_surface( Real const& k ) const
+    virtual Real get_1D_rate_surface( Real const& k, length_type const& r0 ) const
     {
         return Real(); //TODO
     }
