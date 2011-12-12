@@ -121,6 +121,18 @@ public:
     {
         return position_pair_type(); //No special geminate dissociation 'from' the bulk
     }
+    
+    /* Determine if particle has bouned from the surface */
+    virtual bool bounced(position_type const& old_pos, position_type const& new_pos, 
+        length_type const& dist_to_surface, length_type const& particle_radius) const
+    {       
+        return false; //Can't use cuboidal region as surface jet.
+    }
+    
+    virtual bool in_reaction_volume( length_type const& dist_to_surface, length_type const& particle_radius, length_type const& rl ) const
+    {
+        return false; //Cube has no reaction volume.
+    }
 
     virtual void accept(ImmutativeStructureVisitor<traits_type> const& visitor) const
     {

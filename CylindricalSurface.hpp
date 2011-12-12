@@ -5,6 +5,7 @@
 #include "Surface.hpp"
 #include "Cylinder.hpp"
 #include "freeFunctions.hpp"
+#include "geometry.hpp"
 
 template<typename Ttraits_>
 class CylindricalSurface
@@ -140,7 +141,7 @@ public:
         Real const rod_radius( base_type::shape().radius() );
         
         //Species living on the rod should have a larger radius than the rod.
-        ASSERT( rod_radius < s_surf.radius() );
+        assert( rod_radius < s_surf.radius() );
     
         length_type const r01( s_bulk.radius() + s_surf.radius() );
         Real const D01( s_bulk.D() + s_surf.D() );
@@ -182,6 +183,24 @@ public:
                                  unit_z * (z * D_bulk_D01) ) ) );
         
         return pp01;
+    }
+
+    /* Determine if particle has bouned from the surface. */
+    virtual bool bounced(position_type const& old_pos, position_type const& new_pos, 
+        length_type const& dist_to_surface, length_type const& particle_radius) const
+    {       
+        if( dist_to_surface < particle_radius )
+            return true;
+        else
+            return false;
+    }
+    
+    virtual bool in_reaction_volume( length_type const& dist_to_surface, length_type const& particle_radius, length_type const& rl ) const
+    {
+        if( dist_to_surface - particle_radius <= rl )
+            return true;
+        else
+            return false;
     }
 
     virtual length_type minimal_distance(length_type const& radius) const
