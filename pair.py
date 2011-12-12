@@ -260,11 +260,7 @@ class SimplePair(Pair):
         # we still have to make sure that the (non closest) NonInteractionSingles have
         # the required space
 
-        # FIXME Bloody ugly tweak to make sure that in case of a cylinder the 'maximum size' (which is
-        # actually the radius) does not stick out of the maximum sphere (which is the real hard max).
-        # BLoody UGLY because it now applies to ALL SimplePairs.
-        sigma = max(single1.pid_particle_pair[1].radius, single2.pid_particle_pair[1].radius)
-        max_shell_size = math.sqrt(geometrycontainer.get_max_shell_size()**2 - sigma**2)
+        max_shell_size = geometrycontainer.get_max_shell_size()
 
         distance_domain_closest = (max_shell_size, None)
         for domain, distance in neighbors:
@@ -303,6 +299,11 @@ class SimplePair(Pair):
         if closest_distance <= 0:
             return 0
         else:
+            # FIXME Bloody ugly tweak to make sure that in case of a cylinder the 'maximum size' (which is
+            # actually the radius) does not stick out of the maximum sphere (which is the real hard max).
+            # BLoody UGLY because it now applies to ALL SimplePairs.
+            sigma = max(single1.pid_particle_pair[1].radius, single2.pid_particle_pair[1].radius)
+            closest_distance = math.sqrt(abs(closest_distance**2 - sigma**2))
             return closest_distance/SAFETY
 
 
@@ -1317,7 +1318,8 @@ class MixedPair(Pair):
 
     def iv_greens_function(self, r0):
         # diffusion of the interparticle vector is three dimensional
-        return GreensFunction3DRadAbs(self.D_r, self.interparticle_ktot, r0,
+        # TODO Fix ugly hack to prevent particle overlap problem
+        return GreensFunction3DRadAbs(self.D_r, self.interparticle_ktot, max(r0, self.sigma),
                                       self.sigma, self.a_r)
 
     def create_new_shell(self, position, radius, half_length, orientation_vector, domain_id):
