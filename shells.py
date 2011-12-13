@@ -2,7 +2,12 @@
 
 class hasShell(object):
 
+    def shell_list(self):
+            return self.shell_list
+
 class hasSphericalShell(hasShell):
+
+    self.shell
 
     def __init__(self, sphericaltestShell):
         self.center = sphericaltestShell.center
@@ -14,21 +19,34 @@ class hasSphericalShell(hasShell):
 
 class SphericalSingle(hasSphericalShell):
 
-    def get_radius_for_single(self):
-        return max(self.get_min_radius(), self.radius)
-    def get_radius_for_other(self):
-        return max(particle_radius * SINGLE_SHELL_FACTOR, self.radius)
+    def shell_list_for_single(self):
+        if self.get_min_radius() > self.shell.radius:
+            fake_shell = make_new_shell_with_min_radius
+            return [fake_shell, ]
+        else:
+            return real_shell_list
+
+    def shell_list_for_other(self):
+        if shellradius < particle_radius * SINGLE_SHELL_FACTOR:
+            fake_shell = make_new_shell (particle_radius * SINGLE_SHELL_FACTOR)
+            return [fake_shell, ]
+        else:
+            return real_shell_list
+
 
 class SphericalPair(hasSphericalShell):
 
-    def get_radius_for_single(self):
-        return self.radius
-    def get_radius_for_other(self):
-        return self.radius
+    def shell_list_for_single(self):
+        return real_shell_list
+    def shell_list_for_other(self):
+        return real_shell_list
 
 class Multi(hasSphericalShell):
 
-
+    def shell_list_for_single(self):
+        return self.shell_list
+    def shell_list_for_other(self):
+        return self.shell_list
 
 
 class hasCylindricalShell(hasShell):
@@ -42,19 +60,24 @@ class hasCylindricalShell(hasShell):
 
 class PlanarSurfaceSingle(hasCylindricalShell):
 
-    # these return corrected dimensions
-    def get_dimensions_for_single(self):
-        return max(self.get_min_dimensions, (self.radius, self.half_length))
-    def get_dimensions_for_other(self):
+    # these return corrected dimensions, since we reserve more space for the NonInteractionSingle
+    def shell_list_for_single(self):
+        if self.get_min_dimensions > shell.dimensions:
+            fake_shell = create_shell(min_dimensions)
+            return [fake_shell, ]
+        else:
+            return self.shell_list
+
+    def shell_list_for_other(self):
         return (max(particle_radius * SINGLE_SHELL_FACTOR, self.radius), self.half_length)
 
 class PlanarSurfaceInteraction(hasCylindricalShell):
 
-    # these return corrected dimensions
-    def get_dimensions_for_single(self):
-        return (self.radius, self.half_length)
-    def get_dimensions_for_other(self):
-        return (self.radius, self.half_length)
+    # these return uncorrected dimensions because Interactions seem the same
+    def shell_list_for_single(self):
+        return self.shell_list
+    def shell_list_for_other(self):
+        return self.shell_list
 
 
 
@@ -133,11 +156,19 @@ class CylindricaltestShell(testShell):
         neighbors = self.get_neighbors()
         min_dr_dzright_dzleft = self.get_min_dr_dzright_dzleft()
         max_dr_dzright_dzleft = self.get_max_dr_dzright_dzleft()
+
+        dr_dzright_dzleft = max_dr_dzright_dzleft
         for neighbor in neighbors:
-            if isinstance(neighbor, hasCylindricalShell):
-                dr_dzright_dzleft = self.get_dr_dzright_dzleft_CylindricalNeighbor(neighbor)
-            elif isinstance(neighbor, hasSphericalShell):
-                dr_dzright_dzleft = self.get_dr_dzright_dzleft_SphericalNeighbor(neighbor)
+
+            shell_list = self.get_neighbor_shell_list(neighbor)
+            for _, shell in shell_list:
+                # use the right algorithm for the neighbor
+                if isinstance(shell, CylindricalShell):
+                    dr_dzright_dzleft = self.get_dr_dzright_dzleft_CylindricalNeighbor(shell)
+                elif isinstance(shell, SphericalShell):
+                    dr_dzright_dzleft = self.get_dr_dzright_dzleft_SphericalNeighbor(shell)
+
+            # if the newly calculated dimensions are smaller than the current one, use them
             min(dr_dzright_dzleft, max_dr_dzright_dzleft)
             if dr_dzright_dzleft < min_dr_dzright_dzleft:
                 dr_dzright_dzleft = None
@@ -150,18 +181,20 @@ class CylindricaltestShell(testShell):
     def get_searchradius():
         return max_that_fits_correctly
             
-    def get_dr_dzright_dzleft_CylindricalNeighbor(self, neighbor):
+    def get_dr_dzright_dzleft_CylindricalNeighbor(self, shell):
         # get's the maximal (dr, dz_right, dz_left) values for a neighboring CYLINDRICAL domain
         # CylindricaltestShell (self) -> CylindricalShell (neighbor)
         # Laurens' algorithm (part2)
-        neighbor_dimensions = self.get_neighbor_dimensions(neighbor)
+        assert type(shell, Cylinder)
+
         return (r, z_right, z_left)
 
     def get_dr_dzright_dzleft_SphericalNeighbor(self, neighbor):
         # get's the maximal (dr, dz_right, dz_left) values for a neighboring SPHERICAL domain
         # CylindricaltestShell (self) -> SphericalShell (neighbor)
         # Laurens' algorithm (part1)
-        neighbor_radius = self.get_neighbor_radius(neighbor)
+        assert type(shell, Sphere)
+
         return (r, z_right, z_left)
 
 class PlanarSurfaceSingletestShell(CylindricaltestShell):
@@ -185,11 +218,9 @@ class PlanarSurfaceSingletestShell(CylindricaltestShell):
         return (dr, dz_right, dz_left)
 
     # always the same for NonInteractionSingle
-    def get_neighbor_dimensions(self, neighbor):
-        # note that this returns (radius, half_length) tuple, NOT dr, dz_right, dz_left
-        return neighbor.get_dimensions_for_single()
-    def get_neighbor_radius(self, neighbor):
-        return neighbor.get_radius_for_single()
+    def get_neighbor_shell_list(self, neighbor):
+        # note that this returns the list of shells, NOT dr, dz_right, dz_left
+        return neighbor.shell_list_for_single()
 
 
 class PlanarSurfaceInteractiontestShell(CylindricaltestShell):
@@ -212,9 +243,7 @@ class PlanarSurfaceInteractiontestShell(CylindricaltestShell):
         return (dr, dz_right, dz_left)
 
     # always the same for other (InteractionSingle, Pair, Multi)
-    def get_neighbor_dimensions(self, neighbor):
-        # note that this returns (radius, half_length) tuple, NOT dr, dz_right, dz_left
-        return neighbor.get_dimensions_for_other()
-    def get_neighbor_radius(self, neighbor):
-        return neighbor.get_radius_for_other()
+    def get_neighbor_shell_list(self, neighbor):
+        # note that this returns the list of shells, NOT dr, dz_right, dz_left
+        return neighbor.shell_list_for_other()
 
