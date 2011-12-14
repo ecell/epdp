@@ -43,12 +43,171 @@ class hasSphericalShell(hasShell):
         self.radius = sphericaltestShell.radius
 
     # methods to size up a shell to this shell
-    def get_dr_dzright_dzleft_to_shell(self, shell_appearance, domain_to_scale):
+    def get_dr_dzright_dzleft_to_shell(self, shell, domain_to_scale):
         # This will scale the 'domain_to_scale' (a cylinder) using the 'shell_appearance' as the limiting shell
         # CylindricaltestShell ('domain_to_scale') -> SphericalShell ('self' with 'shell_appearance')
 
-        assert type(shell_appearance, Sphere)        # because the shell actually originated here
+        assert type(shell, Sphere)        # because the shell actually originated here
         # Do Laurens' algorithm (part1)
+
+        # get the reference point and orientation of the domain to scale
+        reference_point = domain_to_scale.get_referencepoint()
+        orientation_vector = domain_to_scale.get_orientation_vector()
+
+        # determine on what side the midpoint of the shell is relative to the reference_point
+        shell_position_t = world.cyclic_transpose (shell.shape.position, reference_point)
+        ref_to_shell = shell_position_t - reference_point
+        ref_to_shell_z_len = numpy.dot(ref_to_shell, orientation_vector)
+        # express the ref_to_shell vector in the coordinate system
+        ref_to_shell_z = ref_to_shell_z_len * orientation_vector
+        ref_to_shell_r = ref_to_shell - ref_to_shell_z
+
+        # if the shell is on the side of orientation_vector -> use z_right
+        # also use this one if the shell is in plane with the reference_point
+        if ref_to_shell_z_len >= 0:
+            phi = domain_to_scale.get_right_scalingangle()
+            scalecenter_h0 = cls.z_right(single1, single2, r0, 0.0)   # r = 0.0
+            r1_function =  cls.r_right
+            z1_function = cls.z_right
+            z2_function = cls.z_left
+            z1 = z_right
+            z2 = z_left
+            direction = 1           # improve direction specification such that following calculations still work
+                                    # Otherwise problems when direction = 0
+        # else -> use z_left
+        else:
+            phi = cls.calc_left_scalingangle(D1, D2)
+            scalecenter_h0 = cls.z_left(single1, single2, r0, 0.0)    # r = 0.0
+            r1_function =  cls.r_left
+            z1_function = cls.z_left
+            z2_function = cls.z_right
+            z1 = z_left
+            z2 = z_right
+            direction = -1
+
+
+        # calculate the orientation vectors
+        orientation_vector_z = orientation_vector * direction
+        if length(ref_to_shell_r) == 0:
+            # produce a random vector perpendicular to the 'orientation_vector_z'
+            unit_vector3D = random_unit_vector()
+            orientation_vector_r = normalize(unit_vector3D - numpy.dot(unit_vector3D, orientation_vector_z))
+        else:
+            orientation_vector_r = normalize(ref_to_shell_r)
+
+
+        # calculate the center from which linear scaling will take place
+        if phi == 0.0:
+            scalecenter_r0 = r  # This is an approximation, since the h0 is infinitely far away of phi == 0,
+        else:                   # we introduce an r0
+            scalecenter_r0 = 0
+
+        scale_center = reference_point + scalecenter_h0 * orientation_vector_z \
+                                       + scalecenter_r0 * orientation_vector_r
+        scale_center = world.apply_boundary(scale_center)
+
+
+        # calculate the vector from the scale center to the center of the shell
+        shell_position_t = world.cyclic_transpose (shell_position, scale_center)
+        shell_scale_center = shell_position_t - scale_center
+        shell_scalecenter_z = numpy.dot(shell_scale_center, orientation_vector_z)
+        shell_scalecenter_r = numpy.dot(shell_scale_center, orientation_vector_r)
+        #length(shell_scale_center - (shell_scalecenter_z * orientation_vector_z))
+
+
+        # calculate the angle theta of the vector from the scale center to the shell with the vector
+        # to the scale center (which is +- the orientation_vector)
+        theta = vector_angle (shell_scale_center, orientation_vector_z)
+
+        psi = theta - phi
+
+        ### check what situation arrises
+        # The shell can hit the cylinder on the flat side (situation 1),
+        #                                on the edge (situation 2),
+        #                                or on the round side (situation 3).
+        # I think this also works for phi == 0 and phi == Pi/2
+        if psi <= -phi:
+        # The midpoint of the shell lies on the axis of the cylinder
+            situation = 1
+
+        elif -phi < psi and psi < 0:
+        # The (spherical) shell can touch the cylinder on its flat side or its edge
+            if phi == Pi/2.0:
+                r_tan_phi = 0
+            else:
+                r_tan_phi = abs(shell_scalecenter_r)/math.tan(phi)   # phi == 0 should not get here
+                                                                     # TODO the abs may be wrong/unnecessary
+
+            a_thres = shell_scalecenter_z - r_tan_phi
+            if shell_size < a_thres:
+                situation = 1
+            else:
+                situation = 2
+
+        elif 0 <= psi and psi < (Pi/2.0 - phi):
+        # The (spherical) shell can touch the cylinder on its edge or its radial side
+            tan_phi = math.tan(phi)                             # phi == Pi/2 should not get here
+            a_thres = abs(shell_scalecenter_r) - shell_scalecenter_z * tan_phi  # TODO same here
+            if shell_size > a_thres:
+                situation = 2
+            else:
+                situation = 3
+
+        elif (Pi/2.0 - phi) <= psi:
+        # The shell is always only on the radial side of the cylinder
+            situation = 3
+
+        else:
+        # Don't know how we would get here, but it shouldn't happen
+            raise RuntimeError('Error: psi was not in valid range. psi = %s, phi = %s, theta = %s' %
+                               (FORMAT_DOUBLE % psi, FORMAT_DOUBLE % phi, FORMAT_DOUBLE % theta))
+
+
+        ### Get the right values for z and r for the given situation
+        if situation == 1:      # shell hits cylinder on the flat side
+            z1_new = min(z1, (scalecenter_h0 + shell_scalecenter_z - shell_size)/SAFETY)
+                                                        # note that shell_size may also mean half_length
+            r_new  = min(r,  r1_function(single1, single2, r0, z1_new))
+            z2_new = min(z2, z2_function(single1, single2, r0, r_new))
+
+        elif situation == 2:    # shell hits sphere on the edge
+            a_sq = shell_size*shell_size
+            shell_scalecenter_len = length(shell_scale_center)
+            ss_sq = shell_scalecenter_len*shell_scalecenter_len
+            sin_phi = math.sin(phi)
+            sin_psi = math.sin(psi)
+            cos_psi = math.cos(psi)
+            scalecenter_shell_dist = (shell_scalecenter_len * cos_psi - math.sqrt(a_sq - ss_sq*sin_psi*sin_psi) )
+            # FIXME UGLY FIX BELOW
+            scalecenter_shell_dist /= 1.1
+            scalecenter_shell_dist /= SAFETY
+
+            if phi <= Pi/4:
+#                print "scale z first."
+                z1_new = min(z1, scalecenter_h0 + cos_phi * scalecenter_shell_dist)
+                r_new  = min(r, r1_function(single1, single2, r0, z1_new))
+                z2_new = min(z2, z2_function(single1, single2, r0, r_new))
+            else:
+#                print "scale r first."
+                r_new = min(r, scalecenter_r0 + sin_phi * scalecenter_shell_dist)
+                z1_new = min(z1, z1_function(single1, single2, r0, r_new))
+                z2_new = min(z2, z2_function(single1, single2, r0, r_new))
+
+        elif situation == 3:    # shell hits cylinder on the round side
+            r_new = min(r, (scalecenter_r0 + abs(shell_scalecenter_r) - shell_size)/SAFETY)   # note that shell_size here means radius
+            z1_new = min(z1, z1_function(single1, single2, r0, r_new))
+            z2_new = min(z2, z2_function(single1, single2, r0, r_new))
+        else:
+            raise RuntimeError('Bad situation for MixedPair shell making')
+
+        # switch the z values in case it's necessary. r doesn't have to be switched.
+        r = r_new
+        if direction >= 0.0:
+            z_right = z1_new
+            z_left  = z2_new
+        else:
+            z_right = z2_new
+            z_left  = z1_new
 
         return (r, z_right, z_left)
 
@@ -232,6 +391,7 @@ class CylindricaltestShell(testShell):
     self.dr
     self.dz_right
     self.dz_left
+    self.scaling_angle_right = None     # this needs to be calculated once
 
     def determine_possible_shell(self):
         neighbors = self.get_neighbors()
@@ -268,6 +428,9 @@ class PlanarSurfaceSingletestShell(CylindricaltestShell, NonInteractionSingles):
     def get_searchpoint(self):
         return particle_pos
 
+    def get_referencepoint(self):
+        return particle_pos
+
     def get_min_dr_dzright_dzleft(self):
         dr = particle_radius * MULTI_SHELL_FACTOR
         dz_right = particle_radius
@@ -280,6 +443,20 @@ class PlanarSurfaceSingletestShell(CylindricaltestShell, NonInteractionSingles):
         dz_left = particle_radius
         return (dr, dz_right, dz_left)
 
+    def get_right_scalingcenter(self, orientation_z, orientation_r):
+        # returns the scaling center in the coordinate system of the plane through
+        # scaling cylinder and the neighboring shell
+        return particle_radius * orientation_z
+
+    def get_left_scalingcenter(self, orientation_z, orientation_r):
+        return particle_radius * orientation_z
+
+    def get_right_scalingangle(self):
+        return Pi/2.0
+
+    def get_left_scalingangle(self):
+        return Pi/2.0
+
 #####
 class PlanarSurfacePairtestShell(hasCylindricalShell, Others):
 
@@ -287,6 +464,9 @@ class PlanarSurfacePairtestShell(hasCylindricalShell, Others):
         return structure.shape.unit_z
 
     def get_searchpoint(self):
+        return CoM
+
+    def get_referencepoint(self):
         return CoM
 
     def get_min_dr_dzright_dzleft(self):
@@ -308,6 +488,9 @@ class CylindricalSurfaceSingletestShell(CylindricaltestShell, NonInteractionSing
     def get_searchpoint(self):
         return particle_pos
 
+    def get_referencepoint(self):
+        return particle_pos
+
     def get_min_dr_dzright_dzleft(self):
         dr = particle_radius
         dz_right = particle_radius * MULTI_SHELL_FACTOR
@@ -319,6 +502,24 @@ class CylindricalSurfaceSingletestShell(CylindricaltestShell, NonInteractionSing
         dz_right = math.sqrt(geometrycontainer_max**2 - particle_radius**2)
         dz_left = dz_right
         return (dr, dz_right, dz_left)
+
+    def get_right_scalingcenter(self, orientation_z, orientation_r):
+        # returns the scaling center in the coordinate system of the plane through
+        # scaling cylinder and the neighboring shell
+        #
+        # Note that the scalingcenter depends on the position of the shell,
+        # and therefor orientation_r changes for every shell -> recalculate
+        return orientation_r * self.particle_radius
+
+    def get_left_scalingcenter(self, orientation_z, orientation_r):
+        # same here
+        return orientation_r * self.particle_radius
+
+    def get_right_scalingangle(self):
+        return 0
+
+    def get_left_scalingangle(self):
+        return 0
 
 #####
 class CylindricalSurfacePairtestShell(CylindricaltestShell, Others):
@@ -334,6 +535,9 @@ class PlanarSurfaceInteractiontestShell(CylindricaltestShell, Others):
         result = calculate_searchpoint
         return result
 
+    def get_referencepoint(self):
+        return projected_point_of_particle
+
     def get_min_dr_dzright_dzleft(self):
         dz_right, r = calc_based_on_scaling_stuff
         dz_left = particle_radius
@@ -342,6 +546,23 @@ class PlanarSurfaceInteractiontestShell(CylindricaltestShell, Others):
     def get_max_dr_dzright_dzleft(self):
         result = calc_based_on_scaling_stuff
         return (dr, dz_right, dz_left)
+
+    def get_right_scalingcenter(self, orientation_z, orientation_r):
+        # note calculate this only once since 'orientation_z' doens't change
+        # for different shells -> scalingcenter is a fixed point
+        h0_right = distance_particle_surface
+        return orientation_z * h0_right
+
+    def get_left_scalingcenter(self, orientation_z, orientation_r):
+        # note calculate this only once since orientation_z doesn't change
+        # for difference shells -> scalingcenter is a fixed point
+        return orientation_z * particle_radius
+
+    def get_right_scalingangle(self):
+        return bla
+
+    def get_left_scalingangle(self):
+        return Pi/2.0
 
 #####
 class CylindricalSurfaceInteractiontestShell(CylindricaltestShell, Others):
@@ -352,6 +573,9 @@ class CylindricalSurfaceInteractiontestShell(CylindricaltestShell, Others):
     def get_searchpoint(self):
         return projected_point_of_particle
 
+    def get_referencepoint(self):
+        return projected_point_of_particle
+
     def get_min_dr_dzright_dzleft(self):
         result = calc_based_on_scaling_stuff
         return (dr, dz_right, dz_left)
@@ -360,5 +584,63 @@ class CylindricalSurfaceInteractiontestShell(CylindricaltestShell, Others):
         result = calc_based_on_scaling_stuff
         return (dr, dz_right, dz_left)
 
+    def get_right_scalingcenter(self, orientation_z, orientation_r):
+        # note calculate this only once since 'orientation_z' doens't change
+        # for different shells -> scalingcenter is a fixed point
+        h0_right = smt
+        return orientation_z * h0_right
+
+    def get_left_scalingcenter(self, orientation_z, orientation_r):
+        # note calculate this only once since orientation_z doesn't change
+        # for difference shells -> scalingcenter is a fixed point
+        h0_left = h0_right
+        return orientation_z * h0_left
+
+    def get_right_scalingangle(self):
+        return bla
+
+    def get_left_scalingangle(self):
+        return Pi/2.0
+
+#####
 class MixedPair3D2DtestShell(CylindricaltestShell, Others):
+
+    def get_orientation_vector(self):
+        result = do_calculation
+        return result
+
+    def get_searchpoint(self):
+        return caculated_search_point
+
+    def get_referencepoint(self):
+        return CoM
+
+    def get_min_dr_dzright_dzleft(self):
+        dz_left = particle_radius
+        dr, dz_right = calc_based_on_scaling_stuff
+        return (dr, dz_right, dz_left)
+        
+    def get_max_dr_dzright_dzleft(self):
+        dz_left = particle_radius
+        dr, dz_right = calc_based_on_scaling_stuff
+        return (dr, dz_right, dz_left)
+
+    def get_right_scalingcenter(self, orientation_z, orientation_r):
+        # note calculate this only once since 'orientation_z' doens't change
+        # for different shells
+        h0_right = bla
+        return orientation_z * h0_right
+
+    def get_left_scalingcenter(self, orientation_z, orientation_r):
+        # note calculate this only once since orientation_z doesn't change
+        # for difference shells
+        return orientation_z * particle_radius
+
+    def get_right_scalingangle(self):
+        return bla
+
+    def get_left_scalingangle(self):
+        return Pi/2.0
+
+#####
 #class MixedPair3D1DtestShell(CylindricaltestShell, Others):
