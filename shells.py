@@ -43,19 +43,22 @@ class hasSphericalShell(hasShell):
         self.radius = sphericaltestShell.radius
 
     # methods to size up a shell to this shell
-    def get_dr_dzright_dzleft_to_shell(self, shell, domain_to_scale):
+    def get_dr_dzright_dzleft_to_shell(self, shell, domain_to_scale, r, z_right, z_left):
         # This will scale the 'domain_to_scale' (a cylinder) using the 'shell_appearance' as the limiting shell
         # CylindricaltestShell ('domain_to_scale') -> SphericalShell ('self' with 'shell_appearance')
 
-        assert type(shell, Sphere)        # because the shell actually originated here
+        assert type(shell, Sphere)        # because the shell actually is part of the current object
+
         # Do Laurens' algorithm (part1)
+        shell_position = shell.shape.position
+        shell_size = shell.shape.radius
 
         # get the reference point and orientation of the domain to scale
         reference_point = domain_to_scale.get_referencepoint()
         orientation_vector = domain_to_scale.get_orientation_vector()
 
         # determine on what side the midpoint of the shell is relative to the reference_point
-        shell_position_t = world.cyclic_transpose (shell.shape.position, reference_point)
+        shell_position_t = world.cyclic_transpose (shell_position, reference_point)
         ref_to_shell = shell_position_t - reference_point
         ref_to_shell_z_len = numpy.dot(ref_to_shell, orientation_vector)
         # express the ref_to_shell vector in the coordinate system
@@ -65,45 +68,39 @@ class hasSphericalShell(hasShell):
         # if the shell is on the side of orientation_vector -> use z_right
         # also use this one if the shell is in plane with the reference_point
         if ref_to_shell_z_len >= 0:
-            phi = domain_to_scale.get_right_scalingangle()
-            scalecenter_h0 = cls.z_right(single1, single2, r0, 0.0)   # r = 0.0
+            direction = 1           # improve direction specification such that following calculations still work
+                                    # Otherwise problems when direction = 0
+            get_scale_angle  = domain_to_scale.get_right_scalingangle
+            get_scale_center = domain_to_scale.get_right_scalingcenter
             r1_function =  cls.r_right
             z1_function = cls.z_right
             z2_function = cls.z_left
             z1 = z_right
             z2 = z_left
-            direction = 1           # improve direction specification such that following calculations still work
-                                    # Otherwise problems when direction = 0
         # else -> use z_left
         else:
-            phi = cls.calc_left_scalingangle(D1, D2)
-            scalecenter_h0 = cls.z_left(single1, single2, r0, 0.0)    # r = 0.0
+            direction = -1
+            get_scalingangle  = domain_to_scale.get_left_scalingangle
+            get_scalingcenter = domain_to_scale.get_left_scalingcenter
             r1_function =  cls.r_left
             z1_function = cls.z_left
             z2_function = cls.z_right
             z1 = z_left
             z2 = z_right
-            direction = -1
 
-
-        # calculate the orientation vectors
-        orientation_vector_z = orientation_vector * direction
+        # correct the orientation vectors
+        orientation_z = orientation_vector * direction
         if length(ref_to_shell_r) == 0:
             # produce a random vector perpendicular to the 'orientation_vector_z'
-            unit_vector3D = random_unit_vector()
-            orientation_vector_r = normalize(unit_vector3D - numpy.dot(unit_vector3D, orientation_vector_z))
+            unit_vector3D = random_unit_vector()    # TODO find cheaper way
+            orientation_r = normalize(unit_vector3D - numpy.dot(unit_vector3D, orientation_z))
         else:
-            orientation_vector_r = normalize(ref_to_shell_r)
+            orientation_r = normalize(ref_to_shell_r)
 
 
         # calculate the center from which linear scaling will take place
-        if phi == 0.0:
-            scalecenter_r0 = r  # This is an approximation, since the h0 is infinitely far away of phi == 0,
-        else:                   # we introduce an r0
-            scalecenter_r0 = 0
-
-        scale_center = reference_point + scalecenter_h0 * orientation_vector_z \
-                                       + scalecenter_r0 * orientation_vector_r
+        phi = get_scalingangle()
+        scale_center = get_scalingcenter(orientation_z, orientation_r) + reference_point
         scale_center = world.apply_boundary(scale_center)
 
 
@@ -112,12 +109,11 @@ class hasSphericalShell(hasShell):
         shell_scale_center = shell_position_t - scale_center
         shell_scalecenter_z = numpy.dot(shell_scale_center, orientation_vector_z)
         shell_scalecenter_r = numpy.dot(shell_scale_center, orientation_vector_r)
-        #length(shell_scale_center - (shell_scalecenter_z * orientation_vector_z))
 
 
         # calculate the angle theta of the vector from the scale center to the shell with the vector
         # to the scale center (which is +- the orientation_vector)
-        theta = vector_angle (shell_scale_center, orientation_vector_z)
+        theta = vector_angle (shell_scale_center, orientation_z)
 
         psi = theta - phi
 
@@ -166,7 +162,6 @@ class hasSphericalShell(hasShell):
         ### Get the right values for z and r for the given situation
         if situation == 1:      # shell hits cylinder on the flat side
             z1_new = min(z1, (scalecenter_h0 + shell_scalecenter_z - shell_size)/SAFETY)
-                                                        # note that shell_size may also mean half_length
             r_new  = min(r,  r1_function(single1, single2, r0, z1_new))
             z2_new = min(z2, z2_function(single1, single2, r0, r_new))
 
@@ -183,18 +178,16 @@ class hasSphericalShell(hasShell):
             scalecenter_shell_dist /= SAFETY
 
             if phi <= Pi/4:
-#                print "scale z first."
                 z1_new = min(z1, scalecenter_h0 + cos_phi * scalecenter_shell_dist)
                 r_new  = min(r, r1_function(single1, single2, r0, z1_new))
                 z2_new = min(z2, z2_function(single1, single2, r0, r_new))
             else:
-#                print "scale r first."
                 r_new = min(r, scalecenter_r0 + sin_phi * scalecenter_shell_dist)
                 z1_new = min(z1, z1_function(single1, single2, r0, r_new))
                 z2_new = min(z2, z2_function(single1, single2, r0, r_new))
 
         elif situation == 3:    # shell hits cylinder on the round side
-            r_new = min(r, (scalecenter_r0 + abs(shell_scalecenter_r) - shell_size)/SAFETY)   # note that shell_size here means radius
+            r_new = min(r, (scalecenter_r0 + abs(shell_scalecenter_r) - shell_size)/SAFETY)
             z1_new = min(z1, z1_function(single1, single2, r0, r_new))
             z2_new = min(z2, z2_function(single1, single2, r0, r_new))
         else:
