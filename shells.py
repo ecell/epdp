@@ -208,7 +208,7 @@ class SphericaltestShell(testShell):
         return self.geometrycontainer.max()
 
     def get_max_radius(self):
-        return shell_container.get_max()
+        return shell_container.get_max_shell_size()
 
 #####
 class SphericalSingletestShell(testSphericalShell, NonInteractionSingles):
@@ -281,6 +281,49 @@ class PlanarSurfaceSingletestShell(CylindricaltestShell, NonInteractionSingles):
         return (dr, dz_right, dz_left)
 
 #####
+class PlanarSurfacePairtestShell(hasCylindricalShell, Others):
+
+    def get_orientation_vector(self):
+        return structure.shape.unit_z
+
+    def get_searchpoint(self):
+        return CoM
+
+    def get_min_dr_dzright_dzleft(self):
+        do calculation
+        return (dr, dz_right, dz_left)
+
+    def get_max_dr_dzright_dzleft(self):
+        dr = math.sqrt(geometrycontainer_max**2 - particle_radius**2)
+        dz_right = particle_radius
+        dz_left = particle_radius
+        return (dr, dz_right, dz_left)
+        
+#####
+class CylindricalSurfaceSingletestShell(CylindricaltestShell, NonInteractionSingles):
+
+    def orientation_vector(self):
+        return structure.shape.unit_z   # just copy from structure
+
+    def get_searchpoint(self):
+        return particle_pos
+
+    def get_min_dr_dzright_dzleft(self):
+        dr = particle_radius
+        dz_right = particle_radius * MULTI_SHELL_FACTOR
+        dz_left = particle_radius * MULTI_SHELL_FACTOR
+        return (dr, dz_right, dz_left)
+
+    def get_max_dr_dzright_dzleft(self):
+        dr = particle_radius
+        dz_right = math.sqrt(geometrycontainer_max**2 - particle_radius**2)
+        dz_left = dz_right
+        return (dr, dz_right, dz_left)
+
+#####
+class CylindricalSurfacePairtestShell(CylindricaltestShell, Others):
+
+#####
 class PlanarSurfaceInteractiontestShell(CylindricaltestShell, Others):
 
     def get_orientation_vector(self):
@@ -300,10 +343,22 @@ class PlanarSurfaceInteractiontestShell(CylindricaltestShell, Others):
         result = calc_based_on_scaling_stuff
         return (dr, dz_right, dz_left)
 
-
-class PlanarSurfacePairtestShell(hasCylindricalShell, Others):
-class CylindricalSurfaceSingletestShell(CylindricaltestShell, NonInteractionSingles):
-class CylindricalSurfacePairtestShell(CylindricaltestShell, Others):
+#####
 class CylindricalSurfaceInteractiontestShell(CylindricaltestShell, Others):
+
+    def get_orientation_vector(self):
+        return structure.shape.unit_z
+
+    def get_searchpoint(self):
+        return projected_point_of_particle
+
+    def get_min_dr_dzright_dzleft(self):
+        result = calc_based_on_scaling_stuff
+        return (dr, dz_right, dz_left)
+        
+    def get_max_dr_dzright_dzleft(self):
+        result = calc_based_on_scaling_stuff
+        return (dr, dz_right, dz_left)
+
 class MixedPair3D2DtestShell(CylindricaltestShell, Others):
 #class MixedPair3D1DtestShell(CylindricaltestShell, Others):
