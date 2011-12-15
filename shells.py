@@ -59,16 +59,12 @@ class hasSphericalShell(hasShell):
 
         # determine on what side the midpoint of the shell is relative to the reference_point
         shell_position_t = world.cyclic_transpose (shell_position, reference_point)
-        ref_to_shell = shell_position_t - reference_point
-        ref_to_shell_z_len = numpy.dot(ref_to_shell, orientation_vector)
-        # express the ref_to_shell vector in the coordinate systema going through the reference
-        # point and the position of the shell
-        ref_to_shell_z = ref_to_shell_z_len * orientation_vector
-        ref_to_shell_r = ref_to_shell - ref_to_shell_z
+        ref_to_shell_vec = shell_position_t - reference_point
+        ref_to_shell_z = numpy.dot(ref_to_shell_vec, orientation_vector)
 
         # if the shell is on the side of orientation_vector -> use z_right
         # also use this one if the shell is in plane with the reference_point
-        if ref_to_shell_z_len >= 0:
+        if ref_to_shell_z >= 0:
             direction = 1           # improve direction specification such that following calculations still work
                                     # Otherwise problems when direction = 0
             get_scale_angle  = domain_to_scale.get_right_scalingangle
@@ -89,24 +85,17 @@ class hasSphericalShell(hasShell):
             z1 = z_left
             z2 = z_right
 
-        # The orientation vectors are the normalized ref_to_shell_z/r vectors
-        orientation_z = orientation_vector * direction
-        if length(ref_to_shell_r) == 0:
-            # In this case there is a problem normalizing the ref_to_shell_r vector (happens
-            # for example when treating CylindricalSurfaceSingles)
+        # calculate ref_to_shell_r/z in the cylindrical coordinate system on the right/left side
+        ref_to_shell_z_vec = ref_to_shell_z * orientation_vector
+        ref_to_shell_r_vec = ref_to_shell_vec - ref_to_shell_z_vec
+        ref_to_shell_r = length(ref_to_shell_r_vec)
+        ref_to_shell_z = abs(ref_to_shell_z)
 
-            # produce a random vector perpendicular to the 'orientation_vector_z'
-            unit_vector3D = random_unit_vector()    # TODO find cheaper way
-            orientation_r = normalize(unit_vector3D - numpy.dot(unit_vector3D, orientation_z))
-        else:
-            orientation_r = normalize(ref_to_shell_r)
-
-
-        # calculate the center from which linear scaling will take place
+        # get the center from which linear scaling will take place
         scale_angle = get_scalingangle()
         scale_center_r, scale_center_z = get_scalingcenter() 
-        scale_center_to_shell_z = ref_to_shell_z - scale_center_z
         scale_center_to_shell_r = ref_to_shell_r - scale_center_r
+        scale_center_to_shell_z = ref_to_shell_z - scale_center_z
 
 
         # calculate the angle shell_angle of the vector from the scale center to the shell with the vector
