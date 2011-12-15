@@ -742,6 +742,7 @@ class MixedPair(Pair):
         D1 = single1.pid_particle_pair[1].D
         D2 = single2.pid_particle_pair[1].D
         D12 = D1 + D2
+        z_scaling = cls.calc_z_scaling_factor (D1, D2)
 
         # calculate the interparticle vector and project it onto the coordinate system of the structure
         # of particle1
@@ -751,7 +752,6 @@ class MixedPair(Pair):
         iv_y =     numpy.dot(iv, single1.structure.shape.unit_y)
         iv_z = abs(numpy.dot(iv, single1.structure.shape.unit_z))
 
-        z_scaling = cls.calc_z_scaling_factor (D1, D2)
         r0 = math.sqrt( iv_x**2 + iv_y**2 + (iv_z*z_scaling)**2)
 
         # calculate the minimal height z_right1 of the shell including burst radius
@@ -1056,12 +1056,11 @@ class MixedPair(Pair):
         # TODO change this to scaling ratio (this saves us an unnecassary arctan)
         D_r = D1 + D2
         D_R = (D1*D2)/(D1 + D2)
-
         z_scaling_factor = cls.calc_z_scaling_factor(D1, D2)
+        sqrt_DRDr = math.sqrt((2*D_R)/(3*D_r))
 
-        angle = math.atan( ( z_scaling_factor * ( math.sqrt( (2*D_R)/(3*D_r) ) + \
-                                                      max( D1/D_r, D2/D_r )
-                                                    )))
+        drdz =  z_scaling_factor * ( sqrt_DRDr + max( D1/D_r, D2/D_r ))
+        angle = math.atan( drdz )
         return angle
 
     @classmethod
@@ -1073,16 +1072,16 @@ class MixedPair(Pair):
         D2 = single2.pid_particle_pair[1].D
         D_r = D1 + D2
         D_R = (D1*D2)/(D1 + D2)
+        z_scaling_factor = cls.calc_z_scaling_factor(D1, D2)
+        sqrt_DRDr = math.sqrt((2*D_R)/(3*D_r))
 
         # calculate a_r such that the expected first-passage for the CoM and IV are equal
-        sqrt_DRDr = math.sqrt((2*D_R)/(3*D_r))
         a_r1 = (r - radius1 + r0*sqrt_DRDr ) / (sqrt_DRDr + (D1/D_r) )
         a_r2 = (r - radius2 + r0*sqrt_DRDr ) / (sqrt_DRDr + (D2/D_r) )
         # take the smallest that, if entered in the function for r below, would lead to this z_right
         a_r = min (a_r1, a_r2)
 
-        z_scaling_factor = cls.calc_z_scaling_factor(D1, D2)
-        z_right = (a_r/z_scaling_factor) + (radius2)
+        z_right = (a_r/z_scaling_factor) + radius2
 
         return z_right
 
@@ -1095,14 +1094,15 @@ class MixedPair(Pair):
         D2 = single2.pid_particle_pair[1].D
         D_r = D1 + D2
         D_R = (D1*D2)/(D1 + D2)
+        z_scaling_factor = cls.calc_z_scaling_factor(D1, D2)
+        sqrt_DRDr = math.sqrt((2*D_R)/(3*D_r))
 
         # we first calculate the a_r, since it is the only radius that depends on z_right only.
-        z_scaling_factor = cls.calc_z_scaling_factor(D1, D2)
-        a_r = (z_right - (radius2)) * z_scaling_factor
+        a_r = (z_right - radius2) * z_scaling_factor
 
         # We equalize the estimated first passage time for the CoM (2D) and IV (3D) for a given a_r
         # Note that for the IV we only take the distance to the outer boundary into account.
-        a_R = (a_r - r0)*math.sqrt((2*D_R)/(3*D_r))
+        a_R = (a_r - r0)*sqrt_DRDr
 
         # We calculate the maximum space needed for particles A and B based on maximum IV displacement
         iv_max = max( (D1/D_r * a_r + radius1),
