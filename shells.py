@@ -238,12 +238,86 @@ class hasCylindricalShell(hasShell):
 
     def get_center:
 
-    def get_dr_dzright_dzleft_to_shell(self, shell_appearance, domain_to_scale):
+    def get_dr_dzright_dzleft_to_shell(self, shell, domain_to_scale):
         # This will scale the 'domain_to_scale' (a cylinder) using the 'shell_appearance' as the limiting shell
         # CylindricaltestShell ('domain_to_scale') -> CylindricalShell ('self' with 'shell_appearance')
 
-        assert type(shell_appearance, Cylinder)        # because the shell actually originated here
+        log.debug('cylinder')
+
+        assert type(shell, Cylinder)        # because the shell actually originated here
         # Do Laurens' algorithm (part2)
+
+        shell_position = shell.shape.position
+        shell_radius = shell.shape.radius
+        shell_half_length = shell.shape.half_length
+
+
+        # get the reference point and orientation of the domain to scale
+        reference_point = domain_to_scale.get_referencepoint()
+        orientation_vector = domain_to_scale.get_orientation_vector()
+
+        # determine on what side the midpoint of the shell is relative to the reference_point
+        shell_position_t = world.cyclic_transpose (shell_position, reference_point)
+        ref_to_shell_vec = shell_position_t - reference_point
+        ref_to_shell_z = numpy.dot(ref_to_shell_vec, orientation_vector)
+
+        # if the shell is on the side of orientation_vector -> use z_right
+        # also use this one if the shell is in plane with the reference_point
+        if ref_to_shell_z >= 0:
+            direction = 1           # improve direction specification such that following calculations still work
+                                    # Otherwise problems when direction = 0
+            scale_angle = domain_to_scale.get_right_scalingangle()
+            scale_center_r, scale_center_z = domain_to_scale.get_right_scalingcenter() 
+            r1_function =  domain_to_scale.r_right
+            z1_function = domain_to_scale.z_right
+            z2_function = domain_to_scale.z_left
+            z1 = z_right
+            z2 = z_left
+        # else -> use z_left
+        else:
+            direction = -1
+            scale_angle = domain_to_scale.get_left_scalingangle()
+            scale_center_r, scale_center_z = domain_to_scale.get_left_scalingcenter() 
+            r1_function =  domain_to_scale.r_left
+            z1_function = domain_to_scale.z_left
+            z2_function = domain_to_scale.z_right
+            z1 = z_left
+            z2 = z_right
+
+        # calculate ref_to_shell_r/z in the cylindrical coordinate system on the right/left side
+        ref_to_shell_z_vec = ref_to_shell_z * orientation_vector
+        ref_to_shell_r_vec = ref_to_shell_vec - ref_to_shell_z_vec
+        ref_to_shell_r = length(ref_to_shell_r_vec)
+        ref_to_shell_z = abs(ref_to_shell_z)
+
+        # calculate the distances in r/z from the scaling center to the shell
+        scale_center_to_shell_r = ref_to_shell_r - scale_center_r
+        scale_center_to_shell_z = ref_to_shell_z - scale_center_z
+
+        # get angles
+        omega = math.atan( (scale_center_to_shell_r - shell_radius) / (scale_center_to_shell_z - shell_half_length) )
+        omega += Pi
+
+        if __debug__:
+            log.debug('omega = %s' % FORMAT_DOUBLE % omega)
+
+        if omega <= scale_angle:
+            z1_new = min(z1, (ref_to_shell_z - shell_half_length)/SAFETY)
+            r_new  = min(r,  r1_function(single1, single2, r0, z1_new))
+        else:
+            r_new = min(r, (ref_to_shell_r) - shell_radius)/SAFETY)
+            z1_new = min(z1, z1_function(single1, single2, r0, r_new))
+        z2_new = min(z2, z2_function(single1, single2, r0, r_new))
+
+
+        # switch the z values in case it's necessary. r doesn't have to be switched.
+        r = r_new
+        if direction >= 0.0:
+            z_right = z1_new
+            z_left  = z2_new
+        else:
+            z_right = z2_new
+            z_left  = z1_new
 
         return (r, z_right, z_left)
 
