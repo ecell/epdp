@@ -67,8 +67,8 @@ class hasSphericalShell(hasShell):
         if ref_to_shell_z >= 0:
             direction = 1           # improve direction specification such that following calculations still work
                                     # Otherwise problems when direction = 0
-            get_scale_angle  = domain_to_scale.get_right_scalingangle
-            get_scale_center = domain_to_scale.get_right_scalingcenter
+            scale_angle = domain_to_scale.get_right_scalingangle()
+            scale_center_r, scale_center_z = domain_to_scale.get_right_scalingcenter() 
             r1_function =  domain_to_scale.r_right
             z1_function = domain_to_scale.z_right
             z2_function = domain_to_scale.z_left
@@ -77,8 +77,8 @@ class hasSphericalShell(hasShell):
         # else -> use z_left
         else:
             direction = -1
-            get_scalingangle  = domain_to_scale.get_left_scalingangle
-            get_scalingcenter = domain_to_scale.get_left_scalingcenter
+            scale_angle = domain_to_scale.get_left_scalingangle()
+            scale_center_r, scale_center_z = domain_to_scale.get_left_scalingcenter() 
             r1_function =  domain_to_scale.r_left
             z1_function = domain_to_scale.z_left
             z2_function = domain_to_scale.z_right
@@ -92,8 +92,6 @@ class hasSphericalShell(hasShell):
         ref_to_shell_z = abs(ref_to_shell_z)
 
         # get the center from which linear scaling will take place
-        scale_angle = get_scalingangle()
-        scale_center_r, scale_center_z = get_scalingcenter() 
         scale_center_to_shell_r = ref_to_shell_r - scale_center_r
         scale_center_to_shell_z = ref_to_shell_z - scale_center_z
 
@@ -149,9 +147,8 @@ class hasSphericalShell(hasShell):
 
         ### Get the right values for z and r for the given situation
         if situation == 1:      # the spherical shell hits cylinder on the flat side
-            z1_new = min(z1, (scale_center_z + scale_center_to_shell_z - shell_radius)/SAFETY)
+            z1_new = min(z1, (ref_to_shell_z - shell_radius)/SAFETY)
             r_new  = min(r,  r1_function(single1, single2, r0, z1_new))
-            z2_new = min(z2, z2_function(single1, single2, r0, r_new))
 
         elif situation == 2:    # shell hits sphere on the edge
             shell_radius_sq = shell_radius*shell_radius
@@ -163,23 +160,21 @@ class hasSphericalShell(hasShell):
             scale_center_shell_dist = (scale_center_to_shell_len * cos_psi - math.sqrt(shell_radius_sq - ss_sq*sin_psi*sin_psi) )
             # FIXME UGLY FIX BELOW
 #            scale_center_shell_dist /= 1.1
-            scale_center_shell_dist /= SAFETY
 
             if scale_angle <= Pi/4:
-                z1_new = min(z1, scale_center_z + cos_scale_angle * scale_center_shell_dist)
+                z1_new = min(z1, (scale_center_z + cos_scale_angle * scale_center_shell_dist)/SAFETY)
                 r_new  = min(r, r1_function(single1, single2, r0, z1_new))
-                z2_new = min(z2, z2_function(single1, single2, r0, r_new))
             else:
-                r_new = min(r, scale_center_r + sin_scale_angle * scale_center_shell_dist)
+                r_new = min(r, (scale_center_r + sin_scale_angle * scale_center_shell_dist)/SAFETY)
                 z1_new = min(z1, z1_function(single1, single2, r0, r_new))
-                z2_new = min(z2, z2_function(single1, single2, r0, r_new))
 
         elif situation == 3:    # shell hits cylinder on the round side
-            r_new = min(r, (scale_center_r + abs(scale_center_to_shell_r) - shell_radius)/SAFETY)
+            r_new = min(r, (ref_to_shell_r - shell_radius)/SAFETY)
             z1_new = min(z1, z1_function(single1, single2, r0, r_new))
-            z2_new = min(z2, z2_function(single1, single2, r0, r_new))
         else:
             raise RuntimeError('Bad situation for cylindrical shell making to sphere.')
+
+        z2_new = min(z2, z2_function(single1, single2, r0, r_new))
 
         # switch the z values in case it's necessary. r doesn't have to be switched.
         r = r_new
@@ -193,12 +188,14 @@ class hasSphericalShell(hasShell):
         return (r, z_right, z_left)
 
 
-    def get_radius_to_shell(self, shell_appearance, domain_to_scale):
+    def get_radius_to_shell(self, shell, domain_to_scale):
         # SphericaltestShell ('domain_to_scale') -> SphericalShell ('self' with 'shell_appearance')
 
-        assert type(shell_appearance, Sphere)        # because the shell actually originated here
+        assert type(shell, Sphere)        # because the shell actually originated here
         # Do simple distance calculation to sphere
 
+        scale_point = domain_to_scale.center
+        r = world.distance(shell.shape, scale_point)
         return r
 
 #####
@@ -224,9 +221,12 @@ class SphericalSingle(hasSphericalShell, NonInteractionSingles):
 #####
 class SphericalPair(hasSphericalShell, Others):
 
+    pass
+
 #####
 class Multi(hasSphericalShell, Others):
 
+    pass
 
 #########################
 class hasCylindricalShell(hasShell):
@@ -237,6 +237,7 @@ class hasCylindricalShell(hasShell):
         self.half_length = uitrekenen zie interactions
 
     def get_center:
+        pass
 
     def get_dr_dzright_dzleft_to_shell(self, shell, domain_to_scale, r, z_right, z_left):
         # This will scale the 'domain_to_scale' (a cylinder) using the 'shell_appearance' as the limiting shell
@@ -324,12 +325,14 @@ class hasCylindricalShell(hasShell):
 
         return (r, z_right, z_left)
 
-    def get_radius_to_shell(self, shell_appearance, domain_to_scale):
+    def get_radius_to_shell(self, shell, domain_to_scale):
         # SphericaltestShell ('domain_to_scale') -> CylindricalShell ('self' with 'shell_appearance')
 
-        assert type(shell_appearance, Cylinder)        # because the shell actually originated here
+        assert type(shell, Cylinder)        # because the shell actually originated here
         # Do simple distance calculation to cylinder
 
+        scale_point = domain_to_scale.center
+        r = world.distance(shell.shape, scale_point)
         return r
 
 #####
@@ -679,6 +682,9 @@ class CylindricalSurfaceInteractiontestShell(CylindricaltestShell, Others):
 #####
 class MixedPair3D2DtestShell(CylindricaltestShell, Others):
 
+    def __init__(self, single2D, single3D):
+
+
     def get_orientation_vector(self):
         result = do_calculation
         return result
@@ -703,21 +709,53 @@ class MixedPair3D2DtestShell(CylindricaltestShell, Others):
         # returns the scaling center in the cylindrical coordinates r, z of the shell
         # Note that we assume cylindrical symmetry
         # Note also that it is relative to the 'side' (right/left) of the cylinder
-        # note calculate this only once since 'orientation_z' doens't change
-        # for different shells
-        h0_right = bla
-        return 0, h0_right
+        return 0.0, self.z_right(0.0)
 
     def get_left_scalingcenter(self):
-        # note calculate this only once since orientation_z doesn't change
-        # for difference shells
-        return 0, particle_radius
+        return 0.0, self.z_left(0.0)
 
     def get_right_scalingangle(self):
-        return bla
+        drdz =  z_scaling_factor * ( sqrt_DRDr + max( D1/D_r, D2/D_r ))
+        angle = math.atan( drdz )
+        return angle
 
     def get_left_scalingangle(self):
         return Pi/2.0
+
+    def z_right(self, r):
+        # calculate a_r such that the expected first-passage for the CoM and IV are equal
+        a_r1 = (r - radius1 + r0*sqrt_DRDr ) / (sqrt_DRDr + (D1/D_r) )
+        a_r2 = (r - radius2 + r0*sqrt_DRDr ) / (sqrt_DRDr + (D2/D_r) )
+        # take the smallest that, if entered in the function for r below, would lead to this z_right
+        a_r = min (a_r1, a_r2)
+
+        return (a_r/z_scaling_factor) + radius2
+
+    def r_right(self, z):
+        # we first calculate the a_r, since it is the only radius that depends on z_right only.
+        a_r = (z_right - radius2) * self.z_scaling_factor
+
+        # We equalize the estimated first passage time for the CoM (2D) and IV (3D) for a given a_r
+        # Note that for the IV we only take the distance to the outer boundary into account.
+        a_R = (a_r - r0)*sqrt_DRDr
+
+        # We calculate the maximum space needed for particles A and B based on maximum IV displacement
+        iv_max = max( (D1/D_r * a_r + radius1),
+                      (D2/D_r * a_r + radius2))
+
+        return a_R + iv_max
+
+    def z_left(self, r):
+        return single1.pid_particle_pair[1].radius
+
+    def r_left(self, z):
+        return numpy.inf
+
+
+    def get_z_scaling_factor(self):
+        D2d = self.single2D.pid_partcle_pair[1].D
+        D3d = self.single3D.pid_partcle_pair[1].D
+        return math.sqrt( (D2d + D3d) / D3d)
 
 #####
 #class MixedPair3D1DtestShell(CylindricaltestShell, Others):
