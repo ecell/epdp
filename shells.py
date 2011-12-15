@@ -104,21 +104,14 @@ class hasSphericalShell(hasShell):
 
         # calculate the center from which linear scaling will take place
         scale_angle = get_scalingangle()
-        scale_center = get_scalingcenter(orientation_z, orientation_r) 
-        scale_center = world.apply_boundary(scale_center)
-        scale_center_z = 
-        scale_center_r = 
-
-        # calculate the vector from the scale center to the center of the shell
-        shell_position_t = world.cyclic_transpose (shell_position, scale_center)
-        scale_center_to_shell = shell_position_t - scale_center
-        scale_center_to_shell_z = numpy.dot(scale_center_to_shell, orientation_vector_z)
-        scale_center_to_shell_r = numpy.dot(scale_center_to_shell, orientation_vector_r)
+        scale_center_z, scale_center_r = get_scalingcenter(orientation_z, orientation_r) 
+        scale_center_to_shell_z = ref_to_shell_z - scale_center_z
+        scale_center_to_shell_r = ref_to_shell_r - scale_center_r
 
 
         # calculate the angle shell_angle of the vector from the scale center to the shell with the vector
         # to the scale center (which is +- the orientation_vector)
-        shell_angle = vector_angle (scale_center_to_shell, orientation_z)
+        shell_angle = math.atan(scale_center_to_shell_r/scale_center_to_shell_z)
 
         psi = shell_angle - scale_angle
 
@@ -173,8 +166,8 @@ class hasSphericalShell(hasShell):
 
         elif situation == 2:    # shell hits sphere on the edge
             shell_radius_sq = shell_radius*shell_radius
-            scale_center_to_shell_len = length(scale_center_to_shell)
-            ss_sq = scale_center_to_shell_len*scale_center_to_shell_len
+            ss_sq = (scale_center_to_shell_z**2 + scale_center_to_shell_r**2)
+            scale_center_to_shell_len = math.sqrt(ss_sq)
             sin_scale_angle = math.sin(scale_angle)
             sin_psi = math.sin(psi)
             cos_psi = math.cos(psi)
