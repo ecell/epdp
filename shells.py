@@ -104,7 +104,7 @@ class hasSphericalShell(hasShell):
 
         # calculate the center from which linear scaling will take place
         scale_angle = get_scalingangle()
-        scale_center_z, scale_center_r = get_scalingcenter(orientation_z, orientation_r) 
+        scale_center_r, scale_center_z = get_scalingcenter() 
         scale_center_to_shell_z = ref_to_shell_z - scale_center_z
         scale_center_to_shell_r = ref_to_shell_r - scale_center_r
 
@@ -435,13 +435,17 @@ class PlanarSurfaceSingletestShell(CylindricaltestShell, NonInteractionSingles):
         dz_left = particle_radius
         return (dr, dz_right, dz_left)
 
-    def get_right_scalingcenter(self, orientation_z, orientation_r):
-        # returns the scaling center in the coordinate system of the plane through
-        # scaling cylinder and the neighboring shell
-        return particle_radius * orientation_z + self.reference_point
+    def get_right_scalingcenter(self):
+        # returns the scaling center in the cylindrical coordinates r, z of the shell
+        # Note that we assume cylindrical symmetry
+        # Note also that it is relative to the 'side' (right/left) of the cylinder
+        return 0, particle_radius
 
-    def get_left_scalingcenter(self, orientation_z, orientation_r):
-        return particle_radius * orientation_z + self.reference_point
+    def get_left_scalingcenter(self):
+        # returns the scaling center in the cylindrical coordinates r, z of the shell
+        # Note that we assume cylindrical symmetry
+        # Note also that it is relative to the 'side' (right/left) of the cylinder
+        return 0, particle_radius 
 
     def get_right_scalingangle(self):
         return Pi/2.0
@@ -495,17 +499,17 @@ class CylindricalSurfaceSingletestShell(CylindricaltestShell, NonInteractionSing
         dz_left = dz_right
         return (dr, dz_right, dz_left)
 
-    def get_right_scalingcenter(self, orientation_z, orientation_r):
-        # returns the scaling center in the coordinate system of the plane through
-        # scaling cylinder and the neighboring shell
-        #
-        # Note that the scalingcenter depends on the position of the shell,
-        # and therefor orientation_r changes for every shell -> recalculate
-        return orientation_r * self.particle_radius + self.reference_point
+    def get_right_scalingcenter(self):
+        # returns the scaling center in the cylindrical coordinates r, z of the shell
+        # Note1: we assume cylindrical symmetry
+        # Note2: it is relative to the 'side' (right/left) of the cylinder
+        # Note3: we assume that the r-axis goes from the center of the cylinder to the
+        #        center of the shell.
+        return self.particle_radius, 0
 
-    def get_left_scalingcenter(self, orientation_z, orientation_r):
+    def get_left_scalingcenter(self):
         # same here
-        return orientation_r * self.particle_radius + self.reference_point
+        return self.particle_radius, 0
 
     def get_right_scalingangle(self):
         return 0
@@ -539,16 +543,22 @@ class PlanarSurfaceInteractiontestShell(CylindricaltestShell, Others):
         result = calc_based_on_scaling_stuff
         return (dr, dz_right, dz_left)
 
-    def get_right_scalingcenter(self, orientation_z, orientation_r):
+    def get_right_scalingcenter(self):
+        # returns the scaling center in the cylindrical coordinates r, z of the shell
+        # Note that we assume cylindrical symmetry
+        # Note also that it is relative to the 'side' (right/left) of the cylinder
         # note calculate this only once since 'orientation_z' doens't change
         # for different shells -> scalingcenter is a fixed point
         h0_right = distance_particle_surface
-        return orientation_z * h0_right + self.reference_point
+        return 0, h0_right
 
-    def get_left_scalingcenter(self, orientation_z, orientation_r):
+    def get_left_scalingcenter(self):
+        # returns the scaling center in the cylindrical coordinates r, z of the shell
+        # Note that we assume cylindrical symmetry
+        # Note also that it is relative to the 'side' (right/left) of the cylinder
         # note calculate this only once since orientation_z doesn't change
         # for difference shells -> scalingcenter is a fixed point
-        return orientation_z * particle_radius + self.reference_point
+        return 0, particle_radius
 
     def get_right_scalingangle(self):
         return bla
@@ -576,17 +586,23 @@ class CylindricalSurfaceInteractiontestShell(CylindricaltestShell, Others):
         result = calc_based_on_scaling_stuff
         return (dr, dz_right, dz_left)
 
-    def get_right_scalingcenter(self, orientation_z, orientation_r):
+    def get_right_scalingcenter(self):
+        # returns the scaling center in the cylindrical coordinates r, z of the shell
+        # Note that we assume cylindrical symmetry
+        # Note also that it is relative to the 'side' (right/left) of the cylinder
         # note calculate this only once since 'orientation_z' doens't change
         # for different shells -> scalingcenter is a fixed point
         h0_right = smt
-        return orientation_z * h0_right + self.reference_point
+        return 0, h0_right
 
-    def get_left_scalingcenter(self, orientation_z, orientation_r):
+    def get_left_scalingcenter(self):
+        # returns the scaling center in the cylindrical coordinates r, z of the shell
+        # Note that we assume cylindrical symmetry
+        # Note also that it is relative to the 'side' (right/left) of the cylinder
         # note calculate this only once since orientation_z doesn't change
         # for difference shells -> scalingcenter is a fixed point
         h0_left = h0_right
-        return orientation_z * h0_left + self.reference_point
+        return 0, h0_left
 
     def get_right_scalingangle(self):
         return bla
@@ -617,16 +633,19 @@ class MixedPair3D2DtestShell(CylindricaltestShell, Others):
         dr, dz_right = calc_based_on_scaling_stuff
         return (dr, dz_right, dz_left)
 
-    def get_right_scalingcenter(self, orientation_z, orientation_r):
+    def get_right_scalingcenter(self):
+        # returns the scaling center in the cylindrical coordinates r, z of the shell
+        # Note that we assume cylindrical symmetry
+        # Note also that it is relative to the 'side' (right/left) of the cylinder
         # note calculate this only once since 'orientation_z' doens't change
         # for different shells
         h0_right = bla
-        return orientation_z * h0_right + self.reference_point
+        return 0, h0_right
 
-    def get_left_scalingcenter(self, orientation_z, orientation_r):
+    def get_left_scalingcenter(self):
         # note calculate this only once since orientation_z doesn't change
         # for difference shells
-        return orientation_z * particle_radius + self.reference_point
+        return 0, particle_radius
 
     def get_right_scalingangle(self):
         return bla
