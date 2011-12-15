@@ -238,11 +238,12 @@ class hasCylindricalShell(hasShell):
 
     def get_center:
 
-    def get_dr_dzright_dzleft_to_shell(self, shell, domain_to_scale):
+    def get_dr_dzright_dzleft_to_shell(self, shell, domain_to_scale, r, z_right, z_left):
         # This will scale the 'domain_to_scale' (a cylinder) using the 'shell_appearance' as the limiting shell
         # CylindricaltestShell ('domain_to_scale') -> CylindricalShell ('self' with 'shell_appearance')
 
-        log.debug('cylinder')
+        if __debug__:
+            log.debug('cylinder')
 
         assert type(shell, Cylinder)        # because the shell actually originated here
         # Do Laurens' algorithm (part2)
@@ -302,9 +303,11 @@ class hasCylindricalShell(hasShell):
             log.debug('omega = %s' % FORMAT_DOUBLE % omega)
 
         if omega <= scale_angle:
+            # shell hits the scaling cylinder on top
             z1_new = min(z1, (ref_to_shell_z - shell_half_length)/SAFETY)
             r_new  = min(r,  r1_function(single1, single2, r0, z1_new))
         else:
+            # shell hits the scaling cylinder on the radial side
             r_new = min(r, (ref_to_shell_r) - shell_radius)/SAFETY)
             z1_new = min(z1, z1_function(single1, single2, r0, r_new))
         z2_new = min(z2, z2_function(single1, single2, r0, r_new))
