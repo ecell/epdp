@@ -480,6 +480,18 @@ class CylindricaltestShell(testShell):
     def get_searchradius():
         return max_that_fits_correctly
             
+    def r_right(self, z_right):
+        return self.drdz_right * z_right + self.r0_right
+    def z_right(self, r_right):
+        return self.dzdr_right * r_right + self.z0_right
+    def r_left(self, z_left):
+        return self.drdz_left * z_left + self.r0_left
+    def z_left(self, r_left):
+        return self.dzdr_left * r_left + self.z0_left
+
+    def max_shell_thing(self):
+        pass    # todo
+
 #####
 class PlanarSurfaceSingletestShell(CylindricaltestShell, NonInteractionSingles):
 
@@ -547,6 +559,16 @@ class PlanarSurfacePairtestShell(hasCylindricalShell, Others):
 #####
 class CylindricalSurfaceSingletestShell(CylindricaltestShell, NonInteractionSingles):
 
+        # scaling parameters
+        self.dzdr_right = numpy.inf
+        self.drdz_right = 0.0
+        self.r0_right   = particle_radius
+        self.z0_right   = 0.0
+        self.dzdr_left  = numpy.inf
+        self.drdz_left  = 0.0
+        self.r0_left    = particle_radius
+        self.z0_left    = 0.0
+
     def orientation_vector(self):
         return structure.shape.unit_z   # just copy from structure
 
@@ -592,6 +614,16 @@ class CylindricalSurfacePairtestShell(CylindricaltestShell, Others):
 #####
 class PlanarSurfaceInteractiontestShell(CylindricaltestShell, Others):
 
+        # scaling parameters
+        self.dzdr_right = 1.0
+        self.drdz_right = 1.0
+        self.r0_right   = 0.0
+        self.z0_right   = distance_particle_refpoint
+        self.dzdr_left  = 0.0
+        self.drdz_left  = numpy.inf
+        self.r0_left    = 0.0
+        self.z0_left    = particle_radius
+
     def get_orientation_vector(self):
         result = do_calculation
         return result
@@ -630,13 +662,25 @@ class PlanarSurfaceInteractiontestShell(CylindricaltestShell, Others):
         return 0, particle_radius
 
     def get_right_scalingangle(self):
-        return bla
+        return Pi/4.0
 
     def get_left_scalingangle(self):
         return Pi/2.0
 
 #####
 class CylindricalSurfaceInteractiontestShell(CylindricaltestShell, Others):
+
+    def __init__(self):
+
+        # scaling parameters
+        self.dzdr_right = 1.0
+        self.drdz_right = 1.0
+        self.r0_right   = 0.0
+        self.z0_right   = calculate_it
+        self.dzdr_left  = 1.0
+        self.drdz_left  = 1.0
+        self.r0_left    = 0.0
+        self.z0_left    = calculate_it
 
     def get_orientation_vector(self):
         return structure.shape.unit_z
