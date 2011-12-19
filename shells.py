@@ -31,7 +31,7 @@ class NonInteractionSingles(object):
 class hasShell(object):
 
     def __init__(self, testShell):
-        self.testShell = testShell
+        pass
 
 #    def shell_list(self):
 #            return self.shell_list
@@ -39,12 +39,13 @@ class hasShell(object):
 #######################
 class hasSphericalShell(hasShell):
 # The testShell is now converted into smt that we can use in the domain instance
-# FIXME TODO This doesn't work for a Multi!!
 
     def __init__(self, sphericaltestShell):
+    # Note that the Multi should not call __init__ because we don't want to initialize the shell
 
         hasShell.__init__(self, sphericaltestShell)
 
+        self.testShell = sphericaltestShell
         self.shell_center = sphericaltestShell.center
         self.shell_radius = sphericaltestShell.radius
         self.shell = self.create_new_shell(self.shell_center,
@@ -249,6 +250,7 @@ class hasCylindricalShell(hasShell):
 
         hasShell.__init__(self, cylindricaltestShell)
 
+        self.testShell = cylindricaltestShell
         self.shell_center = cylindricaltestShell.get_referencepoint() + \
                             ((cylindricaltestShell.dz_right - cylindricaltestShell.dz_left)/2.0) * \
                             cylindricaltestShell.get_orientation_vector()
@@ -262,7 +264,7 @@ class hasCylindricalShell(hasShell):
                                            self.domain_id)
 
     def create_new_shell(self, position, radius, half_length, domain_id):
-        orientation = self.get_orientation_vector()
+        orientation = self.testShell.get_orientation_vector()
         return CylindricalShell(domain_id, Cylinder(position, radius, orientation, half_length))
 
     def get_dr_dzright_dzleft_to_shell(self, shell, domain_to_scale, r, z_right, z_left):
