@@ -26,11 +26,11 @@ greensFunction1DRadAbs.pdf: greensFunction1DRadAbs.tex include/greensFunction1DR
 greensFunction1DRadInf.pdf: greensFunction1DRadInf.tex include/greensFunction1DRadInf.include.tex
 	$(PDFLATEX) greensFunction1DRadInf.tex
 
-greensFunction1DAbsSinkAbs.pdf: greensFunction1DAbsSinkAbs.tex include/greensFunction1DAbsSinkAbs.include.tex 
-	$(PDFLATEX) greensFunction1DAbsSinkAbs.tex 
-	
-greensFunction1DInfSinkInf.pdf: greensFunction1DInfSinkInf.tex include/greensFunction1DInfSinkInf.include.tex 
-	$(PDFLATEX) greensFunction1DInfSinkInf.tex 
+greensFunction1DAbsSinkAbs.pdf: greensFunction1DAbsSinkAbs.tex include/greensFunction1DAbsSinkAbs.include.tex
+	$(PDFLATEX) greensFunction1DAbsSinkAbs.tex
+
+greensFunction1DInfSinkInf.pdf: greensFunction1DInfSinkInf.tex include/greensFunction1DInfSinkInf.include.tex
+	$(PDFLATEX) greensFunction1DInfSinkInf.tex
 
 greensFunction2DRadAbs.pdf: greensFunction2DRadAbs.tex include/greensFunction2DRadAbs.include.tex
 	$(PDFLATEX) greensFunction2DRadAbs.tex
