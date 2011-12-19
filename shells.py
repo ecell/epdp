@@ -36,8 +36,6 @@ class hasShell(object):
 #######################
 class hasSphericalShell(hasShell):
 
-    self.shell
-
     def __init__(self, sphericaltestShell):
         self.center = sphericaltestShell.center
         self.radius = sphericaltestShell.radius
@@ -477,9 +475,7 @@ class CylindricaltestShell(testShell):
         else
             return None
 
-    def get_searchradius():
-        return max_that_fits_correctly
-            
+    # default functions for evaluating z_right/z_left/r after one of parameters changed
     def r_right(self, z_right):
         return self.drdz_right * z_right + self.r0_right
     def z_right(self, r_right):
@@ -489,11 +485,22 @@ class CylindricaltestShell(testShell):
     def z_left(self, r_left):
         return self.dzdr_left * r_left + self.z0_left
 
-    def max_shell_thing(self):
-        pass    # todo
+    def get_max_dr_dzright_dzleft(self):
+        pass    # todo, we should be able to derive this from the scaling parameters and searchpoint
 
 #####
 class PlanarSurfaceSingletestShell(CylindricaltestShell, NonInteractionSingles):
+
+    def __init__(self):
+        # scaling parameters
+        self.dzdr_right = 0.0
+        self.drdz_right = numpy.inf
+        self.r0_right   = 0.0
+        self.z0_right   = particle_radius
+        self.dzdr_left  = 0.0
+        self.drdz_left  = numpy.inf
+        self.r0_left    = 0.0
+        self.z0_left    = particle_radius
 
     def get_orientation_vector(self):
         return structure.shape.unit_z   # just copy from structure
@@ -537,6 +544,17 @@ class PlanarSurfaceSingletestShell(CylindricaltestShell, NonInteractionSingles):
 #####
 class PlanarSurfacePairtestShell(hasCylindricalShell, Others):
 
+    def __init__(self):
+        # scaling parameters
+        self.dzdr_right = 0.0
+        self.drdz_right = numpy.inf
+        self.r0_right   = 0.0
+        self.z0_right   = max(particle_radius1, particle_radius2)
+        self.dzdr_left  = 0.0
+        self.drdz_left  = numpy.inf
+        self.r0_left    = 0.0
+        self.z0_left    = max(particle_radius1, particle_radius2)
+
     def get_orientation_vector(self):
         return structure.shape.unit_z
 
@@ -559,6 +577,7 @@ class PlanarSurfacePairtestShell(hasCylindricalShell, Others):
 #####
 class CylindricalSurfaceSingletestShell(CylindricaltestShell, NonInteractionSingles):
 
+    def __init__(self):
         # scaling parameters
         self.dzdr_right = numpy.inf
         self.drdz_right = 0.0
@@ -611,9 +630,21 @@ class CylindricalSurfaceSingletestShell(CylindricaltestShell, NonInteractionSing
 #####
 class CylindricalSurfacePairtestShell(CylindricaltestShell, Others):
 
+    def __init__(self):
+        # scaling parameters
+        self.dzdr_right = numpy.inf
+        self.drdz_right = 0.0
+        self.r0_right   = max(particle_radius1, particle_radius2)
+        self.z0_right   = 0.0
+        self.dzdr_left  = numpy.inf
+        self.drdz_left  = 0.0
+        self.r0_left    = max(particle_radius1, particle_radius2)
+        self.z0_left    = 0.0
+
 #####
 class PlanarSurfaceInteractiontestShell(CylindricaltestShell, Others):
 
+    def __init__(self):
         # scaling parameters
         self.dzdr_right = 1.0
         self.drdz_right = 1.0
@@ -680,7 +711,7 @@ class CylindricalSurfaceInteractiontestShell(CylindricaltestShell, Others):
         self.dzdr_left  = 1.0
         self.drdz_left  = 1.0
         self.r0_left    = 0.0
-        self.z0_left    = calculate_it
+        self.z0_left    = calculate_it (same as above)
 
     def get_orientation_vector(self):
         return structure.shape.unit_z
@@ -728,6 +759,15 @@ class MixedPair3D2DtestShell(CylindricaltestShell, Others):
 
     def __init__(self, single2D, single3D):
 
+        # scaling parameters
+        self.dzdr_right = calculate_it
+        self.drdz_right = calculate_it
+        self.r0_right   = 0.0
+        self.z0_right   = calculate_it
+        self.dzdr_left  = 0.0
+        self.drdz_left  = numpy.inf
+        self.r0_left    = 0.0
+        self.z0_left    = particle2D_radius
 
     def get_orientation_vector(self):
         result = do_calculation
