@@ -337,7 +337,8 @@ class SphericalSingle(NonInteractionSingle):
     def shell_list_for_single(self):
         min_radius = self.pid_particle_pair[1].radius * Domain.MULTI_SHELL_FACTOR
         if  self.shell.shape.radius < min_radius:
-            fake_shell = self.testShell.create_new_shell(min_radius, self.domain_id)
+            position = self.shape.shell.position
+            fake_shell = self.create_new_shell(position, min_radius, self.domain_id)
             return [(self.shell_id, fake_shell), ]
         else:
             return self.shell_list
@@ -345,7 +346,8 @@ class SphericalSingle(NonInteractionSingle):
     def shell_list_for_other(self):
         min_radius = self.pid_particle_pair[1].radius * Domain.SINGLE_SHELL_FACTOR
         if self.shell.shape.radius < min_radius:
-            fake_shell = self.testShell.create_new_shell(min_radius, self.domain_id)
+            position = self.shape.shell.position
+            fake_shell = self.create_new_shell(position, min_radius, self.domain_id)
             return [(self.shell_id, fake_shell), ]
         else:
             return self.shell_list
