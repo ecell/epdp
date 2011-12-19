@@ -37,6 +37,8 @@ class Single(ProtectiveDomain):
 
         self.pid_particle_pair = pid_particle_pair      # the particle in the single
         self.structure = structure                      # the structure in/on which the particle lives
+#        self.pid_particle_pair = testShell.pid_particle_pair      # the particle in the single
+#        self.structure = testShell.structure                      # the structure in/on which the particle lives
 
         self.reactionrules = reactionrules              # the reaction rules for mono molecular reactions
         self.rrule = None                               # the reaction rule of the actual reaction (property reactionrule)
@@ -300,6 +302,7 @@ class NonInteractionSingle(Single):
 
 
 class SphericalSingle(NonInteractionSingle):
+#class SphericalSingle(NonInteractionSingle, NonInteractionSingles, hasSphericalShell):
     """1 Particle inside a (spherical) shell not on any surface.
 
         * Particle coordinate inside shell: r, theta, phi.
@@ -311,15 +314,42 @@ class SphericalSingle(NonInteractionSingle):
     """
     def __init__(self, domain_id, pid_particle_pair, shell_id, reactionrules, 
                  structure):
+#    def __init__(self, domain_id, shell_id, testShell, reactionrules):
+#        This should also be moved to single, since it's the same for all NonInteractionSingles
+#        -> change constructor
+#        pid_particle_pair = testShell.pid_particle_pair
+#        structure = testShell.structure
         NonInteractionSingle.__init__(self, domain_id, pid_particle_pair, 
                                       shell_id, reactionrules, structure)
+#        hasSphericalShell.__init__(self, testShell)
 
     def greens_function(self):
         return GreensFunction3DAbsSym(self.getD(),
                                           self.get_inner_a())
 
+# this can go
     def create_new_shell(self, position, radius, domain_id):
         return SphericalShell(self.domain_id, Sphere(position, radius))
+
+# instead we have this
+    # specific shell methods for the SphericalSingle
+    # these return potentially corrected dimensions
+    def shell_list_for_single(self):
+        min_radius = self.pid_particle_pair[1].radius * Domain.MULTI_SHELL_FACTOR
+        if  self.shell.shape.radius < min_radius:
+            fake_shell = self.testShell.create_new_shell(min_radius, self.domain_id)
+            return [(self.shell_id, fake_shell), ]
+        else:
+            return self.shell_list
+
+    def shell_list_for_other(self):
+        min_radius = self.pid_particle_pair[1].radius * Domain.SINGLE_SHELL_FACTOR
+        if self.shell.shape.radius < min_radius:
+            fake_shell = self.testShell.create_new_shell(min_radius, self.domain_id)
+            return [(self.shell_id, fake_shell), ]
+        else:
+            return self.shell_list
+
 
     def create_position_vector(self, r):
         return random_vector(r)
