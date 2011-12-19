@@ -39,13 +39,14 @@ class hasShell(object):
 #######################
 class hasSphericalShell(hasShell):
 # The testShell is now converted into smt that we can use in the domain instance
+# FIXME TODO This doesn't work for a Multi!!
 
     def __init__(self, sphericaltestShell):
 
         hasShell.__init__(self, sphericaltestShell)
 
-        self.shell_center = self.sphericaltestShell.center
-        self.shell_radius = self.sphericaltestShell.radius
+        self.shell_center = sphericaltestShell.center
+        self.shell_radius = sphericaltestShell.radius
         self.shell = self.create_new_shell(self.shell_center,
                                            self.shell_radius,
                                            self.domain_id)
