@@ -3,6 +3,8 @@
 
 class Others(object):
 
+    def __init__(self):
+        pass    # do nothing
     # stuff for hasShell subclasses
     def shell_list_for_single(self):
         return self.shell_list
@@ -16,6 +18,8 @@ class Others(object):
 
 class NonInteractionSingles(object):
 
+    def __init__(self):
+        pass    # do nothing
     # stuff for hasShell subclasses
     def shell_list_for_single(self):
         pass    # needs to be overloaded
@@ -26,6 +30,76 @@ class NonInteractionSingles(object):
     def get_neighbor_shell_list(self, neighbor):
         # note that this returns the list of shells, NOT dr, dz_right, dz_left
         return neighbor.shell_list_for_single()
+
+##################################
+
+class testSingle(object):
+    def __init__(self, pid_particle_pair, structure):
+        self.pid_particle_pair = pid_particle_pair
+        self.structure = structure
+
+class testNonInteractionSingle(testSingle, NonInteractionSingles):
+    def __init__(self, pid_particle_pair, structure):
+        testSingle.__init__(self, pid_particle_pair, structure)
+
+class testInteractionSingle(testSingle, Others):
+    def __init__(self, single, structure, surface):
+        testSingle.__init__(self, single.pid_particle_pair, structure)
+        self.surface = surface
+
+##############
+class testPair(Others):
+    def __init__(self, single1, single2, structure):
+
+        assert single1.structure == single2.structure
+        self.single1 = single1
+        self.single2 = single2
+        self.pid_particle_pair1 = single1.pid_particle_pair
+        self.pid_particle_pair2 = single2.pid_particle_pair
+        self.structure = structure
+        self.com, self.iv = self.do_transform()
+        self.r0 = length(self.iv)
+
+    def do_transform(self):
+        pass        # overloaded later
+
+class testSimplePair(Pair):
+    def __init__(self, single1, single2, structure):
+        testPair.__init__(self, single1, single2, structure)
+
+    def get_D_tot(self):
+        return self.pid_particle_pair1[1].D + \
+               self.pid_particle_pair2[1].D
+    D_tot = property(get_D_tot)
+    D_r   = property(get_D_tot)
+
+    def get_D_R(self):
+        return (self.pid_particle_pair1[1].D *
+                self.pid_particle_pair2[1].D) / self.D_tot
+    D_R = property(get_D_R)
+
+    def get_sigma(self):
+        radius1 = self.pid_particle_pair1[1].radius
+        radius2 = self.pid_particle_pair2[1].radius
+        return radius1 + radius2
+    sigma = property(get_sigma)
+
+    def do_transform(self):
+    # TODO replace with get_com, get_iv methods/properties
+        pos1 = self.pid_particle_pair1[1].position
+        pos2 = self.pid_particle_pair2[1].position
+        D1 = self.pid_particle_pair1[1].D
+        D2 = self.pid_particle_pair2[1].D
+
+        com = self.world.calculate_pair_CoM(pos1, pos2, D1, D2)
+        com = self.world.apply_boundary(com)
+        # make sure that the com is in the structure of the particle (assume that this is done correctly in
+        # calculate_pair_CoM)
+
+        pos2t = self.world.cyclic_transpose(pos2, pos1)
+        iv = pos2t - pos1
+
+        return com, iv
 
 ##################################
 class hasShell(object):
@@ -424,32 +498,46 @@ class MixedPair3D2D(hasCylindricalShell, Others):
 #######################################################
 class testShell(object):
 
-    def __init__(self):
-        self.shell = None
+    def __init__(self, geometrycontainer, domains):
+        self.geometrycontainer = geometerycontainer
+        self.world = geometrycontainer.world
+        self.domains = domains
 
-    def get_neighbors(self):
+    def get_neighbors(self, ignore, ignores):
         searchpoint = self.get_searchpoint()
         radius = self.get_searchradius()
-        return self.geometrycontainer.get_neigbors(searchpoint, radius)
+
+        neighbor_domains  = self.geometrycontainer.get_neighbor_domains(searchpoint, self.domains, ignore)
+        neighbor_surfaces = self.geometrycontainer.get_neighbor_surfaces(searchpoint, ignores)
+        return 
+
+    def get_orientation_vector(self):
+        pass    # overloaded later
 
 ########################
 class SphericaltestShell(testShell):
 
-    def __init__(self):
-        self.radius = 0
-        self.center = None
+    def __init__(self, geometrycontainer, domains):
+        testShell.__init__(self, geometrycontainer, domains)
 
-    def determine_possible_shell(self):
-        neighbors = self.get_neighbors()
+        self.center = None          # there are the parameters that we ultimately want to know
+        self.radius = 0
+
+    def determine_possible_shell(self, ignore, ignores):
+        neighbors = self.get_neighbors (ignore, ignores)
         min_radius = self.get_min_radius()
         max_radius = self.get_max_radius()
 
         radius = max_radius
+        # first check the surfaces
+
+
+        # then check the domains
         for neighbor in neighbors:
 
             shell_list = self.get_neighbor_shell_list(neighbor)
             for _, shell_appearance in shell_list:
-                new_radius = neighbor.shell_object.get_radius_to_shell(shell_appearance, self)
+                new_radius = neighbor.get_radius_to_shell(shell_appearance, self)
                 # if the newly calculated dimensions are smaller than the current one, use them
                 radius = min(radius, new_radius)
 
@@ -467,25 +555,62 @@ class SphericaltestShell(testShell):
         return self.center
     def get_searchradius(self):
         return self.geometrycontainer.max()
+    def get_orientation_vector(self):
+        return random_vector(1.0)
 
     def get_max_radius(self):
-        return shell_container.get_max_shell_size()
+        return self.geometrycontainer.get_max_shell_size()
 
 #####
-class SphericalSingletestShell(testSphericalShell, NonInteractionSingles):
+class SphericalSingletestShell(SphericaltestShell, testNonInteractionSingle):
 
-    self.center = particle_position
+    def __init__(self, pid_particle_pair, structure, geometrycontainer, domains):
+        SphericaltestShell.__init__(self, geometrycontainer, domains)
+        testNonInteractionSingle.__init__(self, pid_particle_pair, structure)
+
+        self.center = self.pid_particle_pair[1].position
+        self.radius = self.determine_possible_shell([], [structure.id])
 
     def get_min_radius(self):
-        return particle_radius * MULTI_SHELL_FACTOR     # the minimum radius of a NonInteractionSingle
+        return self.pid_particle_pair[1].radius * MULTI_SHELL_FACTOR     # the minimum radius of a NonInteractionSingle
 
 #####
-class SphericalPairtestShell(testSphericalShell, Others):
+class SphericalPairtestShell(SphericaltestShell, testSimplePair):
 
-    self.center = calculate CoM
+    def __init__(self, single1, single2, structure, geomterycontainer, domains):
+        SphericaltestShell.__init__(self, geometrycontainer, domains)
+        testSimplePair.__init__(self, single1, single2, structure)  # this should be second because of world definition
 
-    def get_min_radius:
-        return calculate_min_radius_see_sphericalpair
+        self.center = self.com
+        self.radius = self.determine_possible_shell([single1.domain_id, single2.domain_id],
+                                                    [structure.id])
+
+    def get_min_radius(self):
+        # TODO this doesn't really belong in testSimplePair, but is also general for all SimplePairs
+
+        # Is this assert here ok?
+        assert self.r0 >= self.sigma, \
+            'distance_from_sigma (pair gap) between %s and %s = %s < 0' % \
+            (self.single1, self.single2, FORMAT_DOUBLE % (self.r0 - self.sigma))
+
+        D1 = self.pid_particle_pair1[1].D
+        D2 = self.pid_particle_pair2[1].D
+        radius1 = self.pid_particle_pair1[1].radius
+        radius2 = self.pid_particle_pair2[1].radius
+
+        dist_from_com1 = self.r0 * D1 / self.D_tot      # particle distance from CoM
+        dist_from_com2 = self.r0 * D2 / self.D_tot
+        iv_shell_size1 = dist_from_com1 + radius1       # the shell should surround the particles
+        iv_shell_size2 = dist_from_com2 + radius2
+
+        # also fix the minimum shellsize for the CoM domain
+        com_shell_size = max(radius1, radius2)
+
+        # calculate total radii including the margin for the burst volume for the particles
+        shell_size = max(iv_shell_size1 + com_shell_size + radius1 * (1 - SINGLE_SHELL_FACTOR),
+                         iv_shell_size2 + com_shell_size + radius2 * (1 - SINGLE_SHELL_FACTOR))
+
+        return shell_size
 
 
 ##########################
