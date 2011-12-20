@@ -483,7 +483,7 @@ class SphericalPair(SimplePair):
     def create_new_shell(self, position, radius, domain_id):
         return SphericalShell(domain_id, Sphere(position, radius))
 
-# maybe this should be a part of hasShell
+# this is a part of hasShell (see testShell.get_orientation_vector())
     def get_shell_direction(self):
         return random_vector(1.0)
 
