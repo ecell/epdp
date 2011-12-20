@@ -1,0 +1,40 @@
+
+\subsection{1D Abs Abs}
+
+\paragraph{Green's function}
+
+ \begin{multline}
+ p_r(x,t|x_0) = -2 \sum_{i=1}^{\infty} \, e^{- D \beta_i ^2 t} \, \mathrm{sin} \, \beta_i (L_r - x) \\ 
+\frac{D \beta_i \, \mathrm{sin} \, \beta_i (L_l + x_0) + k \, \mathrm{sin} \, \beta_i L_l \,\, \mathrm{sin} \, \beta_i x_0}{D \, (L \beta_i \mathrm{cos} \, \beta_i L + \, \mathrm{sin} \, L \beta_i ) + k \,( L_r \, \mathrm{cos} \, \beta_i L_r \,\, \mathrm{sin} \, \beta_i L_l + L_l \, \mathrm{cos} \, \beta_i L_l \,\, \mathrm{sin} \, \beta_i L_r )},
+ \label{FSOL_R}
+\end{multline}
+
+\begin{multline}
+ p_l(x,t,|x_0) = -\sum_{i=1}^{\infty} e^{- D \beta_i ^2 t} \, 2 D \beta_i \, \\ 
+\frac{\mathrm{sin} \, \beta_i (L_l + x) \,\, \mathrm{sin} \, \beta_i (L_r - x_0)}{D \, (L \beta_i \mathrm{cos} \, \beta_i L + \, \mathrm{sin} \, L \beta_i ) + k \,( L_r \, \mathrm{cos} \, \beta_i L_r \,\, \mathrm{sin} \, \beta_i L_l + L_l \, \mathrm{cos} \, \beta_i L_l \,\, \mathrm{sin} \, \beta_i L_r )},
+\label{FSOL_L}
+\end{multline}
+
+where $L=L_r + L_l$ in both equations. Note that when $p_r$ is evaluated for $x<x_0$, $x$ and $x_0$ have to be interchanged in equation (\ref{FSOL_R}). This is due to the absolute sign in the Ansatz (\ref{Anz_R}).
+\end{align}
+
+\paragraph{Survival probability}
+\begin{align}
+  S_z(t) = \int_0^L p dz = \frac{4}{\pi} \sum_{m=0}^{\infty} \frac{1}{2m+1}
+  e^{-D_1(2m+1)^2\pi^2t/L^2} \sin\left(\frac{(2m+1)\pi z'}{L}\right).
+\end{align}
+
+\paragraph{Propensity function}
+\begin{align}
+  q_{z=0}(t) &= \left.D_1 \pd{p}{z}\right|_{z=0} = \frac{2\pi D_1}{L^2} 
+  \sum_{n=1}^{\infty} e^{-D_1n^2\pi^2t/L^2} n \sin\left(\frac{n\pi z'}{L}\right),\\
+  q_{z=L}(t) &= \left.- D_1 \pd{p}{z}\right|_{z=L} = \frac{2\pi D_1}{L^2} 
+  \sum_{n=1}^{\infty} e^{-D_1n^2\pi^2t/L^2} n (-1)^{n+1} \sin\left(\frac{n\pi z'}{L}\right).
+\end{align}
+
+\paragraph{Cumulative Green's function}
+\begin{align}
+  P(Z,t|z',t'=0) = \int_0^Z p dz =
+  \frac{2}{\pi} \sum_{n=1}^{\infty} e^{-D_1n^2\pi^2 t/L^2}
+      \frac{1}{n} \left[ 1 - \cos\left(\frac{n\pi Z}{L}\right) \right] \sin\left(\frac{n\pi z'}{L}\right).
+\end{align}
