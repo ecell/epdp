@@ -315,8 +315,8 @@ class SphericalSingle(NonInteractionSingle):
     def __init__(self, domain_id, pid_particle_pair, shell_id, reactionrules, 
                  structure):
 #    def __init__(self, domain_id, shell_id, testShell, reactionrules):
-#        This should also be moved to single, since it's the same for all NonInteractionSingles
-#        -> change constructor
+        # This should also be moved to single, since it's the same for all NonInteractionSingles
+        # -> change constructor
 #        pid_particle_pair = testShell.pid_particle_pair
 #        structure = testShell.structure
         NonInteractionSingle.__init__(self, domain_id, pid_particle_pair, 
