@@ -309,14 +309,17 @@ class SimplePair(Pair):
 
     def __init__(self, domain_id, shell_center, single1, single2, shell_id,
                       r0, shell_size, rrs, structure):
+#    def __init__(self, domain_id, shell_id, testShell, rrs) # TODO constructor above does not support this yet
         Pair.__init__(self, domain_id, single1, single2, shell_id,
                       r0, rrs)
 
         self.structure = structure              # structure on which both particles live
+#        self.structure = testShell.structure
 
         self.a_R, self.a_r = self.determine_radii(r0, shell_size)
         # set the radii of the inner domains as a function of the outer protective domain
 
+# this can go
         self.shell = self.create_new_shell(shell_center, shell_size, domain_id)
 
 
@@ -447,13 +450,24 @@ class SimplePair(Pair):
 
 
 class SphericalPair(SimplePair):
+#class SphericalPair(SimplePair, Other, hasSphericalShell):
     """2 Particles inside a (spherical) shell not on any surface.
 
     """
     def __init__(self, domain_id, shell_center, single1, single2, shell_id,
                  r0, shell_size, rrs, structure):
+#    def __init__(self, domain_id, shell_id, testShell, rrs):
+#        single1 = testShell.single1
+#        single2 = testShell.single2
+#        structure = testShell.structure
+#        shell_size = testShell.radius  # TODO this should be removed
+#        r0 = testShell.get_r0()        # TODO this should be removed
+
         SimplePair.__init__(self, domain_id, shell_center, single1, single2, shell_id,
                       r0, shell_size, rrs, structure)
+#        SimplePair.__init__(self, domain_id, shell_id, testShell, rrs) # TODO constructor above does not support this yet
+#        hasSphericalShell.__init__(self, testShell)
+
 
     def com_greens_function(self):
         # Green's function for centre of mass inside absorbing sphere.
@@ -465,9 +479,11 @@ class SphericalPair(SimplePair):
         return GreensFunction3DRadAbs(self.D_r, self.interparticle_ktot, r0,
                                               self.sigma, self.a_r)
 
+# this can go
     def create_new_shell(self, position, radius, domain_id):
         return SphericalShell(domain_id, Sphere(position, radius))
 
+# maybe this should be a part of hasShell
     def get_shell_direction(self):
         return random_vector(1.0)
 
