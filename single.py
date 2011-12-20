@@ -265,7 +265,7 @@ class NonInteractionSingle(Single):
 #                                              ignores=[self.structure.id])
 
         neighbor_domains = geometrycontainer.get_neighbor_domains(singlepos, domains, ignore=[self.domain_id, ])
-        neighbor_surfaces = geometrycontainer.get_neighbor_surfaces(singlepos, ignores=[self.structure.id])
+        neighbor_surfaces = geometrycontainer.get_neighbor_surfaces(singlepos, self.structure.id, ignores=[])
         neighbors = neighbor_domains + neighbor_surfaces
 
         # 2. Calculate the maximum allowed radius of the spherical domain
