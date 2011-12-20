@@ -751,6 +751,90 @@ class CylindricalSurfaceInteraction(InteractionSingle):
     def __str__(self):
         return 'CylindricalSurfaceInteraction' + Single.__str__(self)
 
+
+class CylindricalSurfaceSink(InteractionSingle):
+    """1 Particle inside a (Cylindrical) shell on a CylindricalSurface.
+        Inside the domain is a sink.
+
+        * Particle coordinates on surface: z.
+        * Domain: cartesian z.
+        * Initial position: z = 0.
+        * Selected randomly when drawing displacement vector: none.
+    """
+    def __init__(self, domain_id, pid_particle_pair, reactionrules, structure,
+                 shell_id, shell_center, shell_half_length, zsink, interactionrules, sink_surface):
+
+        InteractionSingle.__init__(self, domain_id, pid_particle_pair, reactionrules,
+                                   structure, shell_id, interactionrules, sink_surface)
+
+        # z0 is implied to be zero (the particle being in the center of the shell in the z direction)
+        self.zsink = zsink # Position of the sink, given that the particle is at the origin.
+        self.shell = self.create_new_shell(shell_center, 
+                                           pid_particle_pair[1].radius,
+                                           structure.shape.unit_z, 
+                                           shell_half_length)
+
+    def get_inner_a(self):
+        return self.shell.shape.half_length - self.pid_particle_pair[1].radius
+
+    def iv_greens_function(self):
+        # The Green's function used for both ESCAPE and IV (sink) events.
+        # Particle allways starts in the middle for now.
+        half_inner_length = self.get_innet_a()
+        return GreensFunction1DAbsSinkAbs(self.D, self.interaction_ktot, 0.0, self.zsink, 
+                                          -inner_half_length, inner_half_length)
+
+    def determine_next_event(self):
+        """Return an (event_time, event_type)-tuple.
+
+        """
+        return min(self.draw_reaction_time_tuple(),
+                   self.draw_iv_event_time_tuple())
+
+    def draw_new_position(self, dt, event_type):
+        oldpos = self.pid_particle_pair[1].position
+
+        if self.D == 0 or \
+                (event_type == EventType.SINGLE_REACTION and len(self.reactionrule.products) == 0):
+            newpos = oldpos
+        else:
+            gf = self.iv_greens_function()
+
+            if event_type == EventType.IV_EVENT:
+                self.event_type = self.draw_iv_event_type()
+                event_type = self.event_type
+
+            if event_type == EventType.IV_ESCAPE:
+                #Determine wether particle escaped at left (s) or right (a) boundary.
+                flux_a = fabs( gf.flux_leavea( dt ) )
+                flux_s = fabs( gf.flux_leaves( dt ) )
+                rnd = myrandom.uniform() * ( flux_a + flux_s )
+                
+                if( rnd < flux_a ):
+                    z = -get_inner_a();
+                else:
+                    z = get_inner_a();
+            elif event_type == EventType.IV_INTERACTION:
+                z = self.zsink
+            else:
+                z = draw_r_wrapper(gf, dt, get_inner_a(), -get_inner_a())
+
+        # Add displacement to shell.shape.position, not to particle.position.
+        z_vector = self.structure.shape.unit_z * z
+        newpos = self.shell.shape.position + z_vector
+
+        return newpos
+
+    def get_shell_size(self):
+        # REMOVE this method, it doesn't mean anything here.
+        # THis method is only used for making an Interaction
+        # Heads up. The cylinder's *half_length*, not radius, 
+        # determines the size in case of a cylindrical surface.
+        return self.shell.shape.half_length
+
+    def __str__(self):
+        return 'CylindricalSurfaceInteraction' + Single.__str__(self)
+
 class DummySingle(object):
     def __init__(self):
         self.multiplicity = 1
