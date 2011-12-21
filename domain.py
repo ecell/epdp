@@ -59,8 +59,8 @@ class Domain(object):
 
         return reactionrules[i]
 
-    def create_new_shell(self):         # needs to be overloaded in subclasses
-        pass                            # creates an appropriate shell object
+#    def create_new_shell(self):         # needs to be overloaded in subclasses
+#        pass                            # creates an appropriate shell object
 
 
 class ProtectiveDomain(Domain):
