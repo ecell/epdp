@@ -34,10 +34,6 @@ from utils import *
 from constants import *
 from shellcontainer import ShellContainer
 from shells import (
-    hasSphericalShell,
-    hasCylindricalShell,
-    NonInteractionSingles,
-    Others,
     SphericalSingletestShell,
     SphericalPairtestShell
     )
@@ -55,8 +51,7 @@ def create_default_single(domain_id, pid_particle_pair, shell_id, rt, structure,
     if isinstance(structure, CuboidalRegion):
         # first make the test shell
         testSingle = SphericalSingletestShell(pid_particle_pair, structure, geometrycontainer, domains)
-        return SphericalSingle(domain_id, pid_particle_pair,
-                               shell_id, rt, structure)
+        return SphericalSingle(domain_id, shell_id, testSingle, rt)
     elif isinstance(structure, CylindricalSurface):
         return CylindricalSurfaceSingle(domain_id, pid_particle_pair, 
                                         shell_id, rt, structure)
@@ -1406,11 +1401,17 @@ class EGFRDSimulator(ParticleSimulatorBase):
     def update_single(self, single): 
         assert isinstance(single, NonInteractionSingle) # This only works for 'simple' Singles
 
-        min_shell_size = single.get_min_shell_size()
-        max_shell_size = single.get_max_shell_size(self.geometrycontainer, self.domains)
+#        min_shell_size = single.get_min_shell_size()
+#        max_shell_size = single.get_max_shell_size(self.geometrycontainer, self.domains)
+#
+#        # Make sure that the new shell size is not too small or big
+#        new_shell_size = max(max_shell_size, min_shell_size)
 
-        # Make sure that the new shell size is not too small or big
-        new_shell_size = max(max_shell_size, min_shell_size)
+        new_shell_size = single.update_radius()
+
+        if __debug__:
+            log.info('update_single: single: %s, new_shell_size = %s' % \
+                     (single, FORMAT_DOUBLE % new_shell_size))
 
         # Resize shell, don't change position.
         # Note: this should be done before determine_next_event.
