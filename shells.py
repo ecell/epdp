@@ -509,7 +509,7 @@ class testShell(object):
 
         neighbor_domains  = self.geometrycontainer.get_neighbor_domains(searchpoint, self.domains, ignore)
         neighbor_surfaces = self.geometrycontainer.get_neighbor_surfaces(searchpoint, ignores)
-        return 
+        return neighbor_domains, neighbor_surfaces
 
     def get_orientation_vector(self):
         pass    # overloaded later
@@ -524,16 +524,22 @@ class SphericaltestShell(testShell):
         self.radius = 0
 
     def determine_possible_shell(self, ignore, ignores):
-        neighbors = self.get_neighbors (ignore, ignores)
+        neighbor_domains, neighbor_surfaces = self.get_neighbors (ignore, ignores)
         min_radius = self.get_min_radius()
         max_radius = self.get_max_radius()
 
         radius = max_radius
         # first check the surfaces
-
+        for surface, distance in neighbor_surfaces:
+            # FIXME ugly hack to make spherical singles overlap with membranes
+            if isinstance(surface, PlanarSurface) and isinstance(self, SphericalSingletestShell):
+                distance += self.pid_particle_pair[1].radius
+            radius = min(radius, distance)
+            if radius < min_radius:
+                return None
 
         # then check the domains
-        for neighbor in neighbors:
+        for neighbor, _ in neighbor_domains:
 
             shell_list = self.get_neighbor_shell_list(neighbor)
             for _, shell_appearance in shell_list:
@@ -542,14 +548,12 @@ class SphericaltestShell(testShell):
                 radius = min(radius, new_radius)
 
                 if radius < min_radius:
-                    radius = None
-                    break
+                    return None
 
-        if radius:
-            self.radius = radius
-            return radius
-        else
-            return None
+        # we calculated a valid radius -> suscess!
+        assert radius >= min_radius, 'SphericaltestShell radius smaller than the minimum, radius = %s, min_radius = %s.' % \
+                                     (radius, min_radius)
+        return radius
 
     def get_searchpoint(self):
         return self.center
