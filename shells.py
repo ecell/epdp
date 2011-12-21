@@ -1,5 +1,13 @@
 #!/usr/bin/python
 
+from _gfrd import (
+    Sphere,
+    SphericalShell,
+    Cylinder,
+    CylindricalShell,
+    )
+
+import utils
 
 class Others(object):
 
@@ -286,26 +294,29 @@ class hasSphericalShell(hasShell):
         return r
 
 #####
-class SphericalSingle(hasSphericalShell, NonInteractionSingles):
-
-    # these return potentially corrected dimensions
-    def shell_list_for_single(self):
-        min_radius = self.pid_particle_pair[1].radius * Domain.MULTI_SHELL_FACTOR
-        if  self.shell.shape.radius < min_radius:
-            position = self.shape.shell.position
-            fake_shell = self.create_new_shell(position, min_radius, self.domain_id)
-            return [(self.shell_id, fake_shell), ]
-        else:
-            return self.shell_list
-
-    def shell_list_for_other(self):
-        min_radius = self.pid_particle_pair[1].radius * Domain.SINGLE_SHELL_FACTOR
-        if self.shell.shape.radius < min_radius:
-            position = self.shape.shell.position
-            fake_shell = self.create_new_shell(position, min_radius, self.domain_id)
-            return [(self.shell_id, fake_shell), ]
-        else:
-            return self.shell_list
+#class SphericalSingle(hasSphericalShell, NonInteractionSingles):
+#
+#    def update_radius(self):
+#        return self.testShell.determine_possible_shell([], [self.structure.id])
+#
+#    # these return potentially corrected dimensions
+#    def shell_list_for_single(self):
+#        min_radius = self.pid_particle_pair[1].radius * Domain.MULTI_SHELL_FACTOR
+#        if  self.shell.shape.radius < min_radius:
+#            position = self.shape.shell.position
+#            fake_shell = self.create_new_shell(position, min_radius, self.domain_id)
+#            return [(self.shell_id, fake_shell), ]
+#        else:
+#            return self.shell_list
+#
+#    def shell_list_for_other(self):
+#        min_radius = self.pid_particle_pair[1].radius * Domain.SINGLE_SHELL_FACTOR
+#        if self.shell.shape.radius < min_radius:
+#            position = self.shape.shell.position
+#            fake_shell = self.create_new_shell(position, min_radius, self.domain_id)
+#            return [(self.shell_id, fake_shell), ]
+#        else:
+#            return self.shell_list
 
 #####
 class SphericalPair(hasSphericalShell, Others):
@@ -580,9 +591,9 @@ class SphericalSingletestShell(SphericaltestShell, testNonInteractionSingle):
         self.center = self.pid_particle_pair[1].position
         self.radius = self.pid_particle_pair[1].radius
 
-    def update_radius(self):
-        self.radius = self.determine_possible_shell([], [self.structure.id])
-        return self.radius
+#    def update_radius(self):
+#        self.radius = self.determine_possible_shell([], [self.structure.id])
+#        return self.radius
 
     def get_min_radius(self):
         return self.pid_particle_pair[1].radius * MULTI_SHELL_FACTOR     # the minimum radius of a NonInteractionSingle
