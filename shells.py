@@ -1,5 +1,7 @@
 #!/usr/bin/python
 
+import math
+
 from _gfrd import (
     Sphere,
     SphericalShell,
@@ -46,6 +48,10 @@ class testSingle(object):
         self.pid_particle_pair = pid_particle_pair
         self.structure = structure
 
+        # FIXME FIXME This is defined multiple times!!!
+        self.MULTI_SHELL_FACTOR = math.sqrt(2)
+        self.SINGLE_SHELL_FACTOR = 2.0
+
 class testNonInteractionSingle(testSingle, NonInteractionSingles):
     def __init__(self, pid_particle_pair, structure):
         testSingle.__init__(self, pid_particle_pair, structure)
@@ -67,6 +73,10 @@ class testPair(Others):
         self.structure = structure
         self.com, self.iv = self.do_transform()
         self.r0 = length(self.iv)
+
+        # FIXME FIXME This is defined multiple times!!!
+        self.MULTI_SHELL_FACTOR = math.sqrt(2)
+        self.SINGLE_SHELL_FACTOR = 2.0
 
     def do_transform(self):
         pass        # overloaded later
@@ -142,7 +152,7 @@ class hasSphericalShell(hasShell):
         # This will scale the 'domain_to_scale' (a cylinder) using the 'shell_appearance' as the limiting shell
         # CylindricaltestShell ('domain_to_scale') -> SphericalShell ('self' with 'shell_appearance')
 
-        assert type(shell, Sphere)        # because the shell actually is part of the current object
+        assert (type(shell.shape) is Sphere)        # because the shell actually is part of the current object
 
         # Do Laurens' algorithm (part1)
         shell_position = shell.shape.position
@@ -286,7 +296,7 @@ class hasSphericalShell(hasShell):
     def get_radius_to_shell(self, shell, domain_to_scale):
         # SphericaltestShell ('domain_to_scale') -> SphericalShell ('self' with 'shell_appearance')
 
-        assert type(shell, Sphere)        # because the shell actually originated here
+        assert (type(shell.shape) is Sphere)        # because the shell actually originated here
         # Do simple distance calculation to sphere
 
         scale_point = domain_to_scale.center
@@ -359,7 +369,7 @@ class hasCylindricalShell(hasShell):
         if __debug__:
             log.debug('cylinder')
 
-        assert type(shell, Cylinder)        # because the shell actually originated here
+        assert (type(shell.shape) is Cylinder)        # because the shell actually originated here
         # Do Laurens' algorithm (part2)
 
         shell_position = shell.shape.position
@@ -441,7 +451,7 @@ class hasCylindricalShell(hasShell):
     def get_radius_to_shell(self, shell, domain_to_scale):
         # SphericaltestShell ('domain_to_scale') -> CylindricalShell ('self' with 'shell_appearance')
 
-        assert type(shell, Cylinder)        # because the shell actually originated here
+        assert (type(shell.shape) is Cylinder)        # because the shell actually originated here
         # Do simple distance calculation to cylinder
 
         scale_point = domain_to_scale.center
@@ -569,12 +579,13 @@ class SphericaltestShell(testShell):
         # we calculated a valid radius -> suscess!
         assert radius >= min_radius, 'SphericaltestShell radius smaller than the minimum, radius = %s, min_radius = %s.' % \
                                      (radius, min_radius)
+
         return radius
 
     def get_searchpoint(self):
         return self.center
     def get_searchradius(self):
-        return self.geometrycontainer.max()
+        return self.geometrycontainer.get_max_shell_size()
     def get_orientation_vector(self):
         return random_vector(1.0)
 
@@ -596,7 +607,7 @@ class SphericalSingletestShell(SphericaltestShell, testNonInteractionSingle):
 #        return self.radius
 
     def get_min_radius(self):
-        return self.pid_particle_pair[1].radius * MULTI_SHELL_FACTOR     # the minimum radius of a NonInteractionSingle
+        return self.pid_particle_pair[1].radius * self.MULTI_SHELL_FACTOR     # the minimum radius of a NonInteractionSingle
 
 #####
 class SphericalPairtestShell(SphericaltestShell, testSimplePair):
@@ -635,8 +646,8 @@ class SphericalPairtestShell(SphericaltestShell, testSimplePair):
         com_shell_size = max(radius1, radius2)
 
         # calculate total radii including the margin for the burst volume for the particles
-        shell_size = max(iv_shell_size1 + com_shell_size + radius1 * (1 - SINGLE_SHELL_FACTOR),
-                         iv_shell_size2 + com_shell_size + radius2 * (1 - SINGLE_SHELL_FACTOR))
+        shell_size = max(iv_shell_size1 + com_shell_size + radius1 * (1 - self.SINGLE_SHELL_FACTOR),
+                         iv_shell_size2 + com_shell_size + radius2 * (1 - self.SINGLE_SHELL_FACTOR))
 
         return shell_size
 
