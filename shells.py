@@ -573,7 +573,11 @@ class SphericalSingletestShell(SphericaltestShell, testNonInteractionSingle):
         testNonInteractionSingle.__init__(self, pid_particle_pair, structure)
 
         self.center = self.pid_particle_pair[1].position
-        self.radius = self.determine_possible_shell([], [structure.id])
+        self.radius = self.pid_particle_pair[1].radius
+
+    def update_radius(self):
+        self.radius = self.determine_possible_shell([], [self.structure.id])
+        return self.radius
 
     def get_min_radius(self):
         return self.pid_particle_pair[1].radius * MULTI_SHELL_FACTOR     # the minimum radius of a NonInteractionSingle
@@ -586,8 +590,12 @@ class SphericalPairtestShell(SphericaltestShell, testSimplePair):
         testSimplePair.__init__(self, single1, single2, structure)  # this should be second because of world definition
 
         self.center = self.com
-        self.radius = self.determine_possible_shell([single1.domain_id, single2.domain_id],
-                                                    [structure.id])
+        radius = self.determine_possible_shell([single1.domain_id, single2.domain_id],
+                                               [structure.id])
+        if radius == None:
+            raise Exception("SphericalPairtestShell_exception")
+        else:
+            self.radius = radius
 
     def get_min_radius(self):
         # TODO this doesn't really belong in testSimplePair, but is also general for all SimplePairs
