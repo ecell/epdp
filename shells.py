@@ -63,7 +63,7 @@ class testPair(Others):
     def do_transform(self):
         pass        # overloaded later
 
-class testSimplePair(Pair):
+class testSimplePair(testPair):
     def __init__(self, single1, single2, structure):
         testPair.__init__(self, single1, single2, structure)
 
@@ -411,7 +411,7 @@ class hasCylindricalShell(hasShell):
             r_new  = min(r,  r1_function(single1, single2, r0, z1_new))
         else:
             # shell hits the scaling cylinder on the radial side
-            r_new = min(r, (ref_to_shell_r) - shell_radius)/SAFETY)
+            r_new = min(r, (ref_to_shell_r - shell_radius)/SAFETY)
             z1_new = min(z1, z1_function(single1, single2, r0, r_new))
         z2_new = min(z2, z2_function(single1, single2, r0, r_new))
 
@@ -487,10 +487,15 @@ class CylindricalSurfaceSingle(hasCylindricalShell, NonInteractionSingles):
 
 #####
 class PlanarSurfacePair(hasCylindricalShell, Others):
+    pass
 class PlanarSurfaceInteraction(hasCylindricalShell, Others):
+    pass
 class CylindricalSurfacePair(hasCylindricalShell, Others):
+    pass
 class CylindricalSurfaceInteraction(hasCylindricalShell, Others):
+    pass
 class MixedPair3D2D(hasCylindricalShell, Others):
+    pass
 #class MixedPair3D1D(hasCylindricalShell):
 
 
@@ -653,7 +658,7 @@ class CylindricaltestShell(testShell):
 
         if dr_dzright_dzleft:
             return dr_dz_right_dzleft
-        else
+        else:
             return None
 
     # default functions for evaluating z_right/z_left/r after one of parameters changed
@@ -746,7 +751,7 @@ class PlanarSurfacePairtestShell(hasCylindricalShell, Others):
         return CoM
 
     def get_min_dr_dzright_dzleft(self):
-        do calculation
+        dr, dz_right, dz_left = do_calculation
         return (dr, dz_right, dz_left)
 
     def get_max_dr_dzright_dzleft(self):
@@ -888,11 +893,11 @@ class CylindricalSurfaceInteractiontestShell(CylindricaltestShell, Others):
         self.dzdr_right = 1.0
         self.drdz_right = 1.0
         self.r0_right   = 0.0
-        self.z0_right   = calculate_it
+        self.z0_right   = 0.0 # calculate_it
         self.dzdr_left  = 1.0
         self.drdz_left  = 1.0
         self.r0_left    = 0.0
-        self.z0_left    = calculate_it (same as above)
+        self.z0_left    = 0.0 # calculate_it (same as above)
 
     def get_orientation_vector(self):
         return structure.shape.unit_z
