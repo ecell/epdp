@@ -504,7 +504,7 @@ class MixedPair3D2D(hasCylindricalShell, Others):
 class testShell(object):
 
     def __init__(self, geometrycontainer, domains):
-        self.geometrycontainer = geometerycontainer
+        self.geometrycontainer = geometrycontainer
         self.world = geometrycontainer.world
         self.domains = domains
 
