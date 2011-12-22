@@ -249,7 +249,7 @@ class NonInteractionSingle(Single):
     def get_min_shell_size(self):
         return self.pid_particle_pair[1].radius
 
-    def get_max_shell_size(self, geometrycontainer, domains, sinklist):
+    def get_max_shell_size(self, geometrycontainer, domains, ignores=[]):
         # This calculates the maximum shell size that the single can have in the current
         # situation.
         # TODO This is now general for all NonInteractionSingles and should be different
@@ -266,7 +266,7 @@ class NonInteractionSingle(Single):
 #                                              ignores=[self.structure.id])
 
         neighbor_domains = geometrycontainer.get_neighbor_domains(singlepos, domains, ignore=[self.domain_id, ])
-        neighbor_surfaces = geometrycontainer.get_neighbor_surfaces(singlepos, self.structure.id, sinklist)
+        neighbor_surfaces = geometrycontainer.get_neighbor_surfaces(singlepos, self.structure.id, ignores)
         neighbors = neighbor_domains + neighbor_surfaces
 
         # 2. Calculate the maximum allowed radius of the spherical domain

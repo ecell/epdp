@@ -1415,7 +1415,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
         assert isinstance(single, NonInteractionSingle) # This only works for 'simple' Singles
 
         min_shell_size = single.get_min_shell_size()
-        max_shell_size = single.get_max_shell_size(self.geometrycontainer, self.domains, sinklist=[])
+        max_shell_size = single.get_max_shell_size(self.geometrycontainer, self.domains, ignores=[])
 
         # Make sure that the new shell size is not too small or big
         new_shell_size = max(max_shell_size, min_shell_size)
@@ -1911,7 +1911,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
         ### 1. See if there is enough space for the shell
         # Uses the same methods as Update_single for finding optimal domain size.
         min_shell_size = single.get_min_shell_size()
-        max_shell_size = single.get_max_shell_size(self.geometrycontainer, self.domains, self.sinklist)
+        max_shell_size = single.get_max_shell_size(self.geometrycontainer, self.domains, ignores=[sink.id,])
 
         # Make sure that the new shell size is not too small or big
         new_shell_size = max(max_shell_size, min_shell_size)
