@@ -52,11 +52,6 @@ void GreensFunction1DAbsSinkAbs::calculate_n_roots(uint const& n) const
 
     real_pair lower_upper_pair;
 
-    lo_up_params.h = h;
-    lo_up_params.Lm_L = Lm_L;
-    lo_up_params.long_period = std::max( L/Lr * M_PI, L/Ll * M_PI );
-    lo_up_params.short_period = std::min( L/Lr * M_PI, L/Ll * M_PI );
-
     /* Define the root function. */
     gsl_function F;
     struct root_f_params params = { Lm_L, h };
@@ -73,6 +68,10 @@ void GreensFunction1DAbsSinkAbs::calculate_n_roots(uint const& n) const
     /* Stores the last root with long or short period. */
     if(i == 0)
     {
+        lo_up_params.h = h;
+        lo_up_params.Lm_L = Lm_L;
+        lo_up_params.long_period = std::max( L/Lr * M_PI, L/Ll * M_PI );
+        lo_up_params.short_period = std::min( L/Lr * M_PI, L/Ll * M_PI );    
         lo_up_params.last_long_root = 0.0;
         lo_up_params.last_short_root = 0.0;
     }
