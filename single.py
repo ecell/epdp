@@ -500,6 +500,7 @@ class InteractionSingle(Single):
         """Return an (event time, event type)-tuple.
 
         """
+       
         return min(self.draw_escape_time_tuple(),
                    self.draw_reaction_time_tuple(),
                    self.draw_iv_event_time_tuple())     # above two events also occur in NonInteractingSingle
@@ -516,7 +517,7 @@ class InteractionSingle(Single):
 
         """
         dt = draw_time_wrapper(self.iv_greens_function())
-
+        
         return dt, EventType.IV_EVENT
 
     def draw_iv_event_type(self):
@@ -752,7 +753,7 @@ class CylindricalSurfaceInteraction(InteractionSingle):
         return self.shell.shape.half_length
 
     def __str__(self):
-        return 'CylindricalSurfaceInteraction' + Single.__str__(self)
+        return 'CylindricalSurfaceInteraction ' + Single.__str__(self)
 
 
 class CylindricalSurfaceSink(InteractionSingle):
@@ -785,8 +786,6 @@ class CylindricalSurfaceSink(InteractionSingle):
         # Particle allways starts in the middle for now.
         inner_half_length = self.get_inner_a()
         
-        print "Sink GF'n params: h = %s, zsink = %s" %(inner_half_length, self.zsink)
-
         return GreensFunction1DAbsSinkAbs(self.D, self.interaction_ktot, 0.0, self.zsink, 
                                           -inner_half_length, inner_half_length)
 
@@ -841,7 +840,7 @@ class CylindricalSurfaceSink(InteractionSingle):
         return self.shell.shape.half_length
 
     def __str__(self):
-        return 'CylindricalSurfaceInteraction' + Single.__str__(self)
+        return 'CylindricalSurfaceSink ' + Single.__str__(self)
 
 class DummySingle(object):
     def __init__(self):
