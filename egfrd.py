@@ -428,6 +428,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
             projected_point, r0 = surface.projected_point(particle_pos)
             shell_unit_r = normalize(particle_pos - projected_point)
 
+            projected_point = self.world.cyclic_transpose(projected_point, shell_center)
             z0 = numpy.dot (shell_unit_z, (projected_point - shell_center))
 
             interaction = CylindricalSurfaceInteraction(domain_id, pid_particle_pair,
