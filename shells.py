@@ -9,7 +9,7 @@ from _gfrd import (
     CylindricalShell,
     )
 
-import utils
+from utils import *
 
 class Others(object):
 
@@ -63,14 +63,15 @@ class testInteractionSingle(testSingle, Others):
 
 ##############
 class testPair(Others):
-    def __init__(self, single1, single2, structure):
+    def __init__(self, single1, single2):
 
-        assert single1.structure == single2.structure
+        assert single1.dt == 0.0
+        assert single2.dt == 0.0
+
         self.single1 = single1
         self.single2 = single2
         self.pid_particle_pair1 = single1.pid_particle_pair
         self.pid_particle_pair2 = single2.pid_particle_pair
-        self.structure = structure
         self.com, self.iv = self.do_transform()
         self.r0 = length(self.iv)
 
@@ -83,7 +84,11 @@ class testPair(Others):
 
 class testSimplePair(testPair):
     def __init__(self, single1, single2, structure):
-        testPair.__init__(self, single1, single2, structure)
+
+        assert single1.structure == single2.structure
+        self.structure = structure
+
+        testPair.__init__(self, single1, single2)
 
     def get_D_tot(self):
         return self.pid_particle_pair1[1].D + \
@@ -300,7 +305,7 @@ class hasSphericalShell(hasShell):
         # Do simple distance calculation to sphere
 
         scale_point = domain_to_scale.center
-        r = self.world.distance(shell.shape, scale_point)
+        r = self.world.distance(shell.shape, scale_point)/SAFETY
         return r
 
 #####
@@ -455,7 +460,7 @@ class hasCylindricalShell(hasShell):
         # Do simple distance calculation to cylinder
 
         scale_point = domain_to_scale.center
-        r = self.world.distance(shell.shape, scale_point)
+        r = self.world.distance(shell.shape, scale_point)/SAFETY
         return r
 
 #####
@@ -562,7 +567,9 @@ class SphericaltestShell(testShell):
                 distance += self.pid_particle_pair[1].radius
             radius = min(radius, distance)
             if radius < min_radius:
-                return None
+                raise Exception('Surface too close to make spherical testshell.'
+                                'surface = %s, distance = %s, testShell = %s' %
+                                (surface, distance, self))
 
         # then check the domains
         for neighbor, _ in neighbor_domains:
@@ -574,7 +581,9 @@ class SphericaltestShell(testShell):
                 radius = min(radius, new_radius)
 
                 if radius < min_radius:
-                    return None
+                    raise Exception('Domain too close to make spherical testshell.'
+                                    'domain = %s, distance = %s, testShell = %s' %
+                                    (neighbor, radius, self))
 
         # we calculated a valid radius -> suscess!
         assert radius >= min_radius, 'SphericaltestShell radius smaller than the minimum, radius = %s, min_radius = %s.' % \
@@ -612,22 +621,22 @@ class SphericalSingletestShell(SphericaltestShell, testNonInteractionSingle):
 #####
 class SphericalPairtestShell(SphericaltestShell, testSimplePair):
 
-    def __init__(self, single1, single2, structure, geomterycontainer, domains):
-        SphericaltestShell.__init__(self, geometrycontainer, domains)
-        testSimplePair.__init__(self, single1, single2, structure)  # this should be second because of world definition
+    def __init__(self, single1, single2, structure, geometrycontainer, domains):
+        SphericaltestShell.__init__(self, geometrycontainer, domains)  # this must be first because of world definition
+        testSimplePair.__init__(self, single1, single2, structure)
 
         self.center = self.com
-        radius = self.determine_possible_shell([single1.domain_id, single2.domain_id],
-                                               [structure.id])
-        if radius == None:
-            raise Exception("SphericalPairtestShell_exception")
-        else:
-            self.radius = radius
+        try:
+            self.radius = self.determine_possible_shell([single1.domain_id, single2.domain_id],
+                                                   [structure.id])
+        except Exception as e:
+            raise Exception('SphericalPairtestShell failed: %s' %
+                            (str(e)))
 
     def get_min_radius(self):
         # TODO this doesn't really belong in testSimplePair, but is also general for all SimplePairs
 
-        # Is this assert here ok?
+        # TODO Is this assert here ok?
         assert self.r0 >= self.sigma, \
             'distance_from_sigma (pair gap) between %s and %s = %s < 0' % \
             (self.single1, self.single2, FORMAT_DOUBLE % (self.r0 - self.sigma))
