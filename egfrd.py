@@ -60,17 +60,15 @@ def create_default_single(domain_id, pid_particle_pair, shell_id, rt, structure,
                                    shell_id, rt, structure)
 
 
-def create_default_pair(domain_id, single1, single2, shell_id, com,
-                        shell_size, r0, rrs, structure):
-    if isinstance(structure, CuboidalRegion):
-        return SphericalPair(domain_id, com, single1, single2,
-                             shell_id, r0, shell_size, rrs, structure)
-    elif isinstance(structure, CylindricalSurface):
-        return CylindricalSurfacePair(domain_id, com, single1, single2,
-                                      shell_id, r0, shell_size, rrs, structure)
-    elif isinstance(structure, PlanarSurface):
-        return PlanarSurfacePair(domain_id, com, single1, single2,
-                                 shell_id, r0, shell_size, rrs, structure)
+def create_default_pair(domain_id, shell_id, testShell, rrs):
+    if   isinstance(testShell, SphericalPairtestShell):
+        return SphericalPair          (domain_id, shell_id, testShell, rrs)
+    elif isinstance(testShell, CylindricalSurfacePairtestShell):
+        return CylindricalSurfacePair (domain_id, shell_id, testShell, rrs)
+    elif isinstance(testShell, PlanarSurfacePairtestShell):
+        return PlanarSurfacePair      (domain_id, shell_id, testShell, rrs)
+    elif isinstance(testShell, MixedPair3D2DtestShell):
+        return MixedPair3D2D          (domain_id, shell_id, testShell, rrs)
 
 
 class DomainEvent(Event):
@@ -461,14 +459,17 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
         return interaction
 
-    def create_pair(self, single1, single2, shell_center, shell_radius, r0, shell_half_length=0,
-                    shell_orientation_vector=None):
+#    def create_pair(self, single1, single2, shell_center, shell_radius, r0, shell_half_length=0,
+#                    shell_orientation_vector=None):
+    def create_pair(self, testShell):
 
-        assert single1.dt == 0.0
-        assert single2.dt == 0.0
+#        assert single1.dt == 0.0
+#        assert single2.dt == 0.0
 
-        pid_particle_pair1 = single1.pid_particle_pair
-        pid_particle_pair2 = single2.pid_particle_pair
+#        pid_particle_pair1 = single1.pid_particle_pair
+#        pid_particle_pair2 = single2.pid_particle_pair
+        pid_particle_pair1 = testShell.pid_particle_pair1
+        pid_particle_pair2 = testShell.pid_particle_pair2
 
         # 1. generate needed identifiers
         domain_id = self.domain_id_generator()
@@ -489,8 +490,9 @@ class EGFRDSimulator(ParticleSimulatorBase):
         if structure1 == structure2:
             # Either SphericalPair, PlanarSurfacePair, or 
             # CylindricalSurfacePair.
-            pair = create_default_pair(domain_id, single1, single2, shell_id, shell_center,
-                                       shell_radius, r0, rrs, structure1)
+#            pair = create_default_pair(domain_id, single1, single2, shell_id, shell_center,
+#                                       shell_radius, r0, rrs, structure1)
+            pair = create_default_pair(domain_id, shell_id, testShell, rrs)
         else:
             # MixedPair (3D/2D)
             assert shell_orientation_vector != None
@@ -1408,6 +1410,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
 #        new_shell_size = max(max_shell_size, min_shell_size)
 
         new_shell_size = single.update_radius()
+        assert new_shell_size, 'single.update_radius() returned None.'
 
         if __debug__:
             log.info('update_single: single: %s, new_shell_size = %s' % \
@@ -2045,16 +2048,15 @@ class EGFRDSimulator(ParticleSimulatorBase):
         if single1.structure == single2.structure:
             # particles are on the same structure
 
-            center, r0, shell_size = self.calculate_simplepair_shell_size (single1, single2)
-            if shell_size:
-                # A shell could be made and makes sense. Create a Pair
-                pair = self.create_pair(single1, single2, center, shell_size, r0)
+            try:
+                testShell = SphericalPairtestShell(single1, single2, single1.structure,
+                                                   self.geometrycontainer, self.domains)
+            except Exception as e:
+                testShell = None
                 if __debug__:
-                    log.debug('Created: %s, shell_size = %.3g, r0 = %.3g' %
-                              (pair, shell_size, r0))
-
-            else:
-                pair = None
+                    log.debug('%s not formed: %s' % \
+                              ('Pair(%s, %s)' % (single1.pid_particle_pair[0], single2.pid_particle_pair[0]),
+                              str(e) ))
 
         elif (isinstance(single1.structure, PlanarSurface) and isinstance(single2.structure, CuboidalRegion)) ^ \
              (isinstance(single2.structure, PlanarSurface) and isinstance(single1.structure, CuboidalRegion)):
@@ -2093,11 +2095,14 @@ class EGFRDSimulator(ParticleSimulatorBase):
             pair = None
 
 
-        # if a pair has been formed
-        if pair:
+        # if a pair could be formed
+        if testShell:
+            pair = self.create_pair(testShell)
+            if __debug__:
+                log.debug('Created: %s' % (pair))
 
             pair.dt, pair.event_type, pair.reactingsingle = \
-            pair.determine_next_event(r0)
+            pair.determine_next_event(pair.r0)
 
             assert pair.dt >= 0
 

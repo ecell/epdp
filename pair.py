@@ -11,6 +11,12 @@ from single import (
     InteractionSingle)
 from multi import (
     Multi)
+from shells import (
+    hasSphericalShell,
+    hasCylindricalShell,
+    Others,
+    )
+
 
 __all__ = [
     'CylindricalSurfacePair',
@@ -53,6 +59,7 @@ class Pair(ProtectiveDomain):
 
         self.interparticle_rrs = rrs
         self.interparticle_ktot = self.calc_ktot(rrs)
+        self.r0 = r0
 
         self.shell_id = shell_id
 
@@ -320,7 +327,7 @@ class SimplePair(Pair):
         # set the radii of the inner domains as a function of the outer protective domain
 
 # this can go
-        self.shell = self.create_new_shell(shell_center, shell_size, domain_id)
+#        self.shell = self.create_new_shell(shell_center, shell_size, domain_id)
 
 
     def getSigma(self):
@@ -361,8 +368,8 @@ class SimplePair(Pair):
 
         return pos1, pos2
 
-    def get_shell_size(self):
-        return self.shell.shape.radius
+#    def get_shell_size(self):
+#        return self.shell.shape.radius
 
     def determine_radii(self, r0, shell_size):
         """Determine a_r and a_R from the size of the protective domain.
@@ -449,24 +456,25 @@ class SimplePair(Pair):
         return a_R, a_r
 
 
-class SphericalPair(SimplePair):
-#class SphericalPair(SimplePair, Other, hasSphericalShell):
+#class SphericalPair(SimplePair):
+class SphericalPair(SimplePair, Others, hasSphericalShell):
     """2 Particles inside a (spherical) shell not on any surface.
 
     """
-    def __init__(self, domain_id, shell_center, single1, single2, shell_id,
-                 r0, shell_size, rrs, structure):
-#    def __init__(self, domain_id, shell_id, testShell, rrs):
-#        single1 = testShell.single1
-#        single2 = testShell.single2
-#        structure = testShell.structure
-#        shell_size = testShell.radius  # TODO this should be removed
-#        r0 = testShell.get_r0()        # TODO this should be removed
+#    def __init__(self, domain_id, shell_center, single1, single2, shell_id,
+#                 r0, shell_size, rrs, structure):
+    def __init__(self, domain_id, shell_id, testShell, rrs):
+        single1 = testShell.single1
+        single2 = testShell.single2
+        structure = testShell.structure
+        shell_center = testShell.center
+        shell_size = testShell.radius  # TODO this should be removed
+        r0 = testShell.r0        # TODO this should be removed
 
         SimplePair.__init__(self, domain_id, shell_center, single1, single2, shell_id,
                       r0, shell_size, rrs, structure)
 #        SimplePair.__init__(self, domain_id, shell_id, testShell, rrs) # TODO constructor above does not support this yet
-#        hasSphericalShell.__init__(self, testShell)
+        hasSphericalShell.__init__(self, testShell)
 
 
     def com_greens_function(self):
@@ -480,8 +488,8 @@ class SphericalPair(SimplePair):
                                               self.sigma, self.a_r)
 
 # this can go
-    def create_new_shell(self, position, radius, domain_id):
-        return SphericalShell(domain_id, Sphere(position, radius))
+#    def create_new_shell(self, position, radius, domain_id):
+#        return SphericalShell(domain_id, Sphere(position, radius))
 
 # this is a part of hasShell (see testShell.get_orientation_vector())
     def get_shell_direction(self):
