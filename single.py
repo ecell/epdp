@@ -383,7 +383,8 @@ class SphericalSingle(NonInteractionSingle, NonInteractionSingles, hasSphericalS
         return 'Spherical' + Single.__str__(self)
 
 
-class PlanarSurfaceSingle(NonInteractionSingle):
+#class PlanarSurfaceSingle(NonInteractionSingle):
+class PlanarSurfaceSingle(NonInteractionSingle, NonInteractionsSingles, hasCylindricalShell):
     """1 Particle inside a (cylindrical) shell on a PlanarSurface. (Hockey 
     pucks).
 
@@ -393,33 +394,67 @@ class PlanarSurfaceSingle(NonInteractionSingle):
         * Selected randomly when drawing displacement vector: theta.
 
     """
-    def __init__(self, domain_id, pid_particle_pair, shell_id, reactionrules, 
-                 structure):
+#    def __init__(self, domain_id, pid_particle_pair, shell_id, reactionrules, 
+#                 structure):
+    def __init__(self, domain_id, shell_id, testShell, reactionrules):
+
+        pid_particle_pair = testShell.pid_particle_pair
+        structure = testShell.structure
         NonInteractionSingle.__init__(self, domain_id, pid_particle_pair, 
                                       shell_id, reactionrules, structure)
+        hasCylindricalShell.__init__(self, testShell)
 
     def greens_function(self):
         return GreensFunction2DAbsSym(self.D,
                                           self.get_inner_a())
+# this can go
+#    def create_new_shell(self, position, radius, domain_id):
+#        # The half_length (thickness) of a hockey puck is not more than 
+#        # it has to be (namely the radius of the particle), so if the 
+#        # particle undergoes an unbinding reaction we still have to 
+#        # clear the target volume and the move may be rejected (NoSpace 
+#        # error).
+#
+#        # Note that the calculateion of the position of the shell needs to make sure that the
+#        # coordinates are in the surface
+#        position = position - self.structure.shape.position     # TODO this can go wrong if either positions are near the boundaries
+#        pos_x = self.structure.shape.unit_x * numpy.dot (position, self.structure.shape.unit_x)
+#        pos_y = self.structure.shape.unit_y * numpy.dot (position, self.structure.shape.unit_y)
+#
+#        position = self.structure.shape.position + pos_x + pos_y
+#        orientation = self.structure.shape.unit_z
+#        half_length = self.pid_particle_pair[1].radius
+#        return CylindricalShell(self.domain_id, Cylinder(position, radius, 
+#                                                    orientation, half_length))
 
-    def create_new_shell(self, position, radius, domain_id):
-        # The half_length (thickness) of a hockey puck is not more than 
-        # it has to be (namely the radius of the particle), so if the 
-        # particle undergoes an unbinding reaction we still have to 
-        # clear the target volume and the move may be rejected (NoSpace 
-        # error).
+    # these return corrected dimensions, since we reserve more space for the NonInteractionSingle
+    def shell_list_for_single(self):
+        min_radius = self.pid_particle_pair[1].radius * Domain.MULTI_SHELL_FACTOR
+        if self.shell.shape.radius < min_radius:
+            position = self.shell.shape.position
+            half_length = self.shell.shape.half_length
+            fake_shell = self.create_new_shell(position, min_radius, half_length, self.domain_id)
+            return [(self.shell_id, fake_shell), ]
+        else:
+            return self.shell_list
 
-        # Note that the calculateion of the position of the shell needs to make sure that the
-        # coordinates are in the surface
-        position = position - self.structure.shape.position     # TODO this can go wrong if either positions are near the boundaries
-        pos_x = self.structure.shape.unit_x * numpy.dot (position, self.structure.shape.unit_x)
-        pos_y = self.structure.shape.unit_y * numpy.dot (position, self.structure.shape.unit_y)
+    def shell_list_for_other(self):
+        min_radius = self.pid_particle_pair[1].radius * Domain.SINGLE_SHELL_FACTOR
+        if self.shell.shape.radius < min_radius:
+            position = self.shell.shape.position
+            half_length = self.shell.shape.half_length
+            fake_shell = self.create_new_shell(position, min_radius, half_length, self.domain_id)
+            return [(self.shell_id, fake_shell), ]
+        else:
+            return self.shell_list
 
-        position = self.structure.shape.position + pos_x + pos_y
-        orientation = self.structure.shape.unit_z
-        half_length = self.pid_particle_pair[1].radius
-        return CylindricalShell(self.domain_id, Cylinder(position, radius, 
-                                                    orientation, half_length))
+    def update_radius(self):
+        # TODO update_single_shell doesn't work with this now
+        try:
+            return self.testShell.determine_possible_shell([self.domain_id], [self.structure.id])
+        except Exception as e:
+            raise Exception('SphericalSingle, update_radius failed: %s' %
+                            (str(e)))
 
     def create_position_vector(self, r):
         # project the vector onto the surface unit vectors to make sure that the coordinates are in the surface
