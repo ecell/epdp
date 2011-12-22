@@ -146,6 +146,21 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
         self.reset()                            # The Simulator is only initialized at the first step, allowing
                                                 # modifications to the world to be made before simulation starts
+                                                
+        self.sinklist = []                      # Hack to keep track of sinks in the system. Contains structure_id's of the sinks
+
+    def add_to_sinklist(self, sink_id):
+        self.sinklist.append(sink_id)
+        
+    def get_neighbor_sinks(self, position, structure_id):
+        sink_distance_list = []
+        sinklist = self.sinklist
+        
+        for i in range( len( sinklist ) ):
+            sink_i = self.world.get_structure( sinklist[i] )        
+            sink_distance_list.append((sink_i, self.world.distance( position, sink_i.shape.position )))
+        
+        return sink_distance_list
 
     def get_next_time(self):
         """ 
@@ -417,8 +432,16 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
 
         particle_pos = pid_particle_pair[1].position
+        if isinstance(surface, CylindricalSurface) and isinstance(structure, CylindricalSurface):
+            particle_pos = self.world.cyclic_transpose(particle_pos, surface.shape.position)     
+            zsink = numpy.dot( surface.shape.position - particle_pos, surface.shape.unit_z )
 
-        if isinstance(surface, CylindricalSurface):
+            interaction = CylindricalSurfaceSink(domain_id, pid_particle_pair,
+                                                 reaction_rules, structure,
+                                                 shell_id, shell_center, shell_half_length, 
+                                                 zsink, interaction_rules, surface)
+                                                 
+        elif isinstance(surface, CylindricalSurface):
             particle_pos = self.world.cyclic_transpose(particle_pos, surface.shape.position)
             projected_point, r0 = surface.projected_point(particle_pos)
             shell_unit_r = normalize(particle_pos - projected_point)
@@ -430,6 +453,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
                                                         shell_id, shell_center, shell_radius,
                                                         shell_half_length, shell_unit_z, z0,
                                                         shell_unit_r, r0, interaction_rules, surface)
+                                                        
         elif isinstance(surface, PlanarSurface):
             particle_pos = self.world.cyclic_transpose(particle_pos, shell_center)
             z0 = numpy.dot (shell_unit_z, (particle_pos - shell_center))
@@ -439,7 +463,6 @@ class EGFRDSimulator(ParticleSimulatorBase):
                                                    shell_id, shell_center, shell_radius,
                                                    shell_half_length, shell_unit_z,
                                                    z0, interaction_rules, surface)
-
 
         assert isinstance(interaction, InteractionSingle)
         interaction.initialize(self.t)
@@ -1138,9 +1161,14 @@ class EGFRDSimulator(ParticleSimulatorBase):
         # 1.0 Get neighboring domains and surfaces
         neighbors = self.geometrycontainer.get_neighbor_domains(single_pos, self.domains, ignore=[single.domain_id, ])
         # Get also surfaces but only if the particle is in 3D
+        # Here ignore the sink surfaces. Should be moved into get_neighbor_surfaces.
         surface_distances = []
         if isinstance(single, SphericalSingle):
-            surface_distances = self.geometrycontainer.get_neighbor_surfaces(single_pos, single.structure.id, ignores=[])
+            surface_distances = self.geometrycontainer.get_neighbor_surfaces(single_pos, single.structure.id, self.sinklist )
+            
+        # For a particle on a rod (1D) only consider sinks. - one rod, with one sink for now.
+        if isinstance(single, CylindricalSurfaceSingle):
+            surface_distances = self.get_neighbor_sinks( single_pos, single.structure.id )
 
         # Check if there are shells with the burst radius (reaction_threshold)
         # of the particle (intruders). Note that we approximate the reaction_volume
@@ -1199,8 +1227,12 @@ class EGFRDSimulator(ParticleSimulatorBase):
                 # there are no more potential partners (everything is out of range)
                 # or a domain was formed successfully previously
                 break
+                            
+            if isinstance(obj, CylindricalSurface) and isinstance(single, CylindricalSurfaceSingle):
+                # try making a Interaction with a sink. (Not in try_interaction because to different/ to much hacking)
+                domain = self.try_interaction_sink(single, obj)
 
-            if isinstance(obj, NonInteractionSingle):
+            elif isinstance(obj, NonInteractionSingle):
                 # try making a Pair (can be Mixed Pair or Normal Pair)
                 domain = self.try_pair (single, obj)
 
@@ -1383,7 +1415,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
         assert isinstance(single, NonInteractionSingle) # This only works for 'simple' Singles
 
         min_shell_size = single.get_min_shell_size()
-        max_shell_size = single.get_max_shell_size(self.geometrycontainer, self.domains)
+        max_shell_size = single.get_max_shell_size(self.geometrycontainer, self.domains, sinklist=[])
 
         # Make sure that the new shell size is not too small or big
         new_shell_size = max(max_shell_size, min_shell_size)
@@ -1865,7 +1897,58 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
         return interaction
 
+    def try_interaction_sink(self, single, sink):
+        # Try to form an interaction between the 'single' particle and a sink (Cyl-surface).
 
+        pid_particle_pair = single.pid_particle_pair
+        particle = pid_particle_pair[1]
+        structure = single.structure
+        
+        if __debug__:
+            log.debug('trying to form Interaction with sink(%s, %s)' % (particle, sink))
+
+
+        ### 1. See if there is enough space for the shell
+        # Uses the same methods as Update_single for finding optimal domain size.
+        min_shell_size = single.get_min_shell_size()
+        max_shell_size = single.get_max_shell_size(self.geometrycontainer, self.domains, self.sinklist)
+
+        # Make sure that the new shell size is not too small or big
+        new_shell_size = max(max_shell_size, min_shell_size)
+        
+        # Check if c.o.m. of particle can reach the sink, so that it is not blocked by
+        # it's radius hitting the boundary.
+        dist_to_sink = self.world.distance( sink.shape.position, particle.position )
+        if( new_shell_size - particle.radius - dist_to_sink < 0.0 ):
+            return None
+       
+       
+        ### 2. The shell can be made. Now do what's necessary to make it
+        # Compute origin, radius and half_length of cylinder.
+        orientation_vector = structure.shape.unit_z
+        radius = particle.radius
+        origin = particle.position
+        half_length = new_shell_size
+        
+        interaction = self.create_interaction(pid_particle_pair, sink,
+                                              origin, radius, half_length,
+                                              orientation_vector)
+
+        interaction.dt, interaction.event_type, = \
+            interaction.determine_next_event()
+        assert interaction.dt >= 0
+
+        self.last_time = self.t
+
+        self.remove_domain(single)
+        # the event associated with the single will be removed by the scheduler.
+
+        assert self.check_domain(interaction)
+        self.add_domain_event(interaction)
+
+        return interaction
+        
+        
     def calculate_max_cylinder(self, single, surface, projected_point, 
                                    particle_distance, orientation_vector,
                                    dr, dz_left, dz_right):
@@ -2355,6 +2438,7 @@ rejected moves = %d
         elif isinstance(domain, InteractionSingle) or isinstance(domain, MixedPair):
             # Ignore surface of the particle and interaction surface
             ignores = [domain.structure.id, domain.surface.id]
+            ignores.extend( self.sinklist )
         else:
             ignores = [domain.structure.id]
 

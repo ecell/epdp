@@ -52,11 +52,6 @@ void GreensFunction1DAbsSinkAbs::calculate_n_roots(uint const& n) const
 
     real_pair lower_upper_pair;
 
-    lo_up_params.h = h;
-    lo_up_params.Lm_L = Lm_L;
-    lo_up_params.long_period = std::max( L/Lr * M_PI, L/Ll * M_PI );
-    lo_up_params.short_period = std::min( L/Lr * M_PI, L/Ll * M_PI );
-
     /* Define the root function. */
     gsl_function F;
     struct root_f_params params = { Lm_L, h };
@@ -73,6 +68,10 @@ void GreensFunction1DAbsSinkAbs::calculate_n_roots(uint const& n) const
     /* Stores the last root with long or short period. */
     if(i == 0)
     {
+        lo_up_params.h = h;
+        lo_up_params.Lm_L = Lm_L;
+        lo_up_params.long_period = std::max( L/Lr * M_PI, L/Ll * M_PI );
+        lo_up_params.short_period = std::min( L/Lr * M_PI, L/Ll * M_PI );
         lo_up_params.last_long_root = 0.0;
         lo_up_params.last_short_root = 0.0;
     }
@@ -162,8 +161,8 @@ std::pair<Real, Real> GreensFunction1DAbsSinkAbs::get_lower_and_upper() const
     /* f_lower must have correct sign. */
     if( f_lower * parity_op > 0 )
     {
-        log_.warn("Parity error in x_lower of root# %6u .",
-                  rootList_size() + 1);
+        log_.warn("Parity error in x_lower of root# %6u, for h = %.5g, Lm/L = %.5g.",
+                  rootList_size() + 1, lo_up_params.h, lo_up_params.Lm_L );
 
         log_.warn("f_low( %.16g ) =  %.16g , f_high( %.16g ) = %.16g",
                   lower, f_lower, upper, f_upper);

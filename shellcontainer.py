@@ -177,10 +177,11 @@ class ShellContainer(object):
         # living on the base_structure can have interactions with.
         
         # We assume a particle can't have an interaction with the same surface on/in which it lives.
-        ignores.append( base_structure_id )
+        base_ignores =  [base_structure_id, ]
+        base_ignores.extend( ignores )
 
         # TODO return a list of neighboring surfaces
-        surface, distance = get_closest_surface(self.world, position, ignores)
+        surface, distance = get_closest_surface(self.world, position, base_ignores)
         if surface:
             return [(surface, distance), ]
         else:
