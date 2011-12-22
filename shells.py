@@ -298,15 +298,17 @@ class hasSphericalShell(hasShell):
         return (r, z_right, z_left)
 
 
-    def get_radius_to_shell(self, shell, domain_to_scale):
+    def get_radius_to_shell(self, shell, domain_to_scale, r):
         # SphericaltestShell ('domain_to_scale') -> SphericalShell ('self' with 'shell_appearance')
 
         assert (type(shell.shape) is Sphere)        # because the shell actually originated here
         # Do simple distance calculation to sphere
 
         scale_point = domain_to_scale.center
-        r = self.world.distance(shell.shape, scale_point)/SAFETY
-        return r
+        r_new = self.world.distance(shell.shape, scale_point)/SAFETY
+
+        # if the newly calculated dimensions are smaller than the current one, use them
+        return min(r, r_new)
 
 #####
 #class SphericalSingle(hasSphericalShell, NonInteractionSingles):
@@ -332,11 +334,11 @@ class hasSphericalShell(hasShell):
 #            return [(self.shell_id, fake_shell), ]
 #        else:
 #            return self.shell_list
-
-#####
-class SphericalPair(hasSphericalShell, Others):
-
-    pass
+#
+######
+#class SphericalPair(hasSphericalShell, Others):
+#
+#    pass
 
 #####
 class Multi(hasSphericalShell, Others):
@@ -347,6 +349,8 @@ class Multi(hasSphericalShell, Others):
 class hasCylindricalShell(hasShell):
 
     def __init__(self, cylindricaltestShell):
+
+        assert isinstance(cylindricaltestShell, CylindricaltestShell)
 
         hasShell.__init__(self, cylindricaltestShell)
 
@@ -453,39 +457,41 @@ class hasCylindricalShell(hasShell):
 
         return (r, z_right, z_left)
 
-    def get_radius_to_shell(self, shell, domain_to_scale):
+    def get_radius_to_shell(self, shell, domain_to_scale, r):
         # SphericaltestShell ('domain_to_scale') -> CylindricalShell ('self' with 'shell_appearance')
 
         assert (type(shell.shape) is Cylinder)        # because the shell actually originated here
         # Do simple distance calculation to cylinder
 
         scale_point = domain_to_scale.center
-        r = self.world.distance(shell.shape, scale_point)/SAFETY
-        return r
+        r_new = self.world.distance(shell.shape, scale_point)/SAFETY
+
+        # if the newly calculated dimensions are smaller than the current one, use them
+        return min(r, r_new)
 
 #####
-class PlanarSurfaceSingle(hasCylindricalShell, NonInteractionSingles):
-
-    # these return corrected dimensions, since we reserve more space for the NonInteractionSingle
-    def shell_list_for_single(self):
-        min_radius = self.pid_particle_pair[1].radius * Domain.MULTI_SHELL_FACTOR
-        if self.shell.shape.radius < min_radius:
-            position = self.shell.shape.position
-            half_length = self.shell.shape.half_length
-            fake_shell = self.create_new_shell(position, min_radius, half_length, self.domain_id)
-            return [(self.shell_id, fake_shell), ]
-        else:
-            return self.shell_list
-
-    def shell_list_for_other(self):
-        min_radius = self.pid_particle_pair[1].radius * Domain.SINGLE_SHELL_FACTOR
-        if self.shell.shape.radius < min_radius:
-            position = self.shell.shape.position
-            half_length = self.shell.shape.half_length
-            fake_shell = self.create_new_shell(position, min_radius, half_length, self.domain_id)
-            return [(self.shell_id, fake_shell), ]
-        else:
-            return self.shell_list
+#class PlanarSurfaceSingle(hasCylindricalShell, NonInteractionSingles):
+#
+#    # these return corrected dimensions, since we reserve more space for the NonInteractionSingle
+#    def shell_list_for_single(self):
+#        min_radius = self.pid_particle_pair[1].radius * Domain.MULTI_SHELL_FACTOR
+#        if self.shell.shape.radius < min_radius:
+#            position = self.shell.shape.position
+#            half_length = self.shell.shape.half_length
+#            fake_shell = self.create_new_shell(position, min_radius, half_length, self.domain_id)
+#            return [(self.shell_id, fake_shell), ]
+#        else:
+#            return self.shell_list
+#
+#    def shell_list_for_other(self):
+#        min_radius = self.pid_particle_pair[1].radius * Domain.SINGLE_SHELL_FACTOR
+#        if self.shell.shape.radius < min_radius:
+#            position = self.shell.shape.position
+#            half_length = self.shell.shape.half_length
+#            fake_shell = self.create_new_shell(position, min_radius, half_length, self.domain_id)
+#            return [(self.shell_id, fake_shell), ]
+#        else:
+#            return self.shell_list
 
 #####
 class CylindricalSurfaceSingle(hasCylindricalShell, NonInteractionSingles):
@@ -572,13 +578,12 @@ class SphericaltestShell(testShell):
                                 (surface, distance, self))
 
         # then check the domains
+        # TODO first sort the neighbors -> faster to find if we fail
         for neighbor, _ in neighbor_domains:
 
             shell_list = self.get_neighbor_shell_list(neighbor)
             for _, shell_appearance in shell_list:
-                new_radius = neighbor.get_radius_to_shell(shell_appearance, self)
-                # if the newly calculated dimensions are smaller than the current one, use them
-                radius = min(radius, new_radius)
+                radius = neighbor.get_radius_to_shell(shell_appearance, self, radius)
 
                 if radius < min_radius:
                     raise Exception('Domain too close to make spherical testshell, '
@@ -596,6 +601,7 @@ class SphericaltestShell(testShell):
     def get_searchradius(self):
         return self.geometrycontainer.get_max_shell_size()
     def get_orientation_vector(self):
+#        return unit_vector # much faster and doesn't matter anyway
         return random_vector(1.0)
 
     def get_max_radius(self):
@@ -610,10 +616,6 @@ class SphericalSingletestShell(SphericaltestShell, testNonInteractionSingle):
 
         self.center = self.pid_particle_pair[1].position
         self.radius = self.pid_particle_pair[1].radius
-
-#    def update_radius(self):
-#        self.radius = self.determine_possible_shell([], [self.structure.id])
-#        return self.radius
 
     def get_min_radius(self):
         return self.pid_particle_pair[1].radius * self.MULTI_SHELL_FACTOR     # the minimum radius of a NonInteractionSingle
@@ -664,33 +666,47 @@ class SphericalPairtestShell(SphericaltestShell, testSimplePair):
 ##########################
 class CylindricaltestShell(testShell):
 
-    def __init__(self):
+    def __init__(self, geometrycontainer, domains):
+        testShell.__init__(self, geometrycontainer, domains)
+
         self.dz_right = 0
         self.dz_left  = 0
         self.dr       = 0
 
-    def determine_possible_shell(self):
-        neighbors = self.get_neighbors()
-        min_dr_dzright_dzleft = self.get_min_dr_dzright_dzleft()
-        max_dr_dzright_dzleft = self.get_max_dr_dzright_dzleft()
+    def determine_possible_shell(self, ignore, ignores):
+        neighbor_domains, neighbor_surfaces = self.get_neighbors (ignore, ignores)
+        min_dr, min_dz_right, min_dz_left = self.get_min_dr_dzright_dzleft()
+        max_dr, max_dz_right, max_dz_left = self.get_max_dr_dzright_dzleft()
 
-        dr_dzright_dzleft = max_dr_dzright_dzleft
-        for neighbor in neighbors:
+        dr, dz_right, dz_left = max_dr, max_dz_right, max_dz_left
+        # first check the surfaces
+#        for surface, distance in neighbor_surfaces:
+#            radius = min(radius, distance)     # TODO
+#            if radius < min_radius:
+#                raise Exception('Surface too close to make cylindrical testshell, '
+#                                'surface = %s, distance = %s, testShell = %s' %
+#                                (surface, distance, self))
+
+        # then check the domains
+        # TODO first sort the neighbors -> faster to find if we fail
+        for neighbor, distance in neighbors:
 
             shell_list = self.get_neighbor_shell_list(neighbor)
             for _, shell_appearance in shell_list:
-                new_dr_dzright_dzleft = neighbor.get_dr_dzright_dzleft(shell_appearance, self)
+                dr, dz_right, dz_left = neighbor.get_dr_dzright_dzleft_to_shell(shell_appearance, self,
+                                                                                dr, dz_right, dz_left)
 
-                # if the newly calculated dimensions are smaller than the current one, use them
-                dr_dzright_dzleft = min(dr_dzright_dzleft, new_dr_dzright_dzleft)
-                if dr_dzright_dzleft < min_dr_dzright_dzleft:
-                    dr_dzright_dzleft = None
-                    break
+                if (dr < min_dr) or (dz_right < min_dz_right) or (dz_left < min_dz_left):
+                    raise Exception('Domain too close to make cylindrical testshell, '
+                                    'domain = %s, distance = %s, testShell = %s' %
+                                    (neighbor, distance, self))
 
-        if dr_dzright_dzleft:
-            return dr_dz_right_dzleft
-        else:
-            return None
+        # we calculated a valid radius -> suscess!
+        assert dr >= min_dr and dz_right >= min_dz_right and dz_left >= min_dz_left, 
+               'CylindricaltestShell dimensions smaller than the minimum, radius = %s, min_radius = %s.' % \
+                (radius, min_radius)
+        
+        return (dr, dz_right, dzleft)
 
     # default functions for evaluating z_right/z_left/r after one of parameters changed
     def r_right(self, z_right):
