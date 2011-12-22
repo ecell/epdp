@@ -370,7 +370,11 @@ class SphericalSingle(NonInteractionSingle, NonInteractionSingles, hasSphericalS
             return self.shell_list
 
     def update_radius(self):
-        return self.testShell.determine_possible_shell([self.domain_id], [self.structure.id])
+        try:
+            return self.testShell.determine_possible_shell([self.domain_id], [self.structure.id])
+        except Exception as e:
+            raise Exception('SphericalSingle, update_radius failed: %s' %
+                            (str(e)))
 
     def create_position_vector(self, r):
         return random_vector(r)
