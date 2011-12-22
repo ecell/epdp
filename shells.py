@@ -567,7 +567,7 @@ class SphericaltestShell(testShell):
                 distance += self.pid_particle_pair[1].radius
             radius = min(radius, distance)
             if radius < min_radius:
-                raise Exception('Surface too close to make spherical testshell.'
+                raise Exception('Surface too close to make spherical testshell, '
                                 'surface = %s, distance = %s, testShell = %s' %
                                 (surface, distance, self))
 
@@ -581,7 +581,7 @@ class SphericaltestShell(testShell):
                 radius = min(radius, new_radius)
 
                 if radius < min_radius:
-                    raise Exception('Domain too close to make spherical testshell.'
+                    raise Exception('Domain too close to make spherical testshell, '
                                     'domain = %s, distance = %s, testShell = %s' %
                                     (neighbor, radius, self))
 
@@ -628,9 +628,9 @@ class SphericalPairtestShell(SphericaltestShell, testSimplePair):
         self.center = self.com
         try:
             self.radius = self.determine_possible_shell([single1.domain_id, single2.domain_id],
-                                                   [structure.id])
+                                                        [structure.id])
         except Exception as e:
-            raise Exception('SphericalPairtestShell failed: %s' %
+            raise Exception('(SphericalPair). %s' %
                             (str(e)))
 
     def get_min_radius(self):
@@ -655,8 +655,8 @@ class SphericalPairtestShell(SphericaltestShell, testSimplePair):
         com_shell_size = max(radius1, radius2)
 
         # calculate total radii including the margin for the burst volume for the particles
-        shell_size = max(iv_shell_size1 + com_shell_size + radius1 * (1 - self.SINGLE_SHELL_FACTOR),
-                         iv_shell_size2 + com_shell_size + radius2 * (1 - self.SINGLE_SHELL_FACTOR))
+        shell_size = max(iv_shell_size1 + com_shell_size + radius1 * (self.SINGLE_SHELL_FACTOR),
+                         iv_shell_size2 + com_shell_size + radius2 * (self.SINGLE_SHELL_FACTOR))
 
         return shell_size
 

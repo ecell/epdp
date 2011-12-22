@@ -1281,7 +1281,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
         return domain
 
-
+##### Redundant but maybe useful for parts
     def calculate_simplepair_shell_size(self, single1, single2):
         assert single1.structure == single2.structure
 
@@ -2055,7 +2055,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
             except Exception as e:
                 testShell = None
                 if __debug__:
-                    log.debug('%s not formed: %s' % \
+                    log.debug('%s not formed %s' % \
                               ('Pair(%s, %s)' % (single1.pid_particle_pair[0], single2.pid_particle_pair[0]),
                               str(e) ))
 
