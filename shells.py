@@ -131,6 +131,31 @@ class testSimplePair(testPair):
 
         return com, iv
 
+    def get_min_pair_size(self):
+        # TODO Is this assert here ok?
+        assert self.r0 >= self.sigma, \
+            'distance_from_sigma (pair gap) between %s and %s = %s < 0' % \
+            (self.single1, self.single2, FORMAT_DOUBLE % (self.r0 - self.sigma))
+
+        D1 = self.pid_particle_pair1[1].D
+        D2 = self.pid_particle_pair2[1].D
+        radius1 = self.pid_particle_pair1[1].radius
+        radius2 = self.pid_particle_pair2[1].radius
+
+        dist_from_com1 = self.r0 * D1 / self.D_tot      # particle distance from CoM
+        dist_from_com2 = self.r0 * D2 / self.D_tot
+        iv_shell_size1 = dist_from_com1 + radius1       # the shell should surround the particles
+        iv_shell_size2 = dist_from_com2 + radius2
+
+        # also fix the minimum shellsize for the CoM domain
+        com_shell_size = max(radius1, radius2)
+
+        # calculate total radii including the margin for the burst volume for the particles
+        shell_size = max(iv_shell_size1 + com_shell_size + radius1 * (self.SINGLE_SHELL_FACTOR),
+                         iv_shell_size2 + com_shell_size + radius2 * (self.SINGLE_SHELL_FACTOR))
+
+        return shell_size
+
 ##################################
 class hasShell(object):
 
@@ -646,32 +671,7 @@ class SphericalPairtestShell(SphericaltestShell, testSimplePair):
                                  (str(e)))
 
     def get_min_radius(self):
-        # TODO this doesn't really belong in testSimplePair, but is also general for all SimplePairs
-
-        # TODO Is this assert here ok?
-        assert self.r0 >= self.sigma, \
-            'distance_from_sigma (pair gap) between %s and %s = %s < 0' % \
-            (self.single1, self.single2, FORMAT_DOUBLE % (self.r0 - self.sigma))
-
-        D1 = self.pid_particle_pair1[1].D
-        D2 = self.pid_particle_pair2[1].D
-        radius1 = self.pid_particle_pair1[1].radius
-        radius2 = self.pid_particle_pair2[1].radius
-
-        dist_from_com1 = self.r0 * D1 / self.D_tot      # particle distance from CoM
-        dist_from_com2 = self.r0 * D2 / self.D_tot
-        iv_shell_size1 = dist_from_com1 + radius1       # the shell should surround the particles
-        iv_shell_size2 = dist_from_com2 + radius2
-
-        # also fix the minimum shellsize for the CoM domain
-        com_shell_size = max(radius1, radius2)
-
-        # calculate total radii including the margin for the burst volume for the particles
-        shell_size = max(iv_shell_size1 + com_shell_size + radius1 * (self.SINGLE_SHELL_FACTOR),
-                         iv_shell_size2 + com_shell_size + radius2 * (self.SINGLE_SHELL_FACTOR))
-
-        return shell_size
-
+        return self.get_min_pair_size()
 
 ##########################
 class CylindricaltestShell(testShell):
