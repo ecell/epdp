@@ -12,6 +12,29 @@ from _gfrd import (
 
 from utils import *
 
+__all__ = [
+    'ShellmakingError',
+    'testShellError',
+    'Others',
+    'NonInteractionSingles',
+    'testSingle',
+    'testNonInteractionSingle',
+    'testInteractionSingle',
+    'testPair',
+    'testSimplePair',
+    'hasSphericalShell',
+    'hasCylindricalShell',   
+    'SphericalSingletestShell',
+    'SphericalPairtestShell',
+    'PlanarSurfaceSingletestShell',
+    'PlanarSurfacePairtestShell',
+    'CylindricalSurfaceSingletestShell',
+    'CylindricalSurfacePairtestShell',
+    'PlanarSurfaceInteractiontestShell',
+    'CylindricalSurfaceInteractiontestShell',
+    'MixedPair3D2DtestShell',
+    ]
+
 class ShellmakingError(Exception):
     pass
 
