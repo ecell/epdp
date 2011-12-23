@@ -35,7 +35,8 @@ from constants import *
 from shellcontainer import ShellContainer
 from shells import (
     SphericalSingletestShell,
-    SphericalPairtestShell
+    SphericalPairtestShell,
+    PlanarSurfaceSingletestShell,
     )
 
 import logging
@@ -53,11 +54,11 @@ def create_default_single(domain_id, pid_particle_pair, shell_id, rt, structure,
         testSingle = SphericalSingletestShell(pid_particle_pair, structure, geometrycontainer, domains)
         return SphericalSingle(domain_id, shell_id, testSingle, rt)
     elif isinstance(structure, CylindricalSurface):
-        return CylindricalSurfaceSingle(domain_id, pid_particle_pair, 
-                                        shell_id, rt, structure)
+        testSingle = CylindricalSurfaceSingletestShell(pid_particle_pair, structure, geometrycontainer, domains)
+        return CylindricalSurfaceSingle(domain_id, shell_id, testSingle, rt)
     elif isinstance(structure, PlanarSurface):
-        return PlanarSurfaceSingle(domain_id, pid_particle_pair, 
-                                   shell_id, rt, structure)
+        testSingle = PlanarSurfaceSingletestShell(pid_particle_pair, structure, geometrycontainer, domains)
+        return PlanarSurfaceSingle(domain_id, shell_id, testSingle, rt)
 
 
 def create_default_pair(domain_id, shell_id, testShell, rrs):
@@ -530,17 +531,17 @@ class EGFRDSimulator(ParticleSimulatorBase):
 #        single.pid_particle_pair = self.move_particle(single.pid_particle_pair, position)
 #        self.update_single_shell(single, position, radius)
 
-    def update_single_shell(self, single, position, radius=None):
-        if radius == None:
-            # By default, don't change radius.
-            radius = single.shell.shape.radius
+    def update_single_shell(self, single, shell):#position, radius=None):
+#        if radius == None:
+#            # By default, don't change radius.
+#            radius = single.shell.shape.radius
 
         # Reuse shell_id and domain_id.
         shell_id = single.shell_id
-        domain_id = single.domain_id
+#        domain_id = single.domain_id
 
         # Replace shell.
-        shell = single.create_new_shell(position, radius, domain_id)
+#        shell = single.create_new_shell(position, radius, domain_id)
         shell_id_shell_pair = (shell_id, shell) 
 
         single.shell_id_shell_pair = shell_id_shell_pair
@@ -1410,17 +1411,17 @@ class EGFRDSimulator(ParticleSimulatorBase):
 #        # Make sure that the new shell size is not too small or big
 #        new_shell_size = max(max_shell_size, min_shell_size)
 
-        new_shell_size = single.update_radius()
-        assert new_shell_size, 'single.update_radius() returned None.'
+        singlepos = single.pid_particle_pair[1].position
+        new_shell = single.update_radius(singlepos)
+        assert new_shell, 'single.update_radius() returned None.'
 
         if __debug__:
-            log.info('update_single: single: %s, new_shell_size = %s' % \
-                     (single, FORMAT_DOUBLE % new_shell_size))
+            log.info('update_single: single: %s, new_shell = %s' % \
+                     (single, str(new_shell)))
 
         # Resize shell, don't change position.
         # Note: this should be done before determine_next_event.
-        singlepos = single.pid_particle_pair[1].position
-        self.update_single_shell(single, singlepos, new_shell_size)        
+        self.update_single_shell(single, new_shell)        
 
         single.dt, single.event_type = single.determine_next_event()
         single.last_time = self.t
