@@ -11,11 +11,7 @@ from single import (
     InteractionSingle)
 from multi import (
     Multi)
-from shells import (
-    hasSphericalShell,
-    hasCylindricalShell,
-    Others,
-    )
+from shells import *
 
 
 __all__ = [
@@ -48,23 +44,23 @@ class Pair(ProtectiveDomain):
 
 #    def __init__(self, domain_id, single1, single2, shell_id, r0, 
 #                 rrs):
-    def __init__(self, domain_id, shell_id, testShell, rrs):
-        ProtectiveDomain.__init__(self, domain_id)
+    def __init__(self, domain_id, shell_id, rrs):
+        ProtectiveDomain.__init__(self, domain_id, shell_id)
 
         assert self.testShell       # assume that the testShell exists
-
+        assert isinstance(self.testShell, testPair)
         self.multiplicity = 2
 
-        self.single1 = testShell.single1
-        self.single2 = testShell.single2 
-        self.pid_particle_pair1 = testShell.pid_particle_pair1
-        self.pid_particle_pair2 = testShell.pid_particle_pair2
+        self.single1 = self.testShell.single1
+        self.single2 = self.testShell.single2 
+        self.pid_particle_pair1 = self.testShell.pid_particle_pair1
+        self.pid_particle_pair2 = self.testShell.pid_particle_pair2
 
         self.interparticle_rrs = rrs
         self.interparticle_ktot = self.calc_ktot(rrs)
-        self.r0 = testShell.r0
+        self.r0 = self.testShell.r0
 
-        self.shell_id = shell_id
+#        self.shell_id = shell_id
 
     def __del__(self):
         if __debug__:
@@ -319,9 +315,11 @@ class SimplePair(Pair):
 
 #    def __init__(self, domain_id, shell_center, single1, single2, shell_id,
 #                      r0, shell_size, rrs, structure):
-    def __init__(self, domain_id, shell_id, testShell, rrs):
-        Pair.__init__(self, domain_id, shell_id, testShell, rrs)
+    def __init__(self, domain_id, shell_id, rrs):
+        Pair.__init__(self, domain_id, shell_id, rrs)
 
+        assert self.testShell
+        assert isinstance(self.testShell, testSimplePair)
         self.structure = self.testShell.structure              # structure on which both particles live
 
         shell_size = self.get_shell_size()                  # FIXME
@@ -476,7 +474,7 @@ class SphericalPair(SimplePair, Others, hasSphericalShell):
 #        SimplePair.__init__(self, domain_id, shell_center, single1, single2, shell_id,
 #                      r0, shell_size, rrs, structure)
         hasSphericalShell.__init__(self, testShell, domain_id)
-        SimplePair.__init__(self, domain_id, shell_id, testShell, rrs) # Always initialize after hasSphericalShell
+        SimplePair.__init__(self, domain_id, shell_id, rrs) # Always initialize after hasSphericalShell
 
 
     def com_greens_function(self):
@@ -593,7 +591,7 @@ class PlanarSurfacePair(SimplePair, Others, hasCylindricalShell):
 #        SimplePair.__init__(self, domain_id, shell_center, single1, single2, shell_id,
 #                      r0, shell_size, rrs, structure)
         hasCylindricalShell.__init__(self, testShell, domain_id)
-        SimplePair.__init__(self, domain_id, shell_id, testShell, rrs)
+        SimplePair.__init__(self, domain_id, shell_id, rrs)
 
     def com_greens_function(self):
         return GreensFunction2DAbsSym(self.D_R, self.a_R)

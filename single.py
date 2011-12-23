@@ -15,13 +15,7 @@ from domain import (
     Domain,
     ProtectiveDomain)
 
-from shells import (
-    ShellmakingError,
-    hasSphericalShell,
-    hasCylindricalShell,
-    NonInteractionSingles,
-    Others,
-    )
+from shells import *
 
 __all__ = [
     'CylindricalSurfaceSingle',
@@ -45,15 +39,18 @@ class Single(ProtectiveDomain):
     specified.
 
     """
-    def __init__(self, domain_id, pid_particle_pair, reactionrules, structure):
-        ProtectiveDomain.__init__(self, domain_id)
+#    def __init__(self, domain_id, pid_particle_pair, reactionrules, structure):
+    def __init__(self, domain_id, shell_id, reactionrules):
+        ProtectiveDomain.__init__(self, domain_id, shell_id)
 
         self.multiplicity = 1                           # all singles have only one particle
 
-        self.pid_particle_pair = pid_particle_pair      # the particle in the single
-        self.structure = structure                      # the structure in/on which the particle lives
-#        self.pid_particle_pair = testShell.pid_particle_pair      # the particle in the single
-#        self.structure = testShell.structure                      # the structure in/on which the particle lives
+#        self.pid_particle_pair = pid_particle_pair      # the particle in the single
+#        self.structure = structure                      # the structure in/on which the particle lives
+        assert self.testShell
+        assert isinstance(self.testShell, testSingle)
+        self.pid_particle_pair = self.testShell.pid_particle_pair      # the particle in the single
+        self.structure = self.testShell.structure                      # the structure in/on which the particle lives
 
         self.reactionrules = reactionrules              # the reaction rules for mono molecular reactions
         self.rrule = None                               # the reaction rule of the actual reaction (property reactionrule)
@@ -156,13 +153,16 @@ class NonInteractionSingle(Single):
         * Decay process of the particle
 
     """
-    def __init__(self, domain_id, pid_particle_pair, shell_id, reactionrules, 
-                 structure):
-        Single.__init__(self, domain_id, pid_particle_pair, reactionrules,
-                        structure)
+#    def __init__(self, domain_id, pid_particle_pair, shell_id, reactionrules, 
+#                 structure):
+    def __init__(self, domain_id, shell_id, reactionrules):
+#        Single.__init__(self, domain_id, pid_particle_pair, reactionrules,
+#                        structure)
+
+        Single.__init__(self, domain_id, shell_id, reactionrules)
 
         # Create shell.
-        self.shell_id = shell_id
+#        self.shell_id = shell_id
 #        self.shell = self.create_new_shell(pid_particle_pair[1].position,
 #                                      pid_particle_pair[1].radius, domain_id)
 
@@ -335,12 +335,15 @@ class SphericalSingle(NonInteractionSingle, NonInteractionSingles, hasSphericalS
     def __init__(self, domain_id, shell_id, testShell, reactionrules):
         # This should also be moved to single, since it's the same for all NonInteractionSingles
         # -> change constructor
-        pid_particle_pair = testShell.pid_particle_pair
-        structure = testShell.structure
+#        pid_particle_pair = testShell.pid_particle_pair
+#        structure = testShell.structure
+
+        assert isinstance(testShell, SphericalSingletestShell)
 
         hasSphericalShell.__init__(self, testShell, domain_id)           # here also the shell is created
-        NonInteractionSingle.__init__(self, domain_id, pid_particle_pair, 
-                                      shell_id, reactionrules, structure)
+#        NonInteractionSingle.__init__(self, domain_id, pid_particle_pair, 
+#                                      shell_id, reactionrules, structure)
+        NonInteractionSingle.__init__(self, domain_id, shell_id, reactionrules)
 
     def greens_function(self):
         return GreensFunction3DAbsSym(self.getD(),
@@ -402,11 +405,12 @@ class PlanarSurfaceSingle(NonInteractionSingle, NonInteractionSingles, hasCylind
 #                 structure):
     def __init__(self, domain_id, shell_id, testShell, reactionrules):
 
-        pid_particle_pair = testShell.pid_particle_pair
-        structure = testShell.structure
+#        pid_particle_pair = testShell.pid_particle_pair
+#        structure = testShell.structure
         hasCylindricalShell.__init__(self, testShell, domain_id)
-        NonInteractionSingle.__init__(self, domain_id, pid_particle_pair, 
-                                      shell_id, reactionrules, structure)
+#        NonInteractionSingle.__init__(self, domain_id, pid_particle_pair, 
+#                                      shell_id, reactionrules, structure)
+        NonInteractionSingle.__init__(self, domain_id, shell_id, reactionrules)
 
     def greens_function(self):
         return GreensFunction2DAbsSym(self.D,
@@ -481,10 +485,14 @@ class CylindricalSurfaceSingle(NonInteractionSingle):
         * Initial position: z = 0.
         * Selected randomly when drawing displacement vector: none.
     """
-    def __init__(self, domain_id, pid_particle_pair, shell_id, reactionrules, 
-                 structure):
-        NonInteractionSingle.__init__(self, domain_id, pid_particle_pair, 
-                                      shell_id, reactionrules, structure)
+#    def __init__(self, domain_id, pid_particle_pair, shell_id, reactionrules, 
+#                 structure):
+#        NonInteractionSingle.__init__(self, domain_id, pid_particle_pair, 
+#                                      shell_id, reactionrules, structure)
+    def __init__(self, domain_id, shell_id, testShell, reactionrules):
+
+        hasCylindricalShell.__init__(self, testShell, domain_id)
+        NonInteractionSingle.__init__(self, domain_id, shell_id, reactionrules)
 
     def getv(self):
         return self.pid_particle_pair[1].v
@@ -552,17 +560,22 @@ class InteractionSingle(Single):
         * Diffusion in the direction that is normal the the direction of interaction
         * Decay of the particle into a different or no particle
     """
-    def __init__(self, domain_id, pid_particle_pair, reactionrules, structure, shell_id,   
-                 interactionrules, surface):
+#    def __init__(self, domain_id, pid_particle_pair, reactionrules, structure, shell_id,   
+#                 interactionrules, surface):
+    def __init__(self, domain_id, shell_id, testShell, reactionrules, interactionrules):
 
-        Single.__init__(self, domain_id, pid_particle_pair, reactionrules,
-                        structure)
+        hasCylindricalShell.__init__(self, testShell, domain_id)
 
-        self.shell_id = shell_id
+        assert self.testShell
+        assert isinstance(self.testShell, testInteractionSingle)
+        Single.__init__(self, domain_id, shell_id, reactionrules)
+
+#        self.shell_id = shell_id
         self.interactionrules = interactionrules        # the surface interaction 'reactions'
         self.intrule = None
         self.interaction_ktot = self.calc_ktot(interactionrules)
-        self.surface = surface                          # The surface with which the particle is
+
+        self.surface = self.testShell.surface           # The surface with which the particle is
                                                         # trying to interact
 
     def get_interaction_rule(self):

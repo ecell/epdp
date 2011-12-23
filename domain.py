@@ -69,10 +69,10 @@ class ProtectiveDomain(Domain):
 # which have only one shell. Multi's on the other hand, have multiple shells and can still leave
 # their shell within a timestep, breaking the principle of a Protective Domain
 
-    def __init__(self, domain_id):
+    def __init__(self, domain_id, shell_id):
         Domain.__init__(self, domain_id)
 
-        self.shell_id = None
+        self.shell_id = shell_id
 #        self.shell = None
         self.num_shells = 1             # all protective domains have only one shell
 
