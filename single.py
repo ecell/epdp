@@ -369,9 +369,11 @@ class SphericalSingle(NonInteractionSingle, NonInteractionSingles, hasSphericalS
         else:
             return self.shell_list
 
-    def update_radius(self):
+    def update_radius(self, position):
         try:
-            return self.testShell.determine_possible_shell([self.domain_id], [self.structure.id])
+            radius = self.testShell.determine_possible_shell([self.domain_id], [self.structure.id])
+            return self.create_new_shell(position, radius, self.domain_id)
+
         except Exception as e:
             raise Exception('SphericalSingle, update_radius failed: %s' %
                             (str(e)))
@@ -384,7 +386,7 @@ class SphericalSingle(NonInteractionSingle, NonInteractionSingles, hasSphericalS
 
 
 #class PlanarSurfaceSingle(NonInteractionSingle):
-class PlanarSurfaceSingle(NonInteractionSingle, NonInteractionsSingles, hasCylindricalShell):
+class PlanarSurfaceSingle(NonInteractionSingle, NonInteractionSingles, hasCylindricalShell):
     """1 Particle inside a (cylindrical) shell on a PlanarSurface. (Hockey 
     pucks).
 
@@ -448,10 +450,14 @@ class PlanarSurfaceSingle(NonInteractionSingle, NonInteractionsSingles, hasCylin
         else:
             return self.shell_list
 
-    def update_radius(self):
+    def update_radius(self, position):
         # TODO update_single_shell doesn't work with this now
         try:
-            return self.testShell.determine_possible_shell([self.domain_id], [self.structure.id])
+            dr, dz_right, dz_left = self.testShell.determine_possible_shell([self.domain_id], [self.structure.id])
+            center, radius, half_length = self.r_zright_zleft_to_r_center_hl(self.testShell.get_referencepoint(),
+                                                                             self.testShell.get_orientation_vector(),
+                                                                             dr, dz_right, dz_left)            
+            return self.create_new_shell(center, radius, half_length, self.domain_id)
         except Exception as e:
             raise Exception('SphericalSingle, update_radius failed: %s' %
                             (str(e)))
