@@ -73,18 +73,18 @@ def create_default_pair(domain_id, shell_id, testShell, rrs):
     elif isinstance(testShell, MixedPair3D2DtestShell):
         return MixedPair3D2D          (domain_id, shell_id, testShell, rrs)
 
-def try_default_testpair(single1, single2, self.geometrycontainer, self.domains):
+def try_default_testpair(single1, single2, geometrycontainer, domains):
     if single1.structure == single2.structure:
         if isinstance(single1.structure, CuboidalRegion):
-            return SphericalPairtestShell(single1, single2, self.geometrycontainer, self.domains)
+            return SphericalPairtestShell(single1, single2, geometrycontainer, domains)
         elif isinstance(single1.structure, PlanarSurface):
-            return PlanarSurfacePairtestShell(single1, single2, self.geometrycontainer, self.domains)
+            return PlanarSurfacePairtestShell(single1, single2, geometrycontainer, domains)
         elif isinstance(single1.structure, CylindricalSurface):
-            return CylindricalSurfacePairtestShell(single1, single2, self.geometrycontainer, self.domains)
+            return CylindricalSurfacePairtestShell(single1, single2, geometrycontainer, domains)
     elif (isinstance(single1.structure, PlanarSurface) and isinstance(single2.structure, CuboidalRegion)):
-        return MixedPair3D2DtestShell(single1, single2, self.geometrycontainer, self.domains) 
+        return MixedPair3D2DtestShell(single1, single2, geometrycontainer, domains) 
     elif (isinstance(single2.structure, PlanarSurface) and isinstance(single1.structure, CuboidalRegion)):
-        return MixedPair3D2DtestShell(single2, single1, self.geometrycontainer, self.domains)
+        return MixedPair3D2DtestShell(single2, single1, geometrycontainer, domains)
     else:
         raise testShellError('(MixedPair). combination of structure not supported')
         
