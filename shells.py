@@ -775,10 +775,6 @@ class PlanarSurfaceSingletestShell(CylindricaltestShell, testNonInteractionSingl
         CylindricaltestShell.__init__(self, geometrycontainer, domains)
         testNonInteractionSingle.__init__(self, pid_particle_pair, structure)
 
-        self.dz_right = self.pid_particle_pair[1].radius
-        self.dz_left  = self.pid_particle_pair[1].radius
-        self.dr       = self.pid_particle_pair[1].radius
-
         # scaling parameters
         self.dzdr_right = 0.0
         self.drdz_right = numpy.inf
@@ -790,6 +786,11 @@ class PlanarSurfaceSingletestShell(CylindricaltestShell, testNonInteractionSingl
         self.z0_left    = self.pid_particle_pair[1].radius
         self.right_scalingangle = self.get_right_scalingangle()
         self.left_scalingangle  = self.get_left_scalingangle()
+
+        # sizing up the shell to a zero shell
+        self.dz_right = self.pid_particle_pair[1].radius
+        self.dz_left  = self.pid_particle_pair[1].radius
+        self.dr       = self.pid_particle_pair[1].radius
 
     def get_orientation_vector(self):
         return self.structure.shape.unit_z   # just copy from structure
@@ -834,7 +835,7 @@ class PlanarSurfacePairtestShell(hasCylindricalShell, Others):
                             self.determine_possible_shell([self.single1.domain_id, self.single2.domain_id],
                                                           [structure.id])
         except ShellmakingError as e:
-            raise testShellError('(CylindricalPair). %s' %
+            raise testShellError('(PlanarSurfacePair). %s' %
                                  (str(e)))
 
     def get_orientation_vector(self):

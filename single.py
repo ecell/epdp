@@ -460,7 +460,7 @@ class PlanarSurfaceSingle(NonInteractionSingle, NonInteractionSingles, hasCylind
                                                                              dr, dz_right, dz_left)            
             return self.create_new_shell(center, radius, half_length, self.domain_id)
         except ShellmakingError as e:
-            raise Exception('SphericalSingle, create_updated_shell failed: %s' % str(e) )
+            raise Exception('PlanarSurfaceSingle, create_updated_shell failed: %s' % str(e) )
 
     def create_position_vector(self, r):
         # project the vector onto the surface unit vectors to make sure that the coordinates are in the surface
