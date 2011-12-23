@@ -171,7 +171,7 @@ class hasShell(object):
 class hasSphericalShell(hasShell):
 # The testShell is now converted into smt that we can use in the domain instance
 
-    def __init__(self, sphericaltestShell):
+    def __init__(self, sphericaltestShell, domain_id):
     # Note that the Multi should not call __init__ because we don't want to initialize the shell
 
         hasShell.__init__(self, sphericaltestShell)
@@ -181,7 +181,7 @@ class hasSphericalShell(hasShell):
         self.shell_radius = sphericaltestShell.radius
         self.shell = self.create_new_shell(self.shell_center,
                                            self.shell_radius,
-                                           self.domain_id)
+                                           domain_id)
 
     def create_new_shell(self, position, radius, domain_id):
         return SphericalShell(domain_id, Sphere(position, radius))
@@ -382,7 +382,7 @@ class Multi(hasSphericalShell, Others):
 #########################
 class hasCylindricalShell(hasShell):
 
-    def __init__(self, cylindricaltestShell):
+    def __init__(self, cylindricaltestShell, domain_id):
 
         assert isinstance(cylindricaltestShell, CylindricaltestShell)
 
@@ -400,7 +400,7 @@ class hasCylindricalShell(hasShell):
         self.shell = self.create_new_shell(self.shell_center,
                                            self.shell_radius,
                                            self.shell_half_length,
-                                           self.domain_id)
+                                           domain_id)
 
     @ classmethod
     def r_zright_zleft_to_r_center_hl(cls, referencepoint, orientation_vector, dr, dz_right, dz_left):

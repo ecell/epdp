@@ -73,7 +73,7 @@ class ProtectiveDomain(Domain):
         Domain.__init__(self, domain_id)
 
         self.shell_id = None
-        self.shell = None
+#        self.shell = None
         self.num_shells = 1             # all protective domains have only one shell
 
     def get_shell_id_shell_pair(self):

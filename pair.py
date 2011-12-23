@@ -46,20 +46,23 @@ class Pair(ProtectiveDomain):
     # 5.6: ~1e-8, 6.0: ~1e-9
     CUTOFF_FACTOR = 5.6
 
-    def __init__(self, domain_id, single1, single2, shell_id, r0, 
-                 rrs):
+#    def __init__(self, domain_id, single1, single2, shell_id, r0, 
+#                 rrs):
+    def __init__(self, domain_id, shell_id, testShell, rrs):
         ProtectiveDomain.__init__(self, domain_id)
+
+        assert self.testShell       # assume that the testShell exists
 
         self.multiplicity = 2
 
-        self.single1 = single1
-        self.single2 = single2 
-        self.pid_particle_pair1 = single1.pid_particle_pair
-        self.pid_particle_pair2 = single2.pid_particle_pair
+        self.single1 = testShell.single1
+        self.single2 = testShell.single2 
+        self.pid_particle_pair1 = testShell.pid_particle_pair1
+        self.pid_particle_pair2 = testShell.pid_particle_pair2
 
         self.interparticle_rrs = rrs
         self.interparticle_ktot = self.calc_ktot(rrs)
-        self.r0 = r0
+        self.r0 = testShell.r0
 
         self.shell_id = shell_id
 
@@ -314,16 +317,15 @@ class SimplePair(Pair):
             return closest_distance/SAFETY
 
 
-    def __init__(self, domain_id, shell_center, single1, single2, shell_id,
-                      r0, shell_size, rrs, structure):
-#    def __init__(self, domain_id, shell_id, testShell, rrs) # TODO constructor above does not support this yet
-        Pair.__init__(self, domain_id, single1, single2, shell_id,
-                      r0, rrs)
+#    def __init__(self, domain_id, shell_center, single1, single2, shell_id,
+#                      r0, shell_size, rrs, structure):
+    def __init__(self, domain_id, shell_id, testShell, rrs):
+        Pair.__init__(self, domain_id, shell_id, testShell, rrs)
 
-        self.structure = structure              # structure on which both particles live
-#        self.structure = testShell.structure
+        self.structure = self.testShell.structure              # structure on which both particles live
 
-        self.a_R, self.a_r = self.determine_radii(r0, shell_size)
+        shell_size = self.get_shell_size()                  # FIXME
+        self.a_R, self.a_r = self.determine_radii(self.r0, shell_size)
         # set the radii of the inner domains as a function of the outer protective domain
 
 # this can go
@@ -368,8 +370,8 @@ class SimplePair(Pair):
 
         return pos1, pos2
 
-#    def get_shell_size(self):
-#        return self.shell.shape.radius
+    def get_shell_size(self):
+        return self.shell.shape.radius
 
     def determine_radii(self, r0, shell_size):
         """Determine a_r and a_R from the size of the protective domain.
@@ -464,17 +466,17 @@ class SphericalPair(SimplePair, Others, hasSphericalShell):
 #    def __init__(self, domain_id, shell_center, single1, single2, shell_id,
 #                 r0, shell_size, rrs, structure):
     def __init__(self, domain_id, shell_id, testShell, rrs):
-        single1 = testShell.single1
-        single2 = testShell.single2
-        structure = testShell.structure
-        shell_center = testShell.center
-        shell_size = testShell.radius  # TODO this should be removed
-        r0 = testShell.r0        # TODO this should be removed
+#        single1 = testShell.single1
+#        single2 = testShell.single2
+#        structure = testShell.structure
+#        shell_center = testShell.center
+#        shell_size = testShell.radius  # TODO this should be removed
+#        r0 = testShell.r0        # TODO this should be removed
 
-        SimplePair.__init__(self, domain_id, shell_center, single1, single2, shell_id,
-                      r0, shell_size, rrs, structure)
-#        SimplePair.__init__(self, domain_id, shell_id, testShell, rrs) # TODO constructor above does not support this yet
-        hasSphericalShell.__init__(self, testShell)
+#        SimplePair.__init__(self, domain_id, shell_center, single1, single2, shell_id,
+#                      r0, shell_size, rrs, structure)
+        hasSphericalShell.__init__(self, testShell, domain_id)
+        SimplePair.__init__(self, domain_id, shell_id, testShell, rrs) # Always initialize after hasSphericalShell
 
 
     def com_greens_function(self):
@@ -572,15 +574,26 @@ class SphericalPair(SimplePair, Others, hasSphericalShell):
         return 'Spherical' + Pair.__str__(self)
 
 
-class PlanarSurfacePair(SimplePair):
+#class PlanarSurfacePair(SimplePair):
+class PlanarSurfacePair(SimplePair, Others, hasCylindricalShell):
     """2 Particles inside a (cylindrical) shell on a PlanarSurface. 
     (Hockey pucks).
 
     """
-    def __init__(self, domain_id, shell_center, single1, single2, shell_id,
-                 r0, shell_size, rrs, structure):
-        SimplePair.__init__(self, domain_id, shell_center, single1, single2, shell_id,
-                      r0, shell_size, rrs, structure)
+    def __init__(self, domain_id, shell_id, testShell, rrs):
+#    def __init__(self, domain_id, shell_center, single1, single2, shell_id,
+#                 r0, shell_size, rrs, structure):
+#        single1 = testShell.single1
+#        single2 = testShell.single2
+#        structure = testShell.structure
+#        shell_center = testShell.center
+#        shell_size = testShell.radius  # TODO this should be removed
+#        r0 = testShell.r0        # TODO this should be removed
+
+#        SimplePair.__init__(self, domain_id, shell_center, single1, single2, shell_id,
+#                      r0, shell_size, rrs, structure)
+        hasCylindricalShell.__init__(self, testShell, domain_id)
+        SimplePair.__init__(self, domain_id, shell_id, testShell, rrs)
 
     def com_greens_function(self):
         return GreensFunction2DAbsSym(self.D_R, self.a_R)
@@ -589,18 +602,18 @@ class PlanarSurfacePair(SimplePair):
         return GreensFunction2DRadAbs(self.D_r, self.interparticle_ktot, r0,
                                       self.sigma, self.a_r)
 
-    def create_new_shell(self, position, radius, domain_id):
-        # The half_length (thickness/2) of a hockey puck is not more 
-        # than it has to be (namely the radius of the particle), so if 
-        # the particle undergoes an unbinding reaction we still have to 
-        # clear the target volume and the move may be rejected (NoSpace 
-        # error).
-        orientation = crossproduct(self.structure.shape.unit_x,
-                                   self.structure.shape.unit_y)
-        half_length = max(self.pid_particle_pair1[1].radius,
-                          self.pid_particle_pair2[1].radius)
-        return CylindricalShell(domain_id, Cylinder(position, radius, 
-                                                    orientation, half_length))
+#    def create_new_shell(self, position, radius, domain_id):
+#        # The half_length (thickness/2) of a hockey puck is not more 
+#        # than it has to be (namely the radius of the particle), so if 
+#        # the particle undergoes an unbinding reaction we still have to 
+#        # clear the target volume and the move may be rejected (NoSpace 
+#        # error).
+#        orientation = crossproduct(self.structure.shape.unit_x,
+#                                   self.structure.shape.unit_y)
+#        half_length = max(self.pid_particle_pair1[1].radius,
+#                          self.pid_particle_pair2[1].radius)
+#        return CylindricalShell(domain_id, Cylinder(position, radius, 
+#                                                    orientation, half_length))
 
     def get_shell_direction(self):
         return self.shell.shape.unit_z

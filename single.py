@@ -337,9 +337,10 @@ class SphericalSingle(NonInteractionSingle, NonInteractionSingles, hasSphericalS
         # -> change constructor
         pid_particle_pair = testShell.pid_particle_pair
         structure = testShell.structure
+
+        hasSphericalShell.__init__(self, testShell, domain_id)           # here also the shell is created
         NonInteractionSingle.__init__(self, domain_id, pid_particle_pair, 
                                       shell_id, reactionrules, structure)
-        hasSphericalShell.__init__(self, testShell)                         # here also the shell is created
 
     def greens_function(self):
         return GreensFunction3DAbsSym(self.getD(),
@@ -403,9 +404,9 @@ class PlanarSurfaceSingle(NonInteractionSingle, NonInteractionSingles, hasCylind
 
         pid_particle_pair = testShell.pid_particle_pair
         structure = testShell.structure
+        hasCylindricalShell.__init__(self, testShell, domain_id)
         NonInteractionSingle.__init__(self, domain_id, pid_particle_pair, 
                                       shell_id, reactionrules, structure)
-        hasCylindricalShell.__init__(self, testShell)
 
     def greens_function(self):
         return GreensFunction2DAbsSym(self.D,
