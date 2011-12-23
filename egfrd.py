@@ -38,6 +38,7 @@ from shells import (
     SphericalSingletestShell,
     SphericalPairtestShell,
     PlanarSurfaceSingletestShell,
+    PlanarSurfacePairtestShell,
     )
 
 import logging
@@ -54,24 +55,39 @@ def create_default_single(domain_id, pid_particle_pair, shell_id, rt, structure,
         # first make the test shell
         testSingle = SphericalSingletestShell(pid_particle_pair, structure, geometrycontainer, domains)
         return SphericalSingle(domain_id, shell_id, testSingle, rt)
-    elif isinstance(structure, CylindricalSurface):
-        testSingle = CylindricalSurfaceSingletestShell(pid_particle_pair, structure, geometrycontainer, domains)
-        return CylindricalSurfaceSingle(domain_id, shell_id, testSingle, rt)
     elif isinstance(structure, PlanarSurface):
         testSingle = PlanarSurfaceSingletestShell(pid_particle_pair, structure, geometrycontainer, domains)
         return PlanarSurfaceSingle(domain_id, shell_id, testSingle, rt)
+    elif isinstance(structure, CylindricalSurface):
+        testSingle = CylindricalSurfaceSingletestShell(pid_particle_pair, structure, geometrycontainer, domains)
+        return CylindricalSurfaceSingle(domain_id, shell_id, testSingle, rt)
 
 
 def create_default_pair(domain_id, shell_id, testShell, rrs):
     if   isinstance(testShell, SphericalPairtestShell):
         return SphericalPair          (domain_id, shell_id, testShell, rrs)
-    elif isinstance(testShell, CylindricalSurfacePairtestShell):
-        return CylindricalSurfacePair (domain_id, shell_id, testShell, rrs)
     elif isinstance(testShell, PlanarSurfacePairtestShell):
         return PlanarSurfacePair      (domain_id, shell_id, testShell, rrs)
+    elif isinstance(testShell, CylindricalSurfacePairtestShell):
+        return CylindricalSurfacePair (domain_id, shell_id, testShell, rrs)
     elif isinstance(testShell, MixedPair3D2DtestShell):
         return MixedPair3D2D          (domain_id, shell_id, testShell, rrs)
 
+def try_default_testpair(single1, single2, self.geometrycontainer, self.domains):
+    if single1.structure == single2.structure:
+        if isinstance(single1.structure, CuboidalRegion):
+            return SphericalPairtestShell(single1, single2, single1.structure, self.geometrycontainer, self.domains)
+        elif isinstance(single1.structure, PlanarSurface):
+            return PlanarSurfacePairtestShell(single1, single2, single1.structure, self.geometrycontainer, self.domains)
+        elif isinstance(single1.structure, CylindricalSurface):
+            return CylindricalSurfacePairtestShell(single1, single2, single1.structure, self.geometrycontainer, self.domains)
+    elif (isinstance(single1.structure, PlanarSurface) and isinstance(single2.structure, CuboidalRegion)):
+        return MixedPair3D2DtestShell(single1, single2, self.geometrycontainer, self.domains) 
+    elif (isinstance(single2.structure, PlanarSurface) and isinstance(single1.structure, CuboidalRegion)):
+        return MixedPair3D2DtestShell(single2, single1, self.geometrycontainer, self.domains)
+    else:
+        raise testShellError('(MixedPair). combination of structure not supported')
+        
 
 class DomainEvent(Event):
     __slot__ = ['data']
@@ -2052,8 +2068,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
             # particles are on the same structure
 
             try:
-                testShell = SphericalPairtestShell(single1, single2, single1.structure,
-                                                   self.geometrycontainer, self.domains)
+                testShell = try_default_testpair(single1, single2, self.geometrycontainer, self.domains)
             except testShellError as e:
                 testShell = None
                 if __debug__:
