@@ -7,6 +7,7 @@ from _gfrd import (
     SphericalShell,
     Cylinder,
     CylindricalShell,
+    PlanarSurface,
     )
 
 from utils import *
@@ -168,7 +169,7 @@ class hasSphericalShell(hasShell):
         orientation_vector = domain_to_scale.get_orientation_vector()
 
         # determine on what side the midpoint of the shell is relative to the reference_point
-        shell_position_t = world.cyclic_transpose (shell_position, reference_point)
+        shell_position_t = domain_to_scale.world.cyclic_transpose (shell_position, reference_point)
         ref_to_shell_vec = shell_position_t - reference_point
         ref_to_shell_z = numpy.dot(ref_to_shell_vec, orientation_vector)
 
@@ -295,7 +296,7 @@ class hasSphericalShell(hasShell):
             z_right = z2_new
             z_left  = z1_new
 
-        return (r, z_right, z_left)
+        return r, z_right, z_left
 
 
     def get_radius_to_shell(self, shell, domain_to_scale, r):
@@ -305,7 +306,7 @@ class hasSphericalShell(hasShell):
         # Do simple distance calculation to sphere
 
         scale_point = domain_to_scale.center
-        r_new = self.world.distance(shell.shape, scale_point)/SAFETY
+        r_new = domain_to_scale.world.distance(shell.shape, scale_point)/SAFETY
 
         # if the newly calculated dimensions are smaller than the current one, use them
         return min(r, r_new)
@@ -383,9 +384,6 @@ class hasCylindricalShell(hasShell):
         # This will scale the 'domain_to_scale' (a cylinder) using the 'shell_appearance' as the limiting shell
         # CylindricaltestShell ('domain_to_scale') -> CylindricalShell ('self' with 'shell_appearance')
 
-        if __debug__:
-            log.debug('cylinder')
-
         assert (type(shell.shape) is Cylinder)        # because the shell actually originated here
         # Do Laurens' algorithm (part2)
 
@@ -399,7 +397,7 @@ class hasCylindricalShell(hasShell):
         orientation_vector = domain_to_scale.get_orientation_vector()
 
         # determine on what side the midpoint of the shell is relative to the reference_point
-        shell_position_t = world.cyclic_transpose (shell_position, reference_point)
+        shell_position_t = domain_to_scale.world.cyclic_transpose (shell_position, reference_point)
         ref_to_shell_vec = shell_position_t - reference_point
         ref_to_shell_z = numpy.dot(ref_to_shell_vec, orientation_vector)
 
@@ -408,8 +406,8 @@ class hasCylindricalShell(hasShell):
         if ref_to_shell_z >= 0:
             direction = 1           # improve direction specification such that following calculations still work
                                     # Otherwise problems when direction = 0
-            scale_angle = domain_to_scale.get_right_scalingangle()
-            scale_center_r, scale_center_z = domain_to_scale.get_right_scalingcenter() 
+            scale_angle = domain_to_scale.right_scalingangle
+            scale_center_r, scale_center_z = domain_to_scale.right_scalingcenter 
             r1_function =  domain_to_scale.r_right
             z1_function = domain_to_scale.z_right
             z2_function = domain_to_scale.z_left
@@ -418,8 +416,8 @@ class hasCylindricalShell(hasShell):
         # else -> use z_left
         else:
             direction = -1
-            scale_angle = domain_to_scale.get_left_scalingangle()
-            scale_center_r, scale_center_z = domain_to_scale.get_left_scalingcenter() 
+            scale_angle = domain_to_scale.left_scalingangle
+            scale_center_r, scale_center_z = domain_to_scale.left_scalingcenter 
             r1_function =  domain_to_scale.r_left
             z1_function = domain_to_scale.z_left
             z2_function = domain_to_scale.z_right
@@ -429,8 +427,9 @@ class hasCylindricalShell(hasShell):
         # calculate ref_to_shell_r/z in the cylindrical coordinate system on the right/left side
         ref_to_shell_z_vec = ref_to_shell_z * orientation_vector
         ref_to_shell_r_vec = ref_to_shell_vec - ref_to_shell_z_vec
-        ref_to_shell_r = length(ref_to_shell_r_vec)
-        ref_to_shell_z = abs(ref_to_shell_z)
+        ref_to_shell_r = length(ref_to_shell_r_vec)         # the radius is always positive
+        ref_to_shell_z = ref_to_shell_z * direction         # ref_to_shell_z is positive on the scaling side (right/left)
+
 
         # calculate the distances in r/z from the scaling center to the shell
         scale_center_to_shell_r = ref_to_shell_r - scale_center_r
@@ -438,32 +437,29 @@ class hasCylindricalShell(hasShell):
 
         # get angles
         omega = math.atan( (scale_center_to_shell_r - shell_radius) / (scale_center_to_shell_z - shell_half_length) )
-        omega += Pi
-
-        if __debug__:
-            log.debug('omega = %s' % FORMAT_DOUBLE % omega)
+        omega += Pi         # TODO not sure why this is necessary
 
         if omega <= scale_angle:
             # shell hits the scaling cylinder on top
             z1_new = min(z1, (ref_to_shell_z - shell_half_length)/SAFETY)
-            r_new  = min(r,  r1_function(single1, single2, r0, z1_new))
+            r_new  = min(r,  r1_function(z1_new))           # TODO if z1 hasn't changed we also don't have to recalculate this
         else:
             # shell hits the scaling cylinder on the radial side
             r_new = min(r, (ref_to_shell_r - shell_radius)/SAFETY)
-            z1_new = min(z1, z1_function(single1, single2, r0, r_new))
-        z2_new = min(z2, z2_function(single1, single2, r0, r_new))
+            z1_new = min(z1, z1_function(r_new))
+        z2_new = min(z2, z2_function(r_new))
 
 
         # switch the z values in case it's necessary. r doesn't have to be switched.
         r = r_new
-        if direction >= 0.0:
+        if direction == 1:
             z_right = z1_new
             z_left  = z2_new
         else:
             z_right = z2_new
             z_left  = z1_new
 
-        return (r, z_right, z_left)
+        return r, z_right, z_left
 
     def get_radius_to_shell(self, shell, domain_to_scale, r):
         # SphericaltestShell ('domain_to_scale') -> CylindricalShell ('self' with 'shell_appearance')
@@ -472,7 +468,7 @@ class hasCylindricalShell(hasShell):
         # Do simple distance calculation to cylinder
 
         scale_point = domain_to_scale.center
-        r_new = self.world.distance(shell.shape, scale_point)/SAFETY
+        r_new = domain_to_scale.world.distance(shell.shape, scale_point)/SAFETY
 
         # if the newly calculated dimensions are smaller than the current one, use them
         return min(r, r_new)
@@ -718,6 +714,8 @@ class CylindricaltestShell(testShell):
 
     def get_searchradius(self):
         return self.geometrycontainer.get_max_shell_size()
+
+
     # default functions for evaluating z_right/z_left/r after one of parameters changed
     def r_right(self, z_right):
         return self.drdz_right * z_right + self.r0_right
@@ -727,6 +725,39 @@ class CylindricaltestShell(testShell):
         return self.drdz_left * z_left + self.r0_left
     def z_left(self, r_left):
         return self.dzdr_left * r_left + self.z0_left
+
+    def get_right_scalingcenter(self):
+        # returns the scaling center in the cylindrical coordinates r, z of the shell
+        # Note that we assume cylindrical symmetry
+        # Note also that it is relative to the 'side' (right/left) of the cylinder
+        return self.r0_right, self.z0_right
+    right_scalingcenter = property(get_right_scalingcenter)
+
+    def get_left_scalingcenter(self):
+        # returns the scaling center in the cylindrical coordinates r, z of the shell
+        # Note that we assume cylindrical symmetry
+        # Note also that it is relative to the 'side' (right/left) of the cylinder
+        return self.r0_left, self.z0_left
+    left_scalingcenter = property(get_left_scalingcenter)
+
+    def get_right_scalingangle(self):
+        if self.drdz_right == numpy.inf:
+            right_scaling_angle = Pi/2.0       # atan(infinity) == Pi/2 -> angle is 90 degrees
+        elif self.drdz_right == 0.0:
+            right_scaling_angle = 0.0          # atan(0.0) = 0.0 -> faster
+        else:
+            right_scaling_angle = math.atan(self.drdz_right)
+        return right_scaling_angle
+
+    def get_left_scalingangle(self):
+        if self.drdz_left == numpy.inf:
+            left_scaling_angle = Pi/2.0       # atan(infinity) == Pi/2 -> angle is 90 degrees
+        elif self.drdz_left == 0.0:
+            left_scaling_angle = 0.0          # atan(0.0) = 0.0 -> faster
+        else:
+            left_scaling_angle = math.atan(self.drdz_left)
+        return left_scaling_angle
+
 
     def get_max_dr_dzright_dzleft(self):
         pass    # todo, we should be able to derive this from the scaling parameters and searchpoint
@@ -751,6 +782,8 @@ class PlanarSurfaceSingletestShell(CylindricaltestShell, testNonInteractionSingl
         self.drdz_left  = numpy.inf
         self.r0_left    = 0.0
         self.z0_left    = self.pid_particle_pair[1].radius
+        self.right_scalingangle = self.get_right_scalingangle()
+        self.left_scalingangle  = self.get_left_scalingangle()
 
     def get_orientation_vector(self):
         return self.structure.shape.unit_z   # just copy from structure
@@ -773,24 +806,6 @@ class PlanarSurfaceSingletestShell(CylindricaltestShell, testNonInteractionSingl
         dr = math.sqrt(self.get_searchradius()**2 - dz_right**2) # stay within the searchradius
         return dr, dz_right, dz_left
 
-# TODO?
-    def get_right_scalingcenter(self):
-        # returns the scaling center in the cylindrical coordinates r, z of the shell
-        # Note that we assume cylindrical symmetry
-        # Note also that it is relative to the 'side' (right/left) of the cylinder
-        return 0, particle_radius
-
-    def get_left_scalingcenter(self):
-        # returns the scaling center in the cylindrical coordinates r, z of the shell
-        # Note that we assume cylindrical symmetry
-        # Note also that it is relative to the 'side' (right/left) of the cylinder
-        return 0, particle_radius 
-
-    def get_right_scalingangle(self):
-        return Pi/2.0
-
-    def get_left_scalingangle(self):
-        return Pi/2.0
 
 #####
 class PlanarSurfacePairtestShell(hasCylindricalShell, Others):
