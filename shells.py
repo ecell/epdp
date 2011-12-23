@@ -72,6 +72,7 @@ class testInteractionSingle(testSingle, Others):
 class testPair(Others):
     def __init__(self, single1, single2):
 
+        # assert both reset
         assert single1.dt == 0.0
         assert single2.dt == 0.0
 
@@ -90,10 +91,11 @@ class testPair(Others):
         pass        # overloaded later
 
 class testSimplePair(testPair):
-    def __init__(self, single1, single2, structure):
+    def __init__(self, single1, single2):
 
+        # simple pairs are pairs of particles on the same structure
         assert single1.structure == single2.structure
-        self.structure = structure
+        self.structure = single1.structure
 
         testPair.__init__(self, single1, single2)
 
@@ -658,14 +660,14 @@ class SphericalSingletestShell(SphericaltestShell, testNonInteractionSingle):
 #####
 class SphericalPairtestShell(SphericaltestShell, testSimplePair):
 
-    def __init__(self, single1, single2, structure, geometrycontainer, domains):
+    def __init__(self, single1, single2, geometrycontainer, domains):
         SphericaltestShell.__init__(self, geometrycontainer, domains)  # this must be first because of world definition
-        testSimplePair.__init__(self, single1, single2, structure)
+        testSimplePair.__init__(self, single1, single2)
 
         self.center = self.com
         try:
-            self.radius = self.determine_possible_shell([single1.domain_id, single2.domain_id],
-                                                        [structure.id])
+            self.radius = self.determine_possible_shell([self.single1.domain_id, self.single2.domain_id],
+                                                        [self.structure.id])
         except ShellmakingError as e:
             raise testShellError('(SphericalPair). %s' %
                                  (str(e)))
@@ -814,17 +816,17 @@ class PlanarSurfaceSingletestShell(CylindricaltestShell, testNonInteractionSingl
         return dr, dz_right, dz_left
 
 #####
-class PlanarSurfacePairtestShell(hasCylindricalShell, Others):
+class PlanarSurfacePairtestShell(CylindricaltestShell, testSimplePair):
 
-    def __init__(self, single1, single2, structure, geometrycontainer, domains):
+    def __init__(self, single1, single2, geometrycontainer, domains):
         CylindricaltestShell.__init__(self, geometrycontainer, domains)  # this must be first because of world definition
-        testSimplePair.__init__(self, single1, single2, structure)
+        testSimplePair.__init__(self, single1, single2)
 
         # scaling parameters
         self.dzdr_right = 0.0
         self.drdz_right = numpy.inf
         self.r0_right   = 0.0
-        self.z0_right   = max(self.pid_particle_pair1[1].radius, pid_particle_pair2[1].radius)
+        self.z0_right   = max(self.pid_particle_pair1[1].radius, self.pid_particle_pair2[1].radius)
         self.dzdr_left  = 0.0
         self.drdz_left  = numpy.inf
         self.r0_left    = 0.0
@@ -833,7 +835,7 @@ class PlanarSurfacePairtestShell(hasCylindricalShell, Others):
         try:
             self.dr, self.dz_right, self.dz_left = \
                             self.determine_possible_shell([self.single1.domain_id, self.single2.domain_id],
-                                                          [structure.id])
+                                                          [self.structure.id])
         except ShellmakingError as e:
             raise testShellError('(PlanarSurfacePair). %s' %
                                  (str(e)))
@@ -849,18 +851,18 @@ class PlanarSurfacePairtestShell(hasCylindricalShell, Others):
 
     def get_min_dr_dzright_dzleft(self):
         dr = self.get_min_pair_size()
-        dz_right = max(self.pid_particle_pair1[1].radius, pid_particle_pair2[1].radius)
+        dz_right = max(self.pid_particle_pair1[1].radius, self.pid_particle_pair2[1].radius)
         dz_left = dz_right
         return dr, dz_right, dz_left
 
     def get_max_dr_dzright_dzleft(self):
-        dz_right = max(self.pid_particle_pair1[1].radius, pid_particle_pair2[1].radius)
+        dz_right = max(self.pid_particle_pair1[1].radius, self.pid_particle_pair2[1].radius)
         dz_left = dz_right
         dr = math.sqrt(self.get_searchradius()**2 - dz_right**2) # stay within the searchradius
         return dr, dz_right, dz_left
 
 #####
-class CylindricalSurfaceSingletestShell(CylindricaltestShell, NonInteractionSingles):
+class CylindricalSurfaceSingletestShell(CylindricaltestShell, testNonInteractionSingle):
 
     def __init__(self):
         # scaling parameters
