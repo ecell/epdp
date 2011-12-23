@@ -812,40 +812,52 @@ class PlanarSurfaceSingletestShell(CylindricaltestShell, testNonInteractionSingl
         dr = math.sqrt(self.get_searchradius()**2 - dz_right**2) # stay within the searchradius
         return dr, dz_right, dz_left
 
-
 #####
 class PlanarSurfacePairtestShell(hasCylindricalShell, Others):
 
-    def __init__(self):
+    def __init__(self, single1, single2, structure, geometrycontainer, domains):
+        CylindricaltestShell.__init__(self, geometrycontainer, domains)  # this must be first because of world definition
+        testSimplePair.__init__(self, single1, single2, structure)
+
         # scaling parameters
         self.dzdr_right = 0.0
         self.drdz_right = numpy.inf
         self.r0_right   = 0.0
-        self.z0_right   = max(particle_radius1, particle_radius2)
+        self.z0_right   = max(self.pid_particle_pair1[1].radius, pid_particle_pair2[1].radius)
         self.dzdr_left  = 0.0
         self.drdz_left  = numpy.inf
         self.r0_left    = 0.0
-        self.z0_left    = max(particle_radius1, particle_radius2)
+        self.z0_left    = self.z0_right
+
+        try:
+            self.dr, self.dz_right, self.dz_left = \
+                            self.determine_possible_shell([self.single1.domain_id, self.single2.domain_id],
+                                                          [structure.id])
+        except ShellmakingError as e:
+            raise testShellError('(CylindricalPair). %s' %
+                                 (str(e)))
 
     def get_orientation_vector(self):
-        return structure.shape.unit_z
+        return self.structure.shape.unit_z
 
     def get_searchpoint(self):
-        return CoM
+        return self.com
 
     def get_referencepoint(self):
-        return CoM
+        return self.com
 
     def get_min_dr_dzright_dzleft(self):
-        dr, dz_right, dz_left = do_calculation
-        return (dr, dz_right, dz_left)
+        dr = self.get_min_pair_size()
+        dz_right = max(self.pid_particle_pair1[1].radius, pid_particle_pair2[1].radius)
+        dz_left = dz_right
+        return dr, dz_right, dz_left
 
     def get_max_dr_dzright_dzleft(self):
-        dr = math.sqrt(geometrycontainer_max**2 - particle_radius**2)
-        dz_right = particle_radius
-        dz_left = particle_radius
-        return (dr, dz_right, dz_left)
-        
+        dz_right = max(self.pid_particle_pair1[1].radius, pid_particle_pair2[1].radius)
+        dz_left = dz_right
+        dr = math.sqrt(self.get_searchradius()**2 - dz_right**2) # stay within the searchradius
+        return dr, dz_right, dz_left
+
 #####
 class CylindricalSurfaceSingletestShell(CylindricaltestShell, NonInteractionSingles):
 
