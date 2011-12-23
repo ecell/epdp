@@ -355,17 +355,25 @@ class hasCylindricalShell(hasShell):
         hasShell.__init__(self, cylindricaltestShell)
 
         self.testShell = cylindricaltestShell
-        self.shell_center = cylindricaltestShell.get_referencepoint() + \
-                            ((cylindricaltestShell.dz_right - cylindricaltestShell.dz_left)/2.0) * \
-                            cylindricaltestShell.get_orientation_vector()
-        self.shell_center = self.world.apply_boundary(self.shell_center)
-        self.shell_radius = cylindricaltestShell.dr
-        self.shell_half_length = (cylindricaltestShell.dz_left + cylindricaltestShell.dz_right) / 2.0
+        self.shell_center, self.shell_radius, self.shell_half_length = \
+                    self.r_zright_zleft_to_r_center_hl(self.testShell.get_referencepoint(),
+                                                       self.testShell.get_orientation_vector(),
+                                                       self.testShell.dr,
+                                                       self.testShell.dz_right,
+                                                       self.testShell.dz_left)
+        self.shell_center = self.testShell.world.apply_boundary(self.shell_center)
 
         self.shell = self.create_new_shell(self.shell_center,
                                            self.shell_radius,
                                            self.shell_half_length,
                                            self.domain_id)
+
+    @ classmethod
+    def r_zright_zleft_to_r_center_hl(cls, referencepoint, orientation_vector, dr, dz_right, dz_left):
+        center = referencepoint + ((dz_right - dz_left)/2.0) * orientation_vector
+        radius = dr
+        half_length = (dz_left + dz_right) / 2.0
+        return center, radius, half_length
 
     def create_new_shell(self, position, radius, half_length, domain_id):
         orientation = self.testShell.get_orientation_vector()
@@ -689,7 +697,7 @@ class CylindricaltestShell(testShell):
 
         # then check the domains
         # TODO first sort the neighbors -> faster to find if we fail
-        for neighbor, distance in neighbors:
+        for neighbor, distance in neighbor_domains:
 
             shell_list = self.get_neighbor_shell_list(neighbor)
             for _, shell_appearance in shell_list:
@@ -702,12 +710,14 @@ class CylindricaltestShell(testShell):
                                     (neighbor, distance, self))
 
         # we calculated a valid radius -> suscess!
-        assert dr >= min_dr and dz_right >= min_dz_right and dz_left >= min_dz_left, 
+        assert dr >= min_dr and dz_right >= min_dz_right and dz_left >= min_dz_left, \
                'CylindricaltestShell dimensions smaller than the minimum, radius = %s, min_radius = %s.' % \
                 (radius, min_radius)
         
-        return (dr, dz_right, dzleft)
+        return dr, dz_right, dz_left
 
+    def get_searchradius(self):
+        return self.geometrycontainer.get_max_shell_size()
     # default functions for evaluating z_right/z_left/r after one of parameters changed
     def r_right(self, z_right):
         return self.drdz_right * z_right + self.r0_right
@@ -722,40 +732,48 @@ class CylindricaltestShell(testShell):
         pass    # todo, we should be able to derive this from the scaling parameters and searchpoint
 
 #####
-class PlanarSurfaceSingletestShell(CylindricaltestShell, NonInteractionSingles):
+class PlanarSurfaceSingletestShell(CylindricaltestShell, testNonInteractionSingle):
 
-    def __init__(self):
+    def __init__(self, pid_particle_pair, structure, geometrycontainer, domains):
+        CylindricaltestShell.__init__(self, geometrycontainer, domains)
+        testNonInteractionSingle.__init__(self, pid_particle_pair, structure)
+
+        self.dz_right = self.pid_particle_pair[1].radius
+        self.dz_left  = self.pid_particle_pair[1].radius
+        self.dr       = self.pid_particle_pair[1].radius
+
         # scaling parameters
         self.dzdr_right = 0.0
         self.drdz_right = numpy.inf
         self.r0_right   = 0.0
-        self.z0_right   = particle_radius
+        self.z0_right   = self.pid_particle_pair[1].radius
         self.dzdr_left  = 0.0
         self.drdz_left  = numpy.inf
         self.r0_left    = 0.0
-        self.z0_left    = particle_radius
+        self.z0_left    = self.pid_particle_pair[1].radius
 
     def get_orientation_vector(self):
-        return structure.shape.unit_z   # just copy from structure
+        return self.structure.shape.unit_z   # just copy from structure
 
     def get_searchpoint(self):
-        return particle_pos
+        return self.pid_particle_pair[1].position
 
     def get_referencepoint(self):
-        return particle_pos
+        return self.pid_particle_pair[1].position
 
     def get_min_dr_dzright_dzleft(self):
-        dr = particle_radius * MULTI_SHELL_FACTOR
-        dz_right = particle_radius
-        dz_left = particle_radius
-        return (dr, dz_right, dz_left)
+        dr = self.pid_particle_pair[1].radius * self.MULTI_SHELL_FACTOR
+        dz_right = self.pid_particle_pair[1].radius
+        dz_left = dz_right
+        return dr, dz_right, dz_left
 
     def get_max_dr_dzright_dzleft(self):
-        dr = math.sqrt(geometrycontainer_max**2 - particle_radius**2)
-        dz_right = particle_radius
-        dz_left = particle_radius
-        return (dr, dz_right, dz_left)
+        dz_right = self.pid_particle_pair[1].radius
+        dz_left = dz_right
+        dr = math.sqrt(self.get_searchradius()**2 - dz_right**2) # stay within the searchradius
+        return dr, dz_right, dz_left
 
+# TODO?
     def get_right_scalingcenter(self):
         # returns the scaling center in the cylindrical coordinates r, z of the shell
         # Note that we assume cylindrical symmetry
