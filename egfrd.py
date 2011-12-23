@@ -1412,7 +1412,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
 #        new_shell_size = max(max_shell_size, min_shell_size)
 
         singlepos = single.pid_particle_pair[1].position
-        new_shell = single.update_radius(singlepos)
+        new_shell = single.create_updated_shell(singlepos)
         assert new_shell, 'single.update_radius() returned None.'
 
         if __debug__:

@@ -369,13 +369,13 @@ class SphericalSingle(NonInteractionSingle, NonInteractionSingles, hasSphericalS
         else:
             return self.shell_list
 
-    def update_radius(self, position):
+    def create_updated_shell(self, position):
         try:
             radius = self.testShell.determine_possible_shell([self.domain_id], [self.structure.id])
             return self.create_new_shell(position, radius, self.domain_id)
 
         except Exception as e:
-            raise Exception('SphericalSingle, update_radius failed: %s' %
+            raise Exception('SphericalSingle, create_updated_shell failed: %s' %
                             (str(e)))
 
     def create_position_vector(self, r):
@@ -450,8 +450,8 @@ class PlanarSurfaceSingle(NonInteractionSingle, NonInteractionSingles, hasCylind
         else:
             return self.shell_list
 
-    def update_radius(self, position):
-        # TODO update_single_shell doesn't work with this now
+    def create_updated_shell(self, position):
+        # TODO what should we do with the position now?
         try:
             dr, dz_right, dz_left = self.testShell.determine_possible_shell([self.domain_id], [self.structure.id])
             center, radius, half_length = self.r_zright_zleft_to_r_center_hl(self.testShell.get_referencepoint(),
@@ -459,7 +459,7 @@ class PlanarSurfaceSingle(NonInteractionSingle, NonInteractionSingles, hasCylind
                                                                              dr, dz_right, dz_left)            
             return self.create_new_shell(center, radius, half_length, self.domain_id)
         except Exception as e:
-            raise Exception('SphericalSingle, update_radius failed: %s' %
+            raise Exception('SphericalSingle, create_updated_shell failed: %s' %
                             (str(e)))
 
     def create_position_vector(self, r):
