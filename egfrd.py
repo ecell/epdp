@@ -34,6 +34,7 @@ from utils import *
 from constants import *
 from shellcontainer import ShellContainer
 from shells import (
+    testShellError,
     SphericalSingletestShell,
     SphericalPairtestShell,
     PlanarSurfaceSingletestShell,
@@ -2053,7 +2054,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
             try:
                 testShell = SphericalPairtestShell(single1, single2, single1.structure,
                                                    self.geometrycontainer, self.domains)
-            except Exception as e:
+            except testShellError as e:
                 testShell = None
                 if __debug__:
                     log.debug('%s not formed %s' % \

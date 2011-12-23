@@ -12,6 +12,12 @@ from _gfrd import (
 
 from utils import *
 
+class ShellmakingError(Exception):
+    pass
+
+class testShellError(Exception):
+    pass
+
 class Others(object):
 
     def __init__(self):
@@ -577,9 +583,9 @@ class SphericaltestShell(testShell):
                 distance += self.pid_particle_pair[1].radius
             radius = min(radius, distance)
             if radius < min_radius:
-                raise Exception('Surface too close to make spherical testshell, '
-                                'surface = %s, distance = %s, testShell = %s' %
-                                (surface, distance, self))
+                raise ShellmakingError('Surface too close to make spherical testshell, '
+                                       'surface = %s, distance = %s, testShell = %s' %
+                                       (surface, distance, self))
 
         # then check the domains
         # TODO first sort the neighbors -> faster to find if we fail
@@ -590,9 +596,9 @@ class SphericaltestShell(testShell):
                 radius = neighbor.get_radius_to_shell(shell_appearance, self, radius)
 
                 if radius < min_radius:
-                    raise Exception('Domain too close to make spherical testshell, '
-                                    'domain = %s, distance = %s, testShell = %s' %
-                                    (neighbor, radius, self))
+                    raise ShellmakingError('Domain too close to make spherical testshell, '
+                                           'domain = %s, distance = %s, testShell = %s' %
+                                           (neighbor, radius, self))
 
         # we calculated a valid radius -> suscess!
         assert radius >= min_radius, 'SphericaltestShell radius smaller than the minimum, radius = %s, min_radius = %s.' % \
@@ -635,9 +641,9 @@ class SphericalPairtestShell(SphericaltestShell, testSimplePair):
         try:
             self.radius = self.determine_possible_shell([single1.domain_id, single2.domain_id],
                                                         [structure.id])
-        except Exception as e:
-            raise Exception('(SphericalPair). %s' %
-                            (str(e)))
+        except ShellmakingError as e:
+            raise testShellError('(SphericalPair). %s' %
+                                 (str(e)))
 
     def get_min_radius(self):
         # TODO this doesn't really belong in testSimplePair, but is also general for all SimplePairs
@@ -687,9 +693,9 @@ class CylindricaltestShell(testShell):
 #        for surface, distance in neighbor_surfaces:
 #            radius = min(radius, distance)     # TODO
 #            if radius < min_radius:
-#                raise Exception('Surface too close to make cylindrical testshell, '
-#                                'surface = %s, distance = %s, testShell = %s' %
-#                                (surface, distance, self))
+#                raise ShellmakingError('Surface too close to make cylindrical testshell, '
+#                                       'surface = %s, distance = %s, testShell = %s' %
+#                                       (surface, distance, self))
 
         # then check the domains
         # TODO first sort the neighbors -> faster to find if we fail
@@ -701,9 +707,9 @@ class CylindricaltestShell(testShell):
                                                                                 dr, dz_right, dz_left)
 
                 if (dr < min_dr) or (dz_right < min_dz_right) or (dz_left < min_dz_left):
-                    raise Exception('Domain too close to make cylindrical testshell, '
-                                    'domain = %s, distance = %s, testShell = %s' %
-                                    (neighbor, distance, self))
+                    raise ShellmakingError('Domain too close to make cylindrical testshell, '
+                                           'domain = %s, distance = %s, testShell = %s' %
+                                           (neighbor, distance, self))
 
         # we calculated a valid radius -> suscess!
         assert dr >= min_dr and dz_right >= min_dz_right and dz_left >= min_dz_left, \

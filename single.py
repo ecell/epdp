@@ -16,6 +16,7 @@ from domain import (
     ProtectiveDomain)
 
 from shells import (
+    ShellmakingError,
     hasSphericalShell,
     hasCylindricalShell,
     NonInteractionSingles,
@@ -374,7 +375,7 @@ class SphericalSingle(NonInteractionSingle, NonInteractionSingles, hasSphericalS
             radius = self.testShell.determine_possible_shell([self.domain_id], [self.structure.id])
             return self.create_new_shell(position, radius, self.domain_id)
 
-        except Exception as e:
+        except ShellmakingError as e:
             raise Exception('SphericalSingle, create_updated_shell failed: %s' %
                             (str(e)))
 
@@ -458,9 +459,8 @@ class PlanarSurfaceSingle(NonInteractionSingle, NonInteractionSingles, hasCylind
                                                                              self.testShell.get_orientation_vector(),
                                                                              dr, dz_right, dz_left)            
             return self.create_new_shell(center, radius, half_length, self.domain_id)
-        except Exception as e:
-            raise Exception('SphericalSingle, create_updated_shell failed: %s' %
-                            (str(e)))
+        except ShellmakingError as e:
+            raise Exception('SphericalSingle, create_updated_shell failed: %s' % str(e) )
 
     def create_position_vector(self, r):
         # project the vector onto the surface unit vectors to make sure that the coordinates are in the surface
