@@ -586,7 +586,7 @@ class SphericaltestShell(testShell):
         return random_vector(1.0)
 
     def get_max_radius(self):
-        return self.geometrycontainer.get_max_shell_size()
+        return self.get_searchradius()/SAFETY
 
 #####
 class SphericalSingletestShell(SphericaltestShell, testNonInteractionSingle):
@@ -756,7 +756,7 @@ class PlanarSurfaceSingletestShell(CylindricaltestShell, testNonInteractionSingl
     def get_max_dr_dzright_dzleft(self):
         dz_right = self.pid_particle_pair[1].radius
         dz_left = dz_right
-        dr = math.sqrt(self.get_searchradius()**2 - dz_right**2) # stay within the searchradius
+        dr = math.sqrt((self.get_searchradius()/SAFETY)**2 - dz_right**2) # stay within the searchradius
         return dr, dz_right, dz_left
 
 #####
@@ -802,7 +802,7 @@ class PlanarSurfacePairtestShell(CylindricaltestShell, testSimplePair):
     def get_max_dr_dzright_dzleft(self):
         dz_right = max(self.pid_particle_pair1[1].radius, self.pid_particle_pair2[1].radius)
         dz_left = dz_right
-        dr = math.sqrt(self.get_searchradius()**2 - dz_right**2) # stay within the searchradius
+        dr = math.sqrt((self.get_searchradius()/SAFETY)**2 - dz_right**2) # stay within the searchradius
         return dr, dz_right, dz_left
 
 #####
@@ -845,7 +845,7 @@ class CylindricalSurfaceSingletestShell(CylindricaltestShell, testNonInteraction
 
     def get_max_dr_dzright_dzleft(self):
         dr = self.pid_particle_pair[1].radius
-        dz_right = math.sqrt(self.get_searchradius()**2 - dr**2) # stay within the searchradius
+        dz_right = math.sqrt((self.get_searchradius()/SAFETY)**2 - dr**2) # stay within the searchradius
         dz_left = dz_right
         return dr, dz_right, dz_left
 
@@ -892,7 +892,7 @@ class CylindricalSurfacePairtestShell(CylindricaltestShell, testSimplePair):
 
     def get_max_dr_dzright_dzleft(self):
         dr = max(self.pid_particle_pair1[1].radius, self.pid_particle_pair2[1].radius)
-        dz_right = math.sqrt(self.get_searchradius()**2 - dr**2) # stay within the searchradius
+        dz_right = math.sqrt((self.get_searchradius()/SAFETY)**2 - dr**2) # stay within the searchradius
         dz_left = dz_right
         return dr, dz_right, dz_left
 
