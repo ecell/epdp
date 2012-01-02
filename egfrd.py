@@ -39,6 +39,8 @@ from shells import (
     SphericalPairtestShell,
     PlanarSurfaceSingletestShell,
     PlanarSurfacePairtestShell,
+    CylindricalSurfaceSingletestShell,
+    CylindricalSurfacePairtestShell,
     )
 
 import logging
@@ -56,9 +58,11 @@ def create_default_single(domain_id, pid_particle_pair, shell_id, rt, structure,
         testSingle = SphericalSingletestShell(pid_particle_pair, structure, geometrycontainer, domains)
         return SphericalSingle(domain_id, shell_id, testSingle, rt)
     elif isinstance(structure, PlanarSurface):
+        # first make the test shell
         testSingle = PlanarSurfaceSingletestShell(pid_particle_pair, structure, geometrycontainer, domains)
         return PlanarSurfaceSingle(domain_id, shell_id, testSingle, rt)
     elif isinstance(structure, CylindricalSurface):
+        # first make the test shell
         testSingle = CylindricalSurfaceSingletestShell(pid_particle_pair, structure, geometrycontainer, domains)
         return CylindricalSurfaceSingle(domain_id, shell_id, testSingle, rt)
 
@@ -1430,7 +1434,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
         singlepos = single.pid_particle_pair[1].position
         new_shell = single.create_updated_shell(singlepos)
-        assert new_shell, 'single.update_radius() returned None.'
+        assert new_shell, 'single.create_updated_shell() returned None.'
 
         if __debug__:
             log.info('update_single: single: %s, new_shell = %s' % \

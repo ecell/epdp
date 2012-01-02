@@ -476,7 +476,8 @@ class PlanarSurfaceSingle(NonInteractionSingle, NonInteractionSingles, hasCylind
         return 'PlanarSurface' + Single.__str__(self)
 
 
-class CylindricalSurfaceSingle(NonInteractionSingle):
+#class CylindricalSurfaceSingle(NonInteractionSingle):
+class CylindricalSurfaceSingle(NonInteractionSingle, NonInteractionSingles, hasCylindricalShell):
     """1 Particle inside a (cylindrical) shell on a CylindricalSurface. 
     (Rods).
 
@@ -498,10 +499,10 @@ class CylindricalSurfaceSingle(NonInteractionSingle):
         return self.pid_particle_pair[1].v
     v = property(getv)
 
-    def get_shell_size(self):
-        # Heads up. The cylinder's *half_length*, not radius, 
-        # determines the size in case of a cylindrical surface.
-        return self.shell.shape.half_length
+#    def get_shell_size(self):
+#        # Heads up. The cylinder's *half_length*, not radius, 
+#        # determines the size in case of a cylindrical surface.
+#        return self.shell.shape.half_length
 
     def get_inner_a(self):
         # Here the free coordinate is not the radius of the domain as in the
@@ -514,23 +515,56 @@ class CylindricalSurfaceSingle(NonInteractionSingle):
         inner_half_length = self.get_inner_a()
         return GreensFunction1DAbsAbs(self.D, self.v, 0.0, -inner_half_length, inner_half_length)
 
-    def create_new_shell(self, position, half_length, domain_id):
-        # The radius of a rod is not more than it has to be (namely the 
-        # radius of the particle), so if the particle undergoes an 
-        # unbinding reaction we still have to clear the target volume 
-        # and the move may be rejected.
+#    def create_new_shell(self, position, half_length, domain_id):
+#        # The radius of a rod is not more than it has to be (namely the 
+#        # radius of the particle), so if the particle undergoes an 
+#        # unbinding reaction we still have to clear the target volume 
+#        # and the move may be rejected.
+#
+#        # Note that the calculation of the position of the shell has to make sure that the
+#        # coordinates are in the surface
+#        unit_z = self.structure.shape.unit_z
+#        position = position - self.structure.shape.position     # TODO this can go wrong if either positions are near the boundaries
+#        pos_z = unit_z * numpy.dot (position, unit_z)
+#
+#        position = self.structure.shape.position + pos_z
+#        radius = self.pid_particle_pair[1].radius
+#        orientation = unit_z
+#        return CylindricalShell(self.domain_id, Cylinder(position, radius, 
+#                                                    orientation, half_length))
 
-        # Note that the calculation of the position of the shell has to make sure that the
-        # coordinates are in the surface
-        unit_z = self.structure.shape.unit_z
-        position = position - self.structure.shape.position     # TODO this can go wrong if either positions are near the boundaries
-        pos_z = unit_z * numpy.dot (position, unit_z)
+    # these return corrected dimensions, since we reserve more space for the NonInteractionSingle
+    def shell_list_for_single(self):
+        min_half_length = self.pid_particle_pair[1].radius * Domain.MULTI_SHELL_FACTOR
+        if self.shell.shape.half_length < min_half_length:
+            position = self.shell.shape.position
+            radius = self.shell.shape.radius
+            fake_shell = self.create_new_shell(position, radius, min_half_length, self.domain_id)
+            return [(self.shell_id, fake_shell), ]
+        else:
+            return self.shell_list
 
-        position = self.structure.shape.position + pos_z
-        radius = self.pid_particle_pair[1].radius
-        orientation = unit_z
-        return CylindricalShell(self.domain_id, Cylinder(position, radius, 
-                                                    orientation, half_length))
+    def shell_list_for_other(self):
+        min_half_length = self.pid_particle_pair[1].radius * Domain.SINGLE_SHELL_FACTOR
+        if self.shell.shape.half_length < min_half_length:
+            position = self.shell.shape.position
+            radius = self.shell.shape.radius
+            fake_shell = self.create_new_shell(position, radius, min_half_length, self.domain_id)
+            return [(self.shell_id, fake_shell), ]
+        else:
+            return self.shell_list
+
+    def create_updated_shell(self, position):
+        # TODO what should we do with the position now?
+        # maybe update the reference_point of the shell before updating the shell
+        try:
+            dr, dz_right, dz_left = self.testShell.determine_possible_shell([self.domain_id], [self.structure.id])
+            center, radius, half_length = self.r_zright_zleft_to_r_center_hl(self.testShell.get_referencepoint(),
+                                                                             self.testShell.get_orientation_vector(),
+                                                                             dr, dz_right, dz_left)
+            return self.create_new_shell(center, radius, half_length, self.domain_id)
+        except ShellmakingError as e:
+            raise Exception('CylindricalSurfaceSingle, create_updated_shell failed: %s' % str(e) )
 
     def create_position_vector(self, z):
         if utils.feq(z, self.get_inner_a()):
