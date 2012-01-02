@@ -236,8 +236,8 @@ class hasSphericalShell(hasShell):
         if ref_to_shell_z >= 0:
             direction = 1           # improve direction specification such that following calculations still work
                                     # Otherwise problems when direction = 0
-            scale_angle = domain_to_scale.get_right_scalingangle()
-            scale_center_r, scale_center_z = domain_to_scale.get_right_scalingcenter() 
+            scale_angle = domain_to_scale.right_scalingangle
+            scale_center_r, scale_center_z = domain_to_scale.right_scalingcenter 
             r1_function =  domain_to_scale.r_right
             z1_function = domain_to_scale.z_right
             z2_function = domain_to_scale.z_left
@@ -246,8 +246,8 @@ class hasSphericalShell(hasShell):
         # else -> use z_left
         else:
             direction = -1
-            scale_angle = domain_to_scale.get_left_scalingangle()
-            scale_center_r, scale_center_z = domain_to_scale.get_left_scalingcenter() 
+            scale_angle = domain_to_scale.left_scalingangle
+            scale_center_r, scale_center_z = domain_to_scale.left_scalingcenter 
             r1_function =  domain_to_scale.r_left
             z1_function = domain_to_scale.z_left
             z2_function = domain_to_scale.z_right
@@ -495,7 +495,8 @@ class hasCylindricalShell(hasShell):
 
         # get angles
         omega = math.atan( (scale_center_to_shell_r - shell_radius) / (scale_center_to_shell_z - shell_half_length) )
-        omega += Pi         # TODO not sure why this is necessary
+        if (omega < 0) and (scale_center_to_shell_r - shell_radius) > 0.0:
+            omega += Pi         # FIXME strange construction. If the negative angle was caused by a negative denominator above
 
         if omega <= scale_angle:
             # shell hits the scaling cylinder on top
@@ -735,8 +736,8 @@ class CylindricaltestShell(testShell):
 
                 if (dr < min_dr) or (dz_right < min_dz_right) or (dz_left < min_dz_left):
                     raise ShellmakingError('Domain too close to make cylindrical testshell, '
-                                           'domain = %s, distance = %s, testShell = %s' %
-                                           (neighbor, distance, self))
+                                           'domain = %s, dr = %s, dz_right = %s, dz_left = %s, testShell = %s' %
+                                           (neighbor, dr, dz_right, dz_left, self))
 
         # we calculated valid dimensions -> success!
         assert dr >= min_dr and dz_right >= min_dz_right and dz_left >= min_dz_left, \
@@ -781,6 +782,7 @@ class CylindricaltestShell(testShell):
         else:
             right_scaling_angle = math.atan(self.drdz_right)
         return right_scaling_angle
+    right_scalingangle = property(get_right_scalingangle)
 
     def get_left_scalingangle(self):
         if self.drdz_left == numpy.inf:
@@ -790,6 +792,7 @@ class CylindricaltestShell(testShell):
         else:
             left_scaling_angle = math.atan(self.drdz_left)
         return left_scaling_angle
+    left_scalingangle = property(get_left_scalingangle)
 
 
     def get_max_dr_dzright_dzleft(self):
@@ -811,8 +814,8 @@ class PlanarSurfaceSingletestShell(CylindricaltestShell, testNonInteractionSingl
         self.drdz_left  = numpy.inf
         self.r0_left    = 0.0
         self.z0_left    = self.pid_particle_pair[1].radius
-        self.right_scalingangle = self.get_right_scalingangle()
-        self.left_scalingangle  = self.get_left_scalingangle()
+#        self.right_scalingangle = self.get_right_scalingangle()
+#        self.left_scalingangle  = self.get_left_scalingangle()
 
         # sizing up the shell to a zero shell
         self.dz_right = self.pid_particle_pair[1].radius
@@ -902,8 +905,8 @@ class CylindricalSurfaceSingletestShell(CylindricaltestShell, testNonInteraction
         self.drdz_left  = 0.0
         self.r0_left    = self.pid_particle_pair[1].radius
         self.z0_left    = 0.0
-        self.right_scalingangle = self.get_right_scalingangle()
-        self.left_scalingangle  = self.get_left_scalingangle()
+#        self.right_scalingangle = self.get_right_scalingangle()
+#        self.left_scalingangle  = self.get_left_scalingangle()
 
 
         # sizing up the shell to a zero shell
@@ -934,18 +937,50 @@ class CylindricalSurfaceSingletestShell(CylindricaltestShell, testNonInteraction
 
 
 #####
-class CylindricalSurfacePairtestShell(CylindricaltestShell, Others):
+class CylindricalSurfacePairtestShell(CylindricaltestShell, testSimplePair):
 
-    def __init__(self):
-        # scaling parameters
+    def __init__(self, single1, single2, geometrycontainer, domains):
+        CylindricaltestShell.__init__(self, geometrycontainer, domains)  # this must be first because of world definition
+        testSimplePair.__init__(self, single1, single2)
+
+        # initialize scaling parameters
         self.dzdr_right = numpy.inf
         self.drdz_right = 0.0
-        self.r0_right   = max(particle_radius1, particle_radius2)
+        self.r0_right   = max(self.pid_particle_pair1[1].radius, self.pid_particle_pair2[1].radius)
         self.z0_right   = 0.0
         self.dzdr_left  = numpy.inf
         self.drdz_left  = 0.0
-        self.r0_left    = max(particle_radius1, particle_radius2)
+        self.r0_left    = max(self.pid_particle_pair1[1].radius, self.pid_particle_pair2[1].radius)
         self.z0_left    = 0.0
+
+        try:
+            self.dr, self.dz_right, self.dz_left = \
+                            self.determine_possible_shell([self.single1.domain_id, self.single2.domain_id],
+                                                          [self.structure.id])
+        except ShellmakingError as e:
+            raise testShellError('(CylindricalSurfacePair). %s' %
+                                 (str(e)))
+
+    def get_orientation_vector(self):
+        return self.structure.shape.unit_z
+
+    def get_searchpoint(self):
+        return self.com
+
+    def get_referencepoint(self):
+        return self.com
+
+    def get_min_dr_dzright_dzleft(self):
+        dr = max(self.pid_particle_pair1[1].radius, self.pid_particle_pair2[1].radius)
+        dz_right = self.get_min_pair_size()
+        dz_left = dz_right
+        return dr, dz_right, dz_left
+
+    def get_max_dr_dzright_dzleft(self):
+        dr = max(self.pid_particle_pair1[1].radius, self.pid_particle_pair2[1].radius)
+        dz_right = math.sqrt(self.get_searchradius()**2 - dr**2) # stay within the searchradius
+        dz_left = dz_right
+        return dr, dz_right, dz_left
 
 #####
 class PlanarSurfaceInteractiontestShell(CylindricaltestShell, Others):

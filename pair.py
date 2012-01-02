@@ -687,15 +687,19 @@ class PlanarSurfacePair(SimplePair, Others, hasCylindricalShell):
         return 'PlanarSurface' + Pair.__str__(self)
 
 
-class CylindricalSurfacePair(SimplePair):
+#class CylindricalSurfacePair(SimplePair):
+class CylindricalSurfacePair(SimplePair, Others, hasCylindricalShell):
     """2 Particles inside a (cylindrical) shell on a CylindricalSurface.  
     (Rods).
 
     """
-    def __init__(self, domain_id, shell_center, single1, single2, shell_id,
-                 r0, shell_size, rrs, structure):
-        SimplePair.__init__(self, domain_id, shell_center, single1, single2, shell_id,
-                      r0, shell_size, rrs, structure)
+    def __init__(self, domain_id, shell_id, testShell, rrs):
+#    def __init__(self, domain_id, shell_center, single1, single2, shell_id,
+#                 r0, shell_size, rrs, structure):
+#        SimplePair.__init__(self, domain_id, shell_center, single1, single2, shell_id,
+#                      r0, shell_size, rrs, structure)
+        hasCylindricalShell.__init__(self, testShell, domain_id)
+        SimplePair.__init__(self, domain_id, shell_id, rrs)
 
     def get_v_tot(self):
         return self.pid_particle_pair2[1].v - \
@@ -718,16 +722,16 @@ class CylindricalSurfacePair(SimplePair):
     def iv_greens_function(self, r0):
         return GreensFunction1DRadAbs(self.D_r, self.v_r, self.interparticle_ktot, r0, self.sigma, self.a_r)
 
-    def create_new_shell(self, position, half_length, domain_id):
-        # The radius of a rod is not more than it has to be (namely the 
-        # radius of the biggest particle), so if the particle undergoes 
-        # an unbinding reaction we still have to clear the target volume 
-        # and the move may be rejected (NoSpace error).
-        radius = max(self.pid_particle_pair1[1].radius,
-                     self.pid_particle_pair2[1].radius)
-        orientation = self.structure.shape.unit_z
-        return CylindricalShell(domain_id, Cylinder(position, radius, 
-                                                    orientation, half_length))
+#    def create_new_shell(self, position, half_length, domain_id):
+#        # The radius of a rod is not more than it has to be (namely the 
+#        # radius of the biggest particle), so if the particle undergoes 
+#        # an unbinding reaction we still have to clear the target volume 
+#        # and the move may be rejected (NoSpace error).
+#        radius = max(self.pid_particle_pair1[1].radius,
+#                     self.pid_particle_pair2[1].radius)
+#        orientation = self.structure.shape.unit_z
+#        return CylindricalShell(domain_id, Cylinder(position, radius, 
+#                                                    orientation, half_length))
 
     def get_shell_direction(self):
         return self.shell.shape.unit_z

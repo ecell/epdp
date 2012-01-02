@@ -2068,6 +2068,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
 
         # Try forming a Pair only if singles are on same structure.
+        # FIXME this is already handled in the 'try_default_testpair' function
         if single1.structure == single2.structure:
             # particles are on the same structure
 
