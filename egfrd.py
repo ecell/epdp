@@ -782,7 +782,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
                     # exit the loop, we have found a new position
                     break
 
-            else:
+                else:
                     # 4. Process (the lack of) change
                     moved_reactant = self.move_particle(reactant, reactant_pos)
                     products = [moved_reactant]     # no change

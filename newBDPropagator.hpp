@@ -371,13 +371,9 @@ private:
                             new_pos = make_move(s0, new_pos, pp.first);
                         }
                       
-                        const particle_id_pair new_p(
-                            pp.first, particle_type(products[0],
-                                particle_shape_type(new_pos,
-                                                    s0.radius()),
-                                                    s0.D()));
+                        const particle_shape_type new_shape(new_pos, s0.radius());
                                                     
-                        boost::scoped_ptr<particle_id_pair_and_distance_list> overlapped(tx_.check_overlap(new_p.second.shape(), new_p.first));
+                        boost::scoped_ptr<particle_id_pair_and_distance_list> overlapped(tx_.check_overlap(new_shape, pp.first));
                         if (overlapped && overlapped->size() > 0)
                         {
                             throw propagation_error("no space due to other particle");
@@ -385,7 +381,7 @@ private:
 
                         if (vc_)
                         {
-                            if (!(*vc_)(new_p.second.shape(), pp.first))
+                            if (!(*vc_)(new_shape, pp.first))
                             {
                                 throw propagation_error("no space due to other particle (vc)");
                             }
@@ -403,13 +399,14 @@ private:
                                 throw propagation_error("no space due to near surface");
                         }
 
-                        tx_.update_particle(new_p);
+                        tx_.remove_particle(pp.first);
+                        const particle_id_pair product( tx_.new_particle(s0.id(), new_pos) );
 
                         if (rrec_)
                         {
                             (*rrec_)(
                                 reaction_record_type(
-                                    r.id(), array_gen(new_p.first), pp.first));
+                                    r.id(), array_gen(product.first), pp.first));
                         }
                     }
                     break;
@@ -703,18 +700,13 @@ private:
                             }
                         }
 
-			            const particle_id_pair new_p(
-			              pp.first, particle_type(sp.id(),
-				            particle_shape_type(new_pos,
-					          sp.radius()),
-					            sp.D()));
-
-                        tx_.update_particle(new_p);
+                        remove_particle(pp.first);
+                        const particle_id_pair product_particle( tx_.new_particle(sp.id(), new_pos) );
                         if (rrec_)
                         {
                             (*rrec_)(
                                 reaction_record_type(
-                                    r.id(), array_gen(new_p.first), pp.first));
+                                    r.id(), array_gen(product_particle.first), pp.first));
                         }
                         break;
                     }
