@@ -370,36 +370,6 @@ class hasSphericalShell(hasShell):
         return min(r, r_new)
 
 #####
-#class SphericalSingle(hasSphericalShell, NonInteractionSingles):
-#
-#    def update_radius(self):
-#        return self.testShell.determine_possible_shell([], [self.structure.id])
-#
-#    # these return potentially corrected dimensions
-#    def shell_list_for_single(self):
-#        min_radius = self.pid_particle_pair[1].radius * Domain.MULTI_SHELL_FACTOR
-#        if  self.shell.shape.radius < min_radius:
-#            position = self.shape.shell.position
-#            fake_shell = self.create_new_shell(position, min_radius, self.domain_id)
-#            return [(self.shell_id, fake_shell), ]
-#        else:
-#            return self.shell_list
-#
-#    def shell_list_for_other(self):
-#        min_radius = self.pid_particle_pair[1].radius * Domain.SINGLE_SHELL_FACTOR
-#        if self.shell.shape.radius < min_radius:
-#            position = self.shape.shell.position
-#            fake_shell = self.create_new_shell(position, min_radius, self.domain_id)
-#            return [(self.shell_id, fake_shell), ]
-#        else:
-#            return self.shell_list
-#
-######
-#class SphericalPair(hasSphericalShell, Others):
-#
-#    pass
-
-#####
 class Multi(hasSphericalShell, Others):
 
     pass
@@ -532,60 +502,8 @@ class hasCylindricalShell(hasShell):
         # if the newly calculated dimensions are smaller than the current one, use them
         return min(r, r_new)
 
-#####
-#class PlanarSurfaceSingle(hasCylindricalShell, NonInteractionSingles):
-#
-#    # these return corrected dimensions, since we reserve more space for the NonInteractionSingle
-#    def shell_list_for_single(self):
-#        min_radius = self.pid_particle_pair[1].radius * Domain.MULTI_SHELL_FACTOR
-#        if self.shell.shape.radius < min_radius:
-#            position = self.shell.shape.position
-#            half_length = self.shell.shape.half_length
-#            fake_shell = self.create_new_shell(position, min_radius, half_length, self.domain_id)
-#            return [(self.shell_id, fake_shell), ]
-#        else:
-#            return self.shell_list
-#
-#    def shell_list_for_other(self):
-#        min_radius = self.pid_particle_pair[1].radius * Domain.SINGLE_SHELL_FACTOR
-#        if self.shell.shape.radius < min_radius:
-#            position = self.shell.shape.position
-#            half_length = self.shell.shape.half_length
-#            fake_shell = self.create_new_shell(position, min_radius, half_length, self.domain_id)
-#            return [(self.shell_id, fake_shell), ]
-#        else:
-#            return self.shell_list
 
-#####
-class CylindricalSurfaceSingle(hasCylindricalShell, NonInteractionSingles):
-
-    # these return corrected dimensions, since we reserve more space for the NonInteractionSingle
-    def shell_list_for_single(self):
-        min_half_length = self.pid_particle_pair[1].radius * Domain.MULTI_SHELL_FACTOR
-        if self.shell.shape.half_length < min_half_length:
-            position = self.shell.shape.position
-            radius = self.shell.shape.radius
-            fake_shell = self.create_new_shell(position, radius, min_half_length, self.domain_id)
-            return [(self.shell_id, fake_shell), ]
-        else:
-            return self.shell_list
-
-    def shell_list_for_other(self):
-        min_half_length = self.pid_particle_pair[1].radius * Domain.SINGLE_SHELL_FACTOR
-        if self.shell.shape.half_length < min_half_length:
-            position = self.shell.shape.position
-            radius = self.shell.shape.radius
-            fake_shell = self.create_new_shell(position, radius, min_half_length, self.domain_id)
-            return [(self.shell_id, fake_shell), ]
-        else:
-            return self.shell_list
-
-#####
-class PlanarSurfacePair(hasCylindricalShell, Others):
-    pass
 class PlanarSurfaceInteraction(hasCylindricalShell, Others):
-    pass
-class CylindricalSurfacePair(hasCylindricalShell, Others):
     pass
 class CylindricalSurfaceInteraction(hasCylindricalShell, Others):
     pass
@@ -814,8 +732,6 @@ class PlanarSurfaceSingletestShell(CylindricaltestShell, testNonInteractionSingl
         self.drdz_left  = numpy.inf
         self.r0_left    = 0.0
         self.z0_left    = self.pid_particle_pair[1].radius
-#        self.right_scalingangle = self.get_right_scalingangle()
-#        self.left_scalingangle  = self.get_left_scalingangle()
 
         # sizing up the shell to a zero shell
         self.dz_right = self.pid_particle_pair[1].radius
@@ -905,8 +821,6 @@ class CylindricalSurfaceSingletestShell(CylindricaltestShell, testNonInteraction
         self.drdz_left  = 0.0
         self.r0_left    = self.pid_particle_pair[1].radius
         self.z0_left    = 0.0
-#        self.right_scalingangle = self.get_right_scalingangle()
-#        self.left_scalingangle  = self.get_left_scalingangle()
 
 
         # sizing up the shell to a zero shell
