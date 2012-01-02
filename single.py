@@ -559,6 +559,8 @@ class CylindricalSurfaceSingle(NonInteractionSingle, NonInteractionSingles, hasC
         # maybe update the reference_point of the shell before updating the shell
         try:
             dr, dz_right, dz_left = self.testShell.determine_possible_shell([self.domain_id], [self.structure.id])
+            dz_right = min(dz_right, dz_left)       # make sure the domain is symmetric around the particle
+            dz_left  = dz_right                     # This is not necessary but it's assumed later
             center, radius, half_length = self.r_zright_zleft_to_r_center_hl(self.testShell.get_referencepoint(),
                                                                              self.testShell.get_orientation_vector(),
                                                                              dr, dz_right, dz_left)
