@@ -455,6 +455,8 @@ class SimplePair(Pair):
 
         return a_R, a_r
 
+    def __str__(self):
+        pass
 
 #class SphericalPair(SimplePair):
 class SphericalPair(SimplePair, Others, hasSphericalShell):
