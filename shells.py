@@ -74,6 +74,7 @@ class NonInteractionSingles(object):
 ##################################
 
 class testSingle(object):
+
     def __init__(self, pid_particle_pair, structure):
         self.pid_particle_pair = pid_particle_pair
         self.structure = structure
@@ -83,13 +84,34 @@ class testSingle(object):
         self.SINGLE_SHELL_FACTOR = 2.0
 
 class testNonInteractionSingle(testSingle, NonInteractionSingles):
+
     def __init__(self, pid_particle_pair, structure):
         testSingle.__init__(self, pid_particle_pair, structure)
 
 class testInteractionSingle(testSingle, Others):
+
     def __init__(self, single, structure, surface):
         testSingle.__init__(self, single.pid_particle_pair, structure)
+
+        self.single  = single
         self.surface = surface
+
+        ### initialize some constants that are common for the interactions
+
+        # calculate the Projected_point and distance to the surface
+        # Cyclic transpose needed when calling surface.projected_point!
+        pos_transposed = self.world.cyclic_transpose(self.pid_particle_pair[1].position,
+                                                     self.surface.shape.position)
+        self.reference_point, projection_length = self.surface.projected_point(pos_transposed)
+
+        # projection_distance can be negative in case of plane
+        # note that the distance is to the center of the cylinder in case of cylinders
+        self.particle_surface_distance = abs(projection_length)
+
+        # For interaction with a planar surface, decide orientation, 
+        # Note that the orientation_vector is normalized
+        self.orientation_vector = cmp(projection_length, 0) * self.surface.shape.unit_z
+
 
 ##############
 class testPair(Others):
@@ -317,33 +339,34 @@ class hasSphericalShell(hasShell):
         ### Get the right values for z and r for the given situation
         if situation == 1:      # the spherical shell hits cylinder on the flat side
             z1_new = min(z1, (ref_to_shell_z - shell_radius)/SAFETY)
-            r_new  = min(r,  r1_function(single1, single2, r0, z1_new))
+            r_new  = min(r,  r1_function(z1_new))
 
         elif situation == 2:    # shell hits sphere on the edge
             shell_radius_sq = shell_radius*shell_radius
             ss_sq = (scale_center_to_shell_z**2 + scale_center_to_shell_r**2)
             scale_center_to_shell_len = math.sqrt(ss_sq)
             sin_scale_angle = math.sin(scale_angle)
+            cos_scale_angle = math.cos(scale_angle)
             sin_psi = math.sin(psi)
             cos_psi = math.cos(psi)
             scale_center_shell_dist = (scale_center_to_shell_len * cos_psi - math.sqrt(shell_radius_sq - ss_sq*sin_psi*sin_psi) )
             # FIXME UGLY FIX BELOW
-#            scale_center_shell_dist /= 1.1
+            scale_center_shell_dist /= 1.1
 
             if scale_angle <= Pi/4:
                 z1_new = min(z1, (scale_center_z + cos_scale_angle * scale_center_shell_dist)/SAFETY)
-                r_new  = min(r, r1_function(single1, single2, r0, z1_new))
+                r_new  = min(r, r1_function(z1_new))
             else:
-                r_new = min(r, (scale_center_r + sin_scale_angle * scale_center_shell_dist)/SAFETY)
-                z1_new = min(z1, z1_function(single1, single2, r0, r_new))
+                r_new  = min(r,  (scale_center_r + sin_scale_angle * scale_center_shell_dist)/SAFETY)
+                z1_new = min(z1, z1_function(r_new))
 
         elif situation == 3:    # shell hits cylinder on the round side
             r_new = min(r, (ref_to_shell_r - shell_radius)/SAFETY)
-            z1_new = min(z1, z1_function(single1, single2, r0, r_new))
+            z1_new = min(z1, z1_function(r_new))
         else:
             raise RuntimeError('Bad situation for cylindrical shell making to sphere.')
 
-        z2_new = min(z2, z2_function(single1, single2, r0, r_new))
+        z2_new = min(z2, z2_function(r_new))
 
         # switch the z values in case it's necessary. r doesn't have to be switched.
         r = r_new
@@ -897,61 +920,54 @@ class CylindricalSurfacePairtestShell(CylindricaltestShell, testSimplePair):
         return dr, dz_right, dz_left
 
 #####
-class PlanarSurfaceInteractiontestShell(CylindricaltestShell, Others):
+class PlanarSurfaceInteractiontestShell(CylindricaltestShell, testInteractionSingle):
 
-    def __init__(self):
-        # scaling parameters
+    def __init__(self, single, surface, geometrycontainer, domains):
+        CylindricaltestShell.__init__(self, geometrycontainer, domains)  # this must be first because of world definition
+        testInteractionSingle.__init__(self, single, single.structure, surface)
+
+        # initialize scaling parameters
         self.dzdr_right = 1.0
         self.drdz_right = 1.0
         self.r0_right   = 0.0
-        self.z0_right   = distance_particle_refpoint
+        self.z0_right   = self.particle_surface_distance # calculated in the __init__ of testInteractionSingle
         self.dzdr_left  = 0.0
         self.drdz_left  = numpy.inf
         self.r0_left    = 0.0
-        self.z0_left    = particle_radius
+        self.z0_left    = self.pid_particle_pair[1].radius
+
+        try:
+            self.dr, self.dz_right, self.dz_left = \
+                            self.determine_possible_shell([self.single.domain_id], [self.structure.id, self.surface.id])
+        except ShellmakingError as e:
+            raise testShellError('(PlanarSurfaceInteration). %s' %
+                                 (str(e)))
+
 
     def get_orientation_vector(self):
-        result = do_calculation
-        return result
+        return self.orientation_vector      # calculated in the __init__ of testInteractionSingle
 
     def get_searchpoint(self):
-        result = calculate_searchpoint
-        return result
+#        return self.pid_particle_pair[1].position   # since the shell is scaled equally in all directions
+        # TODO this can be improved
+        search_distance = self.get_searchradius()/math.sqrt(2) - self.z0_left
+        return self.get_referencepoint() + search_distance * self.get_orientation_vector()
 
     def get_referencepoint(self):
-        return projected_point_of_particle
+        return self.reference_point         # calculated in the __init__ of testInteractionSingle
 
     def get_min_dr_dzright_dzleft(self):
-        dz_right, r = calc_based_on_scaling_stuff
-        dz_left = particle_radius
-        return (dr, dz_right, dz_left)
+        dr       = self.pid_particle_pair[1].radius * self.SINGLE_SHELL_FACTOR
+        dz_right = self.pid_particle_pair[1].radius * self.SINGLE_SHELL_FACTOR + self.particle_surface_distance
+        dz_left  = self.pid_particle_pair[1].radius
+        return dr, dz_right, dz_left
 
     def get_max_dr_dzright_dzleft(self):
-        result = calc_based_on_scaling_stuff
-        return (dr, dz_right, dz_left)
-
-    def get_right_scalingcenter(self):
-        # returns the scaling center in the cylindrical coordinates r, z of the shell
-        # Note that we assume cylindrical symmetry
-        # Note also that it is relative to the 'side' (right/left) of the cylinder
-        # note calculate this only once since 'orientation_z' doens't change
-        # for different shells -> scalingcenter is a fixed point
-        h0_right = distance_particle_surface
-        return 0, h0_right
-
-    def get_left_scalingcenter(self):
-        # returns the scaling center in the cylindrical coordinates r, z of the shell
-        # Note that we assume cylindrical symmetry
-        # Note also that it is relative to the 'side' (right/left) of the cylinder
-        # note calculate this only once since orientation_z doesn't change
-        # for difference shells -> scalingcenter is a fixed point
-        return 0, particle_radius
-
-    def get_right_scalingangle(self):
-        return Pi/4.0
-
-    def get_left_scalingangle(self):
-        return Pi/2.0
+        # TODO this can be improved
+        dr       = (self.get_searchradius()/math.sqrt(2))/SAFETY
+        dz_right = dr + self.particle_surface_distance
+        dz_left  = self.pid_particle_pair[1].radius
+        return dr, dz_right, dz_left
 
 #####
 class CylindricalSurfaceInteractiontestShell(CylindricaltestShell, Others):
