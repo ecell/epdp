@@ -2328,7 +2328,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
         shell_id = self.shell_id_generator()
         shell = multi.create_new_shell(single.pid_particle_pair[1].position,
-                single.pid_particle_pair[1].radius * self.MULTI_SHELL_FACTOR)
+                                       single.pid_particle_pair[1].radius * self.MULTI_SHELL_FACTOR,
+                                       multi.domain_id)
         shell_id_shell_pair = (shell_id, shell)
         self.geometrycontainer.move_shell(shell_id_shell_pair)
         multi.add_shell(shell_id_shell_pair)
