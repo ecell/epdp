@@ -280,61 +280,63 @@ class hasSphericalShell(hasShell):
         ref_to_shell_z_vec = ref_to_shell_z * orientation_vector
         ref_to_shell_r_vec = ref_to_shell_vec - ref_to_shell_z_vec
         ref_to_shell_r = length(ref_to_shell_r_vec)
-        ref_to_shell_z = abs(ref_to_shell_z)
+        ref_to_shell_z = ref_to_shell_z * direction
 
-        # get the center from which linear scaling will take place
+        # calculate the distances in r/z from the scaling center to the shell
         scale_center_to_shell_r = ref_to_shell_r - scale_center_r
         scale_center_to_shell_z = ref_to_shell_z - scale_center_z
-
 
         # calculate the angle shell_angle of the vector from the scale center to the shell with the vector
         # to the scale center (which is +- the orientation_vector)
         shell_angle = math.atan(scale_center_to_shell_r/scale_center_to_shell_z)
 
-        psi = shell_angle - scale_angle
+        if scale_center_to_shell_z < 0.0:
+            shell_angle += Pi           # if the shell was too much to the side we correct the angle to be positive
+        # elif: a negative angle was caused by a negative scale_center_to_shell we want a negative angle -> do nothing
+        # otherwise: shell_angle is ok -> do nothing
 
         ### check what situation arrises
         # The shell can hit the cylinder on the flat side (situation 1),
         #                                on the edge (situation 2),
         #                                or on the round side (situation 3).
         # I think this also works for scale_angle == 0 and scale_angle == Pi/2
-        if psi <= -scale_angle:
+        if shell_angle <= 0.0:
         # The midpoint of the shell lies on the axis of the cylinder
             situation = 1
 
-        elif -scale_angle < psi and psi < 0:
+        elif 0.0 < shell_angle and shell_angle < scale_angle:
         # The spherical shell can touch the cylinder on its flat side or its edge
+
             if scale_angle == Pi/2.0:
-                r_tan_scale_angle = 0
+                scale_center_to_shell_z_thres = 0
             else:
                 # scale_angle == 0 should not get here
-                r_tan_scale_angle = abs(scale_center_to_shell_r)/math.tan(scale_angle)
-                                    # TODO the abs may be wrong/unnecessary
+                scale_center_to_shell_z_thres = abs(scale_center_to_shell_r)/math.tan(scale_angle)
 
-            shell_radius_thres = scale_center_to_shell_z - r_tan_scale_angle
+            shell_radius_thres = scale_center_to_shell_z - scale_center_to_shell_z_thres
             if shell_radius < shell_radius_thres:
                 situation = 1
             else:
                 situation = 2
 
-        elif 0 <= psi and psi < (Pi/2.0 - scale_angle):
+        elif scale_angle <= shell_angle and shell_angle < Pi/2.0:
         # The (spherical) shell can touch the cylinder on its edge or its radial side
             tan_scale_angle = math.tan(scale_angle)                             # scale_angle == Pi/2 should not get here
-            shell_radius_thres = abs(scale_center_to_shell_r) - scale_center_to_shell_z * tan_scale_angle  # TODO same here
+            shell_radius_thres = scale_center_to_shell_r - scale_center_to_shell_z * tan_scale_angle  # TODO same here
+
             if shell_radius > shell_radius_thres:
                 situation = 2
             else:
                 situation = 3
 
-        elif (Pi/2.0 - scale_angle) <= psi:
+        elif Pi/2.0 <= shell_angle:
         # The shell is always only on the radial side of the cylinder
             situation = 3
 
         else:
         # Don't know how we would get here, but it shouldn't happen
-            raise RuntimeError('Error: psi was not in valid range. psi = %s, scale_angle = %s, shell_angle = %s' %
-                               (FORMAT_DOUBLE % psi, FORMAT_DOUBLE % scale_angle, FORMAT_DOUBLE % shell_angle))
-
+            raise RuntimeError('Error: shell_angle was not in valid range. shell_angle = %s, scale_angle = %s' %
+                               (FORMAT_DOUBLE % shell_angle, FORMAT_DOUBLE % scale_angle))
 
         ### Get the right values for z and r for the given situation
         if situation == 1:      # the spherical shell hits cylinder on the flat side
@@ -343,20 +345,25 @@ class hasSphericalShell(hasShell):
 
         elif situation == 2:    # shell hits sphere on the edge
             shell_radius_sq = shell_radius*shell_radius
-            ss_sq = (scale_center_to_shell_z**2 + scale_center_to_shell_r**2)
-            scale_center_to_shell_len = math.sqrt(ss_sq)
-            sin_scale_angle = math.sin(scale_angle)
-            cos_scale_angle = math.cos(scale_angle)
-            sin_psi = math.sin(psi)
-            cos_psi = math.cos(psi)
-            scale_center_shell_dist = (scale_center_to_shell_len * cos_psi - math.sqrt(shell_radius_sq - ss_sq*sin_psi*sin_psi) )
-            # FIXME UGLY FIX BELOW
-            scale_center_shell_dist /= 1.1
 
-            if scale_angle <= Pi/4:
+            ss_sq = (scale_center_to_shell_z**2 + scale_center_to_shell_r**2)
+            scale_center_to_shell = math.sqrt(ss_sq)
+
+            angle_diff = shell_angle - scale_angle
+            sin_angle_diff = math.sin(angle_diff)
+            cos_angle_diff = math.cos(angle_diff)
+
+            scale_center_shell_dist = (scale_center_to_shell * cos_angle_diff - 
+                                       math.sqrt(shell_radius_sq - (ss_sq * sin_angle_diff * sin_angle_diff) ))
+            # FIXME UGLY FIX BELOW to prevent bogus numerical errors
+#            scale_center_shell_dist /= 1.1
+
+            if scale_angle <= Pi/4.0:
+                cos_scale_angle = math.cos(scale_angle)
                 z1_new = min(z1, (scale_center_z + cos_scale_angle * scale_center_shell_dist)/SAFETY)
                 r_new  = min(r, r1_function(z1_new))
             else:
+                sin_scale_angle = math.sin(scale_angle)
                 r_new  = min(r,  (scale_center_r + sin_scale_angle * scale_center_shell_dist)/SAFETY)
                 z1_new = min(z1, z1_function(r_new))
 
@@ -487,11 +494,14 @@ class hasCylindricalShell(hasShell):
         scale_center_to_shell_z = ref_to_shell_z - scale_center_z
 
         # get angles
-        omega = math.atan( (scale_center_to_shell_r - shell_radius) / (scale_center_to_shell_z - shell_half_length) )
-        if (omega < 0) and (scale_center_to_shell_r - shell_radius) > 0.0:
-            omega += Pi         # FIXME strange construction. If the negative angle was caused by a negative denominator above
+        to_edge_angle = math.atan( (scale_center_to_shell_r - shell_radius) / (scale_center_to_shell_z - shell_half_length) )
 
-        if omega <= scale_angle:
+        if (scale_center_to_shell_z - shell_half_length) < 0.0:
+            to_edge_angle += Pi           # if the shell was too much to the side we correct the angle to be positive
+        # elif: a negative angle was caused by a negative scale_center_to_shell we want a negative angle -> do nothing
+        # otherwise: shell_angle is ok -> do nothing
+
+        if to_edge_angle <= scale_angle:
             # shell hits the scaling cylinder on top
             z1_new = min(z1, (ref_to_shell_z - shell_half_length)/SAFETY)
             r_new  = min(r,  r1_function(z1_new))           # TODO if z1 hasn't changed we also don't have to recalculate this
