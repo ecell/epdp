@@ -87,10 +87,10 @@ def try_default_testpair(single1, single2, geometrycontainer, domains):
             return PlanarSurfacePairtestShell(single1, single2, geometrycontainer, domains)
         elif isinstance(single1.structure, CylindricalSurface):
             return CylindricalSurfacePairtestShell(single1, single2, geometrycontainer, domains)
-    elif (isinstance(single1.structure, PlanarSurface) and isinstance(single2.structure, CuboidalRegion)):
-        return MixedPair3D2DtestShell(single1, single2, geometrycontainer, domains) 
-    elif (isinstance(single2.structure, PlanarSurface) and isinstance(single1.structure, CuboidalRegion)):
-        return MixedPair3D2DtestShell(single2, single1, geometrycontainer, domains)
+#    elif (isinstance(single1.structure, PlanarSurface) and isinstance(single2.structure, CuboidalRegion)):
+#        return MixedPair3D2DtestShell(single1, single2, geometrycontainer, domains) 
+#    elif (isinstance(single2.structure, PlanarSurface) and isinstance(single1.structure, CuboidalRegion)):
+#        return MixedPair3D2DtestShell(single2, single1, geometrycontainer, domains)
     else:
         raise testShellError('(MixedPair). combination of structure not supported')
         
@@ -1925,7 +1925,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
             interaction = self.create_interaction(testShell)
 
             interaction.dt, interaction.event_type, = interaction.determine_next_event()
-            assert interaction.dt >= 0
+            assert interaction.dt > 0.0
 
             self.last_time = self.t
 
@@ -2091,55 +2091,55 @@ class EGFRDSimulator(ParticleSimulatorBase):
         assert single2.is_reset()
 
 
-        # Try forming a Pair only if singles are on same structure.
-        # FIXME this is already handled in the 'try_default_testpair' function
-        if single1.structure == single2.structure:
-            # particles are on the same structure
+#        # Try forming a Pair only if singles are on same structure.
+#        # FIXME this is already handled in the 'try_default_testpair' function
+#        if single1.structure == single2.structure:
+#            # particles are on the same structure
 
-            try:
-                testShell = try_default_testpair(single1, single2, self.geometrycontainer, self.domains)
-            except testShellError as e:
-                testShell = None
-                if __debug__:
-                    log.debug('%s not formed %s' % \
-                              ('Pair(%s, %s)' % (single1.pid_particle_pair[0], single2.pid_particle_pair[0]),
-                              str(e) ))
-
-        elif (isinstance(single1.structure, PlanarSurface) and isinstance(single2.structure, CuboidalRegion)) ^ \
-             (isinstance(single2.structure, PlanarSurface) and isinstance(single1.structure, CuboidalRegion)):
-            # one particle in 2D, the other in 3D
-
+        try:
+            testShell = try_default_testpair(single1, single2, self.geometrycontainer, self.domains)
+        except testShellError as e:
+            testShell = None
             if __debug__:
-                log.debug('Mixed pair')
+                log.debug('%s not formed %s' % \
+                          ('Pair(%s, %s)' % (single1.pid_particle_pair[0], single2.pid_particle_pair[0]),
+                          str(e) ))
 
-            # make sure that we know which single is on what structure
-            if isinstance (single1.structure, PlanarSurface):
-                single2D = single1
-                single3D = single2
-            else:
-                single2D = single2
-                single3D = single1
-
-            center, shell_radius, shell_half_length, r0, shell_orientation_vector = \
-            self.calculate_mixedpair_shell_dimensions (single2D, single3D)
-
-            if shell_radius:
-                pair = self.create_pair(single2D, single3D, center, shell_radius, r0,
-                                        shell_half_length, shell_orientation_vector)
-                if __debug__:
-                    log.debug('Created: %s, shell_radius = %.3g, shell_half_length = %.3g, r0 = %.3g' %
-                              (pair, shell_radius, shell_half_length, r0))
-
-            else:
-                pair = None
-
-        else:
-            # a 1D/3D pair was supposed to be formed -> unsupported
-            if __debug__:
-                log.debug('Pair(%s, %s) not formed: combination of structures not supported.' %
-                          (single1.pid_particle_pair[0],
-                           single2.pid_particle_pair[0]))
-            pair = None
+#        elif (isinstance(single1.structure, PlanarSurface) and isinstance(single2.structure, CuboidalRegion)) ^ \
+#             (isinstance(single2.structure, PlanarSurface) and isinstance(single1.structure, CuboidalRegion)):
+#            # one particle in 2D, the other in 3D
+#
+#            if __debug__:
+#                log.debug('Mixed pair')
+#
+#            # make sure that we know which single is on what structure
+#            if isinstance (single1.structure, PlanarSurface):
+#                single2D = single1
+#                single3D = single2
+#            else:
+#                single2D = single2
+#                single3D = single1
+#
+#            center, shell_radius, shell_half_length, r0, shell_orientation_vector = \
+#            self.calculate_mixedpair_shell_dimensions (single2D, single3D)
+#
+#            if shell_radius:
+#                pair = self.create_pair(single2D, single3D, center, shell_radius, r0,
+#                                        shell_half_length, shell_orientation_vector)
+#                if __debug__:
+#                    log.debug('Created: %s, shell_radius = %.3g, shell_half_length = %.3g, r0 = %.3g' %
+#                              (pair, shell_radius, shell_half_length, r0))
+#
+#            else:
+#                pair = None
+#
+#        else:
+#            # a 1D/3D pair was supposed to be formed -> unsupported
+#            if __debug__:
+#                log.debug('Pair(%s, %s) not formed: combination of structures not supported.' %
+#                          (single1.pid_particle_pair[0],
+#                           single2.pid_particle_pair[0]))
+#            pair = None
 
 
         # if a pair could be formed
