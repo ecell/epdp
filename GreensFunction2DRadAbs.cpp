@@ -871,26 +871,28 @@ Real GreensFunction2DRadAbs::drawTime( const Real rnd) const
     THROW_UNLESS( std::invalid_argument, 0.0 <= rnd && rnd < 1.0 );
     THROW_UNLESS( std::invalid_argument, sigma <= r0 && r0 <= a );
 
-    Real dist;
-
+    Real t_guess;
 
     if( r0 == a || a == sigma )		// when the particle is at the border or if the PD has no real size
     {
 	return 0.0;
     }
 
+    // get some initial guess for the time, dr=sqrt(2dDt) with d
+    // the dimensionality (2 in this case)
+    const Real t_Abs( gsl_pow_2( a - r0 ) / ( 4.0 * D ) );
     if ( kf == 0.0 )			// if there was only one absorbing boundary
     {	
-        dist = a - r0;
+        t_guess = t_Abs;
     }
     else
     {	
-        dist = std::min( a - r0, r0 - sigma );	// take the shortest distance to a boundary
+        const Real t_Rad( D / gsl_pow_2( kf/(2*M_PI*a) ) + gsl_pow_2( r0 - sigma ) / D );
+        t_guess = std::min( t_Abs, t_Rad );	// take the shortest distance to a boundary
     }
-    Real t_guess = dist * dist / ( 4.0 * D );	// get some initial guess for the time, dr=sqrt(2dDt) with d
-						// the dimensionality (2 in this case)
-
-
+    
+    t_guess *= .1;
+    
 	const Real minT( std::min( sigma * sigma / D * this->MIN_T_FACTOR,
                                t_guess * 1e-7 ) );	// something with determining the lowest possible t
 
