@@ -14,9 +14,6 @@ class Domain(object):
 # The domain is the main unit of eGFRD. Single, Pairs and Multis are all domains
 # with an own domain_id
 
-    SINGLE_SHELL_FACTOR = 2.0
-    MULTI_SHELL_FACTOR = math.sqrt(2)
-
     def __init__(self, domain_id):
         self.domain_id = domain_id      # identifier for this domain object
         self.event_id = None            # identifier for the event coupled to this domain

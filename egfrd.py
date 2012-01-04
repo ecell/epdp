@@ -150,13 +150,6 @@ class EGFRDSimulator(ParticleSimulatorBase):
         self.shell_id_generator = ShellIDGenerator(0)
 
         # some constants
-        self.MULTI_SHELL_FACTOR = math.sqrt(2)  # This stems from the fact that there vacant space in the cylinder
-                                                # NonInteractionSingles to a Multi and also defines the Multi
-                                                # shell size.
-        self.SINGLE_SHELL_FACTOR = 2.0          # This is the threshold for when the algorithm switches from
-                                                # NonInteractionSingles to a Pair or Interaction. It also defines
-                                                # the radius in which the NonInteractionSingle will burst.
-                                                # NOTE THAT ABOVE CONSTANTS ARE ALSO IN domain.py
         self.MAX_NUM_DT0_STEPS = 1000
 
         self.MAX_TIME_STEP = 10
@@ -1194,7 +1187,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
         # Check if there are shells with the burst radius (reaction_threshold)
         # of the particle (intruders). Note that we approximate the reaction_volume
         # with a sphere (should be cylinder for 2D or 1D particle)
-        reaction_threshold = single_radius * self.SINGLE_SHELL_FACTOR
+        reaction_threshold = single_radius * SINGLE_SHELL_FACTOR
 
 
         # TODO redundant
@@ -1228,16 +1221,16 @@ class EGFRDSimulator(ParticleSimulatorBase):
             if (isinstance (domain, NonInteractionSingle) and domain.is_reset()):
                 # distance from the center of the particles/domains
                 pair_distance = self.world.distance(single_pos, domain.shell.shape.position)
-                pair_horizon  = (single_radius + domain.pid_particle_pair[1].radius) * self.SINGLE_SHELL_FACTOR
+                pair_horizon  = (single_radius + domain.pid_particle_pair[1].radius) * SINGLE_SHELL_FACTOR
                 pair_interaction_partners.append((domain, pair_distance - pair_horizon))
         
         for surface, surface_distance in surface_distances:
             if isinstance(surface, PlanarSurface):
                 # with a planar surface it is the center of mass that 'looks around'
-                surface_horizon = single_radius * (self.SINGLE_SHELL_FACTOR - 1.0)
+                surface_horizon = single_radius * (SINGLE_SHELL_FACTOR - 1.0)
             else:
                 # with a cylindrical surface it is the surface of the particle
-                surface_horizon = single_radius * self.SINGLE_SHELL_FACTOR
+                surface_horizon = single_radius * SINGLE_SHELL_FACTOR
             pair_interaction_partners.append((surface, surface_distance - surface_horizon))
 
         pair_interaction_partners = sorted(pair_interaction_partners, key=lambda domain_overlap: domain_overlap[1])
@@ -1273,7 +1266,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
             multi_partners = []
             for domain, dist_to_shell in neighbor_distances:
                 if (isinstance (domain, NonInteractionSingle) and domain.is_reset()):
-                    multi_horizon = (single_radius + domain.pid_particle_pair[1].radius) * self.MULTI_SHELL_FACTOR
+                    multi_horizon = (single_radius + domain.pid_particle_pair[1].radius) * MULTI_SHELL_FACTOR
                     distance = self.world.distance(single_pos, domain.shell.shape.position)
                     multi_partners.append((domain, distance - multi_horizon))
 
@@ -1281,17 +1274,17 @@ class EGFRDSimulator(ParticleSimulatorBase):
                     # The dist_to_shell = dist_to_particle - multi_horizon_of_target_particle
                     # So only the horizon and distance of the current single needs to be taken into account
                     # Note: this is built on the assumption that the shell of a Multi has the size of the horizon.
-                    multi_horizon = (single_radius * self.MULTI_SHELL_FACTOR)
+                    multi_horizon = (single_radius * MULTI_SHELL_FACTOR)
                     multi_partners.append((domain, dist_to_shell - multi_horizon))
 
             # Also add surfaces
             for surface, distance in surface_distances:
                 if isinstance(surface, PlanarSurface):
                     # with a planar surface it is the center of mass that 'looks around'
-                    surface_horizon = single_radius * (self.MULTI_SHELL_FACTOR - 1.0)
+                    surface_horizon = single_radius * (MULTI_SHELL_FACTOR - 1.0)
                 else:
                     # with a cylindrical surface it is the surface of the particle
-                    surface_horizon = single_radius * self.MULTI_SHELL_FACTOR
+                    surface_horizon = single_radius * MULTI_SHELL_FACTOR
                 multi_partners.append((surface, distance - surface_horizon))
 
 
@@ -1377,9 +1370,9 @@ class EGFRDSimulator(ParticleSimulatorBase):
         d2 = self.world.distance(com, pos2)
 
         if shell_size < max(d1 + single1.pid_particle_pair[1].radius *
-                            self.SINGLE_SHELL_FACTOR, \
+                            SINGLE_SHELL_FACTOR, \
                             d2 + single2.pid_particle_pair[1].radius * \
-                            self.SINGLE_SHELL_FACTOR) * 1.3:
+                            SINGLE_SHELL_FACTOR) * 1.3:
             if __debug__:
                 log.debug('%s not formed: singles are better' %
                           'Pair(%s, %s)' % (single1.pid_particle_pair[0], 
@@ -1871,18 +1864,18 @@ class EGFRDSimulator(ParticleSimulatorBase):
 #            dz_left = particle.radius
 #            dz_right = max_cylinder_half_length * 2 - dz_left
 #
-#            min_dr = particle.radius * self.SINGLE_SHELL_FACTOR
+#            min_dr = particle.radius * SINGLE_SHELL_FACTOR
 #            min_dz_left = dz_left
-#            min_dz_right = particle_distance + particle.radius * self.SINGLE_SHELL_FACTOR
+#            min_dz_right = particle_distance + particle.radius * SINGLE_SHELL_FACTOR
 #
 #        elif isinstance(surface, CylindricalSurface):
 #            dr = max_cylinder_radius
 #            dz_left = max_cylinder_half_length
 #            dz_right = max_cylinder_half_length
 #
-#            min_dr = particle_distance + particle.radius * self.SINGLE_SHELL_FACTOR
-#            min_dz_left = particle.radius * self.SINGLE_SHELL_FACTOR
-#            min_dz_right = particle.radius * self.SINGLE_SHELL_FACTOR
+#            min_dr = particle_distance + particle.radius * SINGLE_SHELL_FACTOR
+#            min_dz_left = particle.radius * SINGLE_SHELL_FACTOR
+#            min_dz_right = particle.radius * SINGLE_SHELL_FACTOR
 #
 #        # Miedema's algorithm.
 #        dr, dz_left, dz_right = \
@@ -2001,7 +1994,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
                 if domain.dt == 0.0 and domain.getD() > 0:
                     # This is one of the bursted singles.
                     # Or a particle that just escaped it's multi.
-                    shell_size *= self.SINGLE_SHELL_FACTOR
+                    shell_size *= SINGLE_SHELL_FACTOR
 
                 dr, dz_left, dz_right = \
                     self.miedema_algorithm(shell_position, shell_size, 
@@ -2257,7 +2250,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
                                                                              ignore=[domain.domain_id, multi.domain_id])
 
             # 2. Burst the domains that interfere with making the multi shell
-            burstradius = domain.pid_particle_pair[1].radius * self.MULTI_SHELL_FACTOR
+            burstradius = domain.pid_particle_pair[1].radius * MULTI_SHELL_FACTOR
             neighbor_distances = self.burst_non_multis(neighbor_distances, burstradius)
             # This bursts only domains in which time has passed, it is assumed that other domains
             # have been made 'socially', meaning that they leave enough space for this particle to make a multi
@@ -2278,7 +2271,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
             for neighbor, dist_to_shell in neighbor_distances:
                 if (isinstance (neighbor, NonInteractionSingle) and neighbor.is_reset()):
                     multi_horizon = (domain.pid_particle_pair[1].radius + neighbor.pid_particle_pair[1].radius) * \
-                                    self.MULTI_SHELL_FACTOR
+                                    MULTI_SHELL_FACTOR
                     # distance from the center of the particles/domains
                     distance = self.world.distance(dompos, neighbor.shell.shape.position)
                     overlap = distance - multi_horizon
@@ -2287,7 +2280,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
                     # The dist_to_shell = dist_to_particle - multi_horizon_of_target_particle
                     # So only the horizon and distance of the current single needs to be taken into account
                     # Note: this is built on the assumption that the shell of a Multi has the size of the horizon.
-                    multi_horizon = (domain.pid_particle_pair[1].radius * self.MULTI_SHELL_FACTOR)
+                    multi_horizon = (domain.pid_particle_pair[1].radius * MULTI_SHELL_FACTOR)
                     overlap = dist_to_shell - multi_horizon
                 else:
                     # neighbor is not addible to multi
@@ -2328,7 +2321,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
         shell_id = self.shell_id_generator()
         shell = multi.create_new_shell(single.pid_particle_pair[1].position,
-                                       single.pid_particle_pair[1].radius * self.MULTI_SHELL_FACTOR,
+                                       single.pid_particle_pair[1].radius * MULTI_SHELL_FACTOR,
                                        multi.domain_id)
         shell_id_shell_pair = (shell_id, shell)
         self.geometrycontainer.move_shell(shell_id_shell_pair)

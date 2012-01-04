@@ -12,7 +12,7 @@ from single import (
 from multi import (
     Multi)
 from shells import *
-
+from utils import *
 
 __all__ = [
     'CylindricalSurfacePair',
@@ -227,8 +227,8 @@ class SimplePair(Pair):
         com_shell_size = max(radius1, radius2)
 
         # calculate total radii including the margin for the burst volume for the particles
-        shell_size = max(iv_shell_size1 + com_shell_size + radius1 * (1 - Domain.SINGLE_SHELL_FACTOR),
-                         iv_shell_size2 + com_shell_size + radius2 * (1 - Domain.SINGLE_SHELL_FACTOR))
+        shell_size = max(iv_shell_size1 + com_shell_size + radius1 * (1 - SINGLE_SHELL_FACTOR),
+                         iv_shell_size2 + com_shell_size + radius2 * (1 - SINGLE_SHELL_FACTOR))
 
         return shell_size
 
@@ -276,7 +276,7 @@ class SimplePair(Pair):
                         shell_center, domain.pid_particle_pair[1].position)
 
                 distance = min(distance,
-                               closest_particle_distance - domain.pid_particle_pair[1].radius * Domain.SINGLE_SHELL_FACTOR)
+                               closest_particle_distance - domain.pid_particle_pair[1].radius * SINGLE_SHELL_FACTOR)
 
                 # options for shell size:
                 # a. upto the closest shell assuming that this shell is bigger than the minimum
@@ -797,7 +797,7 @@ class MixedPair(Pair):
 
         # calculate the minimal height z_right1 of the shell including burst radius
         # with the accompanying radius r1
-        z_right1 = iv_z + radius2 * Domain.SINGLE_SHELL_FACTOR
+        z_right1 = iv_z + radius2 * SINGLE_SHELL_FACTOR
         r1       = cls.r_right(single1, single2, r0, z_right1)
 
         len_iv = r0
@@ -809,8 +809,8 @@ class MixedPair(Pair):
 
         # calculate the minimal dimensions of the protective domain including space for the
         # burst volumes of the particles
-        r2 = max(iv_shell_radius1 + com_shell_radius + radius1 * Domain.SINGLE_SHELL_FACTOR,
-                 iv_shell_radius2 + com_shell_radius + radius2 * Domain.SINGLE_SHELL_FACTOR)
+        r2 = max(iv_shell_radius1 + com_shell_radius + radius1 * SINGLE_SHELL_FACTOR,
+                 iv_shell_radius2 + com_shell_radius + radius2 * SINGLE_SHELL_FACTOR)
         z_right2 = cls.z_right(single1, single2, r0, r2)
 
         # of both alternatives pick the largest one
@@ -870,7 +870,7 @@ class MixedPair(Pair):
                 if domain.dt == 0.0 and domain.getD() > 0:
                     # This is one of the bursted singles.
                     # Or a particle that just escaped it's multi.
-                    shell_size *= Domain.SINGLE_SHELL_FACTOR
+                    shell_size *= SINGLE_SHELL_FACTOR
 
                 r, z_left, z_right = cls.laurens_algorithm(single1, single2, r0, shell_position, shell_size, domain.shell,
                                                                  reference_point, orientation_vector, r, z_left,

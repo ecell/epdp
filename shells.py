@@ -79,10 +79,6 @@ class testSingle(object):
         self.pid_particle_pair = pid_particle_pair
         self.structure = structure
 
-        # FIXME FIXME This is defined multiple times!!!
-        self.MULTI_SHELL_FACTOR = math.sqrt(2)
-        self.SINGLE_SHELL_FACTOR = 2.0
-
 class testNonInteractionSingle(testSingle, NonInteractionSingles):
 
     def __init__(self, pid_particle_pair, structure):
@@ -127,10 +123,6 @@ class testPair(Others):
         self.pid_particle_pair2 = single2.pid_particle_pair
         self.com, self.iv = self.do_transform()
         self.r0 = length(self.iv)
-
-        # FIXME FIXME This is defined multiple times!!!
-        self.MULTI_SHELL_FACTOR = math.sqrt(2)
-        self.SINGLE_SHELL_FACTOR = 2.0
 
     def do_transform(self):
         pass        # overloaded later
@@ -198,8 +190,8 @@ class testSimplePair(testPair):
         com_shell_size = max(radius1, radius2)
 
         # calculate total radii including the margin for the burst volume for the particles
-        shell_size = max(iv_shell_size1 + com_shell_size + radius1 * (self.SINGLE_SHELL_FACTOR),
-                         iv_shell_size2 + com_shell_size + radius2 * (self.SINGLE_SHELL_FACTOR))
+        shell_size = max(iv_shell_size1 + com_shell_size + radius1 * SINGLE_SHELL_FACTOR,
+                         iv_shell_size2 + com_shell_size + radius2 * SINGLE_SHELL_FACTOR)
 
         return shell_size
 
@@ -632,7 +624,7 @@ class SphericalSingletestShell(SphericaltestShell, testNonInteractionSingle):
         self.radius = self.pid_particle_pair[1].radius
 
     def get_min_radius(self):
-        return self.pid_particle_pair[1].radius * self.MULTI_SHELL_FACTOR / SAFETY    # the minimum radius of a NonInteractionSingle
+        return self.pid_particle_pair[1].radius * MULTI_SHELL_FACTOR / SAFETY    # the minimum radius of a NonInteractionSingle
 
 #####
 class SphericalPairtestShell(SphericaltestShell, testSimplePair):
@@ -784,7 +776,7 @@ class PlanarSurfaceSingletestShell(CylindricaltestShell, testNonInteractionSingl
         # we need to make sure that the minimal cylinder for the Single fits inside the putative
         # spherical Multi shell.
         # NOTE the MULTI_SHELL_FACTOR should therefore be at least sqrt(2)!!
-        dr       = self.pid_particle_pair[1].radius * math.sqrt(self.MULTI_SHELL_FACTOR**2 - 1.0)/SAFETY
+        dr       = self.pid_particle_pair[1].radius * math.sqrt(MULTI_SHELL_FACTOR**2 - 1.0)/SAFETY
         dz_right = self.pid_particle_pair[1].radius
         dz_left  = dz_right
         return dr, dz_right, dz_left
@@ -878,7 +870,7 @@ class CylindricalSurfaceSingletestShell(CylindricaltestShell, testNonInteraction
         # spherical Multi shell.
         # NOTE the MULTI_SHELL_FACTOR should therefore be at least sqrt(2)!!
         dr       = self.pid_particle_pair[1].radius
-        dz_right = self.pid_particle_pair[1].radius * math.sqrt(Domain.MULTI_SHELL_FACTOR**2 - 1.0)/SAFETY
+        dz_right = self.pid_particle_pair[1].radius * math.sqrt(MULTI_SHELL_FACTOR**2 - 1.0)/SAFETY
         dz_left  = dz_right
         return dr, dz_right, dz_left
 
@@ -973,8 +965,8 @@ class PlanarSurfaceInteractiontestShell(CylindricaltestShell, testInteractionSin
         return self.reference_point         # calculated in the __init__ of testInteractionSingle
 
     def get_min_dr_dzright_dzleft(self):
-        dr       = self.pid_particle_pair[1].radius * self.SINGLE_SHELL_FACTOR
-        dz_right = self.pid_particle_pair[1].radius * self.SINGLE_SHELL_FACTOR + self.particle_surface_distance
+        dr       = self.pid_particle_pair[1].radius * SINGLE_SHELL_FACTOR
+        dz_right = self.pid_particle_pair[1].radius * SINGLE_SHELL_FACTOR + self.particle_surface_distance
         dz_left  = self.pid_particle_pair[1].radius
         return dr, dz_right, dz_left
 
