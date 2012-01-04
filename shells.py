@@ -104,9 +104,8 @@ class testInteractionSingle(testSingle, Others):
         # note that the distance is to the center of the cylinder in case of cylinders
         self.particle_surface_distance = abs(projection_length)
 
-        # For interaction with a planar surface, decide orientation, 
-        # Note that the orientation_vector is normalized
-        self.orientation_vector = cmp(projection_length, 0) * self.surface.shape.unit_z
+        # The reference_vector is the normalized vector from the reference_point to the particle
+        self.reference_vector = normalize(pos_transposed - self.reference_point)
 
 
 ##############
@@ -695,13 +694,13 @@ class CylindricaltestShell(testShell):
 
     # default functions for evaluating z_right/z_left/r after one of parameters changed
     def r_right(self, z_right):
-        return self.drdz_right * z_right + self.r0_right
+        return self.drdz_right * (z_right - self.z0_right) + self.r0_right
     def z_right(self, r_right):
-        return self.dzdr_right * r_right + self.z0_right
+        return self.dzdr_right * (r_right - self.r0_right) + self.z0_right
     def r_left(self, z_left):
-        return self.drdz_left * z_left + self.r0_left
+        return self.drdz_left * (z_left - self.z0_left) + self.r0_left
     def z_left(self, r_left):
-        return self.dzdr_left * r_left + self.z0_left
+        return self.dzdr_left * (r_left - self.r0_left) + self.z0_left
 
     def get_right_scalingcenter(self):
         # returns the scaling center in the cylindrical coordinates r, z of the shell
@@ -953,7 +952,7 @@ class PlanarSurfaceInteractiontestShell(CylindricaltestShell, testInteractionSin
 
 
     def get_orientation_vector(self):
-        return self.orientation_vector      # calculated in the __init__ of testInteractionSingle
+        return self.reference_vector      # calculated in the __init__ of testInteractionSingle
 
     def get_searchpoint(self):
 #        return self.pid_particle_pair[1].position   # since the shell is scaled equally in all directions
@@ -978,60 +977,52 @@ class PlanarSurfaceInteractiontestShell(CylindricaltestShell, testInteractionSin
         return dr, dz_right, dz_left
 
 #####
-class CylindricalSurfaceInteractiontestShell(CylindricaltestShell, Others):
+class CylindricalSurfaceInteractiontestShell(CylindricaltestShell, testInteractionSingle):
 
-    def __init__(self):
+    def __init__(self, single, surface, geometrycontainer, domains):
+        CylindricaltestShell.__init__(self, geometrycontainer, domains)  # this must be first because of world definition
+        testInteractionSingle.__init__(self, single, single.structure, surface)
 
-        # scaling parameters
+        # initialize scaling parameters
         self.dzdr_right = 1.0
         self.drdz_right = 1.0
         self.r0_right   = 0.0
-        self.z0_right   = 0.0 # calculate_it
+        self.z0_right   = -self.particle_surface_distance   # note that this is because dzdr_right = 1.0
         self.dzdr_left  = 1.0
         self.drdz_left  = 1.0
         self.r0_left    = 0.0
-        self.z0_left    = 0.0 # calculate_it (same as above)
+        self.z0_left    = -self.particle_surface_distance
+
+        try:
+            self.dr, self.dz_right, self.dz_left = \
+                            self.determine_possible_shell([self.single.domain_id], [self.structure.id, self.surface.id])
+        except ShellmakingError as e:
+            raise testShellError('(CylindricalSurfaceInteraction). %s' %
+                                 (str(e)))
+
 
     def get_orientation_vector(self):
-        return structure.shape.unit_z
+        return self.surface.shape.unit_z
 
     def get_searchpoint(self):
-        return projected_point_of_particle
+        return self.reference_point         # calculated in the __init__ of testInteractionSingle
 
     def get_referencepoint(self):
-        return projected_point_of_particle
+        return self.reference_point         # calculated in the __init__ of testInteractionSingle
 
     def get_min_dr_dzright_dzleft(self):
-        result = calc_based_on_scaling_stuff
-        return (dr, dz_right, dz_left)
+        dr       = self.pid_particle_pair[1].radius * SINGLE_SHELL_FACTOR + self.particle_surface_distance
+        dz_right = self.pid_particle_pair[1].radius * SINGLE_SHELL_FACTOR
+        dz_left  = dz_right
+        return dr, dz_right, dz_left
         
     def get_max_dr_dzright_dzleft(self):
-        result = calc_based_on_scaling_stuff
-        return (dr, dz_right, dz_left)
-
-    def get_right_scalingcenter(self):
-        # returns the scaling center in the cylindrical coordinates r, z of the shell
-        # Note that we assume cylindrical symmetry
-        # Note also that it is relative to the 'side' (right/left) of the cylinder
-        # note calculate this only once since 'orientation_z' doens't change
-        # for different shells -> scalingcenter is a fixed point
-        h0_right = smt
-        return 0, h0_right
-
-    def get_left_scalingcenter(self):
-        # returns the scaling center in the cylindrical coordinates r, z of the shell
-        # Note that we assume cylindrical symmetry
-        # Note also that it is relative to the 'side' (right/left) of the cylinder
-        # note calculate this only once since orientation_z doesn't change
-        # for difference shells -> scalingcenter is a fixed point
-        h0_left = h0_right
-        return 0, h0_left
-
-    def get_right_scalingangle(self):
-        return bla
-
-    def get_left_scalingangle(self):
-        return Pi/2.0
+        # TODO clarify
+        dz_right = ((-self.particle_surface_distance + \
+                     math.sqrt(2*(self.get_searchradius()**2) - self.particle_surface_distance**2)) / 2.0)/SAFETY
+        dz_left  = dz_right
+        dr       = (self.particle_surface_distance + dz_right)/SAFETY
+        return dr, dz_right, dz_left
 
 #####
 class MixedPair3D2DtestShell(CylindricaltestShell, Others):

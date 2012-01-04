@@ -43,6 +43,7 @@ from shells import (
     CylindricalSurfacePairtestShell,
     testInteractionSingle,
     PlanarSurfaceInteractiontestShell,
+    CylindricalSurfaceInteractiontestShell,
     )
 
 import logging
@@ -451,19 +452,21 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
 #        particle_pos = pid_particle_pair[1].position
 
-        if isinstance(testShell.surface, CylindricalSurface):
-            particle_pos = self.world.cyclic_transpose(particle_pos, surface.shape.position)
-            projected_point, r0 = surface.projected_point(particle_pos)
-            shell_unit_r = normalize(particle_pos - projected_point)
-
-            projected_point = self.world.cyclic_transpose(projected_point, shell_center)
-            z0 = numpy.dot (shell_unit_z, (projected_point - shell_center))
-
-            interaction = CylindricalSurfaceInteraction(domain_id, pid_particle_pair,
-                                                        reaction_rules, structure,
-                                                        shell_id, shell_center, shell_radius,
-                                                        shell_half_length, shell_unit_z, z0,
-                                                        shell_unit_r, r0, interaction_rules, surface)
+        if isinstance(testShell, CylindricalSurfaceInteractiontestShell):
+#            particle_pos = self.world.cyclic_transpose(particle_pos, surface.shape.position)
+#            projected_point, r0 = surface.projected_point(particle_pos)
+#            shell_unit_r = normalize(particle_pos - projected_point)
+#
+#            projected_point = self.world.cyclic_transpose(projected_point, shell_center)
+#            z0 = numpy.dot (shell_unit_z, (projected_point - shell_center))
+#
+#            interaction = CylindricalSurfaceInteraction(domain_id, pid_particle_pair,
+#                                                        reaction_rules, structure,
+#                                                        shell_id, shell_center, shell_radius,
+#                                                        shell_half_length, shell_unit_z, z0,
+#                                                        shell_unit_r, r0, interaction_rules, surface)
+            interaction = CylindricalSurfaceInteraction(domain_id, shell_id, testShell,
+                                                        reaction_rules, interaction_rules)
         elif isinstance(testShell, PlanarSurfaceInteractiontestShell):
 #            particle_pos = self.world.cyclic_transpose(particle_pos, shell_center)
 #            z0 = numpy.dot (shell_unit_z, (particle_pos - shell_center))

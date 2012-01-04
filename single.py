@@ -813,20 +813,25 @@ class CylindricalSurfaceInteraction(InteractionSingle):
         * Selected randomly when drawing displacement vector: none.
 
     """
-    def __init__(self, domain_id, pid_particle_pair, reactionrules, structure,
-                 shell_id, shell_center, shell_radius, shell_half_length, shell_orientation_vector, z0,
-                 unit_r, r0, interactionrules, surface):
+    def __init__(self, domain_id, shell_id, testShell, reactionrules, interactionrules):
+#    def __init__(self, domain_id, pid_particle_pair, reactionrules, structure,
+#                 shell_id, shell_center, shell_radius, shell_half_length, shell_orientation_vector, z0,
+#                 unit_r, r0, interactionrules, surface):
 
-        InteractionSingle.__init__(self, domain_id, pid_particle_pair, reactionrules,
-                                   structure, shell_id, interactionrules, surface)
+        InteractionSingle.__init__(self, domain_id, shell_id, testShell, reactionrules, interactionrules)
+#        InteractionSingle.__init__(self, domain_id, pid_particle_pair, reactionrules,
+#                                   structure, shell_id, interactionrules, surface)
 
-        # z0 is implied to be zero (the particle being in the center of the shell in the z direction)
-        self.z0 = z0
-        self.unit_r = unit_r    # This is the vector from the cylinder to the particle
-        self.r0 = r0            # r0 is the distance from the center of the cylinder to the
-                                # center of the particle
-        self.shell = self.create_new_shell(shell_center, shell_radius,
-                                           shell_orientation_vector, shell_half_length)
+
+        # unit_r is the vector from the cylindrical surface to the particle
+        # r0 is the distance from the center of the cylinder to the center of the particle
+        # z0 is known to be zero (the particle being in the center of the shell in the z direction)
+        self.unit_r = self.testShell.reference_vector    
+        self.r0     = self.testShell.particle_surface_distance
+        self.z0     = 0.0
+
+#        self.shell = self.create_new_shell(shell_center, shell_radius,
+#                                           shell_orientation_vector, shell_half_length)
 
 
     def get_inner_dz_left(self):
@@ -840,7 +845,7 @@ class CylindricalSurfaceInteraction(InteractionSingle):
 
     def greens_function(self):
         # The greens function not used for the interaction but for the other coordinate
-        # Free diffusion in z direction, drift is zero.
+        # Free diffusion in z direction, drift is zero. Note that also z0 = 0.0
         return GreensFunction1DAbsAbs(self.D, 0.0, self.z0,
                                       -self.get_inner_dz_left(),
                                       self.get_inner_dz_right())
@@ -872,9 +877,10 @@ class CylindricalSurfaceInteraction(InteractionSingle):
 
             # Direction matters, so determine the direction of the shell relative to the surface
             # first
-            direction = cmp(numpy.dot(self.shell.shape.unit_z, self.structure.shape.unit_z), 0)
+#            direction = cmp(numpy.dot(self.shell.shape.unit_z, self.structure.shape.unit_z), 0)
             # express the z_vector into the surface unit vectors to make sure that the coordinates are in the surface
-            z_vector = z * direction * self.structure.shape.unit_z
+#            z_vector = z * direction * self.structure.shape.unit_z
+            z_vector = z * self.shell.shape.unit_z
 
 
             # 2) Draw r and theta.
@@ -903,15 +909,17 @@ class CylindricalSurfaceInteraction(InteractionSingle):
 
         return newpos
 
-    def get_shell_size(self):
-        # REMOVE this method, it doesn't mean anything here.
-        # THis method is only used for making an Interaction
-        # Heads up. The cylinder's *half_length*, not radius, 
-        # determines the size in case of a cylindrical surface.
-        return self.shell.shape.half_length
+#    def get_shell_size(self):
+#        # REMOVE this method, it doesn't mean anything here.
+#        # THis method is only used for making an Interaction
+#        # Heads up. The cylinder's *half_length*, not radius, 
+#        # determines the size in case of a cylindrical surface.
+#        return self.shell.shape.half_length
 
     def __str__(self):
-        return 'CylindricalSurfaceInteraction' + Single.__str__(self)
+        return ('CylindricalSurfaceInteraction' + Single.__str__(self) + \
+               'radius = %s, half_length = %s' %
+                (self.shell.shape.radius, self.shell.shape.half_length))
 
 class DummySingle(object):
     def __init__(self):
