@@ -632,7 +632,7 @@ class SphericalSingletestShell(SphericaltestShell, testNonInteractionSingle):
         self.radius = self.pid_particle_pair[1].radius
 
     def get_min_radius(self):
-        return self.pid_particle_pair[1].radius * self.MULTI_SHELL_FACTOR     # the minimum radius of a NonInteractionSingle
+        return self.pid_particle_pair[1].radius * self.MULTI_SHELL_FACTOR / SAFETY    # the minimum radius of a NonInteractionSingle
 
 #####
 class SphericalPairtestShell(SphericaltestShell, testSimplePair):
@@ -781,9 +781,12 @@ class PlanarSurfaceSingletestShell(CylindricaltestShell, testNonInteractionSingl
         return self.pid_particle_pair[1].position
 
     def get_min_dr_dzright_dzleft(self):
-        dr = self.pid_particle_pair[1].radius * self.MULTI_SHELL_FACTOR
+        # we need to make sure that the minimal cylinder for the Single fits inside the putative
+        # spherical Multi shell.
+        # NOTE the MULTI_SHELL_FACTOR should therefore be at least sqrt(2)!!
+        dr       = self.pid_particle_pair[1].radius * math.sqrt(self.MULTI_SHELL_FACTOR**2 - 1.0)/SAFETY
         dz_right = self.pid_particle_pair[1].radius
-        dz_left = dz_right
+        dz_left  = dz_right
         return dr, dz_right, dz_left
 
     def get_max_dr_dzright_dzleft(self):
@@ -871,9 +874,12 @@ class CylindricalSurfaceSingletestShell(CylindricaltestShell, testNonInteraction
         return self.pid_particle_pair[1].position
 
     def get_min_dr_dzright_dzleft(self):
-        dr = self.pid_particle_pair[1].radius
-        dz_right = self.pid_particle_pair[1].radius * self.MULTI_SHELL_FACTOR
-        dz_left = self.pid_particle_pair[1].radius * self.MULTI_SHELL_FACTOR
+        # we need to make sure that the minimal cylinder for the Single fits inside the putative
+        # spherical Multi shell.
+        # NOTE the MULTI_SHELL_FACTOR should therefore be at least sqrt(2)!!
+        dr       = self.pid_particle_pair[1].radius
+        dz_right = self.pid_particle_pair[1].radius * math.sqrt(Domain.MULTI_SHELL_FACTOR**2 - 1.0)/SAFETY
+        dz_left  = dz_right
         return dr, dz_right, dz_left
 
     def get_max_dr_dzright_dzleft(self):
