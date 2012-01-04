@@ -346,8 +346,6 @@ class hasSphericalShell(hasShell):
 
             scale_center_shell_dist = (scale_center_to_shell * cos_angle_diff - 
                                        math.sqrt(shell_radius_sq - (ss_sq * sin_angle_diff * sin_angle_diff) ))
-            # FIXME UGLY FIX BELOW to prevent bogus numerical errors
-#            scale_center_shell_dist /= 1.1
 
             if scale_angle <= Pi/4.0:
                 cos_scale_angle = math.cos(scale_angle)
