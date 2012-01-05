@@ -263,9 +263,6 @@ class hasShell(object):
     def __init__(self, testShell):
         pass
 
-#    def shell_list(self):
-#            return self.shell_list
-
 #######################
 class hasSphericalShell(hasShell):
 # The testShell is now converted into smt that we can use in the domain instance
@@ -466,6 +463,7 @@ class hasCylindricalShell(hasShell):
         hasShell.__init__(self, cylindricaltestShell)
 
         self.testShell = cylindricaltestShell
+        # Compute origin, radius and half_length of cylinder.
         self.shell_center, self.shell_radius, self.shell_half_length = \
                     self.r_zright_zleft_to_r_center_hl(self.testShell.get_referencepoint(),
                                                        self.testShell.get_orientation_vector(),
@@ -588,15 +586,6 @@ class hasCylindricalShell(hasShell):
         return min(r, r_new)
 
 
-class PlanarSurfaceInteraction(hasCylindricalShell, Others):
-    pass
-class CylindricalSurfaceInteraction(hasCylindricalShell, Others):
-    pass
-class MixedPair3D2D(hasCylindricalShell, Others):
-    pass
-#class MixedPair3D1D(hasCylindricalShell):
-
-
 #######################################################
 #######################################################
 class testShell(object):
@@ -667,8 +656,7 @@ class SphericaltestShell(testShell):
     def get_searchradius(self):
         return self.geometrycontainer.get_max_shell_size()
     def get_orientation_vector(self):
-#        return unit_vector # TODO much faster and doesn't matter anyway
-        return random_vector(1.0)
+        return self.structure.unit_z #unit_vector # TODO much faster and doesn't matter anyway
 
     def get_max_radius(self):
         return self.get_searchradius()/SAFETY
