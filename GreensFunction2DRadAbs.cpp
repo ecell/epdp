@@ -770,6 +770,9 @@ GreensFunction2DRadAbs::p_survival_table( const Real t,
 	Real p;
 	const unsigned int maxi( guess_maxi( t ) );	// guess the maximum number of iterations required
             
+    if( maxi == this->MAX_ALPHA_SEQ )
+        std::cerr << " p_survival_table (used by drawTime) couldn't converge; max terms reached: " << maxi << std::endl;
+           
         if( psurvTable.size() < maxi + 1 )		// if the dimensions are good then this means
         {						// that the table is filled
         	IGNORE_RETURN getAlpha( 0, maxi );	// this updates the table of roots
@@ -1237,7 +1240,9 @@ GreensFunction2DRadAbs::makep_mTable( RealVector& p_mTable,
 		m++;
 		if( m >= this->MAX_ORDER )		// If the number of terms is too large
 		{
-			std::cerr << "p_m didn't converge (m=" << m << "), continuing..." << std::endl;
+			std::cerr << "p_m didn't converge (m=" << m << "), t = " << t << " r0, r = " << getr0() << ", " << r << 
+			    " t_est = " << gsl_pow_2( r - getr0() ) / getD() << ", continuing..." << std::endl;
+    		std::cerr << dump() <<std::endl;	    
 			break;
 		}
 

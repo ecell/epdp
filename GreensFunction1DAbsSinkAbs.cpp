@@ -173,7 +173,7 @@ std::pair<Real, Real> GreensFunction1DAbsSinkAbs::get_lower_and_upper() const
     {
         int cntr = 0;
 
-        const Real delta( .1 * std::min(left_offset, right_offset) );
+        Real delta( .1 * safety * right_offset ); //std::min(left_offset, right_offset);
         const Real save_upper( upper );
         
         cntr = 0;
@@ -206,9 +206,11 @@ std::pair<Real, Real> GreensFunction1DAbsSinkAbs::get_lower_and_upper() const
             // Still no straddle? => Crash is imminent.
             if(cntr >= 10)
             {
-                log_.warn("Failed to straddle root# %6u . ",
+                log_.warn("Failed to straddle root# %6u. ",
                           rootList_size() + 1);
-                log_.warn("f_low( %.16g ) =  %.16g , f_high( %.16g ) = %.16g",
+                log_.warn("next root est. = %.16g with stepsize: %.16g, ll: %.16g, ls: %.16g.", 
+                          next_root_est, delta, lo_up_params.last_long_root, lo_up_params.last_short_root);
+                log_.warn("f_low( %.16g ) =  %.16g, f_high( %.16g ) = %.16g.",
                           lower, f_lower, upper, f_upper);
             }
         }
