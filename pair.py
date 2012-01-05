@@ -42,8 +42,6 @@ class Pair(ProtectiveDomain):
     # 5.6: ~1e-8, 6.0: ~1e-9
     CUTOFF_FACTOR = 5.6
 
-#    def __init__(self, domain_id, single1, single2, shell_id, r0, 
-#                 rrs):
     def __init__(self, domain_id, shell_id, rrs):
         ProtectiveDomain.__init__(self, domain_id, shell_id)
 
@@ -62,8 +60,6 @@ class Pair(ProtectiveDomain):
         self.iv    = self.testShell.iv
         self.r0    = self.testShell.r0
         self.sigma = self.testShell.sigma
-
-#        self.shell_id = shell_id
 
     def __del__(self):
         if __debug__:
@@ -316,8 +312,6 @@ class SimplePair(Pair):
             return closest_distance/SAFETY
 
 
-#    def __init__(self, domain_id, shell_center, single1, single2, shell_id,
-#                      r0, shell_size, rrs, structure):
     def __init__(self, domain_id, shell_id, rrs):
         Pair.__init__(self, domain_id, shell_id, rrs)
 
@@ -328,37 +322,6 @@ class SimplePair(Pair):
         shell_size = self.get_shell_size()                  # FIXME
         self.a_R, self.a_r = self.determine_radii(self.r0, shell_size)
         # set the radii of the inner domains as a function of the outer protective domain
-
-# this can go
-#        self.shell = self.create_new_shell(shell_center, shell_size, domain_id)
-
-
-#    def getSigma(self):
-#        return self.pid_particle_pair1[1].radius + \
-#               self.pid_particle_pair2[1].radius
-#    sigma = property(getSigma)
-#
-#    def get_com(self):
-#        return self.shell.shape.position
-#    com = property(get_com)
-
-#    @classmethod
-#    def do_transform(cls, single1, single2, world):
-#
-#        pos1 = single1.pid_particle_pair[1].position
-#        pos2 = single2.pid_particle_pair[1].position
-#        D1 = single1.pid_particle_pair[1].D
-#        D2 = single2.pid_particle_pair[1].D
-#
-#        com = world.calculate_pair_CoM(pos1, pos2, D1, D2)
-#        com = world.apply_boundary(com)
-#        # make sure that the com is in the structure of the particle (assume that this is done correctly in
-#        # calculate_pair_CoM)
-#
-#        pos2t = world.cyclic_transpose(pos2, pos1)
-#        iv = pos2t - pos1
-#
-#        return com, iv
 
     @ classmethod
     def do_back_transform(cls, com, iv, D1, D2, radius1, radius2, surface, unit_z):
@@ -461,23 +424,11 @@ class SimplePair(Pair):
     def __str__(self):
         pass
 
-#class SphericalPair(SimplePair):
 class SphericalPair(SimplePair, Others, hasSphericalShell):
     """2 Particles inside a (spherical) shell not on any surface.
 
     """
-#    def __init__(self, domain_id, shell_center, single1, single2, shell_id,
-#                 r0, shell_size, rrs, structure):
     def __init__(self, domain_id, shell_id, testShell, rrs):
-#        single1 = testShell.single1
-#        single2 = testShell.single2
-#        structure = testShell.structure
-#        shell_center = testShell.center
-#        shell_size = testShell.radius  # TODO this should be removed
-#        r0 = testShell.r0        # TODO this should be removed
-
-#        SimplePair.__init__(self, domain_id, shell_center, single1, single2, shell_id,
-#                      r0, shell_size, rrs, structure)
         hasSphericalShell.__init__(self, testShell, domain_id)
         SimplePair.__init__(self, domain_id, shell_id, rrs) # Always initialize after hasSphericalShell
 
@@ -491,10 +442,6 @@ class SphericalPair(SimplePair, Others, hasSphericalShell):
         # sphere.  This exact solution is used for drawing times.
         return GreensFunction3DRadAbs(self.D_r, self.interparticle_ktot, r0,
                                               self.sigma, self.a_r)
-
-# this can go
-#    def create_new_shell(self, position, radius, domain_id):
-#        return SphericalShell(domain_id, Sphere(position, radius))
 
 # this is a part of hasShell (see testShell.get_orientation_vector())
     def get_shell_direction(self):
@@ -577,24 +524,12 @@ class SphericalPair(SimplePair, Others, hasSphericalShell):
         return 'Spherical' + Pair.__str__(self)
 
 
-#class PlanarSurfacePair(SimplePair):
 class PlanarSurfacePair(SimplePair, Others, hasCylindricalShell):
     """2 Particles inside a (cylindrical) shell on a PlanarSurface. 
     (Hockey pucks).
 
     """
     def __init__(self, domain_id, shell_id, testShell, rrs):
-#    def __init__(self, domain_id, shell_center, single1, single2, shell_id,
-#                 r0, shell_size, rrs, structure):
-#        single1 = testShell.single1
-#        single2 = testShell.single2
-#        structure = testShell.structure
-#        shell_center = testShell.center
-#        shell_size = testShell.radius  # TODO this should be removed
-#        r0 = testShell.r0        # TODO this should be removed
-
-#        SimplePair.__init__(self, domain_id, shell_center, single1, single2, shell_id,
-#                      r0, shell_size, rrs, structure)
         hasCylindricalShell.__init__(self, testShell, domain_id)
         SimplePair.__init__(self, domain_id, shell_id, rrs)
 
@@ -604,19 +539,6 @@ class PlanarSurfacePair(SimplePair, Others, hasCylindricalShell):
     def iv_greens_function(self, r0):
         return GreensFunction2DRadAbs(self.D_r, self.interparticle_ktot, r0,
                                       self.sigma, self.a_r)
-
-#    def create_new_shell(self, position, radius, domain_id):
-#        # The half_length (thickness/2) of a hockey puck is not more 
-#        # than it has to be (namely the radius of the particle), so if 
-#        # the particle undergoes an unbinding reaction we still have to 
-#        # clear the target volume and the move may be rejected (NoSpace 
-#        # error).
-#        orientation = crossproduct(self.structure.shape.unit_x,
-#                                   self.structure.shape.unit_y)
-#        half_length = max(self.pid_particle_pair1[1].radius,
-#                          self.pid_particle_pair2[1].radius)
-#        return CylindricalShell(domain_id, Cylinder(position, radius, 
-#                                                    orientation, half_length))
 
     def get_shell_direction(self):
         return self.shell.shape.unit_z
@@ -692,17 +614,12 @@ class PlanarSurfacePair(SimplePair, Others, hasCylindricalShell):
         return 'PlanarSurface' + Pair.__str__(self)
 
 
-#class CylindricalSurfacePair(SimplePair):
 class CylindricalSurfacePair(SimplePair, Others, hasCylindricalShell):
     """2 Particles inside a (cylindrical) shell on a CylindricalSurface.  
     (Rods).
 
     """
     def __init__(self, domain_id, shell_id, testShell, rrs):
-#    def __init__(self, domain_id, shell_center, single1, single2, shell_id,
-#                 r0, shell_size, rrs, structure):
-#        SimplePair.__init__(self, domain_id, shell_center, single1, single2, shell_id,
-#                      r0, shell_size, rrs, structure)
         hasCylindricalShell.__init__(self, testShell, domain_id)
         SimplePair.__init__(self, domain_id, shell_id, rrs)
 
@@ -726,17 +643,6 @@ class CylindricalSurfacePair(SimplePair, Others, hasCylindricalShell):
 
     def iv_greens_function(self, r0):
         return GreensFunction1DRadAbs(self.D_r, self.v_r, self.interparticle_ktot, r0, self.sigma, self.a_r)
-
-#    def create_new_shell(self, position, half_length, domain_id):
-#        # The radius of a rod is not more than it has to be (namely the 
-#        # radius of the biggest particle), so if the particle undergoes 
-#        # an unbinding reaction we still have to clear the target volume 
-#        # and the move may be rejected (NoSpace error).
-#        radius = max(self.pid_particle_pair1[1].radius,
-#                     self.pid_particle_pair2[1].radius)
-#        orientation = self.structure.shape.unit_z
-#        return CylindricalShell(domain_id, Cylinder(position, radius, 
-#                                                    orientation, half_length))
 
     def get_shell_direction(self):
         return self.shell.shape.unit_z
@@ -762,10 +668,6 @@ class CylindricalSurfacePair(SimplePair, Others, hasCylindricalShell):
         new_iv_z = unit_z * numpy.dot(new_iv, unit_z)
 
         return new_iv_z
-
-#    def get_shell_size(self):
-#        # Heads up.
-#        return self.shell.shape.half_length
 
     def __str__(self):
         return 'CylindricalSurface' + Pair.__str__(self)
@@ -890,11 +792,6 @@ class MixedPair2D3D(Pair, Others, hasCylindricalShell):
         return math.sqrt( (D2d + D3d) / D3d)
 
     def __init__(self, domain_id, shell_id, testShell, rrs):
-#    def __init__(self, domain_id, single1, single2, shell_id, shell_center, shell_radius,
-#                 shell_half_length, shell_orientation_vector, r0, rrs):
-
-#        Pair.__init__(self, domain_id, single1, single2, shell_id, r0, rrs)
-
         hasCylindricalShell.__init__(self, testShell, domain_id)
         Pair.__init__(self, domain_id, shell_id, rrs)
 
@@ -906,11 +803,8 @@ class MixedPair2D3D(Pair, Others, hasCylindricalShell):
         self.z_scaling_factor = self.testShell.get_scaling_factor()
 
         # set the radii of the inner domains as a function of the outer protective domain
-#        self.r0 = r0
         self.a_R, self.a_r = self.determine_radii()
 
-#        self.shell = self.create_new_shell (shell_center, shell_radius, shell_half_length, shell_orientation_vector,
-#                                            domain_id)
 
     def determine_radii(self):
         # determines the dimensions of the domains used for the Green's functions from the dimensions
@@ -973,56 +867,6 @@ class MixedPair2D3D(Pair, Others, hasCylindricalShell):
 
         return a_R, a_r
 
-#    def get_com(self):
-#        # Note that it is implied that the center of the shell is chosen such that its projection on the
-#        # membrane is the CoM of the particles.
-#        dist_to_surface = self.shell.shape.half_length - self.pid_particle_pair1[1].radius
-#        return self.shell.shape.position - dist_to_surface * self.shell.shape.unit_z
-#    com = property(get_com)
-#
-#    def get_scaling_factor(self):
-#        D_2 = self.pid_particle_pair2[1].D      # particle 2 is in 3D and is the only contributor to diffusion
-#                                                # normal to the plane
-#        return math.sqrt(self.D_r/D_2)
-#    z_scaling_factor = property(get_scaling_factor)
-#
-#    @classmethod
-#    def do_transform(cls, single1, single2, world):
-#
-#        pos1 = single1.pid_particle_pair[1].position
-#        pos2 = single2.pid_particle_pair[1].position
-#        D_1 = single1.pid_particle_pair[1].D
-#        D_2 = single2.pid_particle_pair[1].D
-#
-#        surface = single1.structure
-#        # we assume that the particle of single1 lives on the membrane
-#        assert isinstance(surface, PlanarSurface)
-#
-#
-#        # the CoM is calculated in a similar way to a normal 3D pair
-#        com = (D_2 * pos1 + D_1 * pos2) / (D_1 + D_2)
-#        # and then projected onto the plane to make sure the CoM is in the surface
-#        com = world.cyclic_transpose(com, surface.shape.position)
-#        com, _ = surface.projected_point (com)
-#        com = world.apply_boundary(com)
-#
-#        # calculate the interparticle vector
-#        pos2t = world.cyclic_transpose(pos2, pos1)
-#        iv = pos2t - pos1
-#
-#        # calculate the scaling factor due to anisotropic diffusion of iv
-#        z_scaling_factor = math.sqrt((D_1 + D_2)/D_2)
-#
-#        # move and recale the iv in the axis normal to the plane
-#        iv_z = surface.shape.unit_z * numpy.dot (iv, surface.shape.unit_z)
-#        iv_z_length = length(iv_z)
-#
-#        new_iv_z_length = (iv_z_length) * z_scaling_factor
-#        new_iv_z = (new_iv_z_length / iv_z_length) * iv_z
-#
-#        iv = iv - iv_z + new_iv_z
-#
-#        return com, iv
 
     @ classmethod
     def do_back_transform(cls, com, iv, D1, D2, radius1, radius2, surface, unit_z):
@@ -1061,18 +905,6 @@ class MixedPair2D3D(Pair, Others, hasCylindricalShell):
 
         return pos1, pos2
 
-#    def get_sigma(self):
-#        # rescale sigma to correct for the rescaling of the coordinate system
-#        # This is the sigma that is used for the evaluation of the Green's function and is in this case slightly
-#        # different than the sums of the radii of the particleso
-#        xi = self.z_scaling_factor
-#        xi_inv = 1.0/xi
-#        alpha = math.acos(xi_inv)
-#        sigma = self.pid_particle_pair1[1].radius + self.pid_particle_pair2[1].radius
-#        rho = abs(sigma * math.sqrt(0.5 + (alpha * xi/(2.0*math.sin(alpha)))))
-#        return rho
-#    sigma = property (get_sigma)
-
     def choose_pair_greens_function(self, r0, t):
         return self.iv_greens_function(r0)
 
@@ -1085,16 +917,6 @@ class MixedPair2D3D(Pair, Others, hasCylindricalShell):
         # TODO Fix ugly hack to prevent particle overlap problem
         return GreensFunction3DRadAbs(self.D_r, self.interparticle_ktot, max(r0, self.sigma),
                                       self.sigma, self.a_r)
-
-#    def create_new_shell(self, position, radius, half_length, orientation_vector, domain_id):
-#        # It is assumed that the parameter are correct -> the 'bottom' of the cylinder
-#        # sticks through the membrane enough to accomodate the particle in the membrane
-#        # assert that orientation_vector is on same line as surface.shape.unit_z
-#        return CylindricalShell(domain_id, Cylinder(position, radius, orientation_vector,
-#                                                    half_length))
-#
-#    def get_shell_size(self):
-#        return self.shell.shape.radius
 
     def get_shell_direction(self):
         return self.shell.shape.unit_z

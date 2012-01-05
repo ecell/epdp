@@ -72,12 +72,14 @@ def create_default_single(domain_id, pid_particle_pair, shell_id, rt, structure,
 
 
 def create_default_pair(domain_id, shell_id, testShell, rrs):
+    # Either SphericalPair, PlanarSurfacePair, or CylindricalSurfacePair.
     if   isinstance(testShell, SphericalPairtestShell):
         return SphericalPair          (domain_id, shell_id, testShell, rrs)
     elif isinstance(testShell, PlanarSurfacePairtestShell):
         return PlanarSurfacePair      (domain_id, shell_id, testShell, rrs)
     elif isinstance(testShell, CylindricalSurfacePairtestShell):
         return CylindricalSurfacePair (domain_id, shell_id, testShell, rrs)
+    # or MixedPair (3D/2D)
     elif isinstance(testShell, MixedPair2D3DtestShell):
         return MixedPair2D3D          (domain_id, shell_id, testShell, rrs)
 
@@ -94,6 +96,7 @@ def try_default_testpair(single1, single2, geometrycontainer, domains):
     elif (isinstance(single2.structure, PlanarSurface) and isinstance(single1.structure, CuboidalRegion)):
         return MixedPair2D3DtestShell(single2, single1, geometrycontainer, domains)
     else:
+        # a 1D/3D pair was supposed to be formed -> unsupported
         raise testShellError('(MixedPair). combination of structure not supported')
         
 def try_default_testinteraction(single, surface, geometrycontainer, domains):
@@ -454,30 +457,9 @@ class EGFRDSimulator(ParticleSimulatorBase):
 #        particle_pos = pid_particle_pair[1].position
 
         if isinstance(testShell, CylindricalSurfaceInteractiontestShell):
-#            particle_pos = self.world.cyclic_transpose(particle_pos, surface.shape.position)
-#            projected_point, r0 = surface.projected_point(particle_pos)
-#            shell_unit_r = normalize(particle_pos - projected_point)
-#
-#            projected_point = self.world.cyclic_transpose(projected_point, shell_center)
-#            z0 = numpy.dot (shell_unit_z, (projected_point - shell_center))
-#
-#            interaction = CylindricalSurfaceInteraction(domain_id, pid_particle_pair,
-#                                                        reaction_rules, structure,
-#                                                        shell_id, shell_center, shell_radius,
-#                                                        shell_half_length, shell_unit_z, z0,
-#                                                        shell_unit_r, r0, interaction_rules, surface)
             interaction = CylindricalSurfaceInteraction(domain_id, shell_id, testShell,
                                                         reaction_rules, interaction_rules)
         elif isinstance(testShell, PlanarSurfaceInteractiontestShell):
-#            particle_pos = self.world.cyclic_transpose(particle_pos, shell_center)
-#            z0 = numpy.dot (shell_unit_z, (particle_pos - shell_center))
-#
-#            interaction = PlanarSurfaceInteraction(domain_id, pid_particle_pair,
-#                                                   reaction_rules, structure,
-#                                                   shell_id, shell_center, shell_radius,
-#                                                   shell_half_length, shell_unit_z,
-#                                                   z0, interaction_rules, surface)
-
             interaction = PlanarSurfaceInteraction(domain_id, shell_id, testShell,
                                                    reaction_rules, interaction_rules)
 
@@ -494,15 +476,11 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
         return interaction
 
-#    def create_pair(self, single1, single2, shell_center, shell_radius, r0, shell_half_length=0,
-#                    shell_orientation_vector=None):
     def create_pair(self, testShell):
 
 #        assert single1.dt == 0.0
 #        assert single2.dt == 0.0
 
-#        pid_particle_pair1 = single1.pid_particle_pair
-#        pid_particle_pair2 = single2.pid_particle_pair
         pid_particle_pair1 = testShell.pid_particle_pair1
         pid_particle_pair2 = testShell.pid_particle_pair2
 
@@ -523,17 +501,6 @@ class EGFRDSimulator(ParticleSimulatorBase):
         # 2. Create pair. The type of the pair that will be created depends
         # on the structure (region or surface) the particles are in/on.  
         pair = create_default_pair(domain_id, shell_id, testShell, rrs)
-#        if structure1 == structure2:
-#            # Either SphericalPair, PlanarSurfacePair, or 
-#            # CylindricalSurfacePair.
-#            pair = create_default_pair(domain_id, single1, single2, shell_id, shell_center,
-#                                       shell_radius, r0, rrs, structure1)
-#        else:
-#            # MixedPair (3D/2D)
-#            assert shell_orientation_vector != None
-#            assert shell_half_length != 0
-#            pair = MixedPair(domain_id, single1, single2, shell_id, shell_center, shell_radius,
-#                             shell_half_length, shell_orientation_vector, r0, rrs)
 
         assert isinstance(pair, Pair)
         pair.initialize(self.t)
@@ -565,16 +532,10 @@ class EGFRDSimulator(ParticleSimulatorBase):
 #        self.update_single_shell(single, position, radius)
 
     def update_single_shell(self, single, shell):#position, radius=None):
-#        if radius == None:
-#            # By default, don't change radius.
-#            radius = single.shell.shape.radius
-
-        # Reuse shell_id and domain_id.
+        # Reuse shell_id.
         shell_id = single.shell_id
-#        domain_id = single.domain_id
 
         # Replace shell.
-#        shell = single.create_new_shell(position, radius, domain_id)
         shell_id_shell_pair = (shell_id, shell) 
 
         single.shell_id_shell_pair = shell_id_shell_pair
@@ -1317,19 +1278,6 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
 ##### Redundant but maybe useful for parts
     def calculate_simplepair_shell_size(self, single1, single2):
-        assert single1.structure == single2.structure
-
-        # 0. Get some necessary information
-        com, iv = SimplePair.do_transform(single1, single2, self.world)
-        r0 = length (iv)
-
-        # 1. Get the minimal possible shell size (including margin?)
-        min_shell_size = SimplePair.get_min_shell_size(single1, single2, self.geometrycontainer)
-
-        # 2. Get the maximum possible shell size
-        max_shell_size = SimplePair.get_max_shell_size(com, single1, single2,
-                                                       self.geometrycontainer, self.domains)
-
         # 3. Calculate the maximum based on some other criterium (convergence?)
         radius1 = single1.pid_particle_pair[1].radius
         radius2 = single2.pid_particle_pair[1].radius
@@ -1337,19 +1285,6 @@ class EGFRDSimulator(ParticleSimulatorBase):
         distance_from_sigma = r0 - sigma        # the distance between the surfaces of the particles
 #        convergence_max = distance_from_sigma * 100 + sigma + shell_size_margin                # FIXME
 #       max_shell_size = min(max_shell_size, convergence_max)
-
-
-        # 4. Check if min shell size for the Pair not larger than max shell size or 
-        # sim cell size.
-        if min_shell_size >= max_shell_size:
-            if __debug__:
-                log.debug('%s not formed: min_shell_size %s >='
-                          'max_shell_size %s' %
-                          ('Pair(%s, %s)' % (single1.pid_particle_pair[0], 
-                                             single2.pid_particle_pair[0]),
-                           FORMAT_DOUBLE % min_shell_size,
-                           FORMAT_DOUBLE % max_shell_size))
-            return None, None, None
 
         # 5. Calculate the 'ideal' shell size, it matches the expected first-passage time of the closest particle
         # with the expected time of the particles in the pair.
@@ -1383,66 +1318,9 @@ class EGFRDSimulator(ParticleSimulatorBase):
                                             single2.pid_particle_pair[0]))
             return None, None, None
 
-        shell_size = min(shell_size, max_shell_size)
-
-        assert shell_size >= min_shell_size
-        assert shell_size <= max_shell_size
-
-        if __debug__:
-            log.info('SimplePair shell can be made. shell_size=%s, '
-                     'closest_shell_distance=%s,\nclosest = %s' %
-                     (FORMAT_DOUBLE % shell_size, FORMAT_DOUBLE % 0, None))
-
-        return com, r0, shell_size
-
-
-
-#    def calculate_mixedpair_shell_dimensions (self, single2D, single3D):
-#
-#
-#        # 1. Get the minimal possible shell size (including margin?)
-#        r_min, z_left_min, z_right_min = MixedPair.get_min_shell_dimensions(single2D, single3D, self.geometrycontainer)
-#
-#        # 2. Get the maximum possible shell size
-#        r, z_left, z_right = MixedPair.get_max_shell_dimensions(single2D, single3D, self.geometrycontainer, self.domains)
-#
-#        # Decide if MixedPair domain is possible.
-#        if r < r_min or z_left < z_left_min or z_right < z_right_min:
-#            if __debug__:
-#                log.debug('        *MixedPair not possible:\n'
-#                          '            %s +\n'
-#                          '            %s.\n'
-#                          '            r = %.3g. r_min = %.3g.\n'
-#                          '            z_left = %.3g. z_left_min = %.3g.\n'
-#                          '            z_right = %.3g. z_right_min = %.3g.' %
-#                          (single2D, single3D, r, r_min, z_left, z_left_min, 
-#                           z_right, z_right_min))
-#            return None, None, None, None, None
-#        else:
-#
-#            # Compute origin, radius and half_length of cylinder.
-#            com, iv = MixedPair.do_transform(single2D, single3D, self.geometrycontainer.world)
-#            reference_point = com
-#            orientation_vector = normalize(single2D.structure.shape.unit_z * numpy.dot (iv, single2D.structure.shape.unit_z))
-#            r0 = length(iv)
-#
-#            center = reference_point + ((z_right - z_left)/2.0) * orientation_vector
-#            center = self.world.apply_boundary(center)
-#            shell_half_length = (z_left + z_right) / 2.0
-#            shell_radius = r
-#
-#            return center, shell_radius, shell_half_length, r0, orientation_vector
-
-
 
     def update_single(self, single): 
         assert isinstance(single, NonInteractionSingle) # This only works for 'simple' Singles
-
-#        min_shell_size = single.get_min_shell_size()
-#        max_shell_size = single.get_max_shell_size(self.geometrycontainer, self.domains)
-#
-#        # Make sure that the new shell size is not too small or big
-#        new_shell_size = max(max_shell_size, min_shell_size)
 
         singlepos = single.pid_particle_pair[1].position
         new_shell = single.create_updated_shell(singlepos)
@@ -1582,10 +1460,6 @@ class EGFRDSimulator(ParticleSimulatorBase):
         pid_particle_pair2 = pair.pid_particle_pair2
         pos1 = pid_particle_pair1[1].position
         pos2 = pid_particle_pair2[1].position
-
-        # TODO store old_iv, old_com, r0 in pair object -> useless to recalculate these things all the time
-#        old_com, old_iv = pair.do_transform(single1, single2, self.world)
-#        r0 = length(old_iv)
 
         if pair.event_type == EventType.IV_EVENT:
             # Draw actual pair event for iv at very last minute.
@@ -1825,21 +1699,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
         pid_particle_pair = single.pid_particle_pair
         particle = pid_particle_pair[1]
-#
-#        # calculate the Projected_point and distance to the surface
-#        # Cyclic transpose needed when calling surface.projected_point!
-#        pos_transposed = self.world.cyclic_transpose(particle.position, 
-#                                                     surface.shape.position) 
-#        projected_point, projection_distance = \
-#                surface.projected_point(pos_transposed)
-#
-#        # projection_distance is relative to the unit_z of the surface -> can be negative
-#        particle_distance = abs(projection_distance)
-#
-#        # For interaction with a planar surface, decide orientation. 
-#        # Note that the orientation_vector is normalized
-#        orientation_vector = cmp(projection_distance, 0) * surface.shape.unit_z 
-#
+
         if __debug__:
            log.debug('trying to form Interaction(%s, %s)' % (particle, surface))
 
@@ -1855,70 +1715,10 @@ class EGFRDSimulator(ParticleSimulatorBase):
                           str(e) ))
 
 
-#        # Make sure the maximal cylinder fits in the maximal sphere. Matrix space
-#        # doesn't allow to check for shells outside the maximal sphere.
-#        max_cylinder_radius      = self.geometrycontainer.get_max_shell_size()/math.sqrt(2)
-#        max_cylinder_half_length = max_cylinder_radius
-#
-#        # Initialize dr, dz_left, dz_right to maximum allowed values.
-#        # And decide minimal dr, dz_left, dz_right.
-#        if isinstance(surface, PlanarSurface):
-#            dr = max_cylinder_radius
-#            # Leave enough for the particle itself to the left.
-#            dz_left = particle.radius
-#            dz_right = max_cylinder_half_length * 2 - dz_left
-#
-#            min_dr = particle.radius * SINGLE_SHELL_FACTOR
-#            min_dz_left = dz_left
-#            min_dz_right = particle_distance + particle.radius * SINGLE_SHELL_FACTOR
-#
-#        elif isinstance(surface, CylindricalSurface):
-#            dr = max_cylinder_radius
-#            dz_left = max_cylinder_half_length
-#            dz_right = max_cylinder_half_length
-#
-#            min_dr = particle_distance + particle.radius * SINGLE_SHELL_FACTOR
-#            min_dz_left = particle.radius * SINGLE_SHELL_FACTOR
-#            min_dz_right = particle.radius * SINGLE_SHELL_FACTOR
-#
-#        # Miedema's algorithm.
-#        dr, dz_left, dz_right = \
-#            self.calculate_max_cylinder(single, surface,
-#                                        projected_point,
-#                                        particle_distance,
-#                                        orientation_vector,
-#                                        dr, dz_left, dz_right)
-#
-#        dr /= SAFETY
-#        dz_right /= SAFETY
-#        # Don't tweak dz_left, this will break the conditions below for membrane interaction
-#        if isinstance(surface, CylindricalSurface):
-#            dz_left /= SAFETY
-#
-#        # Decide if interaction domain is possible.
-#        if dr < min_dr or dz_left < min_dz_left or dz_right < min_dz_right:
-#            if __debug__:
-#                log.debug('        *Interaction not possible:\n'
-#                          '            %s +\n'
-#                          '            %s.\n'
-#                          '            dr = %.3g. min_dr = %.3g.\n'
-#                          '            dz_left = %.3g. min_dz_left = %.3g.\n'
-#                          '            dz_right = %.3g. min_dz_right = %.3g.' %
-#                          (single, surface, dr, min_dr, dz_left, min_dz_left, 
-#                           dz_right, min_dz_right))
-#            return None
 
 #        ### 2. The shell can be made. Now do what's necessary to make it
-#        # Compute origin, radius and half_length of cylinder.
-#        origin = projected_point + ((dz_right - dz_left)/2.0) * orientation_vector
-#        origin = self.world.apply_boundary(origin)
-#        half_length = (dz_left + dz_right) / 2.0
-#        radius = dr
 
         if testShell:
-#            interaction = self.create_interaction(pid_particle_pair, surface,
-#                                                  origin, radius, half_length,
-#                                                  orientation_vector)
             interaction = self.create_interaction(testShell)
 
             interaction.dt, interaction.event_type, = interaction.determine_next_event()
@@ -1970,17 +1770,6 @@ class EGFRDSimulator(ParticleSimulatorBase):
                                                      ignore=[single.domain_id])
         all_neighbors = [self.domains[domain_id] for domain_id in all_neighbor_ids]
 
-        for domain in all_neighbors:
-            if isinstance(domain, Multi):
-                for _, shell in domain.shell_list:
-                    shell_position = shell.shape.position
-                    shell_size = shell.shape.radius
-                    dr, dz_left, dz_right = \
-                        self.miedema_algorithm(shell_position, shell_size,
-                                               projected_point, 
-                                               orientation_vector, dr, 
-                                               dz_left, dz_right, 
-                                               surface, particle_distance)
             else:
                 # Get shell size, which normally is the radius of the 
                 # shell, but in case of a cylinder around the same 
@@ -2010,75 +1799,6 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
         return dr, dz_left, dz_right
 
-    def miedema_algorithm(self, shell_position, shell_size, projected_point,
-                          orientation_vector, dr, dz_left, dz_right,
-                          surface, particle_distance):
-        # Find optimal cylinder around particle and surface, such that 
-        # it does not interfere with the shell at position 
-        # shell_position and with size (radius or half_length) 
-        # shell_size.
-
-        shell_position = self.world.cyclic_transpose(shell_position, projected_point)
-        shell_vector = shell_position - projected_point
-
-        # Calculate zi and ri for this shell.
-        zi = numpy.dot(shell_vector, orientation_vector)
-        z_vector = zi * numpy.array(orientation_vector)
-        r_vector = numpy.array(shell_vector) - numpy.array(z_vector)
-        ri = numpy.linalg.norm(r_vector)
-
-        # Calculate dr_i for this shell.
-        dr_i = ri - shell_size
-
-        if isinstance(surface, PlanarSurface):
-            dz_right -= particle_distance
-        elif isinstance(surface, CylindricalSurface):
-            # Run Miedema's algorithm in the r direction 
-            # relative to the particle's position, not to 
-            # projected point (r=0).
-            dr_i -= particle_distance
-            dr -= particle_distance
-        else:
-            raise SystemError('Error in Miedema\'s algorithm: surface is not a Surface')
-
-        # Calculate dz_left_i or dz_right_i (both will usually 
-        # be positive values).
-        if zi < 0:
-            # Calculate dz_left_i for this shell.
-            dz_left_i = - zi - shell_size
-
-            # Miedema's algorithm left side.
-            if dz_left_i < dz_left and dr_i < dr:
-                if dz_left_i > dr_i:
-                    dz_left = dz_left_i
-                else:
-                    dr = dr_i
-        else:
-            # Calculate dz_right_i for this shell.
-            dz_right_i = zi - shell_size
-
-            if isinstance(surface, PlanarSurface):
-                # On the particle side (right side), run 
-                # Miedema's algorithm in the z direction 
-                # relative to the particle's position, not the 
-                # projected point (z=0).
-                dz_right_i -= particle_distance
-
-            # Miedema's algorithm right side.
-            if dz_right_i < dz_right and dr_i < dr:
-                if dz_right_i > dr_i:
-                    dz_right = dz_right_i
-                else:
-                    dr = dr_i
-
-        if isinstance(surface, PlanarSurface):
-            dz_right += particle_distance
-        elif isinstance(surface, CylindricalSurface):
-            dr += particle_distance
-
-        return dr, dz_left, dz_right
-
-
     def try_pair(self, single1, single2):
         if __debug__:
             log.debug('trying to form Pair(%s, %s)' %
@@ -2086,12 +1806,6 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
         assert single1.is_reset()
         assert single2.is_reset()
-
-
-#        # Try forming a Pair only if singles are on same structure.
-#        # FIXME this is already handled in the 'try_default_testpair' function
-#        if single1.structure == single2.structure:
-#            # particles are on the same structure
 
         try:
             testShell = try_default_testpair(single1, single2, self.geometrycontainer, self.domains)
@@ -2102,41 +1816,6 @@ class EGFRDSimulator(ParticleSimulatorBase):
                           ('Pair(%s, %s)' % (single1.pid_particle_pair[0], single2.pid_particle_pair[0]),
                           str(e) ))
 
-#        elif (isinstance(single1.structure, PlanarSurface) and isinstance(single2.structure, CuboidalRegion)) ^ \
-#             (isinstance(single2.structure, PlanarSurface) and isinstance(single1.structure, CuboidalRegion)):
-#            # one particle in 2D, the other in 3D
-#
-#            if __debug__:
-#                log.debug('Mixed pair')
-#
-#            # make sure that we know which single is on what structure
-#            if isinstance (single1.structure, PlanarSurface):
-#                single2D = single1
-#                single3D = single2
-#            else:
-#                single2D = single2
-#                single3D = single1
-#
-#            center, shell_radius, shell_half_length, r0, shell_orientation_vector = \
-#            self.calculate_mixedpair_shell_dimensions (single2D, single3D)
-#
-#            if shell_radius:
-#                pair = self.create_pair(single2D, single3D, center, shell_radius, r0,
-#                                        shell_half_length, shell_orientation_vector)
-#                if __debug__:
-#                    log.debug('Created: %s, shell_radius = %.3g, shell_half_length = %.3g, r0 = %.3g' %
-#                              (pair, shell_radius, shell_half_length, r0))
-#
-#            else:
-#                pair = None
-#
-#        else:
-#            # a 1D/3D pair was supposed to be formed -> unsupported
-#            if __debug__:
-#                log.debug('Pair(%s, %s) not formed: combination of structures not supported.' %
-#                          (single1.pid_particle_pair[0],
-#                           single2.pid_particle_pair[0]))
-#            pair = None
 
 
         # if a pair could be formed

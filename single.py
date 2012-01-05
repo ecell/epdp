@@ -39,14 +39,11 @@ class Single(ProtectiveDomain):
     specified.
 
     """
-#    def __init__(self, domain_id, pid_particle_pair, reactionrules, structure):
     def __init__(self, domain_id, shell_id, reactionrules):
         ProtectiveDomain.__init__(self, domain_id, shell_id)
 
         self.multiplicity = 1                           # all singles have only one particle
 
-#        self.pid_particle_pair = pid_particle_pair      # the particle in the single
-#        self.structure = structure                      # the structure in/on which the particle lives
         assert self.testShell
         assert isinstance(self.testShell, testSingle)
         self.pid_particle_pair = self.testShell.pid_particle_pair      # the particle in the single
@@ -153,25 +150,8 @@ class NonInteractionSingle(Single):
         * Decay process of the particle
 
     """
-#    def __init__(self, domain_id, pid_particle_pair, shell_id, reactionrules, 
-#                 structure):
     def __init__(self, domain_id, shell_id, reactionrules):
-#        Single.__init__(self, domain_id, pid_particle_pair, reactionrules,
-#                        structure)
-
         Single.__init__(self, domain_id, shell_id, reactionrules)
-
-        # Create shell.
-#        self.shell_id = shell_id
-#        self.shell = self.create_new_shell(pid_particle_pair[1].position,
-#                                      pid_particle_pair[1].radius, domain_id)
-
-#    def get_shell_size(self):
-#        # Note: this method only means something for Protective Domains that can
-#        # only be sized in one direction
-#        # This is predominantly used when making Interaction domains
-#        return self.shell.shape.radius
-
 
     def initialize(self, t):
         # self.shell.shape.radius = self.pid_particle_pair[1].radius
@@ -265,9 +245,6 @@ class NonInteractionSingle(Single):
 
 
 ### this can probably both go
-    def get_min_shell_size(self):
-        return self.pid_particle_pair[1].radius
-
     def get_max_shell_size(self, geometrycontainer, domains):
         # This calculates the maximum shell size that the single can have in the current
         # situation.
@@ -319,7 +296,6 @@ class NonInteractionSingle(Single):
         return min(new_shell_size, geometrycontainer.get_max_shell_size())
 
 
-#class SphericalSingle(NonInteractionSingle):
 class SphericalSingle(NonInteractionSingle, NonInteractionSingles, hasSphericalShell):
     """1 Particle inside a (spherical) shell not on any surface.
 
@@ -330,30 +306,16 @@ class SphericalSingle(NonInteractionSingle, NonInteractionSingles, hasSphericalS
           theta, phi.
 
     """
-#    def __init__(self, domain_id, pid_particle_pair, shell_id, reactionrules, 
-#                 structure):
     def __init__(self, domain_id, shell_id, testShell, reactionrules):
-        # This should also be moved to single, since it's the same for all NonInteractionSingles
-        # -> change constructor
-#        pid_particle_pair = testShell.pid_particle_pair
-#        structure = testShell.structure
-
         assert isinstance(testShell, SphericalSingletestShell)
 
         hasSphericalShell.__init__(self, testShell, domain_id)           # here also the shell is created
-#        NonInteractionSingle.__init__(self, domain_id, pid_particle_pair, 
-#                                      shell_id, reactionrules, structure)
         NonInteractionSingle.__init__(self, domain_id, shell_id, reactionrules)
 
     def greens_function(self):
         return GreensFunction3DAbsSym(self.getD(),
                                           self.get_inner_a())
 
-# this can go
-#    def create_new_shell(self, position, radius, domain_id):
-#        return SphericalShell(self.domain_id, Sphere(position, radius))
-
-# instead we have this
     # specific shell methods for the SphericalSingle
     # these return potentially corrected dimensions
     def shell_list_for_single(self):
@@ -391,7 +353,6 @@ class SphericalSingle(NonInteractionSingle, NonInteractionSingles, hasSphericalS
         return 'Spherical' + Single.__str__(self)
 
 
-#class PlanarSurfaceSingle(NonInteractionSingle):
 class PlanarSurfaceSingle(NonInteractionSingle, NonInteractionSingles, hasCylindricalShell):
     """1 Particle inside a (cylindrical) shell on a PlanarSurface. (Hockey 
     pucks).
@@ -402,39 +363,14 @@ class PlanarSurfaceSingle(NonInteractionSingle, NonInteractionSingles, hasCylind
         * Selected randomly when drawing displacement vector: theta.
 
     """
-#    def __init__(self, domain_id, pid_particle_pair, shell_id, reactionrules, 
-#                 structure):
     def __init__(self, domain_id, shell_id, testShell, reactionrules):
 
-#        pid_particle_pair = testShell.pid_particle_pair
-#        structure = testShell.structure
         hasCylindricalShell.__init__(self, testShell, domain_id)
-#        NonInteractionSingle.__init__(self, domain_id, pid_particle_pair, 
-#                                      shell_id, reactionrules, structure)
         NonInteractionSingle.__init__(self, domain_id, shell_id, reactionrules)
 
     def greens_function(self):
         return GreensFunction2DAbsSym(self.D,
                                           self.get_inner_a())
-# this can go
-#    def create_new_shell(self, position, radius, domain_id):
-#        # The half_length (thickness) of a hockey puck is not more than 
-#        # it has to be (namely the radius of the particle), so if the 
-#        # particle undergoes an unbinding reaction we still have to 
-#        # clear the target volume and the move may be rejected (NoSpace 
-#        # error).
-#
-#        # Note that the calculateion of the position of the shell needs to make sure that the
-#        # coordinates are in the surface
-#        position = position - self.structure.shape.position     # TODO this can go wrong if either positions are near the boundaries
-#        pos_x = self.structure.shape.unit_x * numpy.dot (position, self.structure.shape.unit_x)
-#        pos_y = self.structure.shape.unit_y * numpy.dot (position, self.structure.shape.unit_y)
-#
-#        position = self.structure.shape.position + pos_x + pos_y
-#        orientation = self.structure.shape.unit_z
-#        half_length = self.pid_particle_pair[1].radius
-#        return CylindricalShell(self.domain_id, Cylinder(position, radius, 
-#                                                    orientation, half_length))
 
     # these return corrected dimensions, since we reserve more space for the NonInteractionSingle
     def shell_list_for_single(self):
@@ -480,7 +416,6 @@ class PlanarSurfaceSingle(NonInteractionSingle, NonInteractionSingles, hasCylind
         return 'PlanarSurface' + Single.__str__(self)
 
 
-#class CylindricalSurfaceSingle(NonInteractionSingle):
 class CylindricalSurfaceSingle(NonInteractionSingle, NonInteractionSingles, hasCylindricalShell):
     """1 Particle inside a (cylindrical) shell on a CylindricalSurface. 
     (Rods).
@@ -490,10 +425,6 @@ class CylindricalSurfaceSingle(NonInteractionSingle, NonInteractionSingles, hasC
         * Initial position: z = 0.
         * Selected randomly when drawing displacement vector: none.
     """
-#    def __init__(self, domain_id, pid_particle_pair, shell_id, reactionrules, 
-#                 structure):
-#        NonInteractionSingle.__init__(self, domain_id, pid_particle_pair, 
-#                                      shell_id, reactionrules, structure)
     def __init__(self, domain_id, shell_id, testShell, reactionrules):
 
         hasCylindricalShell.__init__(self, testShell, domain_id)
@@ -502,11 +433,6 @@ class CylindricalSurfaceSingle(NonInteractionSingle, NonInteractionSingles, hasC
     def getv(self):
         return self.pid_particle_pair[1].v
     v = property(getv)
-
-#    def get_shell_size(self):
-#        # Heads up. The cylinder's *half_length*, not radius, 
-#        # determines the size in case of a cylindrical surface.
-#        return self.shell.shape.half_length
 
     def get_inner_a(self):
         # Here the free coordinate is not the radius of the domain as in the
@@ -518,24 +444,6 @@ class CylindricalSurfaceSingle(NonInteractionSingle, NonInteractionSingles, hasC
         # The domain is created around r0, so r0 corresponds to r=0 within the domain
         inner_half_length = self.get_inner_a()
         return GreensFunction1DAbsAbs(self.D, self.v, 0.0, -inner_half_length, inner_half_length)
-
-#    def create_new_shell(self, position, half_length, domain_id):
-#        # The radius of a rod is not more than it has to be (namely the 
-#        # radius of the particle), so if the particle undergoes an 
-#        # unbinding reaction we still have to clear the target volume 
-#        # and the move may be rejected.
-#
-#        # Note that the calculation of the position of the shell has to make sure that the
-#        # coordinates are in the surface
-#        unit_z = self.structure.shape.unit_z
-#        position = position - self.structure.shape.position     # TODO this can go wrong if either positions are near the boundaries
-#        pos_z = unit_z * numpy.dot (position, unit_z)
-#
-#        position = self.structure.shape.position + pos_z
-#        radius = self.pid_particle_pair[1].radius
-#        orientation = unit_z
-#        return CylindricalShell(self.domain_id, Cylinder(position, radius, 
-#                                                    orientation, half_length))
 
     # these return corrected dimensions, since we reserve more space for the NonInteractionSingle
     def shell_list_for_single(self):
@@ -603,8 +511,6 @@ class InteractionSingle(Single, hasCylindricalShell, Others):
         * Diffusion in the direction that is normal the the direction of interaction
         * Decay of the particle into a different or no particle
     """
-#    def __init__(self, domain_id, pid_particle_pair, reactionrules, structure, shell_id,   
-#                 interactionrules, surface):
     def __init__(self, domain_id, shell_id, testShell, reactionrules, interactionrules):
 
         hasCylindricalShell.__init__(self, testShell, domain_id)
@@ -613,7 +519,6 @@ class InteractionSingle(Single, hasCylindricalShell, Others):
 
         Single.__init__(self, domain_id, shell_id, reactionrules)
 
-#        self.shell_id = shell_id
         self.interactionrules = interactionrules        # the surface interaction 'reactions'
         self.intrule = None
         self.interaction_ktot = self.calc_ktot(interactionrules)
@@ -642,11 +547,6 @@ class InteractionSingle(Single, hasCylindricalShell, Others):
         self.dt = 0
         self.last_time = t
         self.event_type = None
-
-#        # This is defined here, but only used in the subclasses
-#    def create_new_shell(self, position, radius, orientation_vector, half_length):
-#        return CylindricalShell(self.domain_id, Cylinder(position, radius,
-#                                                    orientation_vector, half_length))
 
     def determine_next_event(self):
         """Return an (event time, event type)-tuple.
@@ -693,24 +593,16 @@ class PlanarSurfaceInteraction(InteractionSingle):
         * Selected randomly when drawing displacement vector: theta.
 
     """
-#    def __init__(self, domain_id, pid_particle_pair, reactionrules, structure,
-#                 shell_id, shell_center, shell_radius, shell_half_length, shell_orientation_vector, z0,
-#                 interactionrules, surface):
     def __init__(self, domain_id, shell_id, testShell, reactionrules, interactionrules):
         # shell_orientation_vector and z0 are supplied by arguments because Domains can't do
         # spatial calculations (they don't know about the world)
         # NOTE shell_orientation_vector should be normalized and pointing from the surface to the particle!
 
-#        InteractionSingle.__init__(self, domain_id, pid_particle_pair, reactionrules,
-#                                   structure, shell_id, interactionrules, surface)
         InteractionSingle.__init__(self, domain_id, shell_id, testShell, reactionrules, interactionrules)
 
         # z0 is the initial position of the particle relative to the center
         # of the shell in the direction normal to the surface (so z0 is usually negative).
         self.z0 = -self.get_inner_dz_left() + self.testShell.particle_surface_distance
-
-#        self.shell = self.create_new_shell(shell_center, shell_radius, 
-#                                           shell_orientation_vector, shell_half_length)
 
     def get_inner_dz_right(self):
         # This is the distance from the center of the shell
@@ -789,14 +681,6 @@ class PlanarSurfaceInteraction(InteractionSingle):
 
         return newpos
 
-
-#    def get_shell_size(self):
-#        # REMOVE this method, it doesn't mean anything here.
-#        # THis method is only used for making an Interaction
-#        # Heads up. The cylinder's *half_length*, not radius, 
-#        # determines the size in case of a cylindrical surface.
-#        return self.shell.shape.radius
-
     def __str__(self):
         return ('PlanarSurfaceInteraction' + Single.__str__(self) + \
                'radius = %s, half_length = %s' %
@@ -814,14 +698,7 @@ class CylindricalSurfaceInteraction(InteractionSingle):
 
     """
     def __init__(self, domain_id, shell_id, testShell, reactionrules, interactionrules):
-#    def __init__(self, domain_id, pid_particle_pair, reactionrules, structure,
-#                 shell_id, shell_center, shell_radius, shell_half_length, shell_orientation_vector, z0,
-#                 unit_r, r0, interactionrules, surface):
-
         InteractionSingle.__init__(self, domain_id, shell_id, testShell, reactionrules, interactionrules)
-#        InteractionSingle.__init__(self, domain_id, pid_particle_pair, reactionrules,
-#                                   structure, shell_id, interactionrules, surface)
-
 
         # unit_r is the vector from the cylindrical surface to the particle
         # r0 is the distance from the center of the cylinder to the center of the particle
@@ -829,10 +706,6 @@ class CylindricalSurfaceInteraction(InteractionSingle):
         self.unit_r = self.testShell.reference_vector    
         self.r0     = self.testShell.particle_surface_distance
         self.z0     = 0.0
-
-#        self.shell = self.create_new_shell(shell_center, shell_radius,
-#                                           shell_orientation_vector, shell_half_length)
-
 
     def get_inner_dz_left(self):
         return self.shell.shape.half_length - self.pid_particle_pair[1].radius
@@ -908,13 +781,6 @@ class CylindricalSurfaceInteraction(InteractionSingle):
             newpos = self.shell.shape.position + z_vector + r_vector
 
         return newpos
-
-#    def get_shell_size(self):
-#        # REMOVE this method, it doesn't mean anything here.
-#        # THis method is only used for making an Interaction
-#        # Heads up. The cylinder's *half_length*, not radius, 
-#        # determines the size in case of a cylindrical surface.
-#        return self.shell.shape.half_length
 
     def __str__(self):
         return ('CylindricalSurfaceInteraction' + Single.__str__(self) + \
