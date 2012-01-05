@@ -8,6 +8,7 @@ from _gfrd import (
     Cylinder,
     CylindricalShell,
     PlanarSurface,
+    CuboidalRegion,
     )
 
 from utils import *
@@ -22,6 +23,7 @@ __all__ = [
     'testInteractionSingle',
     'testPair',
     'testSimplePair',
+    'testMixedPair2D3D',
     'hasSphericalShell',
     'hasCylindricalShell',   
     'SphericalSingletestShell',
@@ -32,7 +34,7 @@ __all__ = [
     'CylindricalSurfacePairtestShell',
     'PlanarSurfaceInteractiontestShell',
     'CylindricalSurfaceInteractiontestShell',
-    'MixedPair3D2DtestShell',
+    'MixedPair2D3DtestShell',
     ]
 
 class ShellmakingError(Exception):
@@ -123,6 +125,17 @@ class testPair(Others):
         self.com, self.iv = self.do_transform()
         self.r0 = length(self.iv)
 
+    def get_D_tot(self):
+        return self.pid_particle_pair1[1].D + \
+               self.pid_particle_pair2[1].D
+    D_tot = property(get_D_tot)
+    D_r   = property(get_D_tot)
+
+    def get_D_R(self):
+        return (self.pid_particle_pair1[1].D *
+                self.pid_particle_pair2[1].D) / self.D_tot
+    D_R = property(get_D_R)
+
     def do_transform(self):
         pass        # overloaded later
 
@@ -134,17 +147,6 @@ class testSimplePair(testPair):
         self.structure = single1.structure
 
         testPair.__init__(self, single1, single2)
-
-    def get_D_tot(self):
-        return self.pid_particle_pair1[1].D + \
-               self.pid_particle_pair2[1].D
-    D_tot = property(get_D_tot)
-    D_r   = property(get_D_tot)
-
-    def get_D_R(self):
-        return (self.pid_particle_pair1[1].D *
-                self.pid_particle_pair2[1].D) / self.D_tot
-    D_R = property(get_D_R)
 
     def get_sigma(self):
         radius1 = self.pid_particle_pair1[1].radius
@@ -193,6 +195,67 @@ class testSimplePair(testPair):
                          iv_shell_size2 + com_shell_size + radius2 * SINGLE_SHELL_FACTOR)
 
         return shell_size
+
+class testMixedPair2D3D(testPair):
+
+    def __init__(self, single2D, single3D):
+
+        assert isinstance(single2D.structure, PlanarSurface) 
+        assert isinstance(single3D.structure, CuboidalRegion) 
+        self.surface   = single2D.structure         # note that these need to be initialized before calling testPair.__init__
+        self.structure = single3D.structure         # since then these are needed for calculating the transform
+
+        testPair.__init__(self, single2D, single3D)       # note that this makes self.single1/self.pid_particle_pair1 the 2D particle
+                                                    # and self.single2/self.pid_particle_pair2 the 3D particle
+    def get_sigma(self):
+        # rescale sigma to correct for the rescaling of the coordinate system
+        # This is the sigma that is used for the evaluation of the Green's function and is in this case slightly
+        # different than the sums of the radii of the particleso
+        xi = self.get_scaling_factor()
+        xi_inv = 1.0/xi
+        alpha = math.acos(xi_inv)
+        sigma = self.pid_particle_pair1[1].radius + self.pid_particle_pair2[1].radius
+        rho = abs(sigma * math.sqrt(0.5 + (alpha * xi/(2.0*math.sin(alpha)))))
+        return rho
+    sigma = property(get_sigma)
+
+    def do_transform(self):
+        pos1 = self.pid_particle_pair1[1].position
+        pos2 = self.pid_particle_pair2[1].position
+        D_1 = self.pid_particle_pair1[1].D
+        D_2 = self.pid_particle_pair2[1].D
+
+        # the CoM is calculated in a similar way to a normal 3D pair
+        com = (D_2 * pos1 + D_1 * pos2) / (self.D_tot)
+
+        # and then projected onto the plane to make sure the CoM is in the surface
+        com = self.world.cyclic_transpose(com, self.surface.shape.position)
+        com, _ = self.surface.projected_point (com)
+        com = self.world.apply_boundary(com)
+
+
+        # calculate the interparticle vector
+        pos2t = self.world.cyclic_transpose(pos2, pos1)
+        iv = pos2t - pos1
+
+        # rescale the iv in the axis normal to the plane
+        iv_z_component = numpy.dot (iv, self.surface.shape.unit_z)
+        iv_z = self.surface.shape.unit_z * iv_z_component
+        new_iv_z = self.surface.shape.unit_z * (iv_z_component * self.get_scaling_factor())
+#        iv_z_length = abs(iv_z_component)
+#
+#        new_iv_z_length = (iv_z_length) * self.get_scaling_factor()
+#        new_iv_z = (new_iv_z_length / iv_z_length) * iv_z
+
+        iv = iv - iv_z + new_iv_z
+
+        return com, iv
+
+    def get_scaling_factor(self):
+        D_2 = self.pid_particle_pair2[1].D      # particle 2 is in 3D and is the only contributor to diffusion
+                                                # normal to the plane
+        return math.sqrt(self.D_r/D_2)
+
 
 ##################################
 class hasShell(object):
@@ -1023,91 +1086,125 @@ class CylindricalSurfaceInteractiontestShell(CylindricaltestShell, testInteracti
         return dr, dz_right, dz_left
 
 #####
-class MixedPair3D2DtestShell(CylindricaltestShell, Others):
+class MixedPair2D3DtestShell(CylindricaltestShell, testMixedPair2D3D):
 
-    def __init__(self, single2D, single3D):
+    def __init__(self, single2D, single3D, geometrycontainer, domains):
+        CylindricaltestShell.__init__(self, geometrycontainer, domains)  # this must be first because of world definition
+        testMixedPair2D3D.__init__(self, single2D, single3D)
 
-        # scaling parameters
-        self.dzdr_right = calculate_it
-        self.drdz_right = calculate_it
+        # initialize commonly used constants
+        self.sqrt_DRDr = math.sqrt((2*self.D_R)/(3*self.D_r))
+
+        # initialize scaling parameters
+        self.drdz_right = self.get_scaling_factor() * ( self.sqrt_DRDr + max( self.pid_particle_pair1[1].D/self.D_tot,
+                                                                              self.pid_particle_pair2[1].D/self.D_tot ))
+        self.dzdr_right = 1.0/self.drdz_right
         self.r0_right   = 0.0
-        self.z0_right   = calculate_it
+        self.z0_right   = self.z_right(self.r0_right)
         self.dzdr_left  = 0.0
         self.drdz_left  = numpy.inf
         self.r0_left    = 0.0
-        self.z0_left    = particle2D_radius
+        self.z0_left    = self.pid_particle_pair1[1].radius
+
+        try:
+            self.dr, self.dz_right, self.dz_left = \
+                            self.determine_possible_shell([self.single1.domain_id, self.single2.domain_id],
+                                                          [self.structure.id, self.surface.id])
+        except ShellmakingError as e:
+            raise testShellError('(MixedPair2D3D). %s' %
+                                 (str(e)))
+
 
     def get_orientation_vector(self):
-        result = do_calculation
-        return result
+        # if the dot product is negative, then take the -unit_z, otherwise take unit_z
+        return self.surface.shape.unit_z * cmp(numpy.dot(self.iv, self.surface.shape.unit_z), 0)
 
     def get_searchpoint(self):
-        return caculated_search_point
+        # TODO this can be improved, now same as PlanarSurfaceInteraction
+        search_distance = self.get_searchradius()/math.sqrt(2) - self.z0_left
+        return self.get_referencepoint() + search_distance * self.get_orientation_vector()
 
     def get_referencepoint(self):
-        return CoM
+        return self.com
 
     def get_min_dr_dzright_dzleft(self):
-        dz_left = particle_radius
-        dr, dz_right = calc_based_on_scaling_stuff
-        return (dr, dz_right, dz_left)
+        radius1 = self.pid_particle_pair1[1].radius
+        radius2 = self.pid_particle_pair2[1].radius
+        D_1 = self.pid_particle_pair1[1].D
+        D_2 = self.pid_particle_pair2[1].D
+
+
+        ### calculate the minimal height z_right1 of the shell including burst radius
+        iv_z = self.r0      # approximation, actually the height of the domain can be slightly lower.
+        dz_right1 = iv_z + radius2 * SINGLE_SHELL_FACTOR
+        # with the accompanying radius r1
+        dr_1 = self.r_right(dz_right1)
+
+
+        ### calculate the minimal radius r2 of the shell including the burst radius
+        # First calculate the minimal size of the iv shell (r0 is at outer boundary)
+        iv_shell_radius1 = self.r0 * D_1 / self.D_tot
+        iv_shell_radius2 = self.r0 * D_2 / self.D_tot
+
+        # fix the minimum shell size for the CoM domain
+        com_shell_radius = max(radius1, radius2)
+
+        # calculate the minimal dimensions of the protective domain including space for the
+        # burst volumes of the particles
+        dr_2 = max(iv_shell_radius1 + com_shell_radius + radius1 * SINGLE_SHELL_FACTOR,
+                   iv_shell_radius2 + com_shell_radius + radius2 * SINGLE_SHELL_FACTOR)
+        dz_right2 = self.z_right(dr_2)
+
+        # of both alternatives pick the largest one. Here we just compare the height, but the
+        # radius scales accordingly.
+        dz_right, dr = max((dz_right1, dr_1),(dz_right2, dr_2))
+
+
+        dz_left  = self.pid_particle_pair1[1].radius
+        return dr, dz_right, dz_left
         
     def get_max_dr_dzright_dzleft(self):
-        dz_left = particle_radius
-        dr, dz_right = calc_based_on_scaling_stuff
-        return (dr, dz_right, dz_left)
+        # TODO this can be improved, now the shell same height as diameter
+        dr       = self.get_searchradius()/math.sqrt(2)/SAFETY
+        dz_left  = self.pid_particle_pair1[1].radius
+        dz_right = (dr * 2 - dz_left)/SAFETY
 
-    def get_right_scalingcenter(self):
-        # returns the scaling center in the cylindrical coordinates r, z of the shell
-        # Note that we assume cylindrical symmetry
-        # Note also that it is relative to the 'side' (right/left) of the cylinder
-        return 0.0, self.z_right(0.0)
+        return dr, dz_right, dz_left
 
-    def get_left_scalingcenter(self):
-        return 0.0, self.z_left(0.0)
+    def z_right(self, r_right):
+        # if the radius is known and we want to determine the height z_right
+        radius1 = self.pid_particle_pair1[1].radius
+        radius2 = self.pid_particle_pair2[1].radius
+        D_1 = self.pid_particle_pair1[1].D
+        D_2 = self.pid_particle_pair2[1].D
 
-    def get_right_scalingangle(self):
-        drdz =  z_scaling_factor * ( sqrt_DRDr + max( D1/D_r, D2/D_r ))
-        angle = math.atan( drdz )
-        return angle
-
-    def get_left_scalingangle(self):
-        return Pi/2.0
-
-    def z_right(self, r):
         # calculate a_r such that the expected first-passage for the CoM and IV are equal
-        a_r1 = (r - radius1 + r0*sqrt_DRDr ) / (sqrt_DRDr + (D1/D_r) )
-        a_r2 = (r - radius2 + r0*sqrt_DRDr ) / (sqrt_DRDr + (D2/D_r) )
+        a_r1 = (r_right - radius1 + self.r0*self.sqrt_DRDr ) / (self.sqrt_DRDr + (D_1/self.D_tot) )
+        a_r2 = (r_right - radius2 + self.r0*self.sqrt_DRDr ) / (self.sqrt_DRDr + (D_2/self.D_tot) )
         # take the smallest that, if entered in the function for r below, would lead to this z_right
         a_r = min (a_r1, a_r2)
 
-        return (a_r/z_scaling_factor) + radius2
+        return (a_r/self.get_scaling_factor()) + radius2
 
-    def r_right(self, z):
+    def r_right(self, z_right):
+        # if the z_right is known and we want to know the radius r
+        radius1 = self.pid_particle_pair1[1].radius
+        radius2 = self.pid_particle_pair2[1].radius
+        D_1 = self.pid_particle_pair1[1].D
+        D_2 = self.pid_particle_pair2[1].D
+
         # we first calculate the a_r, since it is the only radius that depends on z_right only.
-        a_r = (z_right - radius2) * self.z_scaling_factor
+        a_r = (z_right - radius2) * self.get_scaling_factor()
 
         # We equalize the estimated first passage time for the CoM (2D) and IV (3D) for a given a_r
         # Note that for the IV we only take the distance to the outer boundary into account.
-        a_R = (a_r - r0)*sqrt_DRDr
+        a_R = (a_r - self.r0)*self.sqrt_DRDr
 
         # We calculate the maximum space needed for particles A and B based on maximum IV displacement
-        iv_max = max( (D1/D_r * a_r + radius1),
-                      (D2/D_r * a_r + radius2))
+        iv_max = max( (D_1/self.D_tot * a_r + radius1),
+                      (D_2/self.D_tot * a_r + radius2))
 
         return a_R + iv_max
-
-    def z_left(self, r):
-        return single1.pid_particle_pair[1].radius
-
-    def r_left(self, z):
-        return numpy.inf
-
-
-    def get_z_scaling_factor(self):
-        D2d = self.single2D.pid_partcle_pair[1].D
-        D3d = self.single3D.pid_partcle_pair[1].D
-        return math.sqrt( (D2d + D3d) / D3d)
 
 #####
 #class MixedPair3D1DtestShell(CylindricaltestShell, Others):

@@ -44,6 +44,7 @@ from shells import (
     testInteractionSingle,
     PlanarSurfaceInteractiontestShell,
     CylindricalSurfaceInteractiontestShell,
+    MixedPair2D3DtestShell,
     )
 
 import logging
@@ -77,8 +78,8 @@ def create_default_pair(domain_id, shell_id, testShell, rrs):
         return PlanarSurfacePair      (domain_id, shell_id, testShell, rrs)
     elif isinstance(testShell, CylindricalSurfacePairtestShell):
         return CylindricalSurfacePair (domain_id, shell_id, testShell, rrs)
-    elif isinstance(testShell, MixedPair3D2DtestShell):
-        return MixedPair3D2D          (domain_id, shell_id, testShell, rrs)
+    elif isinstance(testShell, MixedPair2D3DtestShell):
+        return MixedPair2D3D          (domain_id, shell_id, testShell, rrs)
 
 def try_default_testpair(single1, single2, geometrycontainer, domains):
     if single1.structure == single2.structure:
@@ -88,10 +89,10 @@ def try_default_testpair(single1, single2, geometrycontainer, domains):
             return PlanarSurfacePairtestShell(single1, single2, geometrycontainer, domains)
         elif isinstance(single1.structure, CylindricalSurface):
             return CylindricalSurfacePairtestShell(single1, single2, geometrycontainer, domains)
-#    elif (isinstance(single1.structure, PlanarSurface) and isinstance(single2.structure, CuboidalRegion)):
-#        return MixedPair3D2DtestShell(single1, single2, geometrycontainer, domains) 
-#    elif (isinstance(single2.structure, PlanarSurface) and isinstance(single1.structure, CuboidalRegion)):
-#        return MixedPair3D2DtestShell(single2, single1, geometrycontainer, domains)
+    elif (isinstance(single1.structure, PlanarSurface) and isinstance(single2.structure, CuboidalRegion)):
+        return MixedPair2D3DtestShell(single1, single2, geometrycontainer, domains) 
+    elif (isinstance(single2.structure, PlanarSurface) and isinstance(single1.structure, CuboidalRegion)):
+        return MixedPair2D3DtestShell(single2, single1, geometrycontainer, domains)
     else:
         raise testShellError('(MixedPair). combination of structure not supported')
         
@@ -521,18 +522,18 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
         # 2. Create pair. The type of the pair that will be created depends
         # on the structure (region or surface) the particles are in/on.  
-        if structure1 == structure2:
-            # Either SphericalPair, PlanarSurfacePair, or 
-            # CylindricalSurfacePair.
+        pair = create_default_pair(domain_id, shell_id, testShell, rrs)
+#        if structure1 == structure2:
+#            # Either SphericalPair, PlanarSurfacePair, or 
+#            # CylindricalSurfacePair.
 #            pair = create_default_pair(domain_id, single1, single2, shell_id, shell_center,
 #                                       shell_radius, r0, rrs, structure1)
-            pair = create_default_pair(domain_id, shell_id, testShell, rrs)
-        else:
-            # MixedPair (3D/2D)
-            assert shell_orientation_vector != None
-            assert shell_half_length != 0
-            pair = MixedPair(domain_id, single1, single2, shell_id, shell_center, shell_radius,
-                             shell_half_length, shell_orientation_vector, r0, rrs)
+#        else:
+#            # MixedPair (3D/2D)
+#            assert shell_orientation_vector != None
+#            assert shell_half_length != 0
+#            pair = MixedPair(domain_id, single1, single2, shell_id, shell_center, shell_radius,
+#                             shell_half_length, shell_orientation_vector, r0, rrs)
 
         assert isinstance(pair, Pair)
         pair.initialize(self.t)
@@ -879,13 +880,13 @@ class EGFRDSimulator(ParticleSimulatorBase):
                         # do the backtransform with a random iv with length such that the particles are at contact
                         # Note we make the iv slightly longer because otherwise the anisotropic transform will produce illegal
                         # positions
-                        iv = random_vector(particle_radius12 * MixedPair.calc_z_scaling_factor(DA, DB))
+                        iv = random_vector(particle_radius12 * MixedPair2D3D.calc_z_scaling_factor(DA, DB))
                         iv *= MINIMAL_SEPARATION_FACTOR
 
                         unit_z = reactant_structure.shape.unit_z * myrandom.choice(-1, 1)
-                        newposA, newposB = MixedPair.do_back_transform(reactant_pos, iv, DA, DB,
-                                                                       productA_radius, productB_radius,
-                                                                       reactant_structure, unit_z)
+                        newposA, newposB = MixedPair2D3D.do_back_transform(reactant_pos, iv, DA, DB,
+                                                                           productA_radius, productB_radius,
+                                                                           reactant_structure, unit_z)
 
                         newposA = self.world.apply_boundary(newposA)
                         newposB = self.world.apply_boundary(newposB)
@@ -905,10 +906,10 @@ class EGFRDSimulator(ParticleSimulatorBase):
                     product_pos_list = []
                     for _ in range(self.dissociation_retry_moves):
 
-                        iv = random_vector(particle_radius12 * MixedPair3D1D.calc_r_scaling_factor(DA, DB))
+                        iv = random_vector(particle_radius12 * MixedPair1D3D.calc_r_scaling_factor(DA, DB))
                         iv *= MINIMAL_SEPARATION_FACTOR
 
-                        newposA, newposB = MixedPair3D1D.do_back_transform(reactant_pos, iv, DA, DB,
+                        newposA, newposB = MixedPair1D3D.do_back_transform(reactant_pos, iv, DA, DB,
                                                                            productA_radius, productB_radius, reactant_structure)
 
                         newposA = self.world.apply_boundary(newposA)
@@ -1396,41 +1397,41 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
 
 
-    def calculate_mixedpair_shell_dimensions (self, single2D, single3D):
-
-
-        # 1. Get the minimal possible shell size (including margin?)
-        r_min, z_left_min, z_right_min = MixedPair.get_min_shell_dimensions(single2D, single3D, self.geometrycontainer)
-
-        # 2. Get the maximum possible shell size
-        r, z_left, z_right = MixedPair.get_max_shell_dimensions(single2D, single3D, self.geometrycontainer, self.domains)
-
-        # Decide if MixedPair domain is possible.
-        if r < r_min or z_left < z_left_min or z_right < z_right_min:
-            if __debug__:
-                log.debug('        *MixedPair not possible:\n'
-                          '            %s +\n'
-                          '            %s.\n'
-                          '            r = %.3g. r_min = %.3g.\n'
-                          '            z_left = %.3g. z_left_min = %.3g.\n'
-                          '            z_right = %.3g. z_right_min = %.3g.' %
-                          (single2D, single3D, r, r_min, z_left, z_left_min, 
-                           z_right, z_right_min))
-            return None, None, None, None, None
-        else:
-
-            # Compute origin, radius and half_length of cylinder.
-            com, iv = MixedPair.do_transform(single2D, single3D, self.geometrycontainer.world)
-            reference_point = com
-            orientation_vector = normalize(single2D.structure.shape.unit_z * numpy.dot (iv, single2D.structure.shape.unit_z))
-            r0 = length(iv)
-
-            center = reference_point + ((z_right - z_left)/2.0) * orientation_vector
-            center = self.world.apply_boundary(center)
-            shell_half_length = (z_left + z_right) / 2.0
-            shell_radius = r
-
-            return center, shell_radius, shell_half_length, r0, orientation_vector
+#    def calculate_mixedpair_shell_dimensions (self, single2D, single3D):
+#
+#
+#        # 1. Get the minimal possible shell size (including margin?)
+#        r_min, z_left_min, z_right_min = MixedPair.get_min_shell_dimensions(single2D, single3D, self.geometrycontainer)
+#
+#        # 2. Get the maximum possible shell size
+#        r, z_left, z_right = MixedPair.get_max_shell_dimensions(single2D, single3D, self.geometrycontainer, self.domains)
+#
+#        # Decide if MixedPair domain is possible.
+#        if r < r_min or z_left < z_left_min or z_right < z_right_min:
+#            if __debug__:
+#                log.debug('        *MixedPair not possible:\n'
+#                          '            %s +\n'
+#                          '            %s.\n'
+#                          '            r = %.3g. r_min = %.3g.\n'
+#                          '            z_left = %.3g. z_left_min = %.3g.\n'
+#                          '            z_right = %.3g. z_right_min = %.3g.' %
+#                          (single2D, single3D, r, r_min, z_left, z_left_min, 
+#                           z_right, z_right_min))
+#            return None, None, None, None, None
+#        else:
+#
+#            # Compute origin, radius and half_length of cylinder.
+#            com, iv = MixedPair.do_transform(single2D, single3D, self.geometrycontainer.world)
+#            reference_point = com
+#            orientation_vector = normalize(single2D.structure.shape.unit_z * numpy.dot (iv, single2D.structure.shape.unit_z))
+#            r0 = length(iv)
+#
+#            center = reference_point + ((z_right - z_left)/2.0) * orientation_vector
+#            center = self.world.apply_boundary(center)
+#            shell_half_length = (z_left + z_right) / 2.0
+#            shell_radius = r
+#
+#            return center, shell_radius, shell_half_length, r0, orientation_vector
 
 
 
@@ -1583,19 +1584,19 @@ class EGFRDSimulator(ParticleSimulatorBase):
         pos2 = pid_particle_pair2[1].position
 
         # TODO store old_iv, old_com, r0 in pair object -> useless to recalculate these things all the time
-        old_com, old_iv = pair.do_transform(single1, single2, self.world)
-        r0 = length(old_iv)
+#        old_com, old_iv = pair.do_transform(single1, single2, self.world)
+#        r0 = length(old_iv)
 
         if pair.event_type == EventType.IV_EVENT:
             # Draw actual pair event for iv at very last minute.
-            pair.event_type = pair.draw_iv_event_type(r0)
+            pair.event_type = pair.draw_iv_event_type(pair.r0)
 
         self.pair_steps[pair.event_type] += 1
 
 
         # Get new position of particles
         if pair.dt > 0.0:
-            newpos1, newpos2 = pair.draw_new_positions(pair.dt, r0, old_iv, pair.event_type)
+            newpos1, newpos2 = pair.draw_new_positions(pair.dt, pair.r0, pair.iv, pair.event_type)
             newpos1 = self.world.apply_boundary(newpos1)
             newpos2 = self.world.apply_boundary(newpos2)
 
@@ -2431,7 +2432,7 @@ rejected moves = %d
         elif isinstance(domain, SphericalSingle):
             # 3D NonInteractionSingles can overlap with planar surfaces but not with rods
             ignores = [s.id for s in self.world.structures if isinstance(s, PlanarSurface)]
-        elif isinstance(domain, InteractionSingle) or isinstance(domain, MixedPair):
+        elif isinstance(domain, InteractionSingle) or isinstance(domain, MixedPair2D3D):
             # Ignore surface of the particle and interaction surface
             ignores = [domain.structure.id, domain.surface.id]
         else:
