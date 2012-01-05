@@ -251,7 +251,7 @@ class SimplePair(Pair):
 
         neighbor_domains = geometrycontainer.get_neighbor_domains(shell_center, domains, ignore=[single1.domain_id, 
                                                                   single2.domain_id])
-        neighbor_surfaces = geometrycontainer.get_neighbor_surfaces(shell_center, single1.structure.id, ignores=[])
+        neighbor_surfaces = geometrycontainer.get_neighbor_surfaces(shell_center, ignores=[single1.structure.id])
         neighbors = neighbor_domains + neighbor_surfaces
 
 
@@ -372,7 +372,7 @@ class SimplePair(Pair):
         D1 = self.pid_particle_pair1[1].D
         D2 = self.pid_particle_pair2[1].D
 
-        LD_MAX = 20 # temporary value
+        LD_MAX = self.LD_MAX # temporary value
         a_r_max = LD_MAX * (r0 - self.sigma) + self.sigma
         # a_r_max is the maximum size of a_r for a given maximum ratio of l/delta
 
@@ -451,6 +451,8 @@ class SphericalPair(SimplePair):
     """
     def __init__(self, domain_id, shell_center, single1, single2, shell_id,
                  r0, shell_size, rrs, structure):
+
+        self.LD_MAX = 20
         SimplePair.__init__(self, domain_id, shell_center, single1, single2, shell_id,
                       r0, shell_size, rrs, structure)
 
@@ -554,6 +556,8 @@ class PlanarSurfacePair(SimplePair):
     """
     def __init__(self, domain_id, shell_center, single1, single2, shell_id,
                  r0, shell_size, rrs, structure):
+
+        self.LD_MAX = 20
         SimplePair.__init__(self, domain_id, shell_center, single1, single2, shell_id,
                       r0, shell_size, rrs, structure)
 
@@ -658,6 +662,8 @@ class CylindricalSurfacePair(SimplePair):
     """
     def __init__(self, domain_id, shell_center, single1, single2, shell_id,
                  r0, shell_size, rrs, structure):
+        self.LD_MAX = numpy.inf
+
         SimplePair.__init__(self, domain_id, shell_center, single1, single2, shell_id,
                       r0, shell_size, rrs, structure)
 
