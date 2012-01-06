@@ -427,8 +427,6 @@ class EGFRDSimulator(ParticleSimulatorBase):
             single.world = self.world
         return single
 
-#    def create_interaction(self, pid_particle_pair, surface, shell_center,
-#                           shell_radius, shell_half_length, shell_unit_z):
     def create_interaction(self, testShell):
 
 ##        assert single.dt == 0.0 and single.get_mobility_radius() == 0.0
@@ -454,8 +452,6 @@ class EGFRDSimulator(ParticleSimulatorBase):
         interaction_rules = self.network_rules.query_reaction_rule(species_id, surface_id)
 
 
-#        particle_pos = pid_particle_pair[1].position
-
         if isinstance(testShell, CylindricalSurfaceInteractiontestShell):
             interaction = CylindricalSurfaceInteraction(domain_id, shell_id, testShell,
                                                         reaction_rules, interaction_rules)
@@ -477,9 +473,6 @@ class EGFRDSimulator(ParticleSimulatorBase):
         return interaction
 
     def create_pair(self, testShell):
-
-#        assert single1.dt == 0.0
-#        assert single2.dt == 0.0
 
         pid_particle_pair1 = testShell.pid_particle_pair1
         pid_particle_pair2 = testShell.pid_particle_pair2
@@ -1715,9 +1708,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
                           str(e) ))
 
 
-
-#        ### 2. The shell can be made. Now do what's necessary to make it
-
+        ### 2. The shell can be made. Now do what's necessary to make it
         if testShell:
             interaction = self.create_interaction(testShell)
 
@@ -1733,71 +1724,12 @@ class EGFRDSimulator(ParticleSimulatorBase):
             self.add_domain_event(interaction)
 
             if __debug__:
-                log.debug('        *Created: %s' % (interaction))
+                log.info('        *Created: %s' % (interaction))
 
             return interaction
         else:
             return None
 
-
-    def calculate_max_cylinder(self, single, surface, projected_point, 
-                                   particle_distance, orientation_vector,
-                                   dr, dz_left, dz_right):
-        # Find optimal cylinder around particle and surface, such that 
-        # it is not interfering with other shells.
-        #
-        # To determine the maximal cylindrical shell a starting cylinder is defined
-        # * The projected_point is a reference point along the axis of the cylinder,
-        #   the position, z, can be chosen freely
-        # * orientation_vector is a vector along the z-axis providing orientation
-        #   It usually points in the general direction of the particle
-        #
-        # * dr is the radius of the cylinder.
-        # * dz_right is the distance between the projected_point and the face of the
-        #   cylinder on the side of the orientation_vector 
-        # * dz_left is the distance from the projected_point to the face of the cylinder
-        #   on the side oposite of the orientation_vector
-        #
-        # * particle_distance is the distance from the center of the particle to the
-        #   projected_point
-
-        # the search point is the center of the sphere that surrounds the
-        # maximal cylinder
-        search_point = projected_point + ((dz_right - dz_left)/2.0) * orientation_vector
-        all_neighbor_ids = \
-            self.geometrycontainer.get_neighbors_within_radius_no_sort(search_point, 
-                                                     self.geometrycontainer.get_max_shell_size(),
-                                                     ignore=[single.domain_id])
-        all_neighbors = [self.domains[domain_id] for domain_id in all_neighbor_ids]
-
-            else:
-                # Get shell size, which normally is the radius of the 
-                # shell, but in case of a cylinder around the same 
-                # CylindricalSurface it should be the half_length of 
-                # the cylinder.
-                shell_position = domain.shell.shape.position
-                shell_size = domain.get_shell_size()
-
-                # Make bursted singles look bigger,
-                # because the size of their shell is only 
-                # particle.radius (not yet multiplied by 
-                # SINGLE_SHELL_FACTOR)
-                # (and no we can not do that immediately after they are 
-                # bursted, singles might start overlapping).
-                if domain.dt == 0.0 and domain.getD() > 0:
-                    # This is one of the bursted singles.
-                    # Or a particle that just escaped it's multi.
-                    shell_size *= SINGLE_SHELL_FACTOR
-
-                dr, dz_left, dz_right = \
-                    self.miedema_algorithm(shell_position, shell_size, 
-                                           projected_point, 
-                                           orientation_vector, dr, 
-                                           dz_left, dz_right, surface,
-                                           particle_distance)
-
-
-        return dr, dz_left, dz_right
 
     def try_pair(self, single1, single2):
         if __debug__:
@@ -1817,12 +1749,11 @@ class EGFRDSimulator(ParticleSimulatorBase):
                           str(e) ))
 
 
-
         # if a pair could be formed
         if testShell:
             pair = self.create_pair(testShell)
             if __debug__:
-                log.debug('Created: %s' % (pair))
+                log.info('Created: %s' % (pair))
 
             pair.dt, pair.event_type, pair.reactingsingle = \
             pair.determine_next_event(pair.r0)
