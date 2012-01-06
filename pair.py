@@ -29,7 +29,7 @@ if __debug__:
     FORMAT_DOUBLE = '%.' + str(PRECISION) + 'g'
 
 
-class Pair(ProtectiveDomain):
+class Pair(ProtectiveDomain, Others):
     """There are 3 types of pairs:
         * SphericalPair
         * PlanarSurfacePair
@@ -56,6 +56,7 @@ class Pair(ProtectiveDomain):
 
         self.interparticle_rrs = rrs
         self.interparticle_ktot = self.calc_ktot(rrs)
+        # copy constants from the testShell so that we don't have to recalculate them.
         self.com   = self.testShell.com
         self.iv    = self.testShell.iv
         self.r0    = self.testShell.r0
@@ -424,7 +425,7 @@ class SimplePair(Pair):
     def __str__(self):
         pass
 
-class SphericalPair(SimplePair, Others, hasSphericalShell):
+class SphericalPair(SimplePair, hasSphericalShell):
     """2 Particles inside a (spherical) shell not on any surface.
 
     """
@@ -524,7 +525,7 @@ class SphericalPair(SimplePair, Others, hasSphericalShell):
         return 'Spherical' + Pair.__str__(self)
 
 
-class PlanarSurfacePair(SimplePair, Others, hasCylindricalShell):
+class PlanarSurfacePair(SimplePair, hasCylindricalShell):
     """2 Particles inside a (cylindrical) shell on a PlanarSurface. 
     (Hockey pucks).
 
@@ -614,7 +615,7 @@ class PlanarSurfacePair(SimplePair, Others, hasCylindricalShell):
         return 'PlanarSurface' + Pair.__str__(self)
 
 
-class CylindricalSurfacePair(SimplePair, Others, hasCylindricalShell):
+class CylindricalSurfacePair(SimplePair, hasCylindricalShell):
     """2 Particles inside a (cylindrical) shell on a CylindricalSurface.  
     (Rods).
 
@@ -673,7 +674,7 @@ class CylindricalSurfacePair(SimplePair, Others, hasCylindricalShell):
         return 'CylindricalSurface' + Pair.__str__(self)
 
 
-class MixedPair2D3D(Pair, Others, hasCylindricalShell):
+class MixedPair2D3D(Pair, hasCylindricalShell):
 
 #    @classmethod
 #    def get_min_shell_dimensions(cls, single1, single2, geometrycontainer):
