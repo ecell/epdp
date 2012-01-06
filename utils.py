@@ -36,6 +36,11 @@ SINGLE_SHELL_FACTOR = 2.0           # This is the threshold for when the algorit
                                     # NonInteractionSingles to a Pair or Interaction. It also defines
                                     # the radius in which the NonInteractionSingle will burst.
 
+if __debug__:
+    PRECISION = 7
+    FORMAT_DOUBLE = '%.' + str(PRECISION) + 'g'
+
+
 # Float comparison functions.
 def feq(a, b, typical=1, tolerance=TOLERANCE):
     """Return True if a and b are equal, subject to given tolerances.  

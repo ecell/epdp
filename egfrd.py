@@ -52,9 +52,6 @@ import os
 
 log = logging.getLogger('ecell')
 
-if __debug__:
-    PRECISION = 7
-    FORMAT_DOUBLE = '%.' + str(PRECISION) + 'g'
 
 def create_default_single(domain_id, pid_particle_pair, shell_id, rt, structure, geometrycontainer, domains):
     if isinstance(structure, CuboidalRegion):

@@ -9,7 +9,7 @@ from _gfrd import (
 from _greens_functions import *
 from greens_function_wrapper import *
 from constants import EventType
-import utils
+from utils import *
 
 from domain import (
     Domain,

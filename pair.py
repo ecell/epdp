@@ -24,10 +24,6 @@ __all__ = [
     'MixedPair1D3D',
     ]
 
-if __debug__:
-    PRECISION = 3
-    FORMAT_DOUBLE = '%.' + str(PRECISION) + 'g'
-
 
 class Pair(ProtectiveDomain, Others):
     """There are 3 types of pairs:
