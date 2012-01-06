@@ -44,6 +44,7 @@ class Pair(ProtectiveDomain, Others):
 
     def __init__(self, domain_id, shell_id, rrs):
         ProtectiveDomain.__init__(self, domain_id, shell_id)
+        # Note: for the Others superclass nothing is to be initialized.
 
         assert self.testShell       # assume that the testShell exists
         assert isinstance(self.testShell, testPair)
@@ -193,131 +194,10 @@ class Pair(ProtectiveDomain, Others):
 
 class SimplePair(Pair):
 
-    @classmethod
-    def get_min_shell_size(cls, single1, single2, geometrycontainer):
-        # 1. Determine min shell size for a putative SimplePair.
-        # TODO Note that the calculation is dimension independent. Also
-        # 'size' is not the right term here
-
-        assert single1.structure == single2.structure
-
-        pos1 = single1.pid_particle_pair[1].position
-        pos2 = single2.pid_particle_pair[1].position
-        radius1 = single1.pid_particle_pair[1].radius
-        radius2 = single2.pid_particle_pair[1].radius
-
-#        assert (pos1 - single1.shell.shape.position).sum() == 0        # TODO Not sure why this is here
-        sigma = radius1 + radius2
-        r0 = geometrycontainer.world.distance(pos1, pos2)
-
-        assert r0 >= sigma, \
-            'distance_from_sigma (pair gap) between %s and %s = %s < 0' % \
-            (single1, single2, FORMAT_DOUBLE % (r0 - sigma))
-
-        # calculate the minimum shell size for the interparticle domain
-        D1 = single1.pid_particle_pair[1].D
-        D2 = single2.pid_particle_pair[1].D
-        D12 = D1 + D2
-        dist_from_com1 = r0 * D1 / D12                  # particle distance from CoM
-        dist_from_com2 = r0 * D2 / D12
-        iv_shell_size1 = dist_from_com1 + radius1       # the shell should surround the particles
-        iv_shell_size2 = dist_from_com2 + radius2
-
-        # also fix the minimum shellsize for the CoM domain
-        com_shell_size = max(radius1, radius2)
-
-        # calculate total radii including the margin for the burst volume for the particles
-        shell_size = max(iv_shell_size1 + com_shell_size + radius1 * (1 - SINGLE_SHELL_FACTOR),
-                         iv_shell_size2 + com_shell_size + radius2 * (1 - SINGLE_SHELL_FACTOR))
-
-        return shell_size
-
-
-    @classmethod
-    def get_max_shell_size(cls, shell_center, single1, single2, geometrycontainer, domains):
-        # returns the maximum shell size based on geometric constraints
-        # It makes sure that surrounding NonInteractionSingles have at least the
-        # 'bursting volume' of space.
-
-#        pos1 = single1.pid_particle_pair[1].position
-#        pos2 = single2.pid_particle_pair[1].position
-#        D1 = single1.pid_particle_pair[1].D
-#        D2 = single2.pid_particle_pair[1].D
-#        D12 = D1 + D2
-
-        # TODO it makes no sence to calculate the CoM in the world object
-#        com  = geometrycontainer.world.calculate_pair_CoM(pos1, pos2, D1, D2)
-#        shell_center = geometrycontainer.world.apply_boundary(com)
-
-        # TODO get_closest_obj searches the spherical surrounding although this doesn't make sence for
-        # a 2D or 1D pair
-#        closest, closest_distance = geometrycontainer.get_closest_obj(shell_center, domains, ignore=[single1.domain_id,
-#                                                                      single2.domain_id],
-#                                                                      ignores=[single1.structure.id])
-
-        neighbor_domains = geometrycontainer.get_neighbor_domains(shell_center, domains, ignore=[single1.domain_id, 
-                                                                  single2.domain_id])
-        neighbor_surfaces = geometrycontainer.get_neighbor_surfaces(shell_center, ignores=[single1.structure.id])
-        neighbors = neighbor_domains + neighbor_surfaces
-
-
-        # 3. Check if bursted Singles can still make a minimal shell.
-        # TODO this is not correct. If the closest domain is not a NonInteractionSingle
-        # we still have to make sure that the (non closest) NonInteractionSingles have
-        # the required space
-
-        max_shell_size = geometrycontainer.get_max_shell_size()
-
-        distance_domain_closest = (max_shell_size, None)
-        for domain, distance in neighbors:
-
-            if isinstance(domain, NonInteractionSingle):
-                closest_particle_distance = geometrycontainer.world.distance(
-                        shell_center, domain.pid_particle_pair[1].position)
-
-                distance = min(distance,
-                               closest_particle_distance - domain.pid_particle_pair[1].radius * SINGLE_SHELL_FACTOR)
-
-                # options for shell size:
-                # a. upto the closest shell assuming that this shell is bigger than the minimum
-                # b. The distance to a bursted single including its minimal shell
-            distance_domain = (distance, domain)    
-            distance_domain_closest = min(distance_domain_closest, distance_domain)
-
-        closest_distance, closest = distance_domain_closest
-
-#                shell_size = min(closest_distance, closest_particle_distance - closest_min_shell)
-#                assert shell_size <= closest_distance
-#
-#            else:
-#                assert isinstance(closest, (InteractionSingle, Pair, Multi, Surface, None.__class__))
-#                shell_size = closest_distance 
-
-        if __debug__:
-            log.debug('Pair closest neighbor: %s, distance: %s' % \
-                      (closest, FORMAT_DOUBLE % closest_distance))
-
-        # shortcut
-        # if closest_distance <0 then neighbor particle overlaps with center of mass ->
-        # neighboring particle is actually closer to the CoM than any of the two member particles
-        # this can happen because we also try to make pairs with the next nearest neighbor if the nearest
-        # neighbor fails
-        if closest_distance <= 0:
-            return 0
-        else:
-            # FIXME Bloody ugly tweak to make sure that in case of a cylinder the 'maximum size' (which is
-            # actually the radius) does not stick out of the maximum sphere (which is the real hard max).
-            # BLoody UGLY because it now applies to ALL SimplePairs.
-            sigma = max(single1.pid_particle_pair[1].radius, single2.pid_particle_pair[1].radius)
-            closest_distance = math.sqrt(abs(closest_distance**2 - sigma**2))
-            return closest_distance/SAFETY
-
-
     def __init__(self, domain_id, shell_id, rrs):
+
         Pair.__init__(self, domain_id, shell_id, rrs)
 
-        assert self.testShell
-        assert isinstance(self.testShell, testSimplePair)
         self.structure = self.testShell.structure              # structure on which both particles live
 
         shell_size = self.get_shell_size()                  # FIXME
@@ -430,9 +310,10 @@ class SphericalPair(SimplePair, hasSphericalShell):
 
     """
     def __init__(self, domain_id, shell_id, testShell, rrs):
-        hasSphericalShell.__init__(self, testShell, domain_id)
-        SimplePair.__init__(self, domain_id, shell_id, rrs) # Always initialize after hasSphericalShell
 
+        assert isinstance(testShell, SphericalPairtestShell)
+        hasSphericalShell.__init__(self, testShell, domain_id)
+        SimplePair.__init__(self, domain_id, shell_id, rrs)     # Always initialize AFTER hasSphericalShell
 
     def com_greens_function(self):
         # Green's function for centre of mass inside absorbing sphere.
@@ -531,6 +412,8 @@ class PlanarSurfacePair(SimplePair, hasCylindricalShell):
 
     """
     def __init__(self, domain_id, shell_id, testShell, rrs):
+
+        assert isinstance(testShell, PlanarSurfacePairtestShell)
         hasCylindricalShell.__init__(self, testShell, domain_id)
         SimplePair.__init__(self, domain_id, shell_id, rrs)
 
@@ -621,6 +504,8 @@ class CylindricalSurfacePair(SimplePair, hasCylindricalShell):
 
     """
     def __init__(self, domain_id, shell_id, testShell, rrs):
+
+        assert isinstance(testShell, CylindricalSurfacePairtestShell)
         hasCylindricalShell.__init__(self, testShell, domain_id)
         SimplePair.__init__(self, domain_id, shell_id, rrs)
 
@@ -676,131 +561,17 @@ class CylindricalSurfacePair(SimplePair, hasCylindricalShell):
 
 class MixedPair2D3D(Pair, hasCylindricalShell):
 
-#    @classmethod
-#    def get_min_shell_dimensions(cls, single1, single2, geometrycontainer):
-#
-#        assert isinstance (single1.structure, PlanarSurface)
-#        assert isinstance (single2.structure, CuboidalRegion)
-#
-#        pos1 = single1.pid_particle_pair[1].position
-#        pos2 = single2.pid_particle_pair[1].position
-#        radius1 = single1.pid_particle_pair[1].radius
-#        radius2 = single2.pid_particle_pair[1].radius
-#        D1 = single1.pid_particle_pair[1].D
-#        D2 = single2.pid_particle_pair[1].D
-#        D12 = D1 + D2
-#        z_scaling = cls.calc_z_scaling_factor (D1, D2)
-#
-#        # calculate the interparticle vector and project it onto the coordinate system of the structure
-#        # of particle1
-#        pos2_t = geometrycontainer.world.cyclic_transpose(pos2, pos1)
-#        iv = pos2_t - pos1
-#        iv_x =     numpy.dot(iv, single1.structure.shape.unit_x)
-#        iv_y =     numpy.dot(iv, single1.structure.shape.unit_y)
-#        iv_z = abs(numpy.dot(iv, single1.structure.shape.unit_z))
-#
-#        r0 = math.sqrt( iv_x**2 + iv_y**2 + (iv_z*z_scaling)**2)
-#
-#        # calculate the minimal height z_right1 of the shell including burst radius
-#        # with the accompanying radius r1
-#        z_right1 = iv_z + radius2 * SINGLE_SHELL_FACTOR
-#        r1       = cls.r_right(single1, single2, r0, z_right1)
-#
-#        len_iv = r0
-#        iv_shell_radius1 = len_iv * D1 / D12 
-#        iv_shell_radius2 = len_iv * D2 / D12 
-#
-#        # fix the minimum shell size for the CoM domain
-#        com_shell_radius = max(radius1, radius2)
-#
-#        # calculate the minimal dimensions of the protective domain including space for the
-#        # burst volumes of the particles
-#        r2 = max(iv_shell_radius1 + com_shell_radius + radius1 * SINGLE_SHELL_FACTOR,
-#                 iv_shell_radius2 + com_shell_radius + radius2 * SINGLE_SHELL_FACTOR)
-#        z_right2 = cls.z_right(single1, single2, r0, r2)
-#
-#        # of both alternatives pick the largest one
-#        z_right, r = max((z_right1, r1),(z_right2, r2))
-#
-#        # z_left is always the same
-#        z_left = radius1
-#
-#        return r, z_left, z_right
-#
-#    @classmethod
-#    def get_max_shell_dimensions(cls, single1, single2, geometrycontainer, domains):
-#        # Properties of the MixedPair system
-#
-#        assert isinstance (single1.structure, PlanarSurface)
-#        assert isinstance (single2.structure, CuboidalRegion)
-#
-#        com, iv = cls.do_transform(single1, single2, geometrycontainer.world)
-#        reference_point = com
-#        orientation_vector = normalize(single1.structure.shape.unit_z * numpy.dot (iv, single1.structure.shape.unit_z))
-#        r0 = length(iv)
-#
-#        # Make sure the maximal cylinder fits in the maximal sphere. Matrix space
-#        # doesn't allow to check for shells outside the maximal sphere.
-#        max_cylinder_radius      = geometrycontainer.get_max_shell_size()/math.sqrt(2)
-#        max_cylinder_half_length = max_cylinder_radius
-#
-#        # set initial values of shell dimensions
-#        z_left = single1.pid_particle_pair[1].radius
-#        z_right = max_cylinder_half_length * 2 - z_left
-#        r = max_cylinder_radius
-#        
-#        # get all the domains in the neighborhood
-#        search_point = reference_point + ((z_right - z_left)/2.0) * orientation_vector
-#        search_point = geometrycontainer.world.apply_boundary(search_point)
-#        all_neighbor_ids = \
-#            geometrycontainer.get_neighbors_within_radius_no_sort(search_point,
-#                                                     geometrycontainer.get_max_shell_size(),
-#                                                     ignore=[single1.domain_id, single2.domain_id])
-#        all_neighbors = [domains[domain_id] for domain_id in all_neighbor_ids]
-#
-#        world = geometrycontainer.world
-#
-#        # adjust the maximal shell dimensions for every shell in the neighborhood
-#        for domain in all_neighbors:
-#            if isinstance(domain, Multi):
-#                for _, shell in domain.shell_list:
-#                    shell_position = shell.shape.position
-#                    shell_size = shell.shape.radius
-#                    r, z_left, z_right = cls.laurens_algorithm(single1, single2, r0, shell_position, shell_size, shell,
-#                                                                     reference_point, orientation_vector, r, z_left,
-#                                                                     z_right, world)
-#            else:
-#                shell_position = domain.shell.shape.position
-#                shell_size = domain.get_shell_size()
-#
-#                if domain.dt == 0.0 and domain.getD() > 0:
-#                    # This is one of the bursted singles.
-#                    # Or a particle that just escaped it's multi.
-#                    shell_size *= SINGLE_SHELL_FACTOR
-#
-#                r, z_left, z_right = cls.laurens_algorithm(single1, single2, r0, shell_position, shell_size, domain.shell,
-#                                                                 reference_point, orientation_vector, r, z_left,
-#                                                                 z_right, world)
-#
-#
-#
-#        return r, z_left, z_right
-
-    ################
-    @classmethod
-    def calc_z_scaling_factor(cls, D2d, D3d):
-        # calculates the scaling factor to make the anisotropic diffusion problem into a isotropic one
-        return math.sqrt( (D2d + D3d) / D3d)
-
     def __init__(self, domain_id, shell_id, testShell, rrs):
+
+        assert isinstance(testShell, MixedPair2D3DtestShell)
         hasCylindricalShell.__init__(self, testShell, domain_id)
         Pair.__init__(self, domain_id, shell_id, rrs)
 
-        assert self.testShell
         assert isinstance(self.testShell, testMixedPair2D3D)
         self.surface = self.testShell.surface       # the surface on which particle1 lives
         self.structure = self.testShell.structure   # structure on which both particles live
 
+        # initialize some useful constants
         self.z_scaling_factor = self.testShell.get_scaling_factor()
 
         # set the radii of the inner domains as a function of the outer protective domain
@@ -868,7 +639,6 @@ class MixedPair2D3D(Pair, hasCylindricalShell):
 
         return a_R, a_r
 
-
     @ classmethod
     def do_back_transform(cls, com, iv, D1, D2, radius1, radius2, surface, unit_z):
     # here we assume that the com and iv are really in the structure and no adjustments have to be
@@ -905,6 +675,11 @@ class MixedPair2D3D(Pair, hasCylindricalShell):
         pos2 = com + weight2 * (iv_x + iv_y) + iv_z 
 
         return pos1, pos2
+
+    @classmethod
+    def calc_z_scaling_factor(cls, D2d, D3d):
+        # calculates the scaling factor to make the anisotropic diffusion problem into a isotropic one
+        return math.sqrt( (D2d + D3d) / D3d)
 
     def choose_pair_greens_function(self, r0, t):
         return self.iv_greens_function(r0)
