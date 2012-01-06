@@ -37,44 +37,75 @@ __all__ = [
     'MixedPair2D3DtestShell',
     ]
 
+# These are exceptions that are raise when trying to make a new domain
 class ShellmakingError(Exception):
+    # This ShellmakingError is raised when a Spherical or Cylindrical shell could
+    # not be made, usually due to the fact that the possible shell dimensions are
+    # smaller than the minimal dimensions.
     pass
 
 class testShellError(Exception):
+    # The testShellError is raised when the testShell could not be made, usually
+    # due to a ShellmakingError
     pass
 
+####################################
+
+# To make sure that Pairs and Interaction domain keep some distance from NonInteractionSingle domains,
+# the domain that is being made asks the neighboring domains what their size is. This allows the
+# neighboring domain to change its appeared size depending on who asks.
+# To this end, the two classes below define methods that allow an existing domain to return its shell
+# dimensions dependent on the one who asks. The asker and the askee are now both a NonInteractionSingle
+# or an Other.
+# The main difference between the NonInteractionSingles and Others is that the NonInteractionSingle
+# keep the Other domains at a distance such that the probably that the Other domain get bursted is
+# minimized.
 class Others(object):
+# Subclasses of Others are: all Pair, Interaction and Multi domains.
 
     def __init__(self):
         pass    # do nothing
-    # stuff for hasShell subclasses
+
+    # The next two methods are only relevant for HASSHELL subclasses that derive from this class.
     def shell_list_for_single(self):
+        # The shell dimensions for the Other classes are unmodified, regardless of the asker.
         return self.shell_list
     def shell_list_for_other(self):
         return self.shell_list
 
-    # stuff for testShell subclasses
+
+    # The next method is only relevant for TESTSHELL subclasses that derive from this class.
     def get_neighbor_shell_list(self, neighbor):
-        # note that this returns the list of shells, NOT dr, dz_right, dz_left
+        # This gets the shells of an existing domain given that the testShell is of the type Other
         return neighbor.shell_list_for_other()
 
 class NonInteractionSingles(object):
+# Subclasses of NonInteractionSingles are: all NonInteractionSingle domains (Spherical, etc)
 
     def __init__(self):
         pass    # do nothing
-    # stuff for hasShell subclasses
-    def shell_list_for_single(self):
-        pass    # needs to be overloaded
-    def shell_list_for_other(self):
-        pass    # needs to be overloaded
 
-    # stuff for testShell subclasses
+    # The next two methods are only relevant for HASSHELL subclasses that derive from this class.
+    def shell_list_for_single(self):
+        # In case the asker is also a NonInteractionSingle, the shell dimensions of the current domain
+        # is modified such that the domain is at least the size of the Multi shell.
+        pass    # needs to be specified in the subclass
+    def shell_list_for_other(self):
+        # In case the asker is an Other, the shell dimensions of the current NonInteractionSingle domain
+        # is modified such that the domain is at least its minimum size (SINGLE_SHELL_FACTOR).
+        # This is to reduce unnecessary bursting of the (expensive) Other domains.
+        pass    # needs to be specified in the subclass
+
+
+    # The next method is only relevant for TESTSHELL subclasses that derive from this class.
     def get_neighbor_shell_list(self, neighbor):
-        # note that this returns the list of shells, NOT dr, dz_right, dz_left
+        # This gets the shells of an existing domain given that the testShell is of the type Other
         return neighbor.shell_list_for_single()
 
 ##################################
-
+# Below classes define the minimal information needed to try to make a domain of a certain type.
+# They implement the non geometric aspect of the testShells, and are inherited by the respective testShell
+# classes.
 class testSingle(object):
 
     def __init__(self, pid_particle_pair, structure):
@@ -85,16 +116,18 @@ class testNonInteractionSingle(testSingle, NonInteractionSingles):
 
     def __init__(self, pid_particle_pair, structure):
         testSingle.__init__(self, pid_particle_pair, structure)
+        # Note: for the NonInteractionSingles superclass nothing is to be initialized.
 
 class testInteractionSingle(testSingle, Others):
 
     def __init__(self, single, structure, surface):
         testSingle.__init__(self, single.pid_particle_pair, structure)
+        # Note: for the Others superclass nothing is to be initialized.
 
         self.single  = single
         self.surface = surface
 
-        ### initialize some constants that are common for the interactions
+        ### initialize some constants that are common for the testInteractionSingle domains.
 
         # calculate the Projected_point and distance to the surface
         # Cyclic transpose needed when calling surface.projected_point!
@@ -109,14 +142,15 @@ class testInteractionSingle(testSingle, Others):
         # The reference_vector is the normalized vector from the reference_point to the particle
         self.reference_vector = normalize(pos_transposed - self.reference_point)
 
-
 ##############
 class testPair(Others):
+
     def __init__(self, single1, single2):
+        # Note: for the Others superclass nothing is to be initialized.
 
         # assert both reset
-        assert single1.dt == 0.0
-        assert single2.dt == 0.0
+        assert single1.is_reset()
+        assert single2.is_reset()
 
         self.single1 = single1
         self.single2 = single2
@@ -124,6 +158,10 @@ class testPair(Others):
         self.pid_particle_pair2 = single2.pid_particle_pair
         self.com, self.iv = self.do_transform()
         self.r0 = length(self.iv)
+        assert self.r0 >= self.sigma, \
+            'distance_from_sigma (pair gap) between %s and %s = %s < 0' % \
+            (self.single1, self.single2, FORMAT_DOUBLE % (self.r0 - self.sigma))
+
 
     def get_D_tot(self):
         return self.pid_particle_pair1[1].D + \
@@ -137,12 +175,14 @@ class testPair(Others):
     D_R = property(get_D_R)
 
     def do_transform(self):
-        pass        # overloaded later
+        # transform the pos1 and pos2 of particles1 and 2 to the CoM and IV vectors
+        pass        # overridden in subclasses
 
 class testSimplePair(testPair):
+
     def __init__(self, single1, single2):
 
-        # simple pairs are pairs of particles on the same structure
+        # Simple pairs are pairs of particles that are on the same structure
         assert single1.structure == single2.structure
         self.structure = single1.structure
 
@@ -155,13 +195,14 @@ class testSimplePair(testPair):
     sigma = property(get_sigma)
 
     def do_transform(self):
-    # TODO replace with get_com, get_iv methods/properties
+        # transform the pos1 and pos2 of particles1 and 2 to the CoM and IV vectors
+
         pos1 = self.pid_particle_pair1[1].position
         pos2 = self.pid_particle_pair2[1].position
-        D1 = self.pid_particle_pair1[1].D
-        D2 = self.pid_particle_pair2[1].D
+        D_1 = self.pid_particle_pair1[1].D
+        D_2 = self.pid_particle_pair2[1].D
 
-        com = self.world.calculate_pair_CoM(pos1, pos2, D1, D2)
+        com = self.world.calculate_pair_CoM(pos1, pos2, D_1, D_2)
         com = self.world.apply_boundary(com)
         # make sure that the com is in the structure of the particle (assume that this is done correctly in
         # calculate_pair_CoM)
@@ -172,18 +213,19 @@ class testSimplePair(testPair):
         return com, iv
 
     def get_min_pair_size(self):
-        # TODO Is this assert here ok?
-        assert self.r0 >= self.sigma, \
-            'distance_from_sigma (pair gap) between %s and %s = %s < 0' % \
-            (self.single1, self.single2, FORMAT_DOUBLE % (self.r0 - self.sigma))
+        # This calculates the minimal 'size' of a simple pair.
+        # Note that the 'size' is interpreted differently dependent on the type of pair. When the pair is a
+        # SphericalPair          -> size = radius
+        # PlanarSurfacePair      -> size = radius
+        # CylindricalSurfacePair -> size = half_length
 
-        D1 = self.pid_particle_pair1[1].D
-        D2 = self.pid_particle_pair2[1].D
+        D_1 = self.pid_particle_pair1[1].D
+        D_2 = self.pid_particle_pair2[1].D
         radius1 = self.pid_particle_pair1[1].radius
         radius2 = self.pid_particle_pair2[1].radius
 
-        dist_from_com1 = self.r0 * D1 / self.D_tot      # particle distance from CoM
-        dist_from_com2 = self.r0 * D2 / self.D_tot
+        dist_from_com1 = self.r0 * D_1 / self.D_tot      # particle distance from CoM
+        dist_from_com2 = self.r0 * D_2 / self.D_tot
         iv_shell_size1 = dist_from_com1 + radius1       # the shell should surround the particles
         iv_shell_size2 = dist_from_com2 + radius2
 
@@ -205,8 +247,9 @@ class testMixedPair2D3D(testPair):
         self.surface   = single2D.structure         # note that these need to be initialized before calling testPair.__init__
         self.structure = single3D.structure         # since then these are needed for calculating the transform
 
-        testPair.__init__(self, single2D, single3D)       # note that this makes self.single1/self.pid_particle_pair1 the 2D particle
-                                                    # and self.single2/self.pid_particle_pair2 the 3D particle
+        testPair.__init__(self, single2D, single3D) # note: this makes self.single1/self.pid_particle_pair1 the 2D particle
+                                                    #              and self.single2/self.pid_particle_pair2 the 3D particle
+
     def get_sigma(self):
         # rescale sigma to correct for the rescaling of the coordinate system
         # This is the sigma that is used for the evaluation of the Green's function and is in this case slightly
@@ -220,13 +263,14 @@ class testMixedPair2D3D(testPair):
     sigma = property(get_sigma)
 
     def do_transform(self):
+        # transform the pos1 and pos2 of particles1 and 2 to the CoM and IV vectors
         pos1 = self.pid_particle_pair1[1].position
         pos2 = self.pid_particle_pair2[1].position
         D_1 = self.pid_particle_pair1[1].D
         D_2 = self.pid_particle_pair2[1].D
 
         # the CoM is calculated in a similar way to a normal 3D pair
-        com = (D_2 * pos1 + D_1 * pos2) / (self.D_tot)
+        com = self.world.calculate_pair_CoM(pos1, pos2, D_1, D_2)
 
         # and then projected onto the plane to make sure the CoM is in the surface
         com = self.world.cyclic_transpose(com, self.surface.shape.position)
@@ -240,24 +284,25 @@ class testMixedPair2D3D(testPair):
 
         # rescale the iv in the axis normal to the plane
         iv_z_component = numpy.dot (iv, self.surface.shape.unit_z)
-        iv_z = self.surface.shape.unit_z * iv_z_component
+        iv_z     = self.surface.shape.unit_z * iv_z_component
         new_iv_z = self.surface.shape.unit_z * (iv_z_component * self.get_scaling_factor())
-#        iv_z_length = abs(iv_z_component)
-#
-#        new_iv_z_length = (iv_z_length) * self.get_scaling_factor()
-#        new_iv_z = (new_iv_z_length / iv_z_length) * iv_z
 
         iv = iv - iv_z + new_iv_z
 
         return com, iv
 
     def get_scaling_factor(self):
+        # This returns the scaling factor needed to make the anisotropic diffusion problem of the IV
+        # into a isotropic one.
         D_2 = self.pid_particle_pair2[1].D      # particle 2 is in 3D and is the only contributor to diffusion
                                                 # normal to the plane
         return math.sqrt(self.D_r/D_2)
 
 
 ##################################
+# These classes define the geometric aspect of the existing domains. When making a domain, the domain
+# has a Shell (hence the hasShell class name).
+# They are initialized using the testShell of the appropriate type.
 class hasShell(object):
 
     def __init__(self, testShell):
@@ -265,16 +310,19 @@ class hasShell(object):
 
 #######################
 class hasSphericalShell(hasShell):
-# The testShell is now converted into smt that we can use in the domain instance
+    # This class is inherited by domains that have a Spherical shell such as the SphericalSingle and a SphericalPair.
+    # The class makes the appropriate shell for the domain and allows a testShell to ask what the maximum dimensions
+    # of the testShell can be. This means, how far can the testShell be scaled according to its scaling rules before
+    # it hits THIS Spherical shell.
 
     def __init__(self, sphericaltestShell, domain_id):
-    # Note that the Multi should not call __init__ because we don't want to initialize the shell
+        # Note1: the Multi should not call __init__ because we don't want to initialize the shell
+        # Note2: the hasShell.__init__ is not called because nothing happens there
 
         assert isinstance(sphericaltestShell, SphericaltestShell)
-
-        hasShell.__init__(self, sphericaltestShell)
-
         self.testShell = sphericaltestShell
+
+        # Make the appropriate shell.
         self.shell_center = sphericaltestShell.center
         self.shell_radius = sphericaltestShell.radius
         self.shell = self.create_new_shell(self.shell_center,
@@ -284,23 +332,27 @@ class hasSphericalShell(hasShell):
     def create_new_shell(self, position, radius, domain_id):
         return SphericalShell(domain_id, Sphere(position, radius))
 
-    # methods to size up a shell to this shell
-    def get_dr_dzright_dzleft_to_shell(self, shell, domain_to_scale, r, z_right, z_left):
-        # This will scale the 'domain_to_scale' (a cylinder) using the 'shell_appearance' as the limiting shell
-        # CylindricaltestShell ('domain_to_scale') -> SphericalShell ('self' with 'shell_appearance')
+    # methods to size up a testShell to this domain.
+    def get_dr_dzright_dzleft_to_shell(self, shell, testShell, r, z_right, z_left):
+        # This function returns the dr, dz_right, dz_left parameters for the cylindrical 'testShell'
+        # using the spherical 'shell' as its closest neighbor. Note that it returns the minimum the newly calculated
+        # dr, dz_right, dz_left and the old r, z_right, z_left. The 'testShell' can therefore only become
+        # smaller.
 
-        assert (type(shell.shape) is Sphere)        # because the shell actually is part of the current object
+        # Note that the 'shell' is querried from this domain earlier by the testShell.
+        # -> the shell MUST be a Sphere
+        assert (type(shell.shape) is Sphere)
 
-        # Do Laurens' algorithm (part1)
+        # Laurens' algorithm (part1)
         shell_position = shell.shape.position
         shell_radius = shell.shape.radius
 
         # get the reference point and orientation of the domain to scale
-        reference_point = domain_to_scale.get_referencepoint()
-        orientation_vector = domain_to_scale.get_orientation_vector()
+        reference_point = testShell.get_referencepoint()
+        orientation_vector = testShell.get_orientation_vector()
 
         # determine on what side the midpoint of the shell is relative to the reference_point
-        shell_position_t = domain_to_scale.world.cyclic_transpose (shell_position, reference_point)
+        shell_position_t = testShell.world.cyclic_transpose (shell_position, reference_point)
         ref_to_shell_vec = shell_position_t - reference_point
         ref_to_shell_z = numpy.dot(ref_to_shell_vec, orientation_vector)
 
@@ -309,21 +361,21 @@ class hasSphericalShell(hasShell):
         if ref_to_shell_z >= 0:
             direction = 1           # improve direction specification such that following calculations still work
                                     # Otherwise problems when direction = 0
-            scale_angle = domain_to_scale.right_scalingangle
-            scale_center_r, scale_center_z = domain_to_scale.right_scalingcenter 
-            r1_function =  domain_to_scale.r_right
-            z1_function = domain_to_scale.z_right
-            z2_function = domain_to_scale.z_left
+            scale_angle = testShell.right_scalingangle
+            scale_center_r, scale_center_z = testShell.right_scalingcenter 
+            r1_function =  testShell.r_right
+            z1_function = testShell.z_right
+            z2_function = testShell.z_left
             z1 = z_right
             z2 = z_left
         # else -> use z_left
         else:
             direction = -1
-            scale_angle = domain_to_scale.left_scalingangle
-            scale_center_r, scale_center_z = domain_to_scale.left_scalingcenter 
-            r1_function =  domain_to_scale.r_left
-            z1_function = domain_to_scale.z_left
-            z2_function = domain_to_scale.z_right
+            scale_angle = testShell.left_scalingangle
+            scale_center_r, scale_center_z = testShell.left_scalingcenter 
+            r1_function =  testShell.r_left
+            z1_function = testShell.z_left
+            z2_function = testShell.z_right
             z1 = z_left
             z2 = z_right
 
@@ -337,8 +389,8 @@ class hasSphericalShell(hasShell):
         scale_center_to_shell_r = ref_to_shell_r - scale_center_r
         scale_center_to_shell_z = ref_to_shell_z - scale_center_z
 
-        # calculate the angle shell_angle of the vector from the scale center to the shell with the vector
-        # to the scale center (which is +- the orientation_vector)
+        # calculate the angle 'shell_angle' of the vector from the 'scale_center' to the shell with the vector
+        # from the 'reference_point' to the 'scale_center' (which is +- the orientation_vector).
         shell_angle = math.atan(scale_center_to_shell_r/scale_center_to_shell_z)
 
         if scale_center_to_shell_z < 0.0:
@@ -436,33 +488,36 @@ class hasSphericalShell(hasShell):
         return r, z_right, z_left
 
 
-    def get_radius_to_shell(self, shell, domain_to_scale, r):
-        # SphericaltestShell ('domain_to_scale') -> SphericalShell ('self' with 'shell_appearance')
+    def get_radius_to_shell(self, shell, testShell, r):
+        # This function returns the radius for the spherical 'testShell' using the spherical 'shell' as its closest
+        # neighbor. Note that it returns the minimum the newly calculated radius and the old radius. The 'testShell' can
+        # therefore only become smaller.
 
-        assert (type(shell.shape) is Sphere)        # because the shell actually originated here
+        # Note that the 'shell' is querried from this domain earlier by the testShell.
+        # -> the shell MUST be a Sphere
+        assert (type(shell.shape) is Sphere)
+
         # Do simple distance calculation to sphere
-
-        scale_point = domain_to_scale.center
-        r_new = domain_to_scale.world.distance(shell.shape, scale_point)/SAFETY
+        scale_point = testShell.center
+        r_new = testShell.world.distance(shell.shape, scale_point)/SAFETY
 
         # if the newly calculated dimensions are smaller than the current one, use them
         return min(r, r_new)
 
-#####
-class Multi(hasSphericalShell, Others):
-
-    pass
-
 #########################
 class hasCylindricalShell(hasShell):
+    # This class is inherited by domains that have a Cylindrical shell such as the PlanarSurfaceNonInteractionSingle
+    # and a MixedPair2D3D.
+    # The class makes the appropriate shell for the domain and allows a testShell to ask what the maximum dimensions
+    # of the testShell can be. This means, how far can the testShell be scaled according to its scaling rules before
+    # it hits THIS Cylindrical shell.
 
     def __init__(self, cylindricaltestShell, domain_id):
+        # Note: the hasShell.__init__ is not called because nothing happens there
 
         assert isinstance(cylindricaltestShell, CylindricaltestShell)
-
-        hasShell.__init__(self, cylindricaltestShell)
-
         self.testShell = cylindricaltestShell
+
         # Compute origin, radius and half_length of cylinder.
         self.shell_center, self.shell_radius, self.shell_half_length = \
                     self.r_zright_zleft_to_r_center_hl(self.testShell.get_referencepoint(),
@@ -471,7 +526,7 @@ class hasCylindricalShell(hasShell):
                                                        self.testShell.dz_right,
                                                        self.testShell.dz_left)
         self.shell_center = self.testShell.world.apply_boundary(self.shell_center)
-
+        # Make the shell.
         self.shell = self.create_new_shell(self.shell_center,
                                            self.shell_radius,
                                            self.shell_half_length,
@@ -479,6 +534,10 @@ class hasCylindricalShell(hasShell):
 
     @ classmethod
     def r_zright_zleft_to_r_center_hl(cls, referencepoint, orientation_vector, dr, dz_right, dz_left):
+        # Converts the dr, dz_right and dz_left to the center, radius and half_length of the cylinder
+        # The dr, dz_right, dz_left are used to scale the cylinder, whereas the center, radius and
+        # half_length are used to use the cylinderical shell as an actual shell (and no longer as a testShell).
+
         center = referencepoint + ((dz_right - dz_left)/2.0) * orientation_vector
         radius = dr
         half_length = (dz_left + dz_right) / 2.0
@@ -488,24 +547,29 @@ class hasCylindricalShell(hasShell):
         orientation = self.testShell.get_orientation_vector()
         return CylindricalShell(domain_id, Cylinder(position, radius, orientation, half_length))
 
-    def get_dr_dzright_dzleft_to_shell(self, shell, domain_to_scale, r, z_right, z_left):
-        # This will scale the 'domain_to_scale' (a cylinder) using the 'shell_appearance' as the limiting shell
-        # CylindricaltestShell ('domain_to_scale') -> CylindricalShell ('self' with 'shell_appearance')
+    # methods to size up a testShell to this domain.
+    def get_dr_dzright_dzleft_to_shell(self, shell, testShell, r, z_right, z_left):
+        # This function returns the dr, dz_right, dz_left parameters for the cylindrical 'testShell'
+        # using the cylindrical 'shell' as its closest neighbor. Note that it returns the minimum the newly calculated
+        # dr, dz_right, dz_left and the old r, z_right, z_left. The 'testShell' can therefore only become
+        # smaller.
 
-        assert (type(shell.shape) is Cylinder)        # because the shell actually originated here
-        # Do Laurens' algorithm (part2)
+        # Note that the 'shell' is querried from this domain earlier by the testShell.
+        # -> the shell MUST be a Cylinder.
+        assert (type(shell.shape) is Cylinder)
 
+        # Laurens' algorithm (part2)
         shell_position = shell.shape.position
         shell_radius = shell.shape.radius
         shell_half_length = shell.shape.half_length
 
 
         # get the reference point and orientation of the domain to scale
-        reference_point = domain_to_scale.get_referencepoint()
-        orientation_vector = domain_to_scale.get_orientation_vector()
+        reference_point = testShell.get_referencepoint()
+        orientation_vector = testShell.get_orientation_vector()
 
         # determine on what side the midpoint of the shell is relative to the reference_point
-        shell_position_t = domain_to_scale.world.cyclic_transpose (shell_position, reference_point)
+        shell_position_t = testShell.world.cyclic_transpose (shell_position, reference_point)
         ref_to_shell_vec = shell_position_t - reference_point
         ref_to_shell_z = numpy.dot(ref_to_shell_vec, orientation_vector)
 
@@ -514,21 +578,21 @@ class hasCylindricalShell(hasShell):
         if ref_to_shell_z >= 0:
             direction = 1           # improve direction specification such that following calculations still work
                                     # Otherwise problems when direction = 0
-            scale_angle = domain_to_scale.right_scalingangle
-            scale_center_r, scale_center_z = domain_to_scale.right_scalingcenter 
-            r1_function =  domain_to_scale.r_right
-            z1_function = domain_to_scale.z_right
-            z2_function = domain_to_scale.z_left
+            scale_angle = testShell.right_scalingangle
+            scale_center_r, scale_center_z = testShell.right_scalingcenter 
+            r1_function =  testShell.r_right
+            z1_function = testShell.z_right
+            z2_function = testShell.z_left
             z1 = z_right
             z2 = z_left
         # else -> use z_left
         else:
             direction = -1
-            scale_angle = domain_to_scale.left_scalingangle
-            scale_center_r, scale_center_z = domain_to_scale.left_scalingcenter 
-            r1_function =  domain_to_scale.r_left
-            z1_function = domain_to_scale.z_left
-            z2_function = domain_to_scale.z_right
+            scale_angle = testShell.left_scalingangle
+            scale_center_r, scale_center_z = testShell.left_scalingcenter 
+            r1_function =  testShell.r_left
+            z1_function = testShell.z_left
+            z2_function = testShell.z_right
             z1 = z_left
             z2 = z_right
 
@@ -573,14 +637,18 @@ class hasCylindricalShell(hasShell):
 
         return r, z_right, z_left
 
-    def get_radius_to_shell(self, shell, domain_to_scale, r):
-        # SphericaltestShell ('domain_to_scale') -> CylindricalShell ('self' with 'shell_appearance')
+    def get_radius_to_shell(self, shell, testShell, r):
+        # This function returns the radius for the spherical 'testShell' using the cylindrical 'shell' as its closest
+        # neighbor. Note that it returns the minimum the newly calculated radius and the old radius. The 'testShell' can
+        # therefore only become smaller.
 
-        assert (type(shell.shape) is Cylinder)        # because the shell actually originated here
+        # Note that the 'shell' is querried from this domain earlier by the testShell.
+        # -> the shell MUST be a Cylinder
+        assert (type(shell.shape) is Cylinder)
+
         # Do simple distance calculation to cylinder
-
-        scale_point = domain_to_scale.center
-        r_new = domain_to_scale.world.distance(shell.shape, scale_point)/SAFETY
+        scale_point = testShell.center
+        r_new = testShell.world.distance(shell.shape, scale_point)/SAFETY
 
         # if the newly calculated dimensions are smaller than the current one, use them
         return min(r, r_new)
@@ -589,6 +657,10 @@ class hasCylindricalShell(hasShell):
 #######################################################
 #######################################################
 class testShell(object):
+    # The testShell represents the geometric aspect of the domain that we are trying to make
+    # A testShell can be Spherical (SphericaltestShell) or Cylindrical (CylindricaltestShell)
+    # Both have different rules for doing the nearest neighbor search and geometrically sizing up
+    #  the prospective domain
 
     def __init__(self, geometrycontainer, domains):
         self.geometrycontainer = geometrycontainer
@@ -596,6 +668,8 @@ class testShell(object):
         self.domains = domains
 
     def get_neighbors(self, ignore, ignores):
+        # The get_neighbors is general to all types of testShells.
+        # It finds the neighboring domains and surfaces.
         searchpoint = self.get_searchpoint()
         radius = self.get_searchradius()
 
@@ -604,24 +678,31 @@ class testShell(object):
         return neighbor_domains, neighbor_surfaces
 
     def get_orientation_vector(self):
-        pass    # overloaded later
+        # The orientation of the shell
+        pass    # overridden later
 
 ########################
 class SphericaltestShell(testShell):
+    # The SphericaltestShell is the geometric aspect of testDomains with a spherical shell.
 
     def __init__(self, geometrycontainer, domains):
         testShell.__init__(self, geometrycontainer, domains)
 
-        self.center = None          # there are the parameters that we ultimately want to know
-        self.radius = 0
+        self.center = None          # These are the parameters that define the dimensions of
+        self.radius = 0             # the spherical shell -> will be determined later.
 
     def determine_possible_shell(self, ignore, ignores):
+        # This determines the largest possible radius of the spherical testShell or throws an
+        # exception if the domain could not be made due to geometrical constraints.
+
         neighbor_domains, neighbor_surfaces = self.get_neighbors (ignore, ignores)
         min_radius = self.get_min_radius()
         max_radius = self.get_max_radius()
 
+        # initialize the radius to start the scaling of the sphere
         radius = max_radius
-        # first check the surfaces
+
+        # first check the maximum radius against the surfaces
         for surface, distance in neighbor_surfaces:
             # FIXME ugly hack to make spherical singles overlap with membranes
             if isinstance(surface, PlanarSurface) and isinstance(self, SphericalSingletestShell):
@@ -632,8 +713,10 @@ class SphericaltestShell(testShell):
                                        'surface = %s, distance = %s, testShell = %s' %
                                        (surface, distance, self))
 
-        # then check the domains
         # TODO first sort the neighbors -> faster to find if we fail
+
+        # then check against all the shells of the neighboring domains (remember that domains can have
+        # multiple shells).
         for neighbor, _ in neighbor_domains:
 
             shell_list = self.get_neighbor_shell_list(neighbor)
@@ -652,13 +735,18 @@ class SphericaltestShell(testShell):
         return radius
 
     def get_searchpoint(self):
+        # The search point from where to search for neighboring domains.
         return self.center
     def get_searchradius(self):
+        # the search radius is the radius in which to find neighboring domains. Usually just the
+        # max shell size.
         return self.geometrycontainer.get_max_shell_size()
     def get_orientation_vector(self):
-        return self.structure.unit_z #unit_vector # TODO much faster and doesn't matter anyway
+        # The orientation of the sphere is irrelevant, but needs to be defined.
+        return self.structure.unit_z    # NOTE: Is self.structure always well defined??
 
     def get_max_radius(self):
+        # The maximum radius of the spherical testShell.
         return self.get_searchradius()/SAFETY
 
 #####
@@ -670,6 +758,7 @@ class SphericalSingletestShell(SphericaltestShell, testNonInteractionSingle):
 
         self.center = self.pid_particle_pair[1].position
         self.radius = self.pid_particle_pair[1].radius
+        # Here determine_possible_shell is not called since the NonInteractionSingle should never fail
 
     def get_min_radius(self):
         return self.pid_particle_pair[1].radius * MULTI_SHELL_FACTOR / SAFETY    # the minimum radius of a NonInteractionSingle
@@ -694,21 +783,36 @@ class SphericalPairtestShell(SphericaltestShell, testSimplePair):
 
 ##########################
 class CylindricaltestShell(testShell):
+    # The CylindricaltestShell is the geometric aspect of testDomains with a cylindrical shell.
+    # Note that the dimensions of the cylindrical test shell are expressed in dr, dz_right and
+    # dz_left, whereas the dimensions of a 'real' cylindrical shell are expressed in center,
+    # radius and half_length.
 
     def __init__(self, geometrycontainer, domains):
         testShell.__init__(self, geometrycontainer, domains)
 
-        self.dz_right = 0
+        self.dr       = 0           # These are the parameters that define the dimensions of
+        self.dz_right = 0           # the cylindrical shell -> will be determined later.
         self.dz_left  = 0
-        self.dr       = 0
+        # dr is the radius of the cylinder.
+        # dz_right is the distance between the 'reference point' and the face of the
+        #   cylinder on the side of the 'orientation vector'.
+        # dz_left is the distance from the 'reference point' to the face of the cylinder
+        #   on the side oposite of the 'orientation vector'.
+
 
     def determine_possible_shell(self, ignore, ignores):
+        # This determines the maximum dr, dz_right, dz_left of the cylindrical testShell or
+        # throws an exception if the domain could not be made due to geometrical constraints.
+
         neighbor_domains, neighbor_surfaces = self.get_neighbors (ignore, ignores)
         min_dr, min_dz_right, min_dz_left = self.get_min_dr_dzright_dzleft()
         max_dr, max_dz_right, max_dz_left = self.get_max_dr_dzright_dzleft()
 
+        # initialize the parameters to start the scaling of the cylinder
         dr, dz_right, dz_left = max_dr, max_dz_right, max_dz_left
-        # first check the surfaces
+
+        # first check the maximum dr, dz_right, dz_left against the surfaces
 #        for surface, distance in neighbor_surfaces:
 #            radius = min(radius, distance)     # TODO
 #            if radius < min_radius:
@@ -716,8 +820,10 @@ class CylindricaltestShell(testShell):
 #                                       'surface = %s, distance = %s, testShell = %s' %
 #                                       (surface, distance, self))
 
-        # then check the domains
-        # TODO first sort the neighbors -> faster to find if we fail
+        # TODO first sort the neighbors to distance -> faster to find if we fail
+
+        # then check against all the shells of the neighboring domains (remember that domains can have
+        # multiple shells).
         for neighbor, distance in neighbor_domains:
 
             shell_list = self.get_neighbor_shell_list(neighbor)
@@ -737,11 +843,28 @@ class CylindricaltestShell(testShell):
         
         return dr, dz_right, dz_left
 
+    def get_searchpoint(self):
+        # The search point from where to search for neighboring domains.
+        pass
+
     def get_searchradius(self):
+        # the search radius is the radius in which to find neighboring domains. Usually just the
+        # max shell size.
         return self.geometrycontainer.get_max_shell_size()
 
+    def get_orientation_vector(self):
+        # The orientation_vector just defines the direction of the shell. It also defines what
+        # SIDE is 'right' and what side is 'left'.
+        pass
 
-    # default functions for evaluating z_right/z_left/r after one of parameters changed
+    def get_referencepoint(self):
+        # The reference point is where the 'orientation_vector' starts and defines what PART of the
+        # cylinder is 'right' and what part if 'left'.
+        pass
+
+    # These methods are used to calculate the new r/z_right/z_left after one of the parameters 
+    # r/z_right/z_left has changed. The scaling centers (r0, z0) and scaling directions drdz
+    # are defined differently for every testShell.
     def r_right(self, z_right):
         return self.drdz_right * (z_right - self.z0_right) + self.r0_right
     def z_right(self, r_right):
@@ -752,20 +875,25 @@ class CylindricaltestShell(testShell):
         return self.dzdr_left * (r_left - self.r0_left) + self.z0_left
 
     def get_right_scalingcenter(self):
-        # returns the scaling center in the cylindrical coordinates r, z of the shell
-        # Note that we assume cylindrical symmetry
-        # Note also that it is relative to the 'side' (right/left) of the cylinder
+        # Returns the location of the scaling center on the 'right side' of the cylinder in the
+        # coordinates r, z defined by the plane cutting through the axis of the cylindrical
+        # testShell and the center of the shell that is being scaled to.
+        # Note0: the 'right side' is the side of the cylinder were the 'orientation_vector' points.
+        # Note1: we assume cylindrical symmetry around the axis.
+        # Note2: the coordinates are relative to the 'side' (right/left) of the cylinder.
         return self.r0_right, self.z0_right
     right_scalingcenter = property(get_right_scalingcenter)
 
     def get_left_scalingcenter(self):
-        # returns the scaling center in the cylindrical coordinates r, z of the shell
-        # Note that we assume cylindrical symmetry
-        # Note also that it is relative to the 'side' (right/left) of the cylinder
+        # Returns the location of the scaling center on the 'left side' of the cylinder.
+        # Note: the 'left side' is the side of the cylinder opposite of were the 'orientation_vector' points.
         return self.r0_left, self.z0_left
     left_scalingcenter = property(get_left_scalingcenter)
 
     def get_right_scalingangle(self):
+        # The scaling angle is the angle with the axis of the cylinder of the cone along which the
+        # edge of the cylinder moves while scaling.
+        # Note again that 'right' is the side where the 'orientation_vector' points.
         if self.drdz_right == numpy.inf:
             right_scaling_angle = Pi/2.0       # atan(infinity) == Pi/2 -> angle is 90 degrees
         elif self.drdz_right == 0.0:
@@ -785,9 +913,14 @@ class CylindricaltestShell(testShell):
         return left_scaling_angle
     left_scalingangle = property(get_left_scalingangle)
 
+    def get_min_dr_dzright_dzleft(self):
+        # This defines the minimal dimensions in terms of r, z_right, z_left of the cylindrical domain
+        # that we're trying to make. The exact values vary between type of domain.
+        # If a nearby domain would make it smaller than this, an exception will be thrown.
+        pass
 
     def get_max_dr_dzright_dzleft(self):
-        pass    # todo, we should be able to derive this from the scaling parameters and searchpoint
+        pass
 
 #####
 class PlanarSurfaceSingletestShell(CylindricaltestShell, testNonInteractionSingle):
@@ -796,7 +929,7 @@ class PlanarSurfaceSingletestShell(CylindricaltestShell, testNonInteractionSingl
         CylindricaltestShell.__init__(self, geometrycontainer, domains)
         testNonInteractionSingle.__init__(self, pid_particle_pair, structure)
 
-        # scaling parameters
+        # initialize the scaling parameters
         self.dzdr_right = 0.0
         self.drdz_right = numpy.inf
         self.r0_right   = 0.0
@@ -810,6 +943,8 @@ class PlanarSurfaceSingletestShell(CylindricaltestShell, testNonInteractionSingl
         self.dz_right = self.pid_particle_pair[1].radius
         self.dz_left  = self.pid_particle_pair[1].radius
         self.dr       = self.pid_particle_pair[1].radius
+        # Here determine_possible_shell is not called since the making of a NonInteractionSingle
+        # should never fail
 
     def get_orientation_vector(self):
         return self.structure.shape.unit_z   # just copy from structure
@@ -842,7 +977,7 @@ class PlanarSurfacePairtestShell(CylindricaltestShell, testSimplePair):
         CylindricaltestShell.__init__(self, geometrycontainer, domains)  # this must be first because of world definition
         testSimplePair.__init__(self, single1, single2)
 
-        # scaling parameters
+        # initialize the scaling parameters
         self.dzdr_right = 0.0
         self.drdz_right = numpy.inf
         self.r0_right   = 0.0
@@ -852,6 +987,9 @@ class PlanarSurfacePairtestShell(CylindricaltestShell, testSimplePair):
         self.r0_left    = 0.0
         self.z0_left    = self.z0_right
 
+        # This will determine if the shell is possible.
+        # If possible, it will write the dr, dz_right, dz_left defining the dimensions of the cylindrical shell.
+        # If not possible, it throws an exception and the construction of the testShell IS ABORTED!
         try:
             self.dr, self.dz_right, self.dz_left = \
                             self.determine_possible_shell([self.single1.domain_id, self.single2.domain_id],
@@ -888,7 +1026,7 @@ class CylindricalSurfaceSingletestShell(CylindricaltestShell, testNonInteraction
         CylindricaltestShell.__init__(self, geometrycontainer, domains)
         testNonInteractionSingle.__init__(self, pid_particle_pair, structure)
 
-        # scaling parameters
+        # initialize the scaling parameters
         self.dzdr_right = numpy.inf
         self.drdz_right = 0.0
         self.r0_right   = self.pid_particle_pair[1].radius
@@ -946,6 +1084,9 @@ class CylindricalSurfacePairtestShell(CylindricaltestShell, testSimplePair):
         self.r0_left    = max(self.pid_particle_pair1[1].radius, self.pid_particle_pair2[1].radius)
         self.z0_left    = 0.0
 
+        # This will determine if the shell is possible.
+        # If possible, it will write the dr, dz_right, dz_left defining the dimensions of the cylindrical shell.
+        # If not possible, it throws an exception and the construction of the testShell IS ABORTED!
         try:
             self.dr, self.dz_right, self.dz_left = \
                             self.determine_possible_shell([self.single1.domain_id, self.single2.domain_id],
@@ -992,6 +1133,9 @@ class PlanarSurfaceInteractiontestShell(CylindricaltestShell, testInteractionSin
         self.r0_left    = 0.0
         self.z0_left    = self.pid_particle_pair[1].radius
 
+        # This will determine if the shell is possible.
+        # If possible, it will write the dr, dz_right, dz_left defining the dimensions of the cylindrical shell.
+        # If not possible, it throws an exception and the construction of the testShell IS ABORTED!
         try:
             self.dr, self.dz_right, self.dz_left = \
                             self.determine_possible_shell([self.single.domain_id], [self.structure.id, self.surface.id])
@@ -1042,6 +1186,9 @@ class CylindricalSurfaceInteractiontestShell(CylindricaltestShell, testInteracti
         self.r0_left    = 0.0
         self.z0_left    = -self.particle_surface_distance
 
+        # This will determine if the shell is possible.
+        # If possible, it will write the dr, dz_right, dz_left defining the dimensions of the cylindrical shell.
+        # If not possible, it throws an exception and the construction of the testShell IS ABORTED!
         try:
             self.dr, self.dz_right, self.dz_left = \
                             self.determine_possible_shell([self.single.domain_id], [self.structure.id, self.surface.id])
@@ -1083,7 +1230,7 @@ class MixedPair2D3DtestShell(CylindricaltestShell, testMixedPair2D3D):
         # initialize commonly used constants
         self.sqrt_DRDr = math.sqrt((2*self.D_R)/(3*self.D_r))
 
-        # initialize scaling parameters
+        # initialize the scaling parameters
         self.drdz_right = self.get_scaling_factor() * ( self.sqrt_DRDr + max( self.pid_particle_pair1[1].D/self.D_tot,
                                                                               self.pid_particle_pair2[1].D/self.D_tot ))
         self.dzdr_right = 1.0/self.drdz_right
@@ -1094,6 +1241,9 @@ class MixedPair2D3DtestShell(CylindricaltestShell, testMixedPair2D3D):
         self.r0_left    = 0.0
         self.z0_left    = self.pid_particle_pair1[1].radius
 
+        # This will determine if the shell is possible.
+        # If possible, it will write the dr, dz_right, dz_left defining the dimensions of the cylindrical shell.
+        # If not possible, it throws an exception and the construction of the testShell IS ABORTED!
         try:
             self.dr, self.dz_right, self.dz_left = \
                             self.determine_possible_shell([self.single1.domain_id, self.single2.domain_id],
