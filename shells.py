@@ -743,7 +743,7 @@ class SphericaltestShell(testShell):
         return self.geometrycontainer.get_max_shell_size()
     def get_orientation_vector(self):
         # The orientation of the sphere is irrelevant, but needs to be defined.
-        return self.structure.unit_z    # NOTE: Is self.structure always well defined??
+        return self.structure.shape.unit_z    # NOTE: Is self.structure always well defined??
 
     def get_max_radius(self):
         # The maximum radius of the spherical testShell.

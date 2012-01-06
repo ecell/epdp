@@ -78,6 +78,9 @@ class Pair(ProtectiveDomain, Others):
                 self.pid_particle_pair2[1].D) / self.D_tot
     D_R = property(get_D_R)
 
+    def get_shell_direction(self):
+        return self.testShell.get_orientation_vector()
+
     def initialize(self, t):
         # re-initialize the time parameters of the Domain to reuse it.
         # THIS IS PROBABLY USELESS
@@ -325,10 +328,6 @@ class SphericalPair(SimplePair, hasSphericalShell):
         return GreensFunction3DRadAbs(self.D_r, self.interparticle_ktot, r0,
                                               self.sigma, self.a_r)
 
-# this is a part of hasShell (see testShell.get_orientation_vector())
-    def get_shell_direction(self):
-        return random_vector(1.0)
-
     # selects between the full solution or an approximation where one of
     # the boundaries is ignored
     def choose_pair_greens_function(self, r0, t):
@@ -423,9 +422,6 @@ class PlanarSurfacePair(SimplePair, hasCylindricalShell):
     def iv_greens_function(self, r0):
         return GreensFunction2DRadAbs(self.D_r, self.interparticle_ktot, r0,
                                       self.sigma, self.a_r)
-
-    def get_shell_direction(self):
-        return self.shell.shape.unit_z
 
     def choose_pair_greens_function(self, r0, t):
         # selects between the full solution or an approximation where one of
@@ -529,9 +525,6 @@ class CylindricalSurfacePair(SimplePair, hasCylindricalShell):
 
     def iv_greens_function(self, r0):
         return GreensFunction1DRadAbs(self.D_r, self.v_r, self.interparticle_ktot, r0, self.sigma, self.a_r)
-
-    def get_shell_direction(self):
-        return self.shell.shape.unit_z
 
     def choose_pair_greens_function(self, r0, t):
         # Todo
@@ -694,9 +687,6 @@ class MixedPair2D3D(Pair, hasCylindricalShell):
         return GreensFunction3DRadAbs(self.D_r, self.interparticle_ktot, max(r0, self.sigma),
                                       self.sigma, self.a_r)
 
-    def get_shell_direction(self):
-        return self.shell.shape.unit_z
-
     def create_com_vector(self, r):
         x, y = random_vector2D(r)
         # project the com onto the surface unit vectors to make sure that the coordinates are in the surface
@@ -774,7 +764,4 @@ class MixedPair1D3D(Pair):
     @classmethod
     def calc_r_scaling_factor(cls, D1, D2):
         return math.sqrt((D1 + D2)/D2)
-
-    def get_shell_direction(self):
-        return self.shell.shape.unit_z
 
