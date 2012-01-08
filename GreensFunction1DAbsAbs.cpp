@@ -573,7 +573,6 @@ GreensFunction1DAbsAbs::drawTime (Real rnd) const
 
 Real GreensFunction1DAbsAbs::p_int_r_table(Real const& r, 
                                            Real const& t,
-                                           Real const& p_surv,
                                            RealVector& table) const
 {   
     const Real a( geta() );
@@ -597,15 +596,16 @@ Real GreensFunction1DAbsAbs::p_int_r_table(Real const& r,
             return XI00(r, t, r0, D, v); //free particle.
         else
             //Only absorbing BCn at sigma.
-            return XI10(r - sigma, t, distTos, D, v) / p_surv; 
+            return XI10(r - sigma, t, distTos, D, v); 
     }
     else
     {
         if( distTos > maxDist )
             //Only absorbing BCn at a.
-            return XI10(a - r, t, distToa, D, -v) / p_surv;
+            return XI10(a - r, t, distToa, D, -v);
     }
 
+    Real p;
     const uint maxi( guess_maxi( t ) );
     if( table.size() < maxi )
     {
@@ -619,42 +619,29 @@ Real GreensFunction1DAbsAbs::p_int_r_table(Real const& r,
         std::cerr << "L: " <<  L << " r0: " << r0 - sigma << std::endl;
     }
 
-    uint n = 0;
-    do
-    {
-        if (n >= maxi )
-        {
-            log_.info("Too many terms needed for DrawR. N: %6u", n );
-            break;
-        }
-        prev_term = term;
-        
-        S_Cn_An = table[n];
-        n_L = ((Real)(n + 1.0)) * M_PI / L;
-        if(v2D==0.0)	
-            term = S_Cn_An * ( 1.0 - cos(n_L*(r-sigma)) );
-        else		
-            term = S_Cn_An * ( exp(v2D*sigma) + exp(v2D*r)*
-                               ( v2D/n_L*sin(n_L*(r-sigma)) 
-                                 - cos(n_L*(r-sigma)) ));
+    p = funcSum(boost::bind(&GreensFunction1DAbsAbs::p_int_r_i, 
+                            this, _1, t, table),
+                MAX_TERMS);
 
-        // S_Cn_An contains all expon. prefactors, the 1/S(t) term and all parts
-        // of the terms that do not depend on r.
-        // In case of zero drift the terms become S_An_Cn * ( 1 - cos(nPi/L*(r-sigma)) )
-        // as it should be. The if-statement is only to avoid calculation costs.
+    return p;
+}
 
-        sum += term;
-        n++;
-    }
-    while (fabs(term/sum) > EPSILON ||
-           fabs(prev_term/sum) > EPSILON ||
-           n < MIN_TERMS );
+Real p_int_r_i(uint i, Real const& t, RealVector& table) const
+{           
+    n_L = ((Real)(i + 1.0)) * M_PI / L;
 
-    return sum;
+    if(v2D==0.0)	
+        term = 1.0 - cos(n_L*(r-sigma));
+    else		
+        term = exp(v2D*sigma) + exp(v2D*r)*
+            ( v2D/n_L*sin(n_L*(r-sigma)) 
+              - cos(n_L*(r-sigma)) );
+    
+    return term * get_p_int_r_Table_i(i ,t, table);
 }
 
 /* Fills table for p_int_r of factors independent of r. */
-void GreensFunction1DAbsAbs::createP_int_r_Table( Real const& t,
+void GreensFunction1DAbsAbs::create_p_int_r_Table( Real const& t,
                                                   uint const& maxi,
                                                   RealVector& table ) const
 {    
@@ -681,7 +668,7 @@ void GreensFunction1DAbsAbs::createP_int_r_Table( Real const& t,
 
     while( n < maxi )
     {
-        nPI = ((Real)(n+1))*M_PI;	    // note: summation starting with n=1, indexing with n=0, therefore we need n+1 here
+        nPI = ((Real)(n+1))*M_PI;
 	    
         if( v == 0.0 )
             S_Cn_An = S * exp(nPI*nPI*expo) * sin(nPI*r0s_L) / nPI;
@@ -697,7 +684,7 @@ void GreensFunction1DAbsAbs::createP_int_r_Table( Real const& t,
 Real GreensFunction1DAbsAbs::drawR_f(Real r, void *p)
 {
     struct drawR_params *params = (struct drawR_params *)p;
-    return params->gf->p_int_r_table(r, params->t, params->p_surv, params->table) 
+    return params->gf->p_int_r_table(r, params->t, params->table) 
         - params->rnd;
 }
 
@@ -729,7 +716,7 @@ Real GreensFunction1DAbsAbs::drawR (Real rnd, Real t) const
     }
     
     RealVector pintTable;
-    struct drawR_params parameters = { this, t, pintTable, rnd, p_survival( t )};
+    struct drawR_params parameters = { this, t, pintTable, rnd * p_survival( t )};
     gsl_function F;
     F.function = &drawR_f;
     F.params = &parameters; 
