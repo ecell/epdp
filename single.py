@@ -260,6 +260,9 @@ class NonInteractionSingle(Single):
         # TODO We now just check in a sphere around the particle and size accordingly. For
         # NonInteractionSingles on the dna and membrane this is quite inefficient-> want to
         # size in the appropriate coordinate (r or z).
+        if self.getD() == 0.0:
+            return self.get_min_shell_size()
+        
         singlepos = self.pid_particle_pair[1].position
 #        closest, distance_to_shell = \
 #            geometrycontainer.get_closest_obj(singlepos, domains, ignore=[self.domain_id],

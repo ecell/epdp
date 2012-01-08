@@ -891,7 +891,7 @@ Real GreensFunction2DRadAbs::drawTime( const Real rnd) const
     else
     {	
         const Real t_Rad( D / gsl_pow_2( kf/(2*M_PI*a) ) + gsl_pow_2( r0 - sigma ) / D );
-        t_guess = std::min( t_Abs, t_Rad );	// take the shortest distance to a boundary
+        t_guess = std::min( t_Abs, t_Rad );	// take the shortest time to a boundary
     }
     
     t_guess *= .1;

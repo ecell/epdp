@@ -152,14 +152,18 @@ class EGFRDSimulator(ParticleSimulatorBase):
     def add_to_sinklist(self, sink_id):
         self.sinklist.append(sink_id)
         
-    def get_neighbor_sinks(self, position, structure_id):
+    def get_neighbor_sinks(self, position, species_id):
         sink_distance_list = []
         sinklist = self.sinklist
         
         for i in range( len( sinklist ) ):
-            sink_i = self.world.get_structure( sinklist[i] )        
-            sink_distance_list.append((sink_i, self.world.distance( position, sink_i.shape.position )))
-        
+            sink_i = self.world.get_structure( sinklist[i] )
+            interaction_rules = self.network_rules.query_reaction_rule(species_id, sink_i.sid)
+            for ir in interaction_rules:
+                if ir.k != 0:
+                    sink_distance_list.append((sink_i, self.world.distance( position, sink_i.shape.position )))
+                    break
+                    
         return sink_distance_list
 
     def get_next_time(self):
@@ -367,10 +371,9 @@ class EGFRDSimulator(ParticleSimulatorBase):
                 self.zero_steps += 1
                 # TODO Changed from 10 to 10000, because only a problem 
                 # when reaching certain magnitude.
+                # Ugly hack: changed exception -> print, so that is doesn't stop the simulation
                 if self.zero_steps >= max(self.scheduler.size * 3, self.MAX_NUM_DT0_STEPS): 
-                    raise RuntimeError('too many dt=zero steps. '
-                                       'Simulator halted?'
-                                    'dt= %.10g-%.10g' % (self.scheduler.top[1].time, self.t))
+                    print 'too many dt=zero steps. Simulator halted? dt= %.10g-%.10g' %(self.scheduler.top[1].time, self.t)
             else:
                 self.zero_steps = 0
 
@@ -451,7 +454,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
             z0 = numpy.dot (shell_unit_z, projected_point - shell_center)
 
             #Very ugly hack to make the function converge for drawTime.
-            shell_radius = min( shell_radius, 1e-8 )
+            shell_radius = min( shell_radius, 10*pid_particle_pair[1].radius )
 
             interaction = CylindricalSurfaceInteraction(domain_id, pid_particle_pair,
                                                         reaction_rules, structure,
@@ -1152,11 +1155,11 @@ class EGFRDSimulator(ParticleSimulatorBase):
         # Special case: When D=0, nothing needs to change and only new event
         # time is drawn
         # TODO find nicer construction than just this if statement
-        if single.getD() == 0:
-            single.dt, single.event_type = single.determine_next_event() 
-            single.last_time = self.t
-            self.add_domain_event(single)
-            return single
+        #if single.getD() == 0:
+        #    single.dt, single.event_type = single.determine_next_event() 
+        #    single.last_time = self.t
+        #    self.add_domain_event(single)
+        #    return single
 
 
         # 0. Get generic info
@@ -1173,7 +1176,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
             
         # For a particle on a rod (1D) only consider sinks. - one rod, with one sink for now.
         if isinstance(single, CylindricalSurfaceSingle):
-            surface_distances = self.get_neighbor_sinks( single_pos, single.structure.id )
+            surface_distances = self.get_neighbor_sinks( single_pos, single.pid_particle_pair[1].sid )
 
         # Check if there are shells with the burst radius (reaction_threshold)
         # of the particle (intruders). Note that we approximate the reaction_volume
