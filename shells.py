@@ -707,7 +707,7 @@ class SphericaltestShell(testShell):
             # FIXME ugly hack to make spherical singles overlap with membranes
             if isinstance(surface, PlanarSurface) and isinstance(self, SphericalSingletestShell):
                 distance += self.pid_particle_pair[1].radius
-            radius = min(radius, distance)
+            radius = min(radius, distance/SAFETY)
             if radius < min_radius:
                 raise ShellmakingError('Surface too close to make spherical testshell, '
                                        'surface = %s, distance = %s, testShell = %s' %
