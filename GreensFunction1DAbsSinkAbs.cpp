@@ -161,8 +161,8 @@ std::pair<Real, Real> GreensFunction1DAbsSinkAbs::get_lower_and_upper() const
     /* f_lower must have correct sign. */
     if( f_lower * parity_op > 0 )
     {
-        log_.warn("Parity error in x_lower of root# %6u .",
-                  rootList_size() + 1);
+        log_.warn("f(lower) has wrong sign at root# %6u, for h = %.5g, Lm/L = %.5g.",
+                  rootList_size() + 1, lo_up_params.h, lo_up_params.Lm_L );
 
         log_.warn("f_low( %.16g ) =  %.16g , f_high( %.16g ) = %.16g",
                   lower, f_lower, upper, f_upper);
@@ -173,23 +173,46 @@ std::pair<Real, Real> GreensFunction1DAbsSinkAbs::get_lower_and_upper() const
     {
         int cntr = 0;
 
-        const Real delta( .1 * std::min(left_offset, right_offset) );
+        Real delta( .1 * safety * right_offset );
+        const Real save_upper( upper );
         
         cntr = 0;
-        //TODO: find out is upper is left or right from next_root.
+
+        /* Assuming the upper point has overshoot the straddle region,
+           subtract from the upper limit, until endpoits do straddle.
+         */
         while(f_upper * parity_op < 0 && cntr++ < 10 )
         {
-            //Assume overshoot for now.
+            //Correct for overshoot.
             upper -= delta;
             f_upper = root_f( upper, &p );
         }
 
+        /* If upper point still doesn't straddle the root, increase the old estimate 
+           of upper, until it does straddle*/
         if(cntr >= 10)
         {
-            log_.warn("Failed to straddle root# %6u . ",
-                      rootList_size() + 1);
-            log_.warn("f_low( %.16g ) =  %.16g , f_high( %.16g ) = %.16g",
-                  lower, f_lower, upper, f_upper);
+            cntr = 0;
+            upper = save_upper;
+            f_upper = root_f( upper, &p );
+
+            while(f_upper * parity_op < 0 && cntr++ < 10 )
+            {
+                //Correct for undershoot.
+                upper += delta;
+                f_upper = root_f( upper, &p );
+            }
+
+            // Still no straddle? => Crash is imminent.
+            if(cntr >= 10)
+            {
+                log_.warn("Failed to straddle root# %6u. ",
+                          rootList_size() + 1);
+                log_.warn("next root est. = %.16g with stepsize: %.16g, ll: %.16g, ls: %.16g.", 
+                          next_root_est, delta, lo_up_params.last_long_root, lo_up_params.last_short_root);
+                log_.warn("f_low( %.16g ) =  %.16g, f_high( %.16g ) = %.16g.",
+                          lower, f_lower, upper, f_upper);
+            }
         }
 
     }
