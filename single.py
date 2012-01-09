@@ -270,8 +270,8 @@ class SphericalSingle(NonInteractionSingle, hasSphericalShell):
     # these return potentially corrected dimensions
     # For explanation see NonInteractionSingles and Others in shells.py
     def shell_list_for_single(self):
-        min_radius = self.pid_particle_pair[1].radius * MULTI_SHELL_FACTOR
-#        min_radius = self.testShell.get_min_radius()
+#        min_radius = self.pid_particle_pair[1].radius * MULTI_SHELL_FACTOR
+        min_radius = self.testShell.get_min_radius()
         if  self.shell.shape.radius < min_radius:
             position = self.shell.shape.position
             fake_shell = self.create_new_shell(position, min_radius, self.domain_id)
@@ -331,8 +331,8 @@ class PlanarSurfaceSingle(NonInteractionSingle, hasCylindricalShell):
     def shell_list_for_single(self):
         # The shell should always be larger that the bare minimum for a test shell
         # Note that in case of a cylindrical shell this fits inside of the spherical multi shell
-        min_radius = self.pid_particle_pair[1].radius * math.sqrt(MULTI_SHELL_FACTOR**2 - 1.0)
-#        min_radius, _, _ = self.testShell.get_min_dr_dzright_dzleft()
+#        min_radius = self.pid_particle_pair[1].radius * math.sqrt(MULTI_SHELL_FACTOR**2 - 1.0)
+        min_radius, _, _ = self.testShell.get_min_dr_dzright_dzleft()
         if self.shell.shape.radius < min_radius:
             position = self.shell.shape.position
             half_length = self.shell.shape.half_length
@@ -406,8 +406,8 @@ class CylindricalSurfaceSingle(NonInteractionSingle, hasCylindricalShell):
     def shell_list_for_single(self):
         # The shell should always be larger that the bare minimum for a test shell
         # Note that in case of a cylindrical shell this fits inside of the spherical multi shell
-        min_half_length = self.pid_particle_pair[1].radius * math.sqrt(MULTI_SHELL_FACTOR**2 - 1.0)
-#        _, min_half_length, _ = self.testShell.get_min_dr_dzright_dzleft()
+#        min_half_length = self.pid_particle_pair[1].radius * math.sqrt(MULTI_SHELL_FACTOR**2 - 1.0)
+        _, min_half_length, _ = self.testShell.get_min_dr_dzright_dzleft()
         if self.shell.shape.half_length < min_half_length:
             position = self.shell.shape.position
             radius = self.shell.shape.radius
