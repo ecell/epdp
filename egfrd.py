@@ -35,13 +35,14 @@ from constants import *
 from shellcontainer import ShellContainer
 from shells import (
     testShellError,
+    testPair,
+    testInteractionSingle,
     SphericalSingletestShell,
     SphericalPairtestShell,
     PlanarSurfaceSingletestShell,
     PlanarSurfacePairtestShell,
     CylindricalSurfaceSingletestShell,
     CylindricalSurfacePairtestShell,
-    testInteractionSingle,
     PlanarSurfaceInteractiontestShell,
     CylindricalSurfaceInteractiontestShell,
     MixedPair2D3DtestShell,
