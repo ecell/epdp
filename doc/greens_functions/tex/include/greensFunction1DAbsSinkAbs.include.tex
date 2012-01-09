@@ -1,40 +1,38 @@
 
-\subsection{1D Abs Abs}
+\subsection{1D Abs Sink Abs}
 
 \paragraph{Green's function}
-
+is divided into two composite domains with functions $p_l$ and $p_r$ and the sink (rate k) at the origin. The left and right domains have lengths of respectively $L_l$ and $L_r$. $x_0$ is assumed to be in the right domain.
  \begin{multline}
- p_r(x,t|x_0) = -2 \sum_{i=1}^{\infty} \, e^{- D \beta_i ^2 t} \, \mathrm{sin} \, \beta_i (L_r - x) \\ 
-\frac{D \beta_i \, \mathrm{sin} \, \beta_i (L_l + x_0) + k \, \mathrm{sin} \, \beta_i L_l \,\, \mathrm{sin} \, \beta_i x_0}{D \, (L \beta_i \mathrm{cos} \, \beta_i L + \, \mathrm{sin} \, L \beta_i ) + k \,( L_r \, \mathrm{cos} \, \beta_i L_r \,\, \mathrm{sin} \, \beta_i L_l + L_l \, \mathrm{cos} \, \beta_i L_l \,\, \mathrm{sin} \, \beta_i L_r )},
- \label{FSOL_R}
+ p_r(x,t|x_0) = - \sum_{i=1}^{\infty} \, e^{- D \beta_i ^2 t} \, 2 \, \mathrm{sin} \, \beta_i (L_r - x) \, \frac{D \beta_i \, \mathrm{sin} \, \beta_i (L_l + x_0) + k \, \mathrm{sin} \, \beta_i L_l \,\, \mathrm{sin} \, \beta_i x_0}{h'( \beta_i )},
 \end{multline}
-
 \begin{multline}
- p_l(x,t,|x_0) = -\sum_{i=1}^{\infty} e^{- D \beta_i ^2 t} \, 2 D \beta_i \, \\ 
-\frac{\mathrm{sin} \, \beta_i (L_l + x) \,\, \mathrm{sin} \, \beta_i (L_r - x_0)}{D \, (L \beta_i \mathrm{cos} \, \beta_i L + \, \mathrm{sin} \, L \beta_i ) + k \,( L_r \, \mathrm{cos} \, \beta_i L_r \,\, \mathrm{sin} \, \beta_i L_l + L_l \, \mathrm{cos} \, \beta_i L_l \,\, \mathrm{sin} \, \beta_i L_r )},
-\label{FSOL_L}
+ p_l(x,t,|x_0) = -\sum_{i=1}^{\infty} e^{- D \beta_i ^2 t} \, 2 D \beta_i \, \frac{\mathrm{sin} \, \beta_i (L_l + x) \,\, \mathrm{sin} \, \beta_i (L_r - x_0)}{h'( \beta_i )},
 \end{multline}
-
-where $L=L_r + L_l$ in both equations. Note that when $p_r$ is evaluated for $x<x_0$, $x$ and $x_0$ have to be interchanged in equation (\ref{FSOL_R}). This is due to the absolute sign in the Ansatz (\ref{Anz_R}).
-\end{align}
+where $L=L_r + L_l$ in both equations. Note that when $p_r$ is evaluated for $x<x_0$, $x$ and $x_0$ have to be interchanged. The denominator $h'( \beta_i )$ is
+\begin{equation*}
+h'( \beta_i ) = D \, (L \beta_i \mathrm{cos} \, \beta_i L + \, \mathrm{sin} \, L \beta_i ) + k \,( L_r \, \mathrm{cos} \, \beta_i L_r \,\, \mathrm{sin} \, \beta_i L_l + L_l \, \mathrm{cos} \, \beta_i L_l \,\, \mathrm{sin} \, \beta_i L_r )
+\end{equation*}
+The $\beta_i$'s are the roots of the equation
+\begin{equation*} 
+ D\beta_i \, \mathrm{sinh} \, \beta_i (L_r + L_l) + k \, \mathrm{sinh} \, \beta_i L_l \, \mathrm{sinh} \, \beta_i L_r = 0.
+\end{equation*}
 
 \paragraph{Survival probability}
-\begin{align}
-  S_z(t) = \int_0^L p dz = \frac{4}{\pi} \sum_{m=0}^{\infty} \frac{1}{2m+1}
-  e^{-D_1(2m+1)^2\pi^2t/L^2} \sin\left(\frac{(2m+1)\pi z'}{L}\right).
-\end{align}
+\begin{multline}
+S(t|x_0) = \bigg( 2 D \left[ \mathrm{sin} \, q L \, - \, \mathrm{sin} \, q (L_r - x_0) \, - \, \mathrm{sin} \, q (L_l + x_0)  \right] \, + \, \\ 
+ \frac{2 k}{q} \mathrm{sin} \, q L_l \left[ \mathrm{sin} \, q L_r \, - \, \mathrm{sin} \, q x_0 \, - \, \mathrm{sin} \, q (L_r - x_0) \right] \bigg) / h'( \beta_i ),
+\end{multline}
+where $q = \beta_i / L$.
 
-\paragraph{Propensity function}
+\paragraph{Propensity functions}
 \begin{align}
-  q_{z=0}(t) &= \left.D_1 \pd{p}{z}\right|_{z=0} = \frac{2\pi D_1}{L^2} 
-  \sum_{n=1}^{\infty} e^{-D_1n^2\pi^2t/L^2} n \sin\left(\frac{n\pi z'}{L}\right),\\
-  q_{z=L}(t) &= \left.- D_1 \pd{p}{z}\right|_{z=L} = \frac{2\pi D_1}{L^2} 
-  \sum_{n=1}^{\infty} e^{-D_1n^2\pi^2t/L^2} n (-1)^{n+1} \sin\left(\frac{n\pi z'}{L}\right).
+  q_{x=L_l}(t) = \\
+  q_{x=L_r}(t) = \\
+  q_{x=0}(t) =
 \end{align}
 
 \paragraph{Cumulative Green's function}
 \begin{align}
-  P(Z,t|z',t'=0) = \int_0^Z p dz =
-  \frac{2}{\pi} \sum_{n=1}^{\infty} e^{-D_1n^2\pi^2 t/L^2}
-      \frac{1}{n} \left[ 1 - \cos\left(\frac{n\pi Z}{L}\right) \right] \sin\left(\frac{n\pi z'}{L}\right).
+  P(X,t|x_0,t'=0) =
 \end{align}
