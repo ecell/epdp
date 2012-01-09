@@ -121,6 +121,7 @@ class testNonInteractionSingle(testSingle, NonInteractionSingles):
 class testInteractionSingle(testSingle, Others):
 
     def __init__(self, single, structure, surface):
+        assert single.is_reset()
         testSingle.__init__(self, single.pid_particle_pair, structure)
         # Note: for the Others superclass nothing is to be initialized.
 

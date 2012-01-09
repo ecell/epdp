@@ -52,34 +52,37 @@ import os
 
 log = logging.getLogger('ecell')
 
-
-def create_default_single(domain_id, pid_particle_pair, shell_id, rt, structure, geometrycontainer, domains):
+### Singles
+def create_default_single(domain_id, shell_id, pid_particle_pair, structure, reaction_rules, geometrycontainer, domains):
     if isinstance(structure, CuboidalRegion):
         # first make the test shell
         testSingle = SphericalSingletestShell(pid_particle_pair, structure, geometrycontainer, domains)
-        return SphericalSingle(domain_id, shell_id, testSingle, rt)
+        return SphericalSingle          (domain_id, shell_id, testSingle, reaction_rules)
     elif isinstance(structure, PlanarSurface):
         # first make the test shell
         testSingle = PlanarSurfaceSingletestShell(pid_particle_pair, structure, geometrycontainer, domains)
-        return PlanarSurfaceSingle(domain_id, shell_id, testSingle, rt)
+        return PlanarSurfaceSingle      (domain_id, shell_id, testSingle, reaction_rules)
     elif isinstance(structure, CylindricalSurface):
         # first make the test shell
         testSingle = CylindricalSurfaceSingletestShell(pid_particle_pair, structure, geometrycontainer, domains)
-        return CylindricalSurfaceSingle(domain_id, shell_id, testSingle, rt)
+        return CylindricalSurfaceSingle (domain_id, shell_id, testSingle, reaction_rules)
 
+### Interactions
+def try_default_testinteraction(single, surface, geometrycontainer, domains):
+    if isinstance(surface, PlanarSurface):
+        return PlanarSurfaceInteractiontestShell(single, surface, geometrycontainer, domains)
+    elif isinstance(surface, CylindricalSurface):
+        return CylindricalSurfaceInteractiontestShell(single, surface, geometrycontainer, domains)
+    else:
+        raise testShellError('(Interaction). surface is not supported')
 
-def create_default_pair(domain_id, shell_id, testShell, rrs):
-    # Either SphericalPair, PlanarSurfacePair, or CylindricalSurfacePair.
-    if   isinstance(testShell, SphericalPairtestShell):
-        return SphericalPair          (domain_id, shell_id, testShell, rrs)
-    elif isinstance(testShell, PlanarSurfacePairtestShell):
-        return PlanarSurfacePair      (domain_id, shell_id, testShell, rrs)
-    elif isinstance(testShell, CylindricalSurfacePairtestShell):
-        return CylindricalSurfacePair (domain_id, shell_id, testShell, rrs)
-    # or MixedPair (3D/2D)
-    elif isinstance(testShell, MixedPair2D3DtestShell):
-        return MixedPair2D3D          (domain_id, shell_id, testShell, rrs)
+def create_default_interaction(domain_id, shell_id, testShell, reaction_rules, interaction_rules):
+    if isinstance(testShell, CylindricalSurfaceInteractiontestShell):
+        return CylindricalSurfaceInteraction (domain_id, shell_id, testShell, reaction_rules, interaction_rules)
+    elif isinstance(testShell, PlanarSurfaceInteractiontestShell):
+        return PlanarSurfaceInteraction      (domain_id, shell_id, testShell, reaction_rules, interaction_rules)
 
+### Pairs
 def try_default_testpair(single1, single2, geometrycontainer, domains):
     if single1.structure == single2.structure:
         if isinstance(single1.structure, CuboidalRegion):
@@ -96,13 +99,17 @@ def try_default_testpair(single1, single2, geometrycontainer, domains):
         # a 1D/3D pair was supposed to be formed -> unsupported
         raise testShellError('(MixedPair). combination of structure not supported')
         
-def try_default_testinteraction(single, surface, geometrycontainer, domains):
-    if isinstance(surface, PlanarSurface):
-        return PlanarSurfaceInteractiontestShell(single, surface, geometrycontainer, domains)
-    elif isinstance(surface, CylindricalSurface):
-        return CylindricalSurfaceInteractiontestShell(single, surface, geometrycontainer, domains)
-    else:
-        raise testShellError('(Interaction). surface is not supported')
+def create_default_pair(domain_id, shell_id, testShell, reaction_rules):
+    # Either SphericalPair, PlanarSurfacePair, or CylindricalSurfacePair.
+    if   isinstance(testShell, SphericalPairtestShell):
+        return SphericalPair          (domain_id, shell_id, testShell, reaction_rules)
+    elif isinstance(testShell, PlanarSurfacePairtestShell):
+        return PlanarSurfacePair      (domain_id, shell_id, testShell, reaction_rules)
+    elif isinstance(testShell, CylindricalSurfacePairtestShell):
+        return CylindricalSurfacePair (domain_id, shell_id, testShell, reaction_rules)
+    # or MixedPair (3D/2D)
+    elif isinstance(testShell, MixedPair2D3DtestShell):
+        return MixedPair2D3D          (domain_id, shell_id, testShell, reaction_rules)
 
 
 class DomainEvent(Event):
@@ -392,13 +399,17 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
 
     def create_single(self, pid_particle_pair):
+    # Create a new single domain from a particle.
+    # The interaction can be any NonInteractionSingle (SphericalSingle, PlanarSurface or CylindricalSurface
+    # NonInteractionSingle).
 
         # 1. generate identifiers for the domain and shell. The event_id is
         # generated by the scheduler
         domain_id = self.domain_id_generator()
         shell_id = self.shell_id_generator()
 
-        rrs = self.network_rules.query_reaction_rule(pid_particle_pair[1].sid)
+        # get unimolecular reaction rules
+        reaction_rules = self.network_rules.query_reaction_rule(pid_particle_pair[1].sid)
         # Get structure (region or surface) where the particle lives.
         species = self.world.get_species(pid_particle_pair[1].sid)
         structure = self.world.get_structure(species.structure_id)
@@ -408,8 +419,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
         # depends on the structure (region or surface) this particle is 
         # in/on. Either SphericalSingle, PlanarSurfaceSingle, or 
         # CylindricalSurfaceSingle.
-        single = create_default_single(domain_id, pid_particle_pair, 
-                                       shell_id, rrs, structure,
+        single = create_default_single(domain_id, shell_id, pid_particle_pair, 
+                                       structure, reaction_rules,
                                        self.geometrycontainer, self.domains)
 
         assert isinstance(single, NonInteractionSingle)
@@ -422,11 +433,14 @@ class EGFRDSimulator(ParticleSimulatorBase):
         if __debug__:
             # Used in __str__.
             single.world = self.world
+
         return single
 
     def create_interaction(self, testShell):
+    # Create a new interaction domain from a testShell.
+    # The interaction can be any interaction (PlanarSurface or CylindricalSurface). The creation of the testShell was
+    # succesful, so here we can just make the domain.
 
-##        assert single.dt == 0.0 and single.get_mobility_radius() == 0.0
 #       assert that the particle is not already associate with another domain
 
         assert isinstance(testShell, testInteractionSingle)
@@ -436,25 +450,21 @@ class EGFRDSimulator(ParticleSimulatorBase):
         domain_id = self.domain_id_generator()
         shell_id = self.shell_id_generator()
 
-        species_id = testShell.pid_particle_pair[1].sid
-        species = self.world.get_species(species_id)
-        # the structure on which the particle lives
-        structure = self.world.get_structure(species.structure_id)
-        # the surface_id if the interaction surface
-        surface_id = testShell.surface.sid
-
         # get unimolecular reaction rules
+        species_id = testShell.pid_particle_pair[1].sid
         reaction_rules = self.network_rules.query_reaction_rule(species_id)
         # get reaction rules for interaction
+        surface_id = testShell.surface.sid
         interaction_rules = self.network_rules.query_reaction_rule(species_id, surface_id)
 
 
-        if isinstance(testShell, CylindricalSurfaceInteractiontestShell):
-            interaction = CylindricalSurfaceInteraction(domain_id, shell_id, testShell,
-                                                        reaction_rules, interaction_rules)
-        elif isinstance(testShell, PlanarSurfaceInteractiontestShell):
-            interaction = PlanarSurfaceInteraction(domain_id, shell_id, testShell,
-                                                   reaction_rules, interaction_rules)
+        # 2. Create and register the interaction domain.
+        # The type of the interaction that will be created 
+        # depends on the surface (planar or cylindrical) the particle is 
+        # trying to associate with. Either PlanarSurfaceInteraction or 
+        # CylindricalSurfaceInteraction.
+        interaction = create_default_interaction(domain_id, shell_id, testShell,
+                                                 reaction_rules, interaction_rules)
 
         assert isinstance(interaction, InteractionSingle)
         interaction.initialize(self.t)
@@ -470,27 +480,24 @@ class EGFRDSimulator(ParticleSimulatorBase):
         return interaction
 
     def create_pair(self, testShell):
+    # Create a new pair domain from a testShell.
+    # The pair can be any pair (Simple or Mixed). The creation of the testShell was
+    # succesful, so here we can just make the domain.
 
-        pid_particle_pair1 = testShell.pid_particle_pair1
-        pid_particle_pair2 = testShell.pid_particle_pair2
+        assert isinstance(testShell, testPair)
 
         # 1. generate needed identifiers
         domain_id = self.domain_id_generator()
         shell_id = self.shell_id_generator()
 
         # Select 1 reaction type out of all possible reaction types between the two particles.
-        rrs = self.network_rules.query_reaction_rule(pid_particle_pair1[1].sid,
-                                                     pid_particle_pair2[1].sid)
+        reaction_rules = self.network_rules.query_reaction_rule(testShell.pid_particle_pair1[1].sid,
+                                                                testShell.pid_particle_pair2[1].sid)
 
-        # Get structure (region or surface) where particles live.
-        species1 = self.world.get_species(pid_particle_pair1[1].sid)
-        species2 = self.world.get_species(pid_particle_pair2[1].sid)
-        structure1 = self.world.get_structure(species1.structure_id)
-        structure2 = self.world.get_structure(species2.structure_id)
 
         # 2. Create pair. The type of the pair that will be created depends
         # on the structure (region or surface) the particles are in/on.  
-        pair = create_default_pair(domain_id, shell_id, testShell, rrs)
+        pair = create_default_pair(domain_id, shell_id, testShell, reaction_rules)
 
         assert isinstance(pair, Pair)
         pair.initialize(self.t)
@@ -502,6 +509,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
         if __debug__:
             # Used in __str__.
             pair.world = self.world
+
         return pair
 
     def create_multi(self):
@@ -520,16 +528,16 @@ class EGFRDSimulator(ParticleSimulatorBase):
 #    def move_single(self, single, position, radius=None):
 #        single.pid_particle_pair = self.move_particle(single.pid_particle_pair, position)
 #        self.update_single_shell(single, position, radius)
-
-    def update_single_shell(self, single, shell):#position, radius=None):
-        # Reuse shell_id.
-        shell_id = single.shell_id
-
-        # Replace shell.
-        shell_id_shell_pair = (shell_id, shell) 
-
-        single.shell_id_shell_pair = shell_id_shell_pair
-        self.geometrycontainer.move_shell(shell_id_shell_pair)
+#
+#    def update_single_shell(self, single, shell):#position, radius=None):
+#        # Reuse shell_id.
+#        shell_id = single.shell_id
+#
+#        # Replace shell.
+#        shell_id_shell_pair = (shell_id, shell) 
+#
+#        single.shell_id_shell_pair = shell_id_shell_pair
+#        self.geometrycontainer.move_shell(shell_id_shell_pair)
 
     def move_particle(self, pid_particle_pair, position):
         # moves a particle in world based on an existing particle
@@ -1116,6 +1124,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
         # can only make new domain from NonInteractionSingle
         assert isinstance(single, NonInteractionSingle)
+        assert single.is_reset()
         
         # Special case: When D=0, nothing needs to change and only new event
         # time is drawn
@@ -1258,7 +1267,6 @@ class EGFRDSimulator(ParticleSimulatorBase):
             if closest_overlap > 0.0: 
                 # just make a normal NonInteractionSingle
                 self.update_single(single)
-                self.add_domain_event(single)
             else:
                 # An object was closer than the Multi horizon
                 # Form a multi with everything that is in the multi_horizon
@@ -1310,31 +1318,53 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
 
     def update_single(self, single): 
-        assert isinstance(single, NonInteractionSingle) # This only works for 'simple' Singles
+    # updates a NonInteractionSingle given that the single already holds its new position
 
-        singlepos = single.pid_particle_pair[1].position
+        # The method only works for NonInteractionSingles
+        assert isinstance(single, NonInteractionSingle)
+
+        singlepos = single.pid_particle_pair[1].position    # TODO get the position as an argument
+
+
+        # create a new updated shell
         new_shell = single.create_updated_shell(singlepos)
         assert new_shell, 'single.create_updated_shell() returned None.'
 
+        # Replace shell in domain and geometrycontainer.
+        # Note: this should be done before determine_next_event.
+        # Reuse shell_id.
+        shell_id_shell_pair = (single.shell_id, new_shell) 
+        single.shell_id_shell_pair = shell_id_shell_pair
+        self.geometrycontainer.move_shell(shell_id_shell_pair)
         if __debug__:
-            log.info('update_single: single: %s, new_shell = %s' % \
+            log.info('        *Updated single: single: %s, new_shell = %s' % \
                      (single, str(new_shell)))
 
-        # Resize shell, don't change position.
-        # Note: this should be done before determine_next_event.
-        self.update_single_shell(single, new_shell)        
-
         single.dt, single.event_type = single.determine_next_event()
+        assert single.dt >= 0
+        if __debug__:
+            log.info('dt=%s' % (FORMAT_DOUBLE % single.dt)) 
+
         single.last_time = self.t
+
+        # check everything is ok
+        assert self.check_domain(single)
+        # add to scheduler
+        self.add_domain_event(single)
+
+        return single
 
 
     def process_single_event(self, single):
+    # This method handles the things that need to be done when the current event was
+    # produced by a single. The single can be a NonInteractionSingle or an InteractionSingle.
+    # Note that this method is also called when a single is bursted. This event in that
+    # case is just a BURST event.
 
         ### log Single event
         if __debug__:
             log.info('FIRE SINGLE: %s' % single.event_type)
             log.info('single = %s' % single)
-
 
 
         if single.is_reset():
@@ -1351,6 +1381,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
         else:
         ### 1. Process 'normal' event produced by the single
 
+            assert self.check_domain(single)
             # check that the event time of the single (last_time + dt) is equal to the
             # simulator time
             assert (abs(single.last_time + single.dt - self.t) <= TIME_TOLERANCE * self.t), \
@@ -1426,12 +1457,20 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
 
     def process_pair_event(self, pair):
-        assert self.check_domain(pair)
+    # This method handles the things that need to be done when the current event was
+    # produced by a pair.
+    # Note that this method is also called when a pair is bursted. This event in that
+    # case is just a BURST event.
 
         if __debug__:
             log.info('FIRE PAIR: %s' % pair.event_type)
             log.info('single1 = %s' % pair.single1)
             log.info('single2 = %s' % pair.single2)
+
+        ### 1. check that everything is ok
+        assert self.check_domain(pair)
+        assert pair.single1.domain_id not in self.domains
+        assert pair.single2.domain_id not in self.domains
 
         # check that the event time of the single (last_time + dt) is equal to the
         # simulator time
@@ -1439,26 +1478,24 @@ class EGFRDSimulator(ParticleSimulatorBase):
             'Timeline incorrect. pair.last_time = %s, pair.dt = %s, self.t = %s' % \
             (FORMAT_DOUBLE % pair.last_time, FORMAT_DOUBLE % pair.dt, FORMAT_DOUBLE % self.t)
 
-
-
+        ### 2. get some necessary information
         single1 = pair.single1
         single2 = pair.single2
-        assert single1.domain_id not in self.domains
-        assert single2.domain_id not in self.domains
-
         pid_particle_pair1 = pair.pid_particle_pair1
         pid_particle_pair2 = pair.pid_particle_pair2
-        pos1 = pid_particle_pair1[1].position
-        pos2 = pid_particle_pair2[1].position
+        oldpos1 = pid_particle_pair1[1].position
+        oldpos2 = pid_particle_pair2[1].position
+
 
         if pair.event_type == EventType.IV_EVENT:
             # Draw actual pair event for iv at very last minute.
             pair.event_type = pair.draw_iv_event_type(pair.r0)
 
+
+        ### 3. Process the event produced by the pair
         self.pair_steps[pair.event_type] += 1
 
-
-        # Get new position of particles
+        ### 3.1 Get new position of particles
         if pair.dt > 0.0:
             newpos1, newpos2 = pair.draw_new_positions(pair.dt, pair.r0, pair.iv, pair.event_type)
             newpos1 = self.world.apply_boundary(newpos1)
@@ -1484,9 +1521,9 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
         self.remove_domain(pair)
 
-        # If identity changing processes have taken place
-        # Four cases:
-        #  1. Single reaction
+        ### 3.2 If identity changing processes have taken place
+        #       Four cases:
+        #       1. Single reaction
         if pair.event_type == EventType.SINGLE_REACTION:
             reactingsingle = pair.reactingsingle
 
@@ -1504,7 +1541,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
             if __debug__:
                 log.info('reactant = %s' % reactingsingle)
 
-            
+            # Make new NonInteractionSingle domains for every particle after the reaction.
             domains = []
             for pid_particle_pair in particles:
                 # 5. make a new single and schedule
@@ -1513,12 +1550,13 @@ class EGFRDSimulator(ParticleSimulatorBase):
                 domains.append(single)
 
         #
-        # 2. Pair reaction
+        #       2. Pair reaction
         #
         elif pair.event_type == EventType.IV_REACTION:
 
             particles = self.fire_pair_reaction (pair, newpos1, newpos2)
 
+            # Make new NonInteractionSingle domains for every particle after the reaction.
             domains = []
             for pid_particle_pair in particles:
                 # 5. make a new single and schedule
@@ -1527,8 +1565,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
                 domains.append(single)
 
         # Just moving the particles
-        #  3a. IV escape
-        #  3b. com escape
+        #       3a. IV escape
+        #       3b. com escape
         elif(pair.event_type == EventType.IV_ESCAPE or
              pair.event_type == EventType.COM_ESCAPE or
              pair.event_type == EventType.BURST):
@@ -1536,7 +1574,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
             particles = self.fire_move (single1, newpos1, pid_particle_pair2)
             particles.extend(self.fire_move (single2, newpos2, pid_particle_pair1))
 
-            # make new NonInteractionSingeles and reschedule domains
+            # Make new NonInteractionSingle domains for every particle after the reaction.
             domains = []
             for pid_particle_pair in particles:
                 # 5. make a new single and schedule
@@ -1597,9 +1635,9 @@ class EGFRDSimulator(ParticleSimulatorBase):
         # Log the event
         if __debug__:
             log.debug("process_pair_event: #1 { %s: %s => %s }" %
-                      (single1, str(pos1), str(newpos1)))
+                      (single1, str(oldpos1), str(newpos1)))
             log.debug("process_pair_event: #2 { %s: %s => %s }" %
-                      (single2, str(pos2), str(newpos2)))
+                      (single2, str(oldpos2), str(newpos2)))
 
         return domains
 
@@ -1684,17 +1722,15 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
 
     def try_interaction(self, single, surface):
-        # Try to form an interaction between the 'single' particle and the 'surface'.
-        assert single.is_reset()
-
-        pid_particle_pair = single.pid_particle_pair
-        particle = pid_particle_pair[1]
+    # Try to form an interaction between the 'single' particle and the 'surface'. The interaction can be a:
+    # -CylindricalSurfaceInteraction
+    # -PlanarSurfaceInteraction
 
         if __debug__:
-           log.debug('trying to form Interaction(%s, %s)' % (particle, surface))
+           log.debug('trying to form Interaction(%s, %s)' % (single.pid_particle_pair[1], surface))
 
 
-        ### 1. See if there is enough space for the shell
+        ### 1. Attempt to make a testShell. If it fails it will throw an exception.
         try:
             testShell = try_default_testinteraction(single, surface, self.geometrycontainer, self.domains)
         except testShellError as e:
@@ -1705,23 +1741,28 @@ class EGFRDSimulator(ParticleSimulatorBase):
                           str(e) ))
 
 
-        ### 2. The shell can be made. Now do what's necessary to make it
+        ### 2. The testShell was made succesfully. Now make the complete domain
         if testShell:
+            # make the domain
             interaction = self.create_interaction(testShell)
+            if __debug__:
+                log.info('        *Created: %s' % (interaction))
 
+            # get the next event time
             interaction.dt, interaction.event_type, = interaction.determine_next_event()
-            assert interaction.dt > 0.0
+            assert interaction.dt >= 0.0
+            if __debug__:
+                log.info('dt=%s' % (FORMAT_DOUBLE % interaction.dt)) 
 
             self.last_time = self.t
 
             self.remove_domain(single)
             # the event associated with the single will be removed by the scheduler.
 
+            # check everything is ok
             assert self.check_domain(interaction)
+            # add to scheduler
             self.add_domain_event(interaction)
-
-            if __debug__:
-                log.info('        *Created: %s' % (interaction))
 
             return interaction
         else:
@@ -1729,13 +1770,17 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
 
     def try_pair(self, single1, single2):
+    # Try to make a pair domain out of the two singles. A pair domain can be a:
+    # -SimplePair (both particles live on the same structure)
+    # -MixedPair (the particles live on different structures -> MixedPair2D3D)
+    # Note that single1 is always the single that initiated the creation of the pair
+    #  and is therefore no longer in the scheduler
+
         if __debug__:
             log.debug('trying to form Pair(%s, %s)' %
                 (single1.pid_particle_pair, single2.pid_particle_pair))
 
-        assert single1.is_reset()
-        assert single2.is_reset()
-
+        ### 1. Attempt to make a testShell. If it fails it will throw an exception.
         try:
             testShell = try_default_testpair(single1, single2, self.geometrycontainer, self.domains)
         except testShellError as e:
@@ -1746,30 +1791,30 @@ class EGFRDSimulator(ParticleSimulatorBase):
                           str(e) ))
 
 
-        # if a pair could be formed
+        ### 2. If the testShell could be formed, make the complete domain.
         if testShell:
             pair = self.create_pair(testShell)
             if __debug__:
-                log.info('Created: %s' % (pair))
+                log.info('        *Created: %s' % (pair))
 
-            pair.dt, pair.event_type, pair.reactingsingle = \
-            pair.determine_next_event(pair.r0)
-
+            pair.dt, pair.event_type, pair.reactingsingle = pair.determine_next_event(pair.r0)
             assert pair.dt >= 0
+            if __debug__:
+                log.info('dt=%s' % (FORMAT_DOUBLE % pair.dt)) 
 
             self.last_time = self.t
 
             self.remove_domain(single1)
             self.remove_domain(single2)
 
-            # single1 will be removed by the scheduler.
+            # single1 will be removed by the scheduler, since it initiated the creation of the
+            # pair.
             self.remove_event(single2)
 
+            # check everything is ok
             assert self.check_domain(pair)
+            # add to scheduler
             self.add_domain_event(pair)
-
-            if __debug__:
-                log.info('dt=%s' % (FORMAT_DOUBLE % pair.dt)) 
 
             return pair
         else:
