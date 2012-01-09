@@ -891,7 +891,7 @@ Real GreensFunction1DAbsSinkAbs::p_int_r_table(Real const& r,
     /* Determine in which part of the domain rr lies, and
        thus which function to use. */
     Real (GreensFunction1DAbsSinkAbs::*p_int_r_i)
-        (uint, Real const&, Real const&, RealVector const& table) const = NULL;
+        (uint, Real const&, Real const&, RealVector& table) const = NULL;
 
     if( rr <= 0 )
         p_int_r_i = &GreensFunction1DAbsSinkAbs::p_int_r_leftdomain;
@@ -915,7 +915,7 @@ Real GreensFunction1DAbsSinkAbs::p_int_r(Real const& r,
     THROW_UNLESS( std::invalid_argument, t >= 0.0 );
 
     RealVector table;
-    return p_int_r_table(r, t, table) / p_survival( t );
+    return p_int_r_table(r, t, table);
 }
 
 
@@ -938,7 +938,7 @@ void GreensFunction1DAbsSinkAbs::create_p_int_r_Table( Real const& t,
 Real GreensFunction1DAbsSinkAbs::p_int_r_leftdomain(uint i, 
                                                     Real const& rr,
                                                     Real const& t,
-                                                    RealVector const& table) const
+                                                    RealVector& table) const
 {
     const Real root_i( get_root( i ) );
     const Real LrmL0( getLr() - getL0() );
@@ -955,7 +955,7 @@ Real GreensFunction1DAbsSinkAbs::p_int_r_leftdomain(uint i,
 Real GreensFunction1DAbsSinkAbs::p_int_r_rightdomainA(uint i, 
                                                       Real const& rr, 
                                                       Real const& t,
-                                                      RealVector const& table) const
+                                                      RealVector& table) const
 {
     const Real root_i( get_root( i ) );
     const Real LrmL0( getLr() - getL0() );
@@ -974,7 +974,7 @@ Real GreensFunction1DAbsSinkAbs::p_int_r_rightdomainA(uint i,
 Real GreensFunction1DAbsSinkAbs::p_int_r_rightdomainB(uint i, 
                                                       Real const& rr, 
                                                       Real const& t,
-                                                      RealVector const& table) const
+                                                      RealVector& table) const
 {
     const Real root_i( get_root( i ) );
     const Real Lr( getLr() );
@@ -1002,7 +1002,7 @@ Real GreensFunction1DAbsSinkAbs::p_int_r_rightdomainB(uint i,
 Real GreensFunction1DAbsSinkAbs::drawR_f(Real r, void *p)
 {
     struct drawR_params *params = (struct drawR_params *)p;
-    return params->gf->p_int_r_table(r, params->t, params->p_surv, params->table) 
+    return params->gf->p_int_r_table(r, params->t, params->table) 
         - params->rnd;
 }
 

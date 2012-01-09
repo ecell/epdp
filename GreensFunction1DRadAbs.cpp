@@ -694,8 +694,6 @@ Real GreensFunction1DRadAbs::p_int_r_table(Real const& r,
     const Real D( getD() );
     const Real k( getk() );
     const Real v( getv() );
-    const Real h(( k + v/2.0)/ D );
-    const Real v2D( v/(2*D) );
 
     /* If not all boundaries are 'visible' to the particle,
        use approximation. */
@@ -769,12 +767,12 @@ Real GreensFunction1DRadAbs::p_int_r_i(uint i,
     const Real expsigma(exp(sigma*v2D));
     const Real zs(r - sigma);
 
-    Real root_n( get_root( n ) );
+    Real root_n( get_root( i ) );
     
     Real term( ( expsigma*costerm - exp(v2D*r)*
                  ( costerm*cos(root_n*zs) - 
                    (root_n+sinterm/root_n)*sin(root_n*zs) )) );
-
+    
     return get_p_int_r_Table_i(i, t, table) * term;
 }
 
@@ -795,7 +793,7 @@ void GreensFunction1DRadAbs::create_p_int_r_Table( Real const& t,
     const Real v2D(v/2.0/D);
     const Real v2Dv2D(v2D*v2D);
 
-    Real S_Cn_root_n;
+    Real term;
     Real root_n2, root_n_r0_s, root_n;
 
     while( n < root_nmbr )
@@ -804,11 +802,11 @@ void GreensFunction1DRadAbs::create_p_int_r_Table( Real const& t,
        	root_n2 = root_n * root_n;
        	root_n_r0_s = root_n * (r0-sigma);
 
-       	S_Cn_root_n =	S * exp(-D*root_n2*t)
-	         * (root_n*cos(root_n_r0_s) + h*sin(root_n_r0_s)) / (L*(root_n2 + h*h) + h)
-	         * root_n / (root_n2 + v2Dv2D);
+       	term = exp(-D*root_n2*t)
+            * (root_n*cos(root_n_r0_s) + h*sin(root_n_r0_s)) / (L*(root_n2 + h*h) + h)
+            * root_n / (root_n2 + v2Dv2D);
 
-        table.push_back( S_Cn_root_n );
+        table.push_back( term );
         n++;
     }
 }

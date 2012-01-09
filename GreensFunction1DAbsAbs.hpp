@@ -207,7 +207,7 @@ private:
 
     Real p_int_r_table(Real const& r, Real const& t, RealVector& table) const;
 
-    Real p_int_r_i(uint i, Real const& t, RealVector& table) const;
+    Real p_int_r_i(uint i, Real const& r, Real const& t, RealVector& table) const;
 
     void create_p_int_r_Table( Real const& t, uint const& maxi, RealVector& table ) const;
 
@@ -215,7 +215,7 @@ private:
     {
         if( i >= table.size() )
         {
-            create_p_int_r_Table(t, i, table);
+            create_p_int_r_Table(t, i+1, table);
         }
 
         return table[i];

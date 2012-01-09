@@ -299,7 +299,7 @@ private:
             create_p_int_r_Table(t, table);
         }
 
-        return table[i]
+        return table[i];
     }
 
     /* Member variables */

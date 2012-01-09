@@ -294,13 +294,13 @@ private:
     /* functions for calculating the c.d.f. */
 
     /* i'th term of p_int_r(r') for r' in left domain */
-    Real p_int_r_leftdomain(uint i, Real const& rr, Real const& t, RealVector const& table) const;
+    Real p_int_r_leftdomain(uint i, Real const& rr, Real const& t, RealVector& table) const;
 
     /* i'th term of p_int_r(r') for r' in right domain, left of r0 */
-    Real p_int_r_rightdomainA(uint i, Real const& rr, Real const& t, RealVector const& table) const;
+    Real p_int_r_rightdomainA(uint i, Real const& rr, Real const& t, RealVector& table) const;
 
     /* i'th term of p_int_r(r') for r' in right domain, right of r0 */
-    Real p_int_r_rightdomainB(uint i, Real const& rr, Real const& t, RealVector const& table) const;
+    Real p_int_r_rightdomainB(uint i, Real const& rr, Real const& t, RealVector& table) const;
 
     /* Fills table with r-independent part of p_int_r_i. */
     void create_p_int_r_Table( Real const& t, RealVector& table ) const;
