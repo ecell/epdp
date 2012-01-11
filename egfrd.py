@@ -1130,11 +1130,11 @@ class EGFRDSimulator(ParticleSimulatorBase):
         # Special case: When D=0, nothing needs to change and only new event
         # time is drawn
         # TODO find nicer construction than just this if statement
-        if single.getD() == 0:
-            single.dt, single.event_type = single.determine_next_event() 
-            single.last_time = self.t
-            self.add_domain_event(single)
-            return single
+#        if single.getD() == 0:
+#            single.dt, single.event_type = single.determine_next_event() 
+#            single.last_time = self.t
+#            self.add_domain_event(single)
+#            return single
 
 
         # 0. Get generic info
