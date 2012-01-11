@@ -742,6 +742,97 @@ class CylindricalSurfaceInteraction(InteractionSingle):
                'radius = %s, half_length = %s' %
                 (self.shell.shape.radius, self.shell.shape.half_length))
 
+
+class CylindricalSurfaceSink(InteractionSingle):
+    """1 Particle inside a (Cylindrical) shell on a CylindricalSurface.
+        Inside the domain is a sink.
+
+        * Particle coordinates on surface: z.
+        * Domain: cartesian z.
+        * Initial position: z = 0.
+        * Selected randomly when drawing displacement vector: none.
+    """
+    def __init__(self, domain_id, shell_id, testShell, reactionrules, interactionrules):
+
+        assert isinstance(testShell, CylindricalSurfaceSinktestShell)
+        InteractionSingle.__init__(self, domain_id, shell_id, testShell, reactionrules, interactionrules)
+
+        # zsink is the position of the sink relative to the center of the shell.
+        # Note that we assume that the particle is at the center of the shell, and the unit_z of the shell
+        # points from the sink to the particle.
+        self.zsink = -self.testShell.particle_surface_distance
+
+    def get_inner_a(self):
+        # This is the distance that the particle can travel from the center to one of the sides.
+        # NOTE: it is implied that the particle starts in the center of the shell.
+        # NOTE: although abstractly defined in InteractionSingle inner_dz_right/left are not
+        #       specified here.
+        return self.shell.shape.half_length - self.pid_particle_pair[1].radius
+
+    def determine_next_event(self):
+        """Return an (event_time, event_type)-tuple.
+
+        """
+        return min(self.draw_reaction_time_tuple(),
+                   self.draw_iv_event_time_tuple())
+
+    def iv_greens_function(self):
+        # The Green's function used for both ESCAPE and IV (sink) events.
+        # Particle allways starts in the middle for now.
+        inner_half_length = self.get_inner_a()
+
+        return GreensFunction1DAbsSinkAbs(self.D, self.interaction_ktot, 0.0, self.zsink,
+                                          -inner_half_length, inner_half_length)
+
+    def draw_new_position(self, dt, event_type):
+        oldpos = self.pid_particle_pair[1].position
+
+        if self.D == 0 or \
+                (event_type == EventType.SINGLE_REACTION and len(self.reactionrule.products) == 0):
+            newpos = oldpos
+        else:
+            gf = self.iv_greens_function()
+
+            # If an IV event took place, and the event was not yet fully specified
+            if event_type == EventType.IV_EVENT:
+                self.event_type = self.draw_iv_event_type()
+                event_type = self.event_type
+
+            if event_type == EventType.IV_ESCAPE:
+                # The particle left the domain through either boundary
+
+                # Determine whether the particle escaped through the left (at s) or right (at a) boundary.
+                flux_a = abs( gf.flux_leavea( dt ) )
+                flux_s = abs( gf.flux_leaves( dt ) )
+                rnd = myrandom.uniform() * ( flux_a + flux_s )
+
+                inner_half_length = self.get_inner_a()
+
+                if( rnd < flux_a ):
+                    # The 'right' boundary (boundary to which the shell.shape.unit_z point)
+                    z = inner_half_length
+                else:
+                    # The 'left' boundary
+                    z = -inner_half_length
+
+            elif event_type == EventType.IV_INTERACTION:
+                # The particle left the domain through the sink
+                z = self.zsink
+            else:
+                # Some other event took place and the particle didn't escape
+                z = draw_r_wrapper(gf, dt, self.get_inner_a(), -self.get_inner_a())
+
+        # Add displacement to shell.shape.position, not to particle.position.
+        # The direction of the shell is leading (not direction of the structure)
+        z_vector = self.shell.shape.unit_z * z
+        newpos = self.shell.shape.position + z_vector
+
+        return newpos
+
+    def __str__(self):
+        return 'CylindricalSurfaceSink ' + Single.__str__(self)
+
+
 class DummySingle(object):
     def __init__(self):
         self.multiplicity = 1
