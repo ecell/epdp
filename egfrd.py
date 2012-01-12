@@ -45,6 +45,7 @@ from shells import (
     CylindricalSurfacePairtestShell,
     PlanarSurfaceInteractiontestShell,
     CylindricalSurfaceInteractiontestShell,
+    CylindricalSurfaceSinktestShell,
     MixedPair2D3DtestShell,
     )
 
@@ -70,18 +71,30 @@ def create_default_single(domain_id, shell_id, pid_particle_pair, structure, rea
 
 ### Interactions
 def try_default_testinteraction(single, surface, geometrycontainer, domains):
-    if isinstance(surface, PlanarSurface):
-        return PlanarSurfaceInteractiontestShell(single, surface, geometrycontainer, domains)
-    elif isinstance(surface, CylindricalSurface):
-        return CylindricalSurfaceInteractiontestShell(single, surface, geometrycontainer, domains)
+    if isinstance(single.structure, CuboidalRegion):
+        if isinstance(surface, PlanarSurface):
+            return PlanarSurfaceInteractiontestShell(single, surface, geometrycontainer, domains)
+        elif isinstance(surface, CylindricalSurface):
+            return CylindricalSurfaceInteractiontestShell(single, surface, geometrycontainer, domains)
+        else:
+            raise testShellError('(Interaction). Combination of (3D particle, surface) is not supported')
+    elif isinstance(single.structure, PlanarSurface):
+        raise testShellError('(Interaction). Combination of (2D particle, surface) is not supported')
+    elif isinstance(single.structure, CylindricalSurface):
+        if isinstance(surface, CylindricalSurface):     # TODO differentiate between a sink and a cap
+            return CylindricalSurfaceSinktestShell (single, surface, geometrycontainer, domains)
+        else:
+            raise testShellError('(Interaction). Combination of (1D particle, surface) is not supported')
     else:
-        raise testShellError('(Interaction). surface is not supported')
+        raise testShellError('(Interaction). structure of particle was of invalid type')
 
 def create_default_interaction(domain_id, shell_id, testShell, reaction_rules, interaction_rules):
     if isinstance(testShell, CylindricalSurfaceInteractiontestShell):
         return CylindricalSurfaceInteraction (domain_id, shell_id, testShell, reaction_rules, interaction_rules)
     elif isinstance(testShell, PlanarSurfaceInteractiontestShell):
         return PlanarSurfaceInteraction      (domain_id, shell_id, testShell, reaction_rules, interaction_rules)
+    elif isinstance(testShell, CylindricalSurfaceSinktestShell):
+        return CylindricalSurfaceSink        (domain_id, shell_id, testShell, reaction_rules, interaction_rules)
 
 ### Pairs
 def try_default_testpair(single1, single2, geometrycontainer, domains):
@@ -455,8 +468,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
         species_id = testShell.pid_particle_pair[1].sid
         reaction_rules = self.network_rules.query_reaction_rule(species_id)
         # get reaction rules for interaction
-        surface_id = testShell.surface.sid
-        interaction_rules = self.network_rules.query_reaction_rule(species_id, surface_id)
+        surfacetype_id = testShell.surface.sid
+        interaction_rules = self.network_rules.query_reaction_rule(species_id, surfacetype_id)
 
 
         # 2. Create and register the interaction domain.
@@ -956,6 +969,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
         # It performs the reactions:
         # A(3D) + surface -> 0
         # A(3D) + surface -> B(surface)
+        assert isinstance(single, InteractionSingle)
 
         # 0. get reactant info
         reactant        = single.pid_particle_pair
@@ -983,6 +997,9 @@ class EGFRDSimulator(ParticleSimulatorBase):
             product_species = self.world.get_species(rr.products[0])
             product_radius  = product_species.radius
             product_surface = single.surface
+            # make sure that the product species lives on the interaction surface
+            assert (single.surface == self.world.get_structure(product_species.structure_id)), \
+                   'Product particle should live on the surface of interaction after the reaction.'
 
             # 1.5 get new position of particle
             transposed_pos = self.world.cyclic_transpose(reactant_pos, product_surface.shape.position)
@@ -1145,8 +1162,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
         neighbors = self.geometrycontainer.get_neighbor_domains(single_pos, self.domains, ignore=[single.domain_id, ])
         # Get also surfaces but only if the particle is in 3D
         surface_distances = []
-        if isinstance(single, SphericalSingle):
-            surface_distances = self.geometrycontainer.get_neighbor_surfaces(single_pos, ignores=[single.structure.id])
+#        if isinstance(single, SphericalSingle):
+        surface_distances = self.geometrycontainer.get_neighbor_surfaces(single_pos, ignores=[single.structure.id])
 
 
         # Check if there are shells with the burst radius (reaction_threshold)
