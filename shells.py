@@ -34,6 +34,7 @@ __all__ = [
     'CylindricalSurfacePairtestShell',
     'PlanarSurfaceInteractiontestShell',
     'CylindricalSurfaceInteractiontestShell',
+    'CylindricalSurfaceSinktestShell',
     'MixedPair2D3DtestShell',
     ]
 
@@ -1245,6 +1246,65 @@ class CylindricalSurfaceInteractiontestShell(CylindricaltestShell, testInteracti
 
     def apply_safety(self, r, z_right, z_left):
         return r/SAFETY, z_right/SAFETY, z_left/SAFETY
+
+class CylindricalSurfaceSinktestShell(CylindricaltestShell, testInteractionSingle):
+
+    def __init__(self, single, surface, geometrycontainer, domains):
+        CylindricaltestShell.__init__(self, geometrycontainer, domains)  # this must be first because of world definition
+        testInteractionSingle.__init__(self, single, single.structure, surface)
+
+        # initialize scaling parameters
+        self.dzdr_right = numpy.inf
+        self.drdz_right = 0.0
+        self.r0_right   = self.pid_particle_pair[1].radius
+        self.z0_right   = 0.0
+        self.dzdr_left  = self.dzdr_right
+        self.drdz_left  = self.drdz_right
+        self.r0_left    = self.r0_right
+        self.z0_left    = self.z0_right
+
+        # This will determine if the shell is possible.
+        # If possible, it will write the dr, dz_right, dz_left defining the dimensions of the cylindrical shell.
+        # If not possible, it throws an exception and the construction of the testShell IS ABORTED!
+        try:
+            self.dr, self.dz_right, self.dz_left = \
+                            self.determine_possible_shell([self.single.domain_id], [self.structure.id, self.surface.id])
+        except ShellmakingError as e:
+            raise testShellError('(CylindricalSurfaceSink). %s' %
+                                 (str(e)))
+
+        # make sure the domain is symmetric around the particle
+        self.dz_right = min(self.dz_right, self.dz_left)
+        self.dz_left  = self.dz_right
+        # check if the domain is still large enough for the interaction
+        _, _, min_dz_left = self.get_min_dr_dzright_dzleft()
+        if self.dz_left < min_dz_left:
+            raise testShellError('(CylindricalSurfaceSink). Domain too small after symmetricalizing.')
+
+
+    def get_orientation_vector(self):
+        return self.reference_vector      # calculated in the __init__ of testInteractionSingle
+
+    def get_searchpoint(self):
+        return self.pid_particle_pair[1].position
+
+    def get_referencepoint(self):
+        return self.pid_particle_pair[1].position
+
+    def get_min_dr_dzright_dzleft(self):
+        dr       = self.pid_particle_pair[1].radius
+        dz_left  = self.particle_surface_distance + self.pid_particle_pair[1].radius * SINGLE_SHELL_FACTOR
+        dz_right = dz_left              # we make the domain to be symmetrical around the particle
+        return dr, dz_right, dz_left
+        
+    def get_max_dr_dzright_dzleft(self):
+        dr       = self.pid_particle_pair[1].radius
+        dz_left  = math.sqrt((self.get_searchradius())**2 - dr**2) # stay within the searchradius
+        dz_right = dz_left
+        return dr, dz_right, dz_left
+
+    def apply_safety(self, r, z_right, z_left):
+        return r, z_right/SAFETY, z_left/SAFETY
 
 #####
 class MixedPair2D3DtestShell(CylindricaltestShell, testMixedPair2D3D):

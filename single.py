@@ -26,6 +26,7 @@ __all__ = [
     'InteractionSingle',
     'CylindricalSurfaceInteraction',
     'PlanarSurfaceInteraction',
+    'CylindricalSurfaceSink',
     ]
 
 
