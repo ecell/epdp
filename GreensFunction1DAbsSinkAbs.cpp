@@ -172,12 +172,9 @@ std::pair<Real, Real> GreensFunction1DAbsSinkAbs::get_lower_and_upper() const
     if( f_upper * parity_op < 0)
     {
         int cntr = 0;
-
-        Real delta( .1 * safety * right_offset );
+        Real delta( .1 * safety * right_offset ); //std::min(left_offset, right_offset);
         const Real save_upper( upper );
         
-        cntr = 0;
-
         /* Assuming the upper point has overshoot the straddle region,
            subtract from the upper limit, until endpoits do straddle.
          */
