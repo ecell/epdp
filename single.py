@@ -25,8 +25,8 @@ __all__ = [
     'NonInteractionSingle',
     'InteractionSingle',
     'CylindricalSurfaceInteraction',
-    'PlanarSurfaceInteraction',
     'CylindricalSurfaceSink',
+    'PlanarSurfaceInteraction',
     ]
 
 
@@ -442,7 +442,7 @@ class CylindricalSurfaceSingle(NonInteractionSingle, hasCylindricalShell):
             raise Exception('CylindricalSurfaceSingle, create_updated_shell failed: %s' % str(e) )
 
     def create_position_vector(self, z):
-        if utils.feq(z, self.get_inner_a()):
+        if feq(z, self.get_inner_a()):
             # Escape, can be either to the left or to the right.
             # The side of escape should be decided on by the flux through
             # both boundaries at the escape time
