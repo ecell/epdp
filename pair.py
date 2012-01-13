@@ -251,7 +251,7 @@ class SimplePair(Pair):
 
         neighbor_domains = geometrycontainer.get_neighbor_domains(shell_center, domains, ignore=[single1.domain_id, 
                                                                   single2.domain_id])
-        neighbor_surfaces = geometrycontainer.get_neighbor_surfaces(shell_center, single1.structure.id, ignores=[])
+        neighbor_surfaces = geometrycontainer.get_neighbor_surfaces(shell_center, ignores=[single1.structure.id])
         neighbors = neighbor_domains + neighbor_surfaces
 
 

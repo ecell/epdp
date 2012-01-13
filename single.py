@@ -17,7 +17,6 @@ __all__ = [
     'InteractionSingle',
     'CylindricalSurfaceInteraction',
     'PlanarSurfaceInteraction',
-    'CylindricalSurfaceSink',
     ]
 
 
@@ -249,7 +248,7 @@ class NonInteractionSingle(Single):
     def get_min_shell_size(self):
         return self.pid_particle_pair[1].radius
 
-    def get_max_shell_size(self, geometrycontainer, domains, ignores=[]):
+    def get_max_shell_size(self, geometrycontainer, domains):
         # This calculates the maximum shell size that the single can have in the current
         # situation.
         # TODO This is now general for all NonInteractionSingles and should be different
@@ -260,16 +259,13 @@ class NonInteractionSingle(Single):
         # TODO We now just check in a sphere around the particle and size accordingly. For
         # NonInteractionSingles on the dna and membrane this is quite inefficient-> want to
         # size in the appropriate coordinate (r or z).
-        if self.getD() == 0.0:
-            return self.get_min_shell_size()
-        
         singlepos = self.pid_particle_pair[1].position
 #        closest, distance_to_shell = \
 #            geometrycontainer.get_closest_obj(singlepos, domains, ignore=[self.domain_id],
 #                                              ignores=[self.structure.id])
 
         neighbor_domains = geometrycontainer.get_neighbor_domains(singlepos, domains, ignore=[self.domain_id, ])
-        neighbor_surfaces = geometrycontainer.get_neighbor_surfaces(singlepos, self.structure.id, ignores)
+        neighbor_surfaces = geometrycontainer.get_neighbor_surfaces(singlepos, ignores=[self.structure.id])
         neighbors = neighbor_domains + neighbor_surfaces
 
         # 2. Calculate the maximum allowed radius of the spherical domain
@@ -289,7 +285,7 @@ class NonInteractionSingle(Single):
             distance_domain_closest = min(distance_domain_closest, distance_domain)
 
         distance_to_shell, closest = distance_domain_closest
-        
+
         # 3. Apply still other rules if the nearest is another NonInteractionSingle (optimization)
         # TODO shell size has no real meaning for cylinderical domains
         if isinstance(closest, NonInteractionSingle):
@@ -298,9 +294,7 @@ class NonInteractionSingle(Single):
         else:  # Pair or Multi or Surface
             new_shell_size = distance_to_shell / SAFETY
 
-        max_size = numpy.sqrt( geometrycontainer.get_max_shell_size()**2 - self.shell.shape.radius**2 )
-
-        return min(new_shell_size, max_size )
+        return min(new_shell_size, geometrycontainer.get_max_shell_size())
 
 
 class SphericalSingle(NonInteractionSingle):
@@ -503,7 +497,6 @@ class InteractionSingle(Single):
         """Return an (event time, event type)-tuple.
 
         """
-       
         return min(self.draw_escape_time_tuple(),
                    self.draw_reaction_time_tuple(),
                    self.draw_iv_event_time_tuple())     # above two events also occur in NonInteractingSingle
@@ -520,7 +513,7 @@ class InteractionSingle(Single):
 
         """
         dt = draw_time_wrapper(self.iv_greens_function())
-        
+
         return dt, EventType.IV_EVENT
 
     def draw_iv_event_type(self):
@@ -756,94 +749,7 @@ class CylindricalSurfaceInteraction(InteractionSingle):
         return self.shell.shape.half_length
 
     def __str__(self):
-        return 'CylindricalSurfaceInteraction ' + Single.__str__(self)
-
-
-class CylindricalSurfaceSink(InteractionSingle):
-    """1 Particle inside a (Cylindrical) shell on a CylindricalSurface.
-        Inside the domain is a sink.
-
-        * Particle coordinates on surface: z.
-        * Domain: cartesian z.
-        * Initial position: z = 0.
-        * Selected randomly when drawing displacement vector: none.
-    """
-    def __init__(self, domain_id, pid_particle_pair, reactionrules, structure,
-                 shell_id, shell_center, shell_half_length, zsink, interactionrules, sink_surface):
-
-        InteractionSingle.__init__(self, domain_id, pid_particle_pair, reactionrules,
-                                   structure, shell_id, interactionrules, sink_surface)
-
-        # z0 is implied to be zero (the particle being in the center of the shell in the z direction)
-        self.zsink = zsink # Position of the sink, given that the particle is at the origin.
-        self.shell = self.create_new_shell(shell_center, 
-                                           pid_particle_pair[1].radius,
-                                           structure.shape.unit_z, 
-                                           shell_half_length)
-
-    def get_inner_a(self):
-        return self.shell.shape.half_length - self.pid_particle_pair[1].radius
-
-    def iv_greens_function(self):
-        # The Green's function used for both ESCAPE and IV (sink) events.
-        # Particle allways starts in the middle for now.
-        inner_half_length = self.get_inner_a()
-        
-        return GreensFunction1DAbsSinkAbs(self.D, self.interaction_ktot, 0.0, self.zsink, 
-                                          -inner_half_length, inner_half_length)
-
-    def determine_next_event(self):
-        """Return an (event_time, event_type)-tuple.
-
-        """
-        return min(self.draw_reaction_time_tuple(),
-                   self.draw_iv_event_time_tuple())
-
-    def draw_new_position(self, dt, event_type):
-        oldpos = self.pid_particle_pair[1].position
-
-        if self.D == 0 or \
-                (event_type == EventType.SINGLE_REACTION and len(self.reactionrule.products) == 0):
-            newpos = oldpos
-        else:
-            gf = self.iv_greens_function()
-
-            if event_type == EventType.IV_EVENT:
-                self.event_type = self.draw_iv_event_type()
-                event_type = self.event_type
-
-            if event_type == EventType.IV_ESCAPE:
-                #Determine wether particle escaped at left (s) or right (a) boundary.
-                flux_a = abs( gf.flux_leavea( dt ) )
-                flux_s = abs( gf.flux_leaves( dt ) )
-                rnd = myrandom.uniform() * ( flux_a + flux_s )
-                
-                inner_half_length = self.get_inner_a()
-                
-                if( rnd < flux_a ):
-                    z = inner_half_length
-                else:
-                    z = -inner_half_length
-            elif event_type == EventType.IV_INTERACTION:
-                z = self.zsink
-            else:
-                z = draw_r_wrapper(gf, dt, self.get_inner_a(), -self.get_inner_a())
-
-        # Add displacement to shell.shape.position, not to particle.position.
-        z_vector = self.structure.shape.unit_z * z
-        newpos = self.shell.shape.position + z_vector
-
-        return newpos
-
-    def get_shell_size(self):
-        # REMOVE this method, it doesn't mean anything here.
-        # THis method is only used for making an Interaction
-        # Heads up. The cylinder's *half_length*, not radius, 
-        # determines the size in case of a cylindrical surface.
-        return self.shell.shape.half_length
-
-    def __str__(self):
-        return 'CylindricalSurfaceSink ' + Single.__str__(self)
+        return 'CylindricalSurfaceInteraction' + Single.__str__(self)
 
 class DummySingle(object):
     def __init__(self):

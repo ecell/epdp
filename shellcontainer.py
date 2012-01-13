@@ -170,18 +170,11 @@ class ShellContainer(object):
     def sort_domain_distance(self, neighbor_domains):
         return sorted(neighbor_domains, key=lambda domain_dist: domain_dist[1])
 
-    def get_neighbor_surfaces(self, position, base_structure_id, ignores=[]):
+    def get_neighbor_surfaces(self, position, ignores=[]):
         # analogous to get_neighbor domains, this returns a list of (surface, distance) tuples
-        # The base_structure_id argument is the id of the structure on which the particle lives
-        # calling this function. In the future, this function will only return surfaces a particle
-        # living on the base_structure can have interactions with.
-        
-        # We assume a particle can't have an interaction with the same surface on/in which it lives.
-        base_ignores =  [base_structure_id, ]
-        base_ignores.extend( ignores )
 
         # TODO return a list of neighboring surfaces
-        surface, distance = get_closest_surface(self.world, position, base_ignores)
+        surface, distance = get_closest_surface(self.world, position, ignores)
         if surface:
             return [(surface, distance), ]
         else:
