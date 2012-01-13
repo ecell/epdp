@@ -196,7 +196,7 @@ const
 {
     const Real D(this->getD());
 
-    return std::exp(-D*root_n*root_n*t);
+    return exp(-D*root_n*root_n*t);
 }
 
 

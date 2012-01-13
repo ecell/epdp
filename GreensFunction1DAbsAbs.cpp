@@ -19,7 +19,6 @@
 
 #include "findRoot.hpp"
 #include "GreensFunction1DAbsAbs.hpp"
-#include "Defs.hpp"
 
 
 /* returns a guess for the number of terms needed for 
