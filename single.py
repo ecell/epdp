@@ -663,7 +663,7 @@ class CylindricalSurfaceInteraction(InteractionSingle):
         # r0 is the distance from the center of the cylinder to the center of the particle
         # z0 is known to be zero (the particle being in the center of the shell in the z direction)
         self.unit_r = self.testShell.reference_vector    
-        self.r0     = self.testShell.particle_surface_distance
+        self.r0     = self.testShell.particle_surface_distance + self.surface.shape.radius
         self.z0     = 0.0
 
     def get_inner_dz_left(self):
