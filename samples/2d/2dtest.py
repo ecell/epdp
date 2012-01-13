@@ -83,8 +83,8 @@ m.add_species_type(C)
 # Reaction rules
 r1 = model.create_binding_reaction_rule(A, B, C, k)
 m.network_rules.add_reaction_rule(r1)
-r1 = model.create_unbinding_reaction_rule(C, A, B, (1/10))
-m.network_rules.add_reaction_rule(r1)
+r2 = model.create_unbinding_reaction_rule(C, A, B, (1/10))
+m.network_rules.add_reaction_rule(r2)
 
 
 # World
