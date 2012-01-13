@@ -94,6 +94,8 @@ vtk_output_directory = 'VTK_out'
 if (os.path.exists(vtk_output_directory)):
     print '** WARNING: VTK output directory already exists, possible '+ \
             'present old VTK files might lead to errors.'
+    logging = False
+    print "Turned logging of."            
     
 from visualization import vtklogger
 l = vtklogger.VTKLogger(s, vtk_output_directory, extra_particle_step=True) 
