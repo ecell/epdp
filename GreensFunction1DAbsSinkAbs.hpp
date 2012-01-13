@@ -20,7 +20,6 @@
 
 #include "findRoot.hpp"
 #include "Defs.hpp"
-#include "OldDefs.hpp"			// TODO: this must be removed at some point!
 #include "GreensFunction.hpp"
 #include "funcSum.hpp"
 #include "freeFunctions.hpp"
