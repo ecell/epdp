@@ -7,6 +7,7 @@ from _gfrd import (
     SphericalShell,
     Cylinder,
     CylindricalShell,
+    CylindricalSurface,
     PlanarSurface,
     CuboidalRegion,
     )
@@ -139,7 +140,7 @@ class testInteractionSingle(testSingle, Others):
 
         # projection_distance can be negative in case of plane
         # note that the distance is to the center of the cylinder in case of cylinders
-        self.particle_surface_distance = abs(projection_length)
+        self.particle_surface_distance = self.world.distance(self.surface.shape, self.pid_particle_pair[1].position)
 
         # The reference_vector is the normalized vector from the reference_point to the particle
         self.reference_vector = normalize(pos_transposed - self.reference_point)
@@ -335,7 +336,8 @@ class hasSphericalShell(hasShell):
         return SphericalShell(domain_id, Sphere(position, radius))
 
     # methods to size up a testShell to this domain.
-    def get_dr_dzright_dzleft_to_shell(self, shell, testShell, r, z_right, z_left):
+    @ classmethod
+    def get_dr_dzright_dzleft_to_shell(cls, shape, testShell, r, z_right, z_left):
         # This function returns the dr, dz_right, dz_left parameters for the cylindrical 'testShell'
         # using the spherical 'shell' as its closest neighbor. Note that it returns the minimum the newly calculated
         # dr, dz_right, dz_left and the old r, z_right, z_left. The 'testShell' can therefore only become
@@ -343,11 +345,11 @@ class hasSphericalShell(hasShell):
 
         # Note that the 'shell' is querried from this domain earlier by the testShell.
         # -> the shell MUST be a Sphere
-        assert (type(shell.shape) is Sphere)
+        assert (type(shape) is Sphere)
 
         # Laurens' algorithm (part1)
-        shell_position = shell.shape.position
-        shell_radius = shell.shape.radius 
+        shell_position = shape.position
+        shell_radius = shape.radius 
 
         # get the reference point and orientation of the domain to scale
         reference_point = testShell.get_referencepoint()
@@ -490,18 +492,19 @@ class hasSphericalShell(hasShell):
         return r, z_right, z_left
 
 
-    def get_radius_to_shell(self, shell, testShell, r):
+    @ classmethod
+    def get_radius_to_shell(cls, shape, testShell, r):
         # This function returns the radius for the spherical 'testShell' using the spherical 'shell' as its closest
         # neighbor. Note that it returns the minimum the newly calculated radius and the old radius. The 'testShell' can
         # therefore only become smaller.
 
         # Note that the 'shell' is querried from this domain earlier by the testShell.
         # -> the shell MUST be a Sphere
-        assert (type(shell.shape) is Sphere)
+        assert (type(shape) is Sphere)
 
         # Do simple distance calculation to sphere
         scale_point = testShell.center
-        r_new = testShell.world.distance(shell.shape, scale_point)
+        r_new = testShell.world.distance(shape, scale_point)
 
         # if the newly calculated dimensions are smaller than the current one, use them
         return min(r, r_new)
@@ -550,7 +553,8 @@ class hasCylindricalShell(hasShell):
         return CylindricalShell(domain_id, Cylinder(position, radius, orientation, half_length))
 
     # methods to size up a testShell to this domain.
-    def get_dr_dzright_dzleft_to_shell(self, shell, testShell, r, z_right, z_left):
+    @ classmethod
+    def get_dr_dzright_dzleft_to_shell(cls, shape, testShell, r, z_right, z_left):
         # This function returns the dr, dz_right, dz_left parameters for the cylindrical 'testShell'
         # using the cylindrical 'shell' as its closest neighbor. Note that it returns the minimum the newly calculated
         # dr, dz_right, dz_left and the old r, z_right, z_left. The 'testShell' can therefore only become
@@ -558,12 +562,12 @@ class hasCylindricalShell(hasShell):
 
         # Note that the 'shell' is querried from this domain earlier by the testShell.
         # -> the shell MUST be a Cylinder.
-        assert (type(shell.shape) is Cylinder)
+        assert (type(shape) is Cylinder)
 
         # Laurens' algorithm (part2)
-        shell_position = shell.shape.position
-        shell_radius = shell.shape.radius 
-        shell_half_length = shell.shape.half_length 
+        shell_position = shape.position
+        shell_radius = shape.radius 
+        shell_half_length = shape.half_length 
 
 
         # get the reference point and orientation of the domain to scale
@@ -639,18 +643,41 @@ class hasCylindricalShell(hasShell):
 
         return r, z_right, z_left
 
-    def get_radius_to_shell(self, shell, testShell, r):
+    @ classmethod
+    def get_radius_to_shell(cls, shape, testShell, r):
         # This function returns the radius for the spherical 'testShell' using the cylindrical 'shell' as its closest
         # neighbor. Note that it returns the minimum the newly calculated radius and the old radius. The 'testShell' can
         # therefore only become smaller.
 
         # Note that the 'shell' is querried from this domain earlier by the testShell.
         # -> the shell MUST be a Cylinder
-        assert (type(shell.shape) is Cylinder)
+        assert (type(shape) is Cylinder)
 
         # Do simple distance calculation to cylinder
         scale_point = testShell.center
-        r_new = testShell.world.distance(shell.shape, scale_point)
+        r_new = testShell.world.distance(shape, scale_point)
+
+        # if the newly calculated dimensions are smaller than the current one, use them
+        return min(r, r_new)
+
+class hasPlanarShape():
+
+    @ classmethod
+    def get_dr_dzright_dzleft_to_shell(self, shape, testShell, r, z_right, z_left):
+        assert False
+        pass
+
+    @ classmethod
+    def get_radius_to_shell(cls, shape, testShell, r):
+        # This function returns the radius for the spherical 'testShell' using the planar 'shape' as its closest
+        # neighbor. Note that it returns the minimum of the newly calculated radius and the old radius. The 'testShell' can
+        # therefore only become smaller.
+
+        assert (type(shape) is Plane)
+
+        # Do simple distance calculation to sphere
+        scale_point = testShell.center
+        r_new = testShell.world.distance(shape, scale_point)
 
         # if the newly calculated dimensions are smaller than the current one, use them
         return min(r, r_new)
@@ -724,7 +751,7 @@ class SphericaltestShell(testShell):
 
             shell_list = self.get_neighbor_shell_list(neighbor)
             for _, shell_appearance in shell_list:
-                radius_new = neighbor.get_radius_to_shell(shell_appearance, self, radius)
+                radius_new = neighbor.get_radius_to_shell(shell_appearance.shape, self, radius)
 
                 if radius_new != radius:
                     # A new (smaller) radius was found
@@ -822,12 +849,24 @@ class CylindricaltestShell(testShell):
         dr, dz_right, dz_left             = self.apply_safety(max_dr, max_dz_right, max_dz_left)
 
         # first check the maximum dr, dz_right, dz_left against the surfaces
-#        for surface, distance in neighbor_surfaces:
-#            radius = min(radius, distance)     # TODO
-#            if radius < min_radius:
-#                raise ShellmakingError('Surface too close to make cylindrical testshell, '
-#                                       'surface = %s, distance = %s, testShell = %s' %
-#                                       (surface, distance, self))
+        # NOTE: we assume that all relevant surfaces are cylindrical and parallel to the testCylinder
+        for surface, distance in neighbor_surfaces:
+            # TODO
+            if isinstance(surface, CylindricalSurface):
+                dr_new, dz_right_new, dz_left_new = hasCylindricalShell.get_dr_dzright_dzleft_to_shell(surface.shape, self,
+                                                                                                       dr, dz_right, dz_left)
+            elif isinstance(surface, PlanarSurface):
+                dr_new, dz_right_new, dz_left_new = hasPlanarShape.get_dr_dzright_dzleft_to_shell(surface.shape, self,
+                                                                                                  dr, dz_right, dz_left)
+
+
+            if (dr_new != dr) or (dz_right_new != dz_right) or (dz_left_new != dz_left):
+                # The dimensions were changed, reapply the safety margin
+                dr, dz_right, dz_left = self.apply_safety(dr_new, dz_right_new, dz_left_new)
+                if (dr < min_dr) or (dz_right < min_dz_right) or (dz_left < min_dz_left):
+                    raise ShellmakingError('Surface too close to make cylindrical testshell, '
+                                           'surface = %s, dr = %s, dz_right = %s, dz_left = %s, testShell = %s' %
+                                           (surface, dr, dz_right, dz_left, self))
 
         # TODO first sort the neighbors to distance -> faster to find if we fail
 
@@ -837,21 +876,22 @@ class CylindricaltestShell(testShell):
 
             shell_list = self.get_neighbor_shell_list(neighbor)
             for _, shell_appearance in shell_list:
-                dr_new, dz_right_new, dz_left_new = neighbor.get_dr_dzright_dzleft_to_shell(shell_appearance, self,
+                dr_new, dz_right_new, dz_left_new = neighbor.get_dr_dzright_dzleft_to_shell(shell_appearance.shape, self,
                                                                                             dr, dz_right, dz_left)
                 if (dr_new != dr) or (dz_right_new != dz_right) or (dz_left_new != dz_left):
                     # The dimensions were changed, reapply the safety margin
                     dr, dz_right, dz_left = self.apply_safety(dr_new, dz_right_new, dz_left_new)
                     if (dr < min_dr) or (dz_right < min_dz_right) or (dz_left < min_dz_left):
                         raise ShellmakingError('Domain too close to make cylindrical testshell, '
-                                               'domain = %s, dr = %s, dz_right = %s, dz_left = %s, testShell = %s' %
+                                               'domain = %s, dr = %s, dz_right = %s, dz_left = %s, testShell = %s' % \
                                                (neighbor, dr, dz_right, dz_left, self))
 
         # we calculated valid dimensions -> success!
         assert dr >= min_dr and dz_right >= min_dz_right and dz_left >= min_dz_left, \
-               'CylindricaltestShell dimensions smaller than the minimum, radius = %s, min_radius = %s.' % \
-                (radius, min_radius)
-        
+               'CylindricaltestShell dimensions smaller than the minimum, \
+                dr = %s, dz_right = %s, dz_left = %s, min_dr = %s, min_dz_right = %s, min_dz_left = %s.' % \
+               (dr, dz_right, dz_left, min_dr, min_dz_right, min_dz_left)
+
         return dr, dz_right, dz_left
 
     def get_searchpoint(self):
@@ -1204,11 +1244,11 @@ class CylindricalSurfaceInteractiontestShell(CylindricaltestShell, testInteracti
         self.dzdr_right = 1.0
         self.drdz_right = 1.0
         self.r0_right   = 0.0
-        self.z0_right   = -self.particle_surface_distance   # note that this is because dzdr_right = 1.0
-        self.dzdr_left  = 1.0
-        self.drdz_left  = 1.0
-        self.r0_left    = 0.0
-        self.z0_left    = -self.particle_surface_distance
+        self.z0_right   = -(self.particle_surface_distance + self.surface.shape.radius)   # note that this is because dzdr_right = 1.0
+        self.dzdr_left  = self.dzdr_right
+        self.drdz_left  = self.drdz_right
+        self.r0_left    = self.r0_right
+        self.z0_left    = self.z0_right
 
         # This will determine if the shell is possible.
         # If possible, it will write the dr, dz_right, dz_left defining the dimensions of the cylindrical shell.
@@ -1231,17 +1271,17 @@ class CylindricalSurfaceInteractiontestShell(CylindricaltestShell, testInteracti
         return self.reference_point         # calculated in the __init__ of testInteractionSingle
 
     def get_min_dr_dzright_dzleft(self):
-        dr       = self.pid_particle_pair[1].radius * SINGLE_SHELL_FACTOR + self.particle_surface_distance
+        dr       = self.pid_particle_pair[1].radius * SINGLE_SHELL_FACTOR + (self.particle_surface_distance + self.surface.shape.radius)
         dz_right = self.pid_particle_pair[1].radius * SINGLE_SHELL_FACTOR
         dz_left  = dz_right
         return dr, dz_right, dz_left
         
     def get_max_dr_dzright_dzleft(self):
         # TODO clarify
-        dz_right = ((-self.particle_surface_distance + \
-                     math.sqrt(2*(self.get_searchradius()**2) - self.particle_surface_distance**2)) / 2.0)
+        dz_right = ((-(self.particle_surface_distance + self.surface.shape.radius) + \
+                     math.sqrt(2*(self.get_searchradius()**2) - (self.particle_surface_distance + self.surface.shape.radius)**2)) / 2.0)
         dz_left  = dz_right
-        dr       = (self.particle_surface_distance + dz_right)
+        dr       = ((self.particle_surface_distance + self.surface.shape.radius) + dz_right)
         return dr, dz_right, dz_left
 
     def apply_safety(self, r, z_right, z_left):
@@ -1283,7 +1323,10 @@ class CylindricalSurfaceSinktestShell(CylindricaltestShell, testInteractionSingl
 
 
     def get_orientation_vector(self):
-        return self.reference_vector      # calculated in the __init__ of testInteractionSingle
+        pos = self.world.cyclic_transpose(self.pid_particle_pair[1].position, self.surface.shape.position)
+        orientation_vector = pos - self.surface.shape.position
+        # if the dot product is negative, then take the -unit_z, otherwise take unit_z
+        return self.surface.shape.unit_z * cmp(numpy.dot(orientation_vector, self.surface.shape.unit_z), 0)
 
     def get_searchpoint(self):
         return self.pid_particle_pair[1].position
