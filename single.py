@@ -271,8 +271,8 @@ class SphericalSingle(NonInteractionSingle, hasSphericalShell):
     # these return potentially corrected dimensions
     # For explanation see NonInteractionSingles and Others in shells.py
     def shell_list_for_single(self):
-#        min_radius = self.pid_particle_pair[1].radius * MULTI_SHELL_FACTOR
-        min_radius = self.testShell.get_min_radius()
+        min_radius = self.pid_particle_pair[1].radius * MULTI_SHELL_FACTOR
+#        min_radius = self.testShell.get_min_radius()
         if  self.shell.shape.radius < min_radius:
             position = self.shell.shape.position
             fake_shell = self.create_new_shell(position, min_radius, self.domain_id)
@@ -333,21 +333,25 @@ class PlanarSurfaceSingle(NonInteractionSingle, hasCylindricalShell):
         # The shell should always be larger that the bare minimum for a test shell
         # Note that in case of a cylindrical shell this fits inside of the spherical multi shell
 #        min_radius = self.pid_particle_pair[1].radius * math.sqrt(MULTI_SHELL_FACTOR**2 - 1.0)
-        min_radius, _, _ = self.testShell.get_min_dr_dzright_dzleft()
+#        min_radius, _, _ = self.testShell.get_min_dr_dzright_dzleft()
+        min_radius = self.pid_particle_pair[1].radius * MULTI_SHELL_FACTOR
         if self.shell.shape.radius < min_radius:
             position = self.shell.shape.position
-            half_length = self.shell.shape.half_length
-            fake_shell = self.create_new_shell(position, min_radius, half_length, self.domain_id)
+#            half_length = self.shell.shape.half_length
+#            fake_shell = self.create_new_shell(position, min_radius, half_length, self.domain_id)
+            fake_shell = SphericalShell(self.domain_id, Sphere(position, min_radius))
             return [(self.shell_id, fake_shell), ]
         else:
             return self.shell_list
 
     def shell_list_for_other(self):
-        min_radius = self.pid_particle_pair[1].radius * SINGLE_SHELL_FACTOR
+        min_radius = self.pid_particle_pair[1].radius * SINGLE_SHELL_FACTOR     # The burst radius
         if self.shell.shape.radius < min_radius:
             position = self.shell.shape.position
-            half_length = self.shell.shape.half_length
-            fake_shell = self.create_new_shell(position, min_radius, half_length, self.domain_id)
+#            half_length = self.shell.shape.half_length
+            # keep everything at a burstradius distance
+#            fake_shell = self.create_new_shell(position, min_radius, half_length, self.domain_id)
+            fake_shell = SphericalShell(self.domain_id, Sphere(position, min_radius))
             return [(self.shell_id, fake_shell), ]
         else:
             return self.shell_list
@@ -408,11 +412,14 @@ class CylindricalSurfaceSingle(NonInteractionSingle, hasCylindricalShell):
         # The shell should always be larger that the bare minimum for a test shell
         # Note that in case of a cylindrical shell this fits inside of the spherical multi shell
 #        min_half_length = self.pid_particle_pair[1].radius * math.sqrt(MULTI_SHELL_FACTOR**2 - 1.0)
-        _, min_half_length, _ = self.testShell.get_min_dr_dzright_dzleft()
-        if self.shell.shape.half_length < min_half_length:
+#        _, min_half_length, _ = self.testShell.get_min_dr_dzright_dzleft()
+#        if self.shell.shape.half_length < min_half_length:
+        if self.is_reset():
             position = self.shell.shape.position
-            radius = self.shell.shape.radius
-            fake_shell = self.create_new_shell(position, radius, min_half_length, self.domain_id)
+#            radius = self.shell.shape.radius
+            radius = self.pid_particle_pair[1].radius * MULTI_SHELL_FACTOR
+#            fake_shell = self.create_new_shell(position, radius, min_half_length, self.domain_id)
+            fake_shell = SphericalShell(self.domain_id, Sphere(position, radius))
             return [(self.shell_id, fake_shell), ]
         else:
             return self.shell_list
@@ -421,8 +428,11 @@ class CylindricalSurfaceSingle(NonInteractionSingle, hasCylindricalShell):
         min_half_length = self.pid_particle_pair[1].radius * SINGLE_SHELL_FACTOR
         if self.shell.shape.half_length < min_half_length:
             position = self.shell.shape.position
-            radius = self.shell.shape.radius
-            fake_shell = self.create_new_shell(position, radius, min_half_length, self.domain_id)
+#            radius = self.shell.shape.radius
+#            fake_shell = self.create_new_shell(position, radius, min_half_length, self.domain_id)
+            # Keep all the other shells outside the burst radius (which is spherical!)
+            # Note that this makes the cylindrical shell have a slightly smaller radius than the burst radius.
+            fake_shell = SphericalShell(self.domain_id, Sphere(position, min_half_length))
             return [(self.shell_id, fake_shell), ]
         else:
             return self.shell_list
