@@ -46,6 +46,11 @@ class ShellmakingError(Exception):
     # smaller than the minimal dimensions.
     pass
 
+class protoDomainError(Exception):
+    # The protoDomainError is raised when something in the initialization of the variables
+    # that is NOT related to the shell goes wrong. This will lead later to a testShellError
+    pass
+
 class testShellError(Exception):
     # The testShellError is raised when the testShell could not be made, usually
     # due to a ShellmakingError
@@ -91,11 +96,27 @@ class NonInteractionSingles(object):
     def shell_list_for_single(self):
         # In case the asker is also a NonInteractionSingle, the shell dimensions of the current domain
         # is modified such that the domain is at least the size of the Multi shell.
+
+        # NOTE: the Multi shell is spherical whereas the real shell of the NonInteractionSingle can
+        # be cylinderical. This method should therefore always return at the Multi shell.
+        # In practice it will return the multi shell when the real shell fits inside the multi shell (typically when
+        # the domain is just initialized), and will return the real shell when the domain exceeds the multi shell.
+        # This means that there may not be space for the multi shell when the domain has non-null dimensions.
+        # This should be ok, because no multi will be directly made when the domain has non-null dimensions but
+        # will only be made after first bursting nearby domains.
+
         pass    # needs to be specified in the subclass
     def shell_list_for_other(self):
         # In case the asker is an Other, the shell dimensions of the current NonInteractionSingle domain
         # is modified such that the domain is at least its minimum size (SINGLE_SHELL_FACTOR).
         # This is to reduce unnecessary bursting of the (expensive) Other domains.
+
+        # NOTE: Since the burst radius is spherical, a spherical shell of the size of the burst radius is returned
+        # when the real shell is small enough to fit inside the burst radius. When the real shell no longer fits inside
+        # the burst radius the real shell is returned.
+        # This means that more bursting will take place than necessary because cylindrical domain do not keep the domains
+        # that are out of the 'diffusion dimension' at the proper distance -> TODO
+
         pass    # needs to be specified in the subclass
 
 
@@ -161,9 +182,9 @@ class testPair(Others):
         self.pid_particle_pair2 = single2.pid_particle_pair
         self.com, self.iv = self.do_transform()
         self.r0 = length(self.iv)
-        assert self.r0 >= self.sigma, \
-            'distance_from_sigma (pair gap) between %s and %s = %s < 0' % \
-            (self.single1, self.single2, FORMAT_DOUBLE % (self.r0 - self.sigma))
+        if self.r0 < self.sigma:
+            raise protoDomainError('distance_from_sigma (pair gap) between %s and %s = %s < 0' % \
+                (self.single1, self.single2, FORMAT_DOUBLE % (self.r0 - self.sigma)))
 
 
     def get_D_tot(self):
@@ -1359,7 +1380,12 @@ class MixedPair2D3DtestShell(CylindricaltestShell, testMixedPair2D3D):
 
     def __init__(self, single2D, single3D, geometrycontainer, domains):
         CylindricaltestShell.__init__(self, geometrycontainer, domains)  # this must be first because of world definition
-        testMixedPair2D3D.__init__(self, single2D, single3D)
+        # The initialization of r0 can fail in testPair.__init__
+        try:
+            testMixedPair2D3D.__init__(self, single2D, single3D)
+        except protoDomainError as e:
+            raise testShellError('(MixedPair2D3D). %s' %
+                                 (str(e)))
 
         # initialize commonly used constants
         self.sqrt_DRDr = math.sqrt((2*self.D_R)/(3*self.D_r))
