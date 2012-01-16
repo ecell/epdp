@@ -1401,7 +1401,10 @@ class EGFRDSimulator(ParticleSimulatorBase):
         else:
         ### 1. Process 'normal' event produced by the single
 
-            assert self.check_domain(single)
+            if single.event_type != EventType.BURST:
+                # The burst of the domain may be caused by an overlapping domain
+                assert self.check_domain(single)
+
             # check that the event time of the single (last_time + dt) is equal to the
             # simulator time
             assert (abs(single.last_time + single.dt - self.t) <= TIME_TOLERANCE * self.t), \
