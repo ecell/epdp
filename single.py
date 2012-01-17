@@ -122,7 +122,7 @@ class Single(ProtectiveDomain):
         else:
             dt = draw_time_wrapper(self.greens_function())
 
-        event_type = EventType.SINGLE_ESCAPE    # TODO Event is not an ESCAPE when in 1D there is drift
+        event_type = EventType.SINGLE_ESCAPE
         return dt, event_type
 
     def check(self):
@@ -183,8 +183,6 @@ class NonInteractionSingle(Single, NonInteractionSingles):
             # idea, because then you'd draw an unused random number.  
             # The same yields for the draw_new_com and draw_new_iv.  
 
-            # TODO Either include check for non-zero drift here, or overload
-            # this method in CylindricalSurfaceSingle to check exit interface
                 r = self.get_inner_a()
             else:
                 gf = self.greens_function()
@@ -456,14 +454,33 @@ class CylindricalSurfaceSingle(NonInteractionSingle, hasCylindricalShell):
             raise Exception('CylindricalSurfaceSingle, create_updated_shell failed: %s' % str(e) )
 
     def create_position_vector(self, z):
-        if feq(z, self.get_inner_a()):
-            # Escape, can be either to the left or to the right.
-            # The side of escape should be decided on by the flux through
-            # both boundaries at the escape time
-            # TODO, include drift
+        # 'z' can be interpreted in two different ways here, it may a coordinate in the z direction or it may
+        # be a displacement from the origin. In the first case it will already contain the drift information.
+        if self.v == 0.0:
+            # if there is no drift then we regard 'z' as a displacement from the origin. Although
+            # it actually represents a coordinate when drawR was called. It is a displacement when z=a.
+            # We randomize the direction.
             z = myrandom.choice(-1, 1) * z 
 
-        # project the com onto the surface unit vectors to make sure that the coordinates are in the surface
+        if self.v != 0.0 and feq(z, self.get_inner_a()):
+            # When there is drift and z=a, the 'z' actually represent the displacement from the origin and a
+            # boundary must be chosen.
+
+            # The Escape can be either to the left or to the right.
+            # The side of escape should be decided on by the flux through both boundaries at the escape time
+            gf = self.greens_function()
+            event_kind = draw_event_type_wrapper(gf, self.dt)
+            if event_kind == PairEventKind.IV_REACTION:     # IV_REACTION -> ESCAPE through 'left' boundary
+                z = -z
+            elif event_kind == PairEventKind.IV_ESCAPE:     # IV_ESCAPE -> ESCAPE through 'right' boundary
+                #z = z
+                pass 
+            raise NotImplemented()
+        else:
+            # When there was drift and the particle was not at the boundary.
+            # -> In this case the 'z' actually signifies a coordinate and nothing has to be done.
+            pass
+
         return z * self.shell.shape.unit_z
 
     def __str__(self):
