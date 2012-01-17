@@ -1165,7 +1165,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
         # Get also surfaces but only if the particle is in 3D
         surface_distances = []
 #        if isinstance(single, SphericalSingle):
-        surface_distances = self.geometrycontainer.get_neighbor_surfaces(single_pos, ignores=[single.structure.id])
+        surface_distances = self.geometrycontainer.get_neighbor_surfaces(single_pos, single.structure.id, ignores=[])
 
 
         # Check if there are shells with the burst radius (reaction_threshold)

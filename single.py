@@ -294,7 +294,7 @@ class SphericalSingle(NonInteractionSingle, hasSphericalShell):
     def create_updated_shell(self, position):
         # TODO what should we do with the position now?
         try:
-            radius = self.testShell.determine_possible_shell([self.domain_id], [self.structure.id])
+            radius = self.testShell.determine_possible_shell(self.structure.id, [self.domain_id], [])
             return self.create_new_shell(position, radius, self.domain_id)
 
         except ShellmakingError as e:
@@ -364,7 +364,7 @@ class PlanarSurfaceSingle(NonInteractionSingle, hasCylindricalShell):
     def create_updated_shell(self, position):
         # TODO what should we do with the position now?
         try:
-            dr, dz_right, dz_left = self.testShell.determine_possible_shell([self.domain_id], [self.structure.id])
+            dr, dz_right, dz_left = self.testShell.determine_possible_shell(self.structure.id, [self.domain_id], [])
             center, radius, half_length = self.r_zright_zleft_to_r_center_hl(self.testShell.get_referencepoint(),
                                                                              self.testShell.get_orientation_vector(),
                                                                              dr, dz_right, dz_left)            
@@ -445,7 +445,7 @@ class CylindricalSurfaceSingle(NonInteractionSingle, hasCylindricalShell):
         # TODO what should we do with the position now?
         # maybe update the reference_point of the shell before updating the shell
         try:
-            dr, dz_right, dz_left = self.testShell.determine_possible_shell([self.domain_id], [self.structure.id])
+            dr, dz_right, dz_left = self.testShell.determine_possible_shell(self.structure.id, [self.domain_id], [])
             dz_right = min(dz_right, dz_left)       # make sure the domain is symmetric around the particle
             dz_left  = dz_right                     # This is not necessary but it's assumed later
             center, radius, half_length = self.r_zright_zleft_to_r_center_hl(self.testShell.get_referencepoint(),

@@ -714,14 +714,14 @@ class testShell(object):
         self.world = geometrycontainer.world
         self.domains = domains
 
-    def get_neighbors(self, ignore, ignores):
+    def get_neighbors(self, base_structure_id, ignore, ignores):
         # The get_neighbors is general to all types of testShells.
         # It finds the neighboring domains and surfaces.
         searchpoint = self.get_searchpoint()
         radius = self.get_searchradius()
 
         neighbor_domains  = self.geometrycontainer.get_neighbor_domains(searchpoint, self.domains, ignore)
-        neighbor_surfaces = self.geometrycontainer.get_neighbor_surfaces(searchpoint, ignores)
+        neighbor_surfaces = self.geometrycontainer.get_neighbor_surfaces(searchpoint, base_structure_id, ignores)
         return neighbor_domains, neighbor_surfaces
 
     def get_orientation_vector(self):
@@ -738,11 +738,11 @@ class SphericaltestShell(testShell):
         self.center = None          # These are the parameters that define the dimensions of
         self.radius = 0             # the spherical shell -> will be determined later.
 
-    def determine_possible_shell(self, ignore, ignores):
+    def determine_possible_shell(self, base_structure_id, ignore, ignores):
         # This determines the largest possible radius of the spherical testShell or throws an
         # exception if the domain could not be made due to geometrical constraints.
 
-        neighbor_domains, neighbor_surfaces = self.get_neighbors (ignore, ignores)
+        neighbor_domains, neighbor_surfaces = self.get_neighbors (base_structure_id, ignore, ignores)
         min_radius = self.apply_safety(self.get_min_radius())
         max_radius = self.get_max_radius()
 
@@ -828,8 +828,8 @@ class SphericalPairtestShell(SphericaltestShell, testSimplePair):
 
         self.center = self.com
         try:
-            self.radius = self.determine_possible_shell([self.single1.domain_id, self.single2.domain_id],
-                                                        [self.structure.id])
+            self.radius = self.determine_possible_shell(self.structure.id, [self.single1.domain_id, self.single2.domain_id],
+                                                        [])
         except ShellmakingError as e:
             raise testShellError('(SphericalPair). %s' %
                                  (str(e)))
@@ -857,11 +857,11 @@ class CylindricaltestShell(testShell):
         #   on the side oposite of the 'orientation vector'.
 
 
-    def determine_possible_shell(self, ignore, ignores):
+    def determine_possible_shell(self, base_structure_id, ignore, ignores):
         # This determines the maximum dr, dz_right, dz_left of the cylindrical testShell or
         # throws an exception if the domain could not be made due to geometrical constraints.
 
-        neighbor_domains, neighbor_surfaces = self.get_neighbors (ignore, ignores)
+        neighbor_domains, neighbor_surfaces = self.get_neighbors (base_structure_id, ignore, ignores)
         min_dr, min_dz_right, min_dz_left = self.get_min_dr_dzright_dzleft()
         max_dr, max_dz_right, max_dz_left = self.get_max_dr_dzright_dzleft()
 
@@ -1075,8 +1075,8 @@ class PlanarSurfacePairtestShell(CylindricaltestShell, testSimplePair):
         # If not possible, it throws an exception and the construction of the testShell IS ABORTED!
         try:
             self.dr, self.dz_right, self.dz_left = \
-                            self.determine_possible_shell([self.single1.domain_id, self.single2.domain_id],
-                                                          [self.structure.id])
+                            self.determine_possible_shell(self.structure.id, [self.single1.domain_id, self.single2.domain_id],
+                                                          [])
         except ShellmakingError as e:
             raise testShellError('(PlanarSurfacePair). %s' %
                                  (str(e)))
@@ -1176,8 +1176,8 @@ class CylindricalSurfacePairtestShell(CylindricaltestShell, testSimplePair):
         # If not possible, it throws an exception and the construction of the testShell IS ABORTED!
         try:
             self.dr, self.dz_right, self.dz_left = \
-                            self.determine_possible_shell([self.single1.domain_id, self.single2.domain_id],
-                                                          [self.structure.id])
+                            self.determine_possible_shell(self.structure.id, [self.single1.domain_id, self.single2.domain_id],
+                                                          [])
         except ShellmakingError as e:
             raise testShellError('(CylindricalSurfacePair). %s' %
                                  (str(e)))
@@ -1228,7 +1228,7 @@ class PlanarSurfaceInteractiontestShell(CylindricaltestShell, testInteractionSin
         # If not possible, it throws an exception and the construction of the testShell IS ABORTED!
         try:
             self.dr, self.dz_right, self.dz_left = \
-                            self.determine_possible_shell([self.single.domain_id], [self.structure.id, self.surface.id])
+                            self.determine_possible_shell(self.structure.id, [self.single.domain_id], [self.surface.id])
         except ShellmakingError as e:
             raise testShellError('(PlanarSurfaceInteration). %s' %
                                  (str(e)))
@@ -1284,7 +1284,7 @@ class CylindricalSurfaceInteractiontestShell(CylindricaltestShell, testInteracti
         # If not possible, it throws an exception and the construction of the testShell IS ABORTED!
         try:
             self.dr, self.dz_right, self.dz_left = \
-                            self.determine_possible_shell([self.single.domain_id], [self.structure.id, self.surface.id])
+                            self.determine_possible_shell(self.structure.id, [self.single.domain_id], [self.surface.id])
         except ShellmakingError as e:
             raise testShellError('(CylindricalSurfaceInteraction). %s' %
                                  (str(e)))
@@ -1337,7 +1337,7 @@ class CylindricalSurfaceSinktestShell(CylindricaltestShell, testInteractionSingl
         # If not possible, it throws an exception and the construction of the testShell IS ABORTED!
         try:
             self.dr, self.dz_right, self.dz_left = \
-                            self.determine_possible_shell([self.single.domain_id], [self.structure.id, self.surface.id])
+                            self.determine_possible_shell(self.structure.id, [self.single.domain_id], [self.surface.id])
         except ShellmakingError as e:
             raise testShellError('(CylindricalSurfaceSink). %s' %
                                  (str(e)))
@@ -1409,8 +1409,8 @@ class MixedPair2D3DtestShell(CylindricaltestShell, testMixedPair2D3D):
         # If not possible, it throws an exception and the construction of the testShell IS ABORTED!
         try:
             self.dr, self.dz_right, self.dz_left = \
-                            self.determine_possible_shell([self.single1.domain_id, self.single2.domain_id],
-                                                          [self.structure.id, self.surface.id])
+                            self.determine_possible_shell(self.structure.id, [self.single1.domain_id, self.single2.domain_id],
+                                                          [self.surface.id])
         except ShellmakingError as e:
             raise testShellError('(MixedPair2D3D). %s' %
                                  (str(e)))
