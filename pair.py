@@ -452,7 +452,7 @@ class SphericalPair(SimplePair):
     def __init__(self, domain_id, shell_center, single1, single2, shell_id,
                  r0, shell_size, rrs, structure):
 
-        self.LD_MAX = 20
+        self.LD_MAX = numpy.inf
         SimplePair.__init__(self, domain_id, shell_center, single1, single2, shell_id,
                       r0, shell_size, rrs, structure)
 
