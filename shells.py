@@ -93,6 +93,7 @@ class NonInteractionSingles(object):
         pass    # do nothing
 
     # The next two methods are only relevant for HASSHELL subclasses that derive from this class.
+    # NOTE below two methods have quite a different purpose!
     def shell_list_for_single(self):
         # In case the asker is also a NonInteractionSingle, the shell dimensions of the current domain
         # is modified such that the domain is at least the size of the Multi shell.
@@ -106,6 +107,8 @@ class NonInteractionSingles(object):
         # will only be made after first bursting nearby domains.
 
         pass    # needs to be specified in the subclass
+
+
     def shell_list_for_other(self):
         # In case the asker is an Other, the shell dimensions of the current NonInteractionSingle domain
         # is modified such that the domain is at least its minimum size (SINGLE_SHELL_FACTOR).
@@ -909,8 +912,8 @@ class CylindricaltestShell(testShell):
                     dr, dz_right, dz_left = self.apply_safety(dr_new, dz_right_new, dz_left_new)
                     if (dr < min_dr) or (dz_right < min_dz_right) or (dz_left < min_dz_left):
                         raise ShellmakingError('Domain too close to make cylindrical testshell, '
-                                               'domain = %s, dr = %s, dz_right = %s, dz_left = %s, testShell = %s' % \
-                                               (neighbor, dr, dz_right, dz_left, self))
+                                               'domain = %s, dr = %s, dz_right = %s, dz_left = %s, min_dr = %s, min_dz_right = %s, min_dz_left = %s.' % \
+                                               (neighbor, dr, dz_right, dz_left, min_dr, min_dz_right, min_dz_left))
 
         # we calculated valid dimensions -> success!
         assert dr >= min_dr and dz_right >= min_dz_right and dz_left >= min_dz_left, \
