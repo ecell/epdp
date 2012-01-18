@@ -462,7 +462,7 @@ class CylindricalSurfaceSingle(NonInteractionSingle, hasCylindricalShell):
             # We randomize the direction.
             z = myrandom.choice(-1, 1) * z 
 
-        if self.v != 0.0 and feq(z, self.get_inner_a()):
+        elif self.v != 0.0 and feq(z, self.get_inner_a()):
             # When there is drift and z=a, the 'z' actually represent the displacement from the origin and a
             # boundary must be chosen.
 
@@ -475,13 +475,14 @@ class CylindricalSurfaceSingle(NonInteractionSingle, hasCylindricalShell):
             elif event_kind == PairEventKind.IV_ESCAPE:     # IV_ESCAPE -> ESCAPE through 'right' boundary
                 #z = z
                 pass 
-            raise NotImplemented()
+            else:
+                raise NotImplemented()
         else:
             # When there was drift and the particle was not at the boundary.
             # -> In this case the 'z' actually signifies a coordinate and nothing has to be done.
             pass
 
-        return z * self.shell.shape.unit_z
+        return z * self.structure.shape.unit_z
 
     def __str__(self):
         return 'CylindricalSurface' + Single.__str__(self)

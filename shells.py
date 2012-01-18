@@ -183,7 +183,7 @@ class testPair(Others):
         self.single2 = single2
         self.pid_particle_pair1 = single1.pid_particle_pair
         self.pid_particle_pair2 = single2.pid_particle_pair
-        self.com, self.iv = self.do_transform()
+        self.com, self.iv = self.do_transform()         # NOTE The IV always points from particle1 to particle2
         self.r0 = length(self.iv)
         if self.r0 < self.sigma:
             raise protoDomainError('distance_from_sigma (pair gap) between %s and %s = %s < 0' % \
