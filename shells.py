@@ -454,7 +454,7 @@ def get_dr_dzright_dzleft_to_SphericalShape(shape, testShell, r, z_right, z_left
     # calculate ref_to_shell_r/z in the cylindrical coordinate system on the right/left side
     ref_to_shell_z_vec = ref_to_shell_z * orientation_vector
     ref_to_shell_r_vec = ref_to_shell_vec - ref_to_shell_z_vec
-    ref_to_shell_r = length(ref_to_shell_r_vec)
+    ref_to_shell_r = length(ref_to_shell_r_vec)     # FIXME length does work well when ref_to_shell_r_vec = null vector
     ref_to_shell_z = ref_to_shell_z * direction
 
     # calculate the distances in r/z from the scaling center to the shell
@@ -747,14 +747,13 @@ class SphericaltestShell(testShell):
         max_radius = self.get_max_radius()
 
         # initialize the radius to start the scaling of the sphere
-        radius = self.apply_safety(max_radius)
+        radius = max_radius
 
         # first check the maximum radius against the surfaces
         for surface, distance in neighbor_surfaces:
             # FIXME ugly hack to make spherical singles overlap with membranes
             if isinstance(surface, PlanarSurface) and isinstance(self, SphericalSingletestShell):
                 distance += self.pid_particle_pair[1].radius
-            distance = self.apply_safety(distance)
             radius = min(radius, distance)
             if radius < min_radius:
                 raise ShellmakingError('Surface too close to make spherical testshell, '
@@ -770,22 +769,20 @@ class SphericaltestShell(testShell):
             shell_list = self.get_neighbor_shell_list(neighbor)
             for _, shell_appearance in shell_list:
                 if isinstance(shell_appearance.shape, Sphere):
-                    radius_new = get_radius_to_SphericalShape(shell_appearance.shape, self, radius)
+                    radius = get_radius_to_SphericalShape(shell_appearance.shape, self, radius)
                 elif isinstance(shell_appearance.shape, Cylinder):
-                    radius_new = get_radius_to_CylindricalShape(shell_appearance.shape, self, radius)
+                    radius = get_radius_to_CylindricalShape(shell_appearance.shape, self, radius)
 
-                if radius_new != radius:
-                    # A new (smaller) radius was found
-                    radius = self.apply_safety(radius_new)
-                    if radius < min_radius:
-                        raise ShellmakingError('Domain too close to make spherical testshell, '
-                                               'domain = %s, radius = %s, min_radius = %s, testShell = %s' %
-                                               (neighbor, radius, min_radius, self))
+                if radius < min_radius:
+                    raise ShellmakingError('Domain too close to make spherical testshell, '
+                                           'domain = %s, radius = %s, min_radius = %s, testShell = %s' %
+                                           (neighbor, radius, min_radius, self))
 
         # we calculated a valid radius -> suscess!
         assert radius >= min_radius, 'SphericaltestShell radius smaller than the minimum, radius = %s, min_radius = %s.' % \
                                      (radius, min_radius)
 
+        radius = self.apply_safety(radius)
         return radius
 
     def get_searchpoint(self):
@@ -867,28 +864,25 @@ class CylindricaltestShell(testShell):
 
         # initialize the parameters to start the scaling of the cylinder
         min_dr, min_dz_right, min_dz_left = self.apply_safety(min_dr, min_dz_right, min_dz_left)
-        dr, dz_right, dz_left             = self.apply_safety(max_dr, max_dz_right, max_dz_left)
-
+        dr, dz_right, dz_left             = max_dr, max_dz_right, max_dz_left
+ 
         # first check the maximum dr, dz_right, dz_left against the surfaces
         # NOTE: we assume that all relevant surfaces are cylindrical and parallel to the testCylinder
         for surface, distance in neighbor_surfaces:
             # TODO
             if isinstance(surface, CylindricalSurface):
-                dr_new, dz_right_new, dz_left_new = get_dr_dzright_dzleft_to_CylindricalShape(surface.shape, self,
+                dr, dz_right, dz_left = get_dr_dzright_dzleft_to_CylindricalShape(surface.shape, self,
                                                                                               dr, dz_right, dz_left)
             elif isinstance(surface, PlanarSurface):
-                dr_new, dz_right_new, dz_left_new = get_dr_dzright_dzleft_to_PlanarShape(surface.shape, self,
+                dr, dz_right, dz_left = get_dr_dzright_dzleft_to_PlanarShape(surface.shape, self,
                                                                                          dr, dz_right, dz_left)
             else:
                 assert False, "Wrong type of surface used"
 
-            if (dr_new != dr) or (dz_right_new != dz_right) or (dz_left_new != dz_left):
-                # The dimensions were changed, reapply the safety margin
-                dr, dz_right, dz_left = self.apply_safety(dr_new, dz_right_new, dz_left_new)
-                if (dr < min_dr) or (dz_right < min_dz_right) or (dz_left < min_dz_left):
-                    raise ShellmakingError('Surface too close to make cylindrical testshell, '
-                                           'surface = %s, dr = %s, dz_right = %s, dz_left = %s, testShell = %s' %
-                                           (surface, dr, dz_right, dz_left, self))
+            if (dr < min_dr) or (dz_right < min_dz_right) or (dz_left < min_dz_left):
+                raise ShellmakingError('Surface too close to make cylindrical testshell, '
+                                       'surface = %s, dr = %s, dz_right = %s, dz_left = %s, testShell = %s' %
+                                       (surface, dr, dz_right, dz_left, self))
 
         # TODO first sort the neighbors to distance -> faster to find if we fail
 
@@ -899,27 +893,27 @@ class CylindricaltestShell(testShell):
             shell_list = self.get_neighbor_shell_list(neighbor)
             for _, shell_appearance in shell_list:
                 if isinstance(shell_appearance.shape, Sphere):
-                    dr_new, dz_right_new, dz_left_new = get_dr_dzright_dzleft_to_SphericalShape(shell_appearance.shape, self,
+                    dr, dz_right, dz_left = get_dr_dzright_dzleft_to_SphericalShape(shell_appearance.shape, self,
                                                                                                 dr, dz_right, dz_left)
                 elif isinstance(shell_appearance.shape, Cylinder):
-                    dr_new, dz_right_new, dz_left_new = get_dr_dzright_dzleft_to_CylindricalShape(shell_appearance.shape, self,
+                    dr, dz_right, dz_left = get_dr_dzright_dzleft_to_CylindricalShape(shell_appearance.shape, self,
                                                                                                   dr, dz_right, dz_left)
                 else:
                     assert False, "Wrong type of shell shape"
 
-                if (dr_new != dr) or (dz_right_new != dz_right) or (dz_left_new != dz_left):
-                    # The dimensions were changed, reapply the safety margin
-                    dr, dz_right, dz_left = self.apply_safety(dr_new, dz_right_new, dz_left_new)
-                    if (dr < min_dr) or (dz_right < min_dz_right) or (dz_left < min_dz_left):
-                        raise ShellmakingError('Domain too close to make cylindrical testshell, '
-                                               'domain = %s, dr = %s, dz_right = %s, dz_left = %s, min_dr = %s, min_dz_right = %s, min_dz_left = %s.' % \
-                                               (neighbor, dr, dz_right, dz_left, min_dr, min_dz_right, min_dz_left))
+                if (dr < min_dr) or (dz_right < min_dz_right) or (dz_left < min_dz_left):
+                    raise ShellmakingError('Domain too close to make cylindrical testshell, '
+                                           'domain = %s, dr = %s, dz_right = %s, dz_left = %s, min_dr = %s, min_dz_right = %s, min_dz_left = %s.' % \
+                                           (neighbor, dr, dz_right, dz_left, min_dr, min_dz_right, min_dz_left))
 
         # we calculated valid dimensions -> success!
         assert dr >= min_dr and dz_right >= min_dz_right and dz_left >= min_dz_left, \
                'CylindricaltestShell dimensions smaller than the minimum, \
                 dr = %s, dz_right = %s, dz_left = %s, min_dr = %s, min_dz_right = %s, min_dz_left = %s.' % \
                (dr, dz_right, dz_left, min_dr, min_dz_right, min_dz_left)
+
+        # Note that dr, dz_right, dz_left can now actually be smaller than the minimum
+        dr, dz_right, dz_left = self.apply_safety(dr, dz_right, dz_left)
 
         return dr, dz_right, dz_left
 
@@ -997,9 +991,18 @@ class CylindricaltestShell(testShell):
         # This defines the minimal dimensions in terms of r, z_right, z_left of the cylindrical domain
         # that we're trying to make. The exact values vary between type of domain.
         # If a nearby domain would make it smaller than this, an exception will be thrown.
+
+        # NOTE the minimum domain also needs to obey the scaling rules or it might be scaled down to a size
+        # smaller than the minimum
         pass
 
     def get_max_dr_dzright_dzleft(self):
+        # This defines the maximal dimensions in terms of r, z_right, z_left of the cylindrical domain.
+        # The cylindrical domain needs to fit inside the search_radius (centered around the search_point)
+        # because 'it doesn't know what is outside of the searchradius'.
+
+        # NOTE also that the maximum cylinder needs to obey the scaling rules or it might be scaled up to
+        # a size larger than the search_radius.
         pass
 
 #####
@@ -1255,8 +1258,8 @@ class PlanarSurfaceInteractiontestShell(CylindricaltestShell, testInteractionSin
     def get_max_dr_dzright_dzleft(self):
         # TODO this can be improved
         dr       = (self.get_searchradius()/math.sqrt(2))
-        dz_right = dr + self.particle_surface_distance
-        dz_left  = self.pid_particle_pair[1].radius
+        dz_right = dr + self.particle_surface_distance          # Note that we assume that dr >> particle_surface_distance
+        dz_left  = self.pid_particle_pair[1].radius             # so that the cylinder always fits inside the search_radius
         return dr, dz_right, dz_left
 
     def apply_safety(self, r, z_right, z_left):
@@ -1384,6 +1387,7 @@ class MixedPair2D3DtestShell(CylindricaltestShell, testMixedPair2D3D):
     def __init__(self, single2D, single3D, geometrycontainer, domains):
         CylindricaltestShell.__init__(self, geometrycontainer, domains)  # this must be first because of world definition
         # The initialization of r0 can fail in testPair.__init__
+
         try:
             testMixedPair2D3D.__init__(self, single2D, single3D)
         except protoDomainError as e:
@@ -1398,7 +1402,7 @@ class MixedPair2D3DtestShell(CylindricaltestShell, testMixedPair2D3D):
                                                                               self.pid_particle_pair2[1].D/self.D_tot ))
         self.dzdr_right = 1.0/self.drdz_right
         self.r0_right   = 0.0
-        self.z0_right   = self.z_right(self.r0_right)
+        self.z0_right   = self.z_right2(self.r0_right)
         self.dzdr_left  = 0.0
         self.drdz_left  = numpy.inf
         self.r0_left    = 0.0
@@ -1429,6 +1433,9 @@ class MixedPair2D3DtestShell(CylindricaltestShell, testMixedPair2D3D):
         return self.com
 
     def get_min_dr_dzright_dzleft(self):
+        # defines the minimum parameters of the testShell.
+        # Note that also the minimum testShell must obey the scaling rules
+
         radius1 = self.pid_particle_pair1[1].radius
         radius2 = self.pid_particle_pair2[1].radius
         D_1 = self.pid_particle_pair1[1].D
@@ -1465,14 +1472,18 @@ class MixedPair2D3DtestShell(CylindricaltestShell, testMixedPair2D3D):
         return dr, dz_right, dz_left
         
     def get_max_dr_dzright_dzleft(self):
-        # TODO this can be improved, now the shell same height as diameter
+        # TODO this can be improved
         dr       = self.get_searchradius()/math.sqrt(2)
         dz_left  = self.pid_particle_pair1[1].radius
-        dz_right = (dr * 2 - dz_left)
+
+        # now adjust dz_right such that they obey the scaling laws and are still with the search_radius
+        # We assume that dz_right needs to be adjusted to dr and not the other way around since the cylinder is
+        # always a bit flatter.
+        dz_right = self.z_right(dr)
 
         return dr, dz_right, dz_left
 
-    def z_right(self, r_right):
+    def z_right2(self, r_right):
         # if the radius is known and we want to determine the height z_right
         radius1 = self.pid_particle_pair1[1].radius
         radius2 = self.pid_particle_pair2[1].radius
@@ -1487,25 +1498,25 @@ class MixedPair2D3DtestShell(CylindricaltestShell, testMixedPair2D3D):
 
         return (a_r/self.get_scaling_factor()) + radius2
 
-    def r_right(self, z_right):
-        # if the z_right is known and we want to know the radius r
-        radius1 = self.pid_particle_pair1[1].radius
-        radius2 = self.pid_particle_pair2[1].radius
-        D_1 = self.pid_particle_pair1[1].D
-        D_2 = self.pid_particle_pair2[1].D
-
-        # we first calculate the a_r, since it is the only radius that depends on z_right only.
-        a_r = (z_right - radius2) * self.get_scaling_factor()
-
-        # We equalize the estimated first passage time for the CoM (2D) and IV (3D) for a given a_r
-        # Note that for the IV we only take the distance to the outer boundary into account.
-        a_R = (a_r - self.r0)*self.sqrt_DRDr
-
-        # We calculate the maximum space needed for particles A and B based on maximum IV displacement
-        iv_max = max( (D_1/self.D_tot * a_r + radius1),
-                      (D_2/self.D_tot * a_r + radius2))
-
-        return a_R + iv_max
+#    def r_right(self, z_right):
+#        # if the z_right is known and we want to know the radius r
+#        radius1 = self.pid_particle_pair1[1].radius
+#        radius2 = self.pid_particle_pair2[1].radius
+#        D_1 = self.pid_particle_pair1[1].D
+#        D_2 = self.pid_particle_pair2[1].D
+#
+#        # we first calculate the a_r, since it is the only radius that depends on z_right only.
+#        a_r = (z_right - radius2) * self.get_scaling_factor()
+#
+#        # We equalize the estimated first passage time for the CoM (2D) and IV (3D) for a given a_r
+#        # Note that for the IV we only take the distance to the outer boundary into account.
+#        a_R = (a_r - self.r0)*self.sqrt_DRDr
+#
+#        # We calculate the maximum space needed for particles A and B based on maximum IV displacement
+#        iv_max = max( (D_1/self.D_tot * a_r + radius1),
+#                      (D_2/self.D_tot * a_r + radius2))
+#
+#        return a_R + iv_max
 
     def apply_safety(self, r, z_right, z_left):
         return r/SAFETY, z_right/SAFETY, z_left
