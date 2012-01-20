@@ -41,7 +41,7 @@ class ShellContainer(object):
         return self.user_max_shell_size
 
     def get_max_shell_size(self):
-        return min(self.get_matrix_cell_size() * .5 / SAFETY,
+        return min(self.get_matrix_cell_size() * .5,
                    self.user_max_shell_size)
 
     def get_container(self, shell):
