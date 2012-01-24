@@ -401,7 +401,6 @@ class EGFRDSimulator(ParticleSimulatorBase):
         # assert if not too many successive dt=0 steps occur.
         if __debug__:
             if self.dt == 0:
-                log.debug('dt=zero step, working in s.t >> dt~0 Python limit.')
                 self.zero_steps += 1
                 # TODO What is best solution here? Usually no prob, -> just let 
                 # user know?
@@ -677,6 +676,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
                 # -domain is not a multi
                 # -domain is not zero dt NonInteractionSingle
                 # -domain has time passed
+                log.debug("domain %s bursted. self.t= %s, domain.last_time= %s" % \
+                          (str(domain), FORMAT_DOUBLE % self.t, FORMAT_DOUBLE % domain.last_time))
                 single_list = self.burst_domain(domain)
                 single_distances = [(single, 0) for single in single_list]  # TODO? calculate real distance, now just 0
                 domain_distances_updated.extend(single_distances)
@@ -686,6 +687,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
                 # -domain is a multi
                 # -domain is already a burst NonInteractionSingle (zero dt NonInteractionSingle)
                 # -domain is domain in which no time has passed
+                log.debug("domain %s not bursted. self.t= %s, domain.last_time= %s" % \
+                          (str(domain), FORMAT_DOUBLE % self.t, FORMAT_DOUBLE % domain.last_time))
                 domain_distances_updated.append((domain, distance))
 
         return domain_distances_updated
@@ -1387,25 +1390,31 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
         # TODO assert that there is no event associated with this domain in the scheduler
 
-        ### log Single event
-        if __debug__:
-            log.info('FIRE SINGLE: %s' % single.event_type)
-            log.info('single = %s' % single)
-
 
         if single.is_reset():
         ### If no event event really happened and just need to make new domain
+            if __debug__:
+                log.info('FIRE SINGLE: make_new_domain()')
+                log.info('single = %s' % single)
             domains = [self.make_new_domain(single)]
             # domain is already scheduled in make_new_domain
 
         ### 1.1 Special cases (shortcuts)
         # In case nothing is scheduled to happen: do nothing and just reschedule
         elif single.dt == numpy.inf:
+            if __debug__:
+                log.info('FIRE SINGLE: Nothing happens-> single.dt=inf')
+                log.info('single = %s' % single)
             self.add_domain_event(single)
             domains = [single]
 
         else:
         ### 1. Process 'normal' event produced by the single
+            ### log Single event
+            if __debug__:
+                log.info('FIRE SINGLE: %s' % single.event_type)
+                log.info('single = %s' % single)
+
 
             if single.event_type != EventType.BURST:
                 # The burst of the domain may be caused by an overlapping domain
@@ -1725,6 +1734,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
         # Override event_type. 
         single.dt = self.t - single.last_time
         single.event_type = EventType.BURST
+        # with a burst there is always an associated event in the scheduler.
+        # to simulate the natural occurence of the event we have to remove it from the scheduler
         self.remove_event(single)
 
         newsingles = self.process_single_event(single)
@@ -1746,7 +1757,9 @@ class EGFRDSimulator(ParticleSimulatorBase):
         # Override event time and event_type. 
         pair.dt = self.t - pair.last_time 
         pair.event_type = EventType.BURST
-        self.remove_event(pair)         # remove the event -> was still in the scheduler
+        # with a burst there is always an associated event in the scheduler.
+        # to simulate the natural occurence of the event we have to remove it from the scheduler
+        self.remove_event(pair)
 
         newsingles = self.process_pair_event(pair)
 
