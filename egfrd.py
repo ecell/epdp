@@ -662,7 +662,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
         neighbors = [self.domains[domain_id] for domain_id in neighbor_ids]
         return self.burst_domains(neighbors)
 
-    def burst_non_multis(self, domain_distances, burstradius, ignore=[]):
+    def burst_non_multis(self, domain_distances, burstradius, already_bursted):
         # Recursively bursts the domains in 'domains' if within burstradius
         # Returns the updated list of domains with their distances
 
@@ -672,8 +672,10 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
         for domain_distance in domain_distances:
             domain, distance = domain_distance
+            log.debug("%s" % str(domain))
 
             if distance <= burstradius and \
+               domain.domain_id not in already_bursted and \
                not isinstance(domain, Multi) and \
                not (isinstance(domain, NonInteractionSingle) and domain.is_reset()) and \
                self.t != domain.last_time:
@@ -686,31 +688,32 @@ class EGFRDSimulator(ParticleSimulatorBase):
                           (str(domain), FORMAT_DOUBLE % self.t, FORMAT_DOUBLE % domain.last_time))
 
                 # burst the domain and remove the original domain from the domain_distances list
-                domain_distances.remove(domain_distance)
+#                domain_distances.remove(domain_distance)
+                already_bursted.add(domain.domain_id)
                 single_list = self.burst_domain(domain)
 
-                # Add the produced non-InteractionSingles to the updated list of neighbors
-                single_distances = [(single, 0) for single in single_list]  # TODO? calculate real distance, now just 0
-                domain_distances.extend(single_distances)
+#                # Add the produced non-InteractionSingles to the updated list of neighbors
+#                single_distances = [(single, 0) for single in single_list]  # TODO? calculate real distance, now just 0
+#                domain_distances.extend(single_distances)
                 # Make sure that all the new singles are being ignored
-#                for single in single_list:
-#                    ignore.append(single.domain_id)
+                for single in single_list:
+                    already_bursted.add(single.domain_id)
 
                 # Additionally, also burst recursively for every single created
                 for single in single_list:
                     single_pos = single.pid_particle_pair[1].position
                     single_radius = single.pid_particle_pair[1].radius
                     # For each single find the neighbors and (if we already knew about this neighbor) new distances
-                    neighbor_distances_single = self.geometrycontainer.get_neighbor_domains(single_pos, self.domains, ignore)
+                    neighbor_distances_single = self.geometrycontainer.get_neighbor_domains(single_pos, self.domains, list(already_bursted))
 
-                    # make sure that there's only one occurance for each neighbor and that 'newer' copies get preference.
-                    neighbor_distances_single.extend(domain_distances)        # add old ones
-                    seen = set()
-                    seen_add = seen.add
-                    neighbor_distances = [ (x,y) for x, y in neighbor_distances_single if x not in seen and not seen_add(x)]
+#                    # make sure that there's only one occurance for each neighbor and that 'newer' copies get preference.
+#                    neighbor_distances_single.extend(domain_distances)        # add old ones
+#                    seen = set()
+#                    seen_add = seen.add
+#                    neighbor_distances = [ (x,y) for x, y in neighbor_distances_single if x not in seen and not seen_add(x)]
 
                     # burst the neighbors with the new distances (if necessary/possible)
-                    domain_distances, ignore = self.burst_non_multis(neighbor_distances, single_radius*SINGLE_SHELL_FACTOR, ignore)
+                    _, already_bursted = self.burst_non_multis(neighbor_distances_single, single_radius*SINGLE_SHELL_FACTOR, already_bursted)
             else:
                 # Don't burst domain if (OR):
                 # -domain is farther than burst radius
@@ -725,11 +728,11 @@ class EGFRDSimulator(ParticleSimulatorBase):
 #                domain_distances_updated.append(domain_distance)
                 # also, if the domain was just bursted put it on the ignore list
                 # -> also in the future nothing needs to happen.
-#                if isinstance(domain, NonInteractionSingle) and domain.is_reset():
-#                    ignore.append(domain.domain_id)
+                if isinstance(domain, NonInteractionSingle) and domain.is_reset():
+                    already_bursted.add(domain.domain_id)
 
         log.debug("  done..")
-        return domain_distances, ignore
+        return domain_distances, already_bursted
 
     def fire_single_reaction(self, single, reactant_pos):
         # This takes care of the identity change when a single particle decays into
@@ -1231,7 +1234,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
         # -shell is burstable (not Multi)
         # -shell is not newly made
         # -shell is not already a zero shell (just bursted)
-        _, ignore = self.burst_non_multis(neighbors, reaction_threshold, ignore=[single.domain_id, ])
+        _, ignore = self.burst_non_multis(neighbors, reaction_threshold, set([single.domain_id]))
 #        neighbor_distances = [(self.domains[domain_id], 0) for domain_id in ignore if domain_id != single.domain_id]
 #        seen_x = set()
 #        new_neighbor_distances = []
@@ -1998,7 +2001,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
             # 2. Burst the domains that interfere with making the multi shell
             burstradius = domain.pid_particle_pair[1].radius * MULTI_SHELL_FACTOR
             neighbor_distances, ignore = self.burst_non_multis(neighbor_distances, burstradius,
-                                                               ignore=[domain.domain_id, multi.domain_id])
+                                                               set([domain.domain_id, multi.domain_id]))
             # This bursts only domains in which time has passed, it is assumed that other domains
             # have been made 'socially', meaning that they leave enough space for this particle to make a multi
             # shell without overlapping. 
