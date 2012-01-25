@@ -37,6 +37,8 @@ from shells import (
     testShellError,
     testPair,
     testInteractionSingle,
+    hasSphericalShell,
+    hasCylindricalShell,
     SphericalSingletestShell,
     SphericalPairtestShell,
     PlanarSurfaceSingletestShell,
@@ -660,8 +662,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
         neighbors = [self.domains[domain_id] for domain_id in neighbor_ids]
         return self.burst_domains(neighbors)
 
-    def burst_non_multis(self, domain_distances, burstradius):
-        # Bursts the domains in 'domains' if within burstradius
+    def burst_non_multis(self, domain_distances, burstradius, ignore=[]):
+        # Recursively bursts the domains in 'domains' if within burstradius
         # Returns the updated list of domains with their distances
 
         domain_distances_updated = []
@@ -679,8 +681,21 @@ class EGFRDSimulator(ParticleSimulatorBase):
                 log.debug("domain %s bursted. self.t= %s, domain.last_time= %s" % \
                           (str(domain), FORMAT_DOUBLE % self.t, FORMAT_DOUBLE % domain.last_time))
                 single_list = self.burst_domain(domain)
-                single_distances = [(single, 0) for single in single_list]  # TODO? calculate real distance, now just 0
-                domain_distances_updated.extend(single_distances)
+#                single_distances = [(single, 0) for single in single_list]  # TODO? calculate real distance, now just 0
+
+                # Also burst recursively for every single created
+                for single in single_list:
+                    # Add the single itself to the updated neighbors list
+                    domain_distances_updated.append((single, 0))
+                    ignore.append(single.domain_id)
+
+                    # For each single find the neighbors and burst them as well (if necessary/possible)
+                    single_pos = single.pid_particle_pair[1].position
+                    single_radius = single.pid_particle_pair[1].radius
+                    neighbors = self.geometrycontainer.get_neighbor_domains(single_pos, self.domains, ignore)
+                    neighbor_distances, ignore = self.burst_non_multis(neighbors, single_radius*SINGLE_SHELL_FACTOR, ignore)
+
+                    domain_distances_updated.extend(neighbor_distances)         # TODO remove the duplicates
             else:
                 # Don't burst domain if (OR):
                 # -domain is farther than burst radius
@@ -691,7 +706,10 @@ class EGFRDSimulator(ParticleSimulatorBase):
                           (str(domain), FORMAT_DOUBLE % self.t, FORMAT_DOUBLE % domain.last_time))
                 domain_distances_updated.append((domain, distance))
 
-        return domain_distances_updated
+                if isinstance(domain, NonInteractionSingle) and domain.is_reset():
+                    ignore.append(domain.domain_id)
+
+        return domain_distances_updated, ignore
 
     def fire_single_reaction(self, single, reactant_pos):
         # This takes care of the identity change when a single particle decays into
@@ -1193,7 +1211,17 @@ class EGFRDSimulator(ParticleSimulatorBase):
         # -shell is burstable (not Multi)
         # -shell is not newly made
         # -shell is not already a zero shell (just bursted)
-        neighbor_distances = self.burst_non_multis(neighbors, reaction_threshold)
+        neighbor_distances, ignore = self.burst_non_multis(neighbors, reaction_threshold, ignore=[single.domain_id, ])
+#        neighbor_distances = [(self.domains[domain_id], 0) for domain_id in ignore if domain_id != single.domain_id]
+        seen_x = set()
+        new_neighbor_distances = []
+        for x in neighbor_distances:
+            a, b = x
+            if x not in seen_x:
+                seen_x.add(x)
+                if a.domain_id != single.domain_id:
+                    new_neighbor_distances.append(x)
+        neighbor_distances = new_neighbor_distances
 
 
         # We prefer to make NonInteractionSingles for efficiency.
@@ -1952,7 +1980,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
             # 2. Burst the domains that interfere with making the multi shell
             burstradius = domain.pid_particle_pair[1].radius * MULTI_SHELL_FACTOR
-            neighbor_distances = self.burst_non_multis(neighbor_distances, burstradius)
+            neighbor_distances, ignore = self.burst_non_multis(neighbor_distances, burstradius, ignore=[])
             # This bursts only domains in which time has passed, it is assumed that other domains
             # have been made 'socially', meaning that they leave enough space for this particle to make a multi
             # shell without overlapping. 
@@ -2155,11 +2183,17 @@ rejected moves = %d
 
             # testing overlap criteria
             for neighbor, _ in neighbors:
-                for _, neighbor_shell in neighbor.shell_list:
-                    overlap = self.check_shell_overlap(shell, neighbor_shell)
-                    assert overlap >= 0.0, \
-                        '%s (%s) overlaps with %s (%s) by %s.' % \
-                        (domain, str(shell), str(neighbor), str(neighbor_shell), FORMAT_DOUBLE % overlap)
+                # note that the shell of a MixedPair that has have just been bursted can stick into each other.
+                if not (((isinstance(domain, hasCylindricalShell)   and isinstance(domain, NonInteractionSingle)   and domain.is_reset()) and \
+                         (isinstance(neighbor, hasSphericalShell)   and isinstance(neighbor, NonInteractionSingle) and domain.is_reset()) ) or \
+                        ((isinstance(domain, hasSphericalShell)     and isinstance(domain, NonInteractionSingle)   and domain.is_reset()) and \
+                         (isinstance(neighbor, hasCylindricalShell) and isinstance(neighbor, NonInteractionSingle) and domain.is_reset()) )):
+
+                    for _, neighbor_shell in neighbor.shell_list:
+                        overlap = self.check_shell_overlap(shell, neighbor_shell)
+                        assert overlap >= 0.0, \
+                            '%s (%s) overlaps with %s (%s) by %s.' % \
+                            (domain, str(shell), str(neighbor), str(neighbor_shell), FORMAT_DOUBLE % overlap)
 
 
             # checking wether the shell don't exceed the maximum size
