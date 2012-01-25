@@ -666,8 +666,6 @@ class EGFRDSimulator(ParticleSimulatorBase):
         # Recursively bursts the domains in 'domains' if within burstradius
         # Returns the updated list of domains with their distances
 
-#        domain_distances_updated = []
-
         log.debug("burst_non_multi")
 
         for domain_distance in domain_distances:
@@ -1236,16 +1234,6 @@ class EGFRDSimulator(ParticleSimulatorBase):
         # -shell is not already a zero shell (just bursted)
         _, ignore = self.burst_non_multis(neighbors, reaction_threshold, set([single.domain_id]))
 #        neighbor_distances = [(self.domains[domain_id], 0) for domain_id in ignore if domain_id != single.domain_id]
-#        seen_x = set()
-#        new_neighbor_distances = []
-#        for x in neighbor_distances:
-#            a, b = x
-#            if x not in seen_x:
-#                seen_x.add(x)
-#                if a.domain_id != single.domain_id:
-#                    new_neighbor_distances.append(x)
-#        neighbor_distances = new_neighbor_distances
-
 
         # We prefer to make NonInteractionSingles for efficiency.
         # But if objects (Shells and surfaces) get close enough (closer than
@@ -2000,7 +1988,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
             # 2. Burst the domains that interfere with making the multi shell
             burstradius = domain.pid_particle_pair[1].radius * MULTI_SHELL_FACTOR
-            neighbor_distances, ignore = self.burst_non_multis(neighbor_distances, burstradius,
+            _, ignore = self.burst_non_multis(neighbor_distances, burstradius,
                                                                set([domain.domain_id, multi.domain_id]))
             # This bursts only domains in which time has passed, it is assumed that other domains
             # have been made 'socially', meaning that they leave enough space for this particle to make a multi
