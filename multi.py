@@ -151,10 +151,11 @@ class Multi(Domain, hasSphericalShell, Others):
             result = self.sphere_container.get_neighbors(shell.shape.position)
             # Check contiguity with nearest neighbor only (get_neighbors 
             # returns a sorted list).
-            nearest = result[1]
-            distance = nearest[1]
-            assert distance - shell.shape.radius < 0.0,\
-                'shells of %s are not contiguous.' % str(self)
+            if len(result) > 1:
+                nearest = result[1]
+                distance = nearest[1]
+                assert distance - shell.shape.radius < 0.0,\
+                    'shells of %s are not contiguous.' % str(self)
 
         # all particles within the shell.
         for pid_particle_pair in self.particle_container:
@@ -163,12 +164,12 @@ class Multi(Domain, hasSphericalShell, Others):
 
         main = self.main()
         for shell_id, shell in self.shell_list:
-            container = main.get_container(shell)
+            container = main.geometrycontainer.get_container(shell)
             if not container.contains(shell_id):
                 raise RuntimeError,\
                     'self.sim.main.sphere_container does not contain %s'\
                     % str(shell_id)
-        for shell_id, shell in main.containers[0]:
+        for shell_id, shell in main.geometrycontainer.containers[0]:
             if shell.did == self.domain_id:
                 if not self.sphere_container.contains(shell_id):
                     raise RuntimeError,\
