@@ -144,24 +144,45 @@ class Multi(Domain, hasSphericalShell, Others):
         #             pid_particle_pair[1].radius, ignore=[self.domain_id, ])
 
     def check(self):
-        # shells are contiguous
-        # FIXME: this code cannot detect a pair of shells that are isolated
-        #        from others.
-        for _, shell in self.shell_list:
-            result = self.sphere_container.get_neighbors(shell.shape.position)
-            # Check contiguity with nearest neighbor only (get_neighbors 
-            # returns a sorted list).
-            if len(result) > 1:
-                nearest = result[1]
-                distance = nearest[1]
-                assert distance - shell.shape.radius < 0.0,\
-                    'shells of %s are not contiguous.' % str(self)
+        # check Multi num particles >= 1
+        assert self.multiplicity >= 1, 'Multi needs to have at least one particle'
+        # check number of shells==num of particles in Multi
+        assert self.multiplicity == self.num_shells, \
+            'number of particles is not equal to number of shells'
+        # Event is DIFFUSION, SINGLE_REACTION, BIMOL_REACTION, ESCAPE
+        assert self.event_Type == EventType.MULTI_DIFFUSION or \
+               self.event_Type == EventType.MULTI_ESCAPE or \
+               self.event_Type == EventType.MULTI_UNIMOLECULAR_REACTION or \
+               self.event_Type == EventType.MULTI_BIMOLECULAR_REACTION, \
+                    'event_type of Multi was not of proper type'
 
-        # all particles within the shell.
+        # check that the shells of the multi are contiguous
+        # FIXME: This can be done more efficiently because we already have an
+        #        exhaustive list of the shells to check
+        def check_connected(shell_id_shell_pair, already_checked):
+
+            shell_id, shell = shell_id_shell_pair
+            if shell_id not in already_checked:
+                already_checked.add(shell_id)
+                # TODO get only the neighbors that are not in already_checked
+                neighbor_distances = self.sphere_container.get_neighbors_within_radius(shell.shape.position, shell.shape.radius)
+                for shell_id_shell_pair, _ in neighbor_distances:
+                    already_checked = check_connected(shell_id_shell_pair, already_checked)
+
+            return already_checked
+
+        connected_shell_ids = check_connected(self.shell_list.next(), set([]))
+        assert len(connected_shell_ids) == self.num_shells, \
+            'shells of %s are not contiguous.' % str(self)
+
+
+        # check that all particles are within one of the shells.
         for pid_particle_pair in self.particle_container:
             assert self.within_shell(pid_particle_pair),\
                 'not all particles within the shell.'
 
+        # check that all the shells in the private multi shell container
+        # are also in the shell container of the Simulator
         main = self.main()
         for shell_id, shell in self.shell_list:
             container = main.geometrycontainer.get_container(shell)
@@ -169,6 +190,8 @@ class Multi(Domain, hasSphericalShell, Others):
                 raise RuntimeError,\
                     'self.sim.main.sphere_container does not contain %s'\
                     % str(shell_id)
+        # check that all the shells in the container of the Simulator that belong to this multi
+        # domain are also in the private shell container.
         for shell_id, shell in main.geometrycontainer.containers[0]:
             if shell.did == self.domain_id:
                 if not self.sphere_container.contains(shell_id):
@@ -200,5 +223,6 @@ class Multi(Domain, hasSphericalShell, Others):
     num_shells = property(num_shells)    
 
     def shell_list(self):
+    # returns a list of (shell_id, shell) pairs of the Multi
         return iter(self.sphere_container)
     shell_list = property(shell_list)

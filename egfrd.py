@@ -1963,6 +1963,9 @@ class EGFRDSimulator(ParticleSimulatorBase):
             # In case of new multi
             self.add_domain_event(multi)
 
+        if __debug__:
+            self.check_domain(multi)
+
         return multi
 
 
@@ -2404,15 +2407,11 @@ rejected moves = %d
 ### check Interaction
 # check shell.unit_z = +- surface.unit_z
 
-### check Multi
-# check Multi num particles >= 1
-# check number of shells==num of particles in Multi
-# Event is DIFFUSION, SINGLE_REACTION, BIMOL_REACTION, ESCAPE
-
 ### check consistency of the model
 # check that the product species of an interaction lives on the interaction surface.
 # check that the product species of a bimolecular reaction lives on either structure of reactant species
 # check that the product species of a unimolecular reaction lives on structure of the reactant species or the bulk.
+# structures cannot overlap unless substructure
 
     def check_domains(self):
     # checks that the events in the scheduler are consistent with the domains
