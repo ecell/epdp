@@ -1429,7 +1429,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
     # case is just a BURST event.
 
         # TODO assert that there is no event associated with this domain in the scheduler
-        assert self.check_domain(single)
+#        assert self.check_domain(single)
 
         if single.is_reset():
         ### If no event event really happened and just need to make new domain
@@ -1455,6 +1455,9 @@ class EGFRDSimulator(ParticleSimulatorBase):
                 log.info('FIRE SINGLE: %s' % single.event_type)
                 log.info('single = %s' % single)
 
+            if single.event_type != EventType.BURST:
+                # The burst of the domain may be caused by an overlapping domain
+                assert self.check_domain(single)
 
             # check that the event time of the single (last_time + dt) is equal to the
             # simulator time
@@ -2161,6 +2164,7 @@ rejected moves = %d
     def check_domain(self, domain):
         domain.check()
 
+        # construct ignore list for surfaces
         if isinstance(domain, Multi):
             # Ignore all surfaces, multi shells can overlap with 
             # surfaces.
@@ -2176,8 +2180,10 @@ rejected moves = %d
 
 
 
+        ###### check shell consistency
         for shell_id, shell in domain.shell_list:
 
+            ### Check shell overlap with surfaces
             # TODO should be replace by list of surface
             surface, distance = get_closest_surface(self.world, shell.shape.position, ignores)
             if surface:
@@ -2187,14 +2193,14 @@ rejected moves = %d
                         '%s (%s) overlaps with %s.' % \
                         (str(domain), str(shell), str(surface))
 
-
+            ### Check shell overlap with other shells
             neighbors = self.geometrycontainer.get_neighbor_domains(shell.shape.position,
                                                                     self.domains, ignore=[domain.domain_id])
             # TODO maybe don't check all the shells, this takes a lot of time
 
             # testing overlap criteria
             for neighbor, _ in neighbors:
-                # note that the shell of a MixedPair that has have just been bursted can stick into each other.
+                # note that the shell of a MixedPair or Multi that has have just been bursted can stick into each other.
                 if not (((isinstance(domain, hasCylindricalShell)   and isinstance(domain, NonInteractionSingle)   and domain.is_reset()) and \
                          (isinstance(neighbor, hasSphericalShell)   and isinstance(neighbor, NonInteractionSingle) and domain.is_reset()) ) or \
                         ((isinstance(domain, hasSphericalShell)     and isinstance(domain, NonInteractionSingle)   and domain.is_reset()) and \
@@ -2207,7 +2213,7 @@ rejected moves = %d
                             (domain, str(shell), str(neighbor), str(neighbor_shell), FORMAT_DOUBLE % overlap)
 
 
-            # checking wether the shell don't exceed the maximum size
+            ### checking if the shell don't exceed the maximum size
             if (type(shell.shape) is Cylinder):
                 # the cylinder should at least fit in the maximal sphere
                 shell_size = math.sqrt(shell.shape.radius**2 + shell.shape.half_length**2)
@@ -2227,9 +2233,7 @@ rejected moves = %d
         return True
 
     def check_shell_overlap(self, shell1, shell2):
-    # Returns True if the shells DO NOT overlap
-    # Returns False if the shells DO overlap
-    # Return the amount of overlap (positive number means no overlap, negative means overlap)
+    # Return the amount of overlap between two shells (positive number means no overlap, negative means overlap)
 
         # overlap criterium when both shells are spherical
         if (type(shell1.shape) is Sphere) and (type(shell2.shape) is Sphere):
@@ -2252,7 +2256,7 @@ rejected moves = %d
             overlap_r = length(inter_pos_r) - (shell1.shape.radius + shell2.shape.radius)
             overlap_z = length(inter_pos_z) - (shell1.shape.half_length + shell2.shape.half_length)
             if (overlap_r < 0.0) and (overlap_z < 0.0):
-                return -1           # TODO: find better number for overlap measure
+                return -(overlap_r * overlap_z)           # TODO: find better number for overlap measure
             else:
                 return 1
 
@@ -2273,6 +2277,8 @@ rejected moves = %d
 
 
     def check_surface_overlap(self, shell, surface):
+    # Returns True if the shell and surface do not overlap, and False if they do overlap.
+
         if (type(shell.shape) is Sphere):
             distance = self.world.distance(surface.shape, shell.shape.position)
             return shell.shape.radius < distance
@@ -2294,6 +2300,7 @@ rejected moves = %d
 
 
     def check_domain_for_all(self):
+    # For every event in the scheduler, checks the consistency of the associated domain.
         for id, event in self.scheduler:
             domain = self.domains[event.data]
             self.check_domain(domain)
@@ -2334,6 +2341,78 @@ rejected moves = %d
         if shell_population != matrix_population:
             raise RuntimeError('num shells (%d) != matrix population (%d)' %
                                (shell_population, matrix_population))
+
+### check scheduler
+# check that every domain in domains{} has one and only one event in the scheduler
+# check that every event with domain is also in domains{}
+# check that dt, last_time of the domain is consistent with the event time on the scheduler
+# check that every event on scheduler is associated with domain or is a non domain related event
+
+# check that all the cached singles in Pairs are not in domains{}.
+
+### check shell container
+# check that shells of a domain in domains{} are once and only once in the shell matrix
+# check that all shells in the matrix are once and only once in a domain
+# total number of shells in domains==total number of shells in shell container
+# check that the shells of all the cached singles in Pairs are not in the containers
+
+### check shells of domains
+# check that shells of the domain do not overlap with shells of other domains
+# check that shells are not bigger than the allowed maximum
+# check (for Multi's only?) that the shells in a domain are connected (have consecutive overlaps)
+# check that shells of the domain don't overlap with surfaces that are not associated with the domain.
+# check that shells of the domain DO overlap with the structures that it is associated with.
+
+### check world
+# check num particles in domains is equal to num particles in the world
+# check that every particle in the world is in one and only one domain
+# check that every particle in the domains is once and only once in the world.
+# check that particles do not overlap with cylinderical surfaces unless the domain is associated with the surface
+
+### check domains
+# check that testShell is of proper type
+# check that the particles are within the shells of the domain
+# check that proper number of shells for domain, most other number of shells==1
+# check that the shell(s) of domain have the proper geometry (sphere/cylinder)
+# check that shell is within minimum and maximum
+# check that shell obeys scaling properties
+# check that the position of the shell(s) and particle(s) are within the structures that the particles live on
+# check that dt != 0 unless NonInteractionSingle.is_reset()
+# check event_type != BURST
+# check associated structures are of proper type (plane etc, but also of proper StructureTypeID)
+# check that Green's functions are defined.
+
+### check NonInteractionSingle
+# check if is_reset() then shellsize is size particle, dt==0, event_type==ESCAPE
+# check shell.unit_z == structure.unit_z
+# check drift < inf
+# check inner space < shell
+
+### check Pair
+# check number of particles==2
+# check D_R, D_r > 0
+# check r0 is between sigma and a (within bounds of greens function)
+# check sigma
+
+### check SimplePair
+# check CoM, iv lies in the structure of the particles
+# check shell.unit_z == structure.unit_z
+
+### check MixedPair
+# check CoM is in surface, IV is NOT
+
+### check Interaction
+# check shell.unit_z = +- surface.unit_z
+
+### check Multi
+# check Multi num particles >= 1
+# check number of shells==num of particles in Multi
+# Event is DIFFUSION, SINGLE_REACTION, BIMOL_REACTION, ESCAPE
+
+### check consistency of the model
+# check that the product species of an interaction lives on the interaction surface.
+# check that the product species of a bimolecular reaction lives on either structure of reactant species
+# check that the product species of a unimolecular reaction lives on structure of the reactant species or the bulk.
 
     def check_domains(self):
     # checks that the events in the scheduler are consistent with the domains
