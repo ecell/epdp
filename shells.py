@@ -1187,6 +1187,10 @@ class CylindricalSurfacePairtestShell(CylindricaltestShell, testSimplePair):
             raise testShellError('(CylindricalSurfacePair). %s' %
                                  (str(e)))
 
+        # make sure the domain is symmetric around the CoM
+        self.dz_right = min(self.dz_right, self.dz_left)
+        self.dz_left  = self.dz_right
+
     def get_orientation_vector(self):
         return self.structure.shape.unit_z
 
@@ -1265,7 +1269,7 @@ class PlanarSurfaceInteractiontestShell(CylindricaltestShell, testInteractionSin
         return dr, dz_right, dz_left
 
     def apply_safety(self, r, z_right, z_left):
-        return r/SAFETY, z_right/SAFETY, z_left
+        return self.r_right(z_right/SAFETY), z_right/SAFETY, z_left
 
 #####
 class CylindricalSurfaceInteractiontestShell(CylindricaltestShell, testInteractionSingle):
@@ -1319,7 +1323,7 @@ class CylindricalSurfaceInteractiontestShell(CylindricaltestShell, testInteracti
         return dr, dz_right, dz_left
 
     def apply_safety(self, r, z_right, z_left):
-        return r/SAFETY, z_right/SAFETY, z_left/SAFETY
+        return r/SAFETY, self.z_right(r/SAFETY), self.z_left(r/SAFETY)
 
 class CylindricalSurfaceSinktestShell(CylindricaltestShell, testInteractionSingle):
 
@@ -1390,7 +1394,7 @@ class MixedPair2D3DtestShell(CylindricaltestShell, testMixedPair2D3D):
         CylindricaltestShell.__init__(self, geometrycontainer, domains)  # this must be first because of world definition
         # The initialization of r0 can fail in testPair.__init__
 
-        raise testShellError('(MixedPair2D3D).')
+#        raise testShellError('(MixedPair2D3D).')
 
         try:
             testMixedPair2D3D.__init__(self, single2D, single3D)
@@ -1548,7 +1552,7 @@ class MixedPair2D3DtestShell(CylindricaltestShell, testMixedPair2D3D):
         return r_right
 
     def apply_safety(self, r, z_right, z_left):
-        return r/SAFETY, z_right/SAFETY, z_left
+        return r/SAFETY, self.z_right(r/SAFETY), z_left
 
 #####
 #class MixedPair3D1DtestShell(CylindricaltestShell, Others):
