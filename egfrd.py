@@ -1414,10 +1414,11 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
         single.last_time = self.t
 
-        # check everything is ok
-        assert self.check_domain(single)
         # add to scheduler
         self.add_domain_event(single)
+        # check everything is ok
+        if __debug__:
+            assert self.check_domain(single)
 
         return single
 
@@ -1843,10 +1844,11 @@ class EGFRDSimulator(ParticleSimulatorBase):
             self.remove_domain(single)
             # the event associated with the single will be removed by the scheduler.
 
-            # check everything is ok
-            assert self.check_domain(interaction)
             # add to scheduler
             self.add_domain_event(interaction)
+            # check everything is ok
+            if __debug__:
+                assert self.check_domain(interaction)
 
             return interaction
         else:
@@ -1895,10 +1897,11 @@ class EGFRDSimulator(ParticleSimulatorBase):
             # pair.
             self.remove_event(single2)
 
-            # check everything is ok
-            assert self.check_domain(pair)
             # add to scheduler
             self.add_domain_event(pair)
+            # check everything is ok
+            if __debug__:
+                assert self.check_domain(pair)
 
             return pair
         else:
@@ -1964,7 +1967,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
             self.add_domain_event(multi)
 
         if __debug__:
-            self.check_domain(multi)
+            assert self.check_domain(multi)
 
         return multi
 
