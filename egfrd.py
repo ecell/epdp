@@ -687,15 +687,15 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
                 # burst the domain and remove the original domain from the domain_distances list
 #                domain_distances.remove(domain_distance)
-                already_bursted.add(domain_id)
+                already_bursted.append(domain_id)
                 single_list = self.burst_domain(domain)
 
 #                # Add the produced non-InteractionSingles to the updated list of neighbors
 #                single_distances = [(single, 0) for single in single_list]  # TODO? calculate real distance, now just 0
 #                domain_distances.extend(single_distances)
                 # Make sure that all the new singles are being ignored
-                for single in single_list:
-                    already_bursted.add(single.domain_id)
+#                for single in single_list:
+                already_bursted.extend(single_list)
 
                 # Additionally, also burst recursively for every single created
                 for single in single_list:
@@ -729,7 +729,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
                 # also, if the domain was just bursted put it on the ignore list
                 # -> also in the future nothing needs to happen.
                 if isinstance(domain, NonInteractionSingle) and domain.is_reset():
-                    already_bursted.add(domain_id)
+                    already_bursted.append(domain_id)
 
         log.debug("  done..")
         return already_bursted
@@ -1234,7 +1234,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
         # -shell is burstable (not Multi)
         # -shell is not newly made
         # -shell is not already a zero shell (just bursted)
-        ignore = self.burst_non_multis(single_pos, reaction_threshold, set([single.domain_id]))
+        ignore = self.burst_non_multis(single_pos, reaction_threshold, [single.domain_id])
 #        neighbor_distances = [(self.domains[domain_id], 0) for domain_id in ignore if domain_id != single.domain_id]
 
         # We prefer to make NonInteractionSingles for efficiency.
@@ -1999,7 +1999,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
             # 2. Burst the domains that interfere with making the multi shell
             burstradius = domain.pid_particle_pair[1].radius * MULTI_SHELL_FACTOR
-            ignore = self.burst_non_multis(dompos, burstradius, set([domain.domain_id, multi.domain_id]))
+            ignore = self.burst_non_multis(dompos, burstradius, [domain.domain_id, multi.domain_id])
             # This bursts only domains in which time has passed, it is assumed that other domains
             # have been made 'socially', meaning that they leave enough space for this particle to make a multi
             # shell without overlapping. 
