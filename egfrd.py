@@ -334,6 +334,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
                 if __debug__:
                     log.debug('burst %s, last_time= %s' % 
                               (domain, FORMAT_DOUBLE % domain.last_time))
+                ignore.append(domain.domain_id)
                 ignore = self.burst_single(domain, ignore)
             else:
                 assert False, 'domain from domains{} was no Single, Pair or Multi'
@@ -635,6 +636,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
     # bursts all the domains that are in the list 'domains'
         bursted = []
         for domain in domains:
+            already_bursted.append(domain.domain_id)
             d, already_bursted = self.burst_domain(domain, already_bursted)
             bursted.extend(d)
 
@@ -674,41 +676,41 @@ class EGFRDSimulator(ParticleSimulatorBase):
 #            log.debug("%s" % str(domain))
 
 #            if distance <= burstradius and \
-            if domain_id not in already_bursted:
-                domain = self.domains[domain_id]
+#            if domain_id not in already_bursted:
+            domain = self.domains[domain_id]
 
-                if not isinstance(domain, Multi) and \
-                   not (isinstance(domain, NonInteractionSingle) and domain.is_reset()) and \
-                   self.t != domain.last_time:
-                    # Burst domain only if (AND):
-                    # -within radius
-                    # -not already bursted before
-                    # -domain is not a multi
-                    # -domain is not zero dt NonInteractionSingle
-                    # -domain has time passed
+            if not isinstance(domain, Multi) and \
+               not (isinstance(domain, NonInteractionSingle) and domain.is_reset()) and \
+               self.t != domain.last_time:
+                # Burst domain only if (AND):
+                # -within radius
+                # -not already bursted before
+                # -domain is not a multi
+                # -domain is not zero dt NonInteractionSingle
+                # -domain has time passed
+ 
+                # burst the domain and add the domain_id to the list of domains that is already bursted
+                already_bursted.append(domain_id)
+                single_list, already_bursted = self.burst_domain(domain, already_bursted)
 
-                    # burst the domain and add the domain_id to the list of domains that is already bursted
-                    already_bursted.append(domain_id)
-                    single_list, already_bursted = self.burst_domain(domain, already_bursted)
-
-#                    # Make sure that all the new singles are being ignored
-#                    already_bursted.extend(single_list)
+#                # Make sure that all the new singles are being ignored
+#                already_bursted.extend(single_list)
 #
-#                    # Additionally, also burst recursively for every single created
-#                    for single in single_list:
-#                        already_bursted = self.burst_non_multis(single.pid_particle_pair[1].position,
-#                                                                single.pid_particle_pair[1].radius*SINGLE_SHELL_FACTOR,
-#                                                                already_bursted)
-                else:
-                    # Don't burst domain if (OR):
-                    # -domain is farther than burst radius
-                    # -domain is a multi
-                    # -domain is already a burst NonInteractionSingle (zero dt NonInteractionSingle)
-                    # -domain is domain in which no time has passed
+#                # Additionally, also burst recursively for every single created
+#                for single in single_list:
+#                    already_bursted = self.burst_non_multis(single.pid_particle_pair[1].position,
+#                                                            single.pid_particle_pair[1].radius*SINGLE_SHELL_FACTOR,
+#                                                            already_bursted)
+            else:
+                # Don't burst domain if (OR):
+                # -domain is farther than burst radius
+                # -domain is a multi
+                # -domain is already a burst NonInteractionSingle (zero dt NonInteractionSingle)
+                # -domain is domain in which no time has passed
 
-                    # If the domain was just bursted, put it on the ignore list
-                    if isinstance(domain, NonInteractionSingle) and domain.is_reset():
-                        already_bursted.append(domain_id)
+                # If the domain was just bursted, put it on the ignore list
+                if isinstance(domain, NonInteractionSingle) and domain.is_reset():
+                    already_bursted.append(domain_id)
 
         log.debug("  done..")
         return already_bursted
