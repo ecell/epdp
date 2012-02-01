@@ -2126,20 +2126,17 @@ rejected moves = %d
 
         for shell_id, shell in domain.shell_list:
 
-            # TODO should be replace by list of surface
-            surface, distance = get_closest_surface(self.world, shell.shape.position, ignores)
-            if surface:
-                surfaces = [(surface, distance), ]
-                for surface, distance in surfaces:
-                    assert self.check_surface_overlap(shell, surface), \
-                        '%s (%s) overlaps with %s.' % \
-                        (str(domain), str(shell), str(surface))
+            surfaces = get_surfaces(self.world, shell.shape.position, ignores)
+            for surface, _ in surfaces:
+                assert self.check_surface_overlap(shell, surface), \
+                    '%s (%s) overlaps with %s.' % \
+                    (str(domain), str(shell), str(surface))
 
 
             neighbors = self.geometrycontainer.get_neighbor_domains(shell.shape.position,
                                                                     self.domains, ignore=[domain.domain_id])
-            # TODO maybe don't check all the shells, this takes a lot of time
 
+            # TODO maybe don't check all the shells, this takes a lot of time
             # testing overlap criteria
             for neighbor, _ in neighbors:
                 for _, neighbor_shell in neighbor.shell_list:

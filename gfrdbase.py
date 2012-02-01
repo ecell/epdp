@@ -27,6 +27,7 @@ __all__ = [
     'NoSpace',
     'create_world',
     'ParticleSimulatorBase',
+    'get_surfaces',
     'get_closest_surface',
     'create_network_rules_wrapper',
     'place_particle'
