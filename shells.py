@@ -1552,6 +1552,7 @@ class MixedPair2D3DtestShell(CylindricaltestShell, testMixedPair2D3D):
         return r_right
 
     def apply_safety(self, r, z_right, z_left):
+        SAFETY = 1.1
         return r/SAFETY, self.z_right(r/SAFETY), z_left
 
 #####
