@@ -752,6 +752,26 @@ class MixedPair2D3D(Pair, hasCylindricalShell):
 
         return new_iv
 
+    def check(self):
+    # perform internal consistency check 
+        radius1 = self.pid_particle_pair1[1].radius
+        radius2 = self.pid_particle_pair2[1].radius
+        D_1 = self.pid_particle_pair1[1].D
+        D_2 = self.pid_particle_pair2[1].D
+
+        radius      = self.shell.shape.radius
+        half_length = self.shell.shape.half_length
+
+        # check that the shell obeys the scaling rules dimensions of the cylinder
+        r_check  = self.testShell.r_right (half_length*2 - radius1)
+        hl_check = (self.testShell.z_right (radius) + self.testShell.z_left (radius))/2
+        assert feq(r_check, radius) and feq(hl_check, half_length), \
+            'MixedPair2D3D: Domain did not obey scaling relationship. '
+
+        # check that the CoM is in the surface
+        assert numpy.dot( (self.com-self.surface.shape.position), self.surface.shape.unit_z) == 0.0
+        # check that the IV is NOT in the surface
+
     def __str__(self):
         return 'Mixed2D3D' + Pair.__str__(self)
 

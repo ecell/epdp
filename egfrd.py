@@ -682,8 +682,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
                 # -domain is not a multi
                 # -domain is not zero dt NonInteractionSingle
                 # -domain has time passed
-                log.debug("domain %s bursted. self.t= %s, domain.last_time= %s" % \
-                          (str(domain), FORMAT_DOUBLE % self.t, FORMAT_DOUBLE % domain.last_time))
+#                log.debug("domain %s bursted. self.t= %s, domain.last_time= %s" % \
+#                          (str(domain), FORMAT_DOUBLE % self.t, FORMAT_DOUBLE % domain.last_time))
 
                 # burst the domain and remove the original domain from the domain_distances list
 #                domain_distances.remove(domain_distance)
@@ -718,8 +718,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
                 # -domain is a multi
                 # -domain is already a burst NonInteractionSingle (zero dt NonInteractionSingle)
                 # -domain is domain in which no time has passed
-                log.debug("domain %s not bursted. self.t= %s, domain.last_time= %s" % \
-                          (str(domain), FORMAT_DOUBLE % self.t, FORMAT_DOUBLE % domain.last_time))
+#                log.debug("domain %s not bursted. self.t= %s, domain.last_time= %s" % \
+#                          (str(domain), FORMAT_DOUBLE % self.t, FORMAT_DOUBLE % domain.last_time))
 
                 # nothing needs to happen
 #                # just copy the domain to the new list
@@ -1966,8 +1966,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
             # In case of new multi
             self.add_domain_event(multi)
 
-        if __debug__:
-            assert self.check_domain(multi)
+#        if __debug__:
+#            assert self.check_domain(multi)
 
         return multi
 
@@ -2170,19 +2170,24 @@ rejected moves = %d
     def check_domain(self, domain):
         domain.check()
 
-        # construct ignore list for surfaces
+        # construct ignore list for surfaces and the structures that the domain is associated with
         if isinstance(domain, Multi):
             # Ignore all surfaces, multi shells can overlap with 
             # surfaces.
             ignores = [s.id for s in self.world.structures]
-        elif isinstance(domain, SphericalSingle):
+            associated = []
+        elif isinstance(domain, SphericalSingle) or isinstance(domain, SphericalPair):
             # 3D NonInteractionSingles can overlap with planar surfaces but not with rods
             ignores = [s.id for s in self.world.structures if isinstance(s, PlanarSurface)]
+            associated = []
         elif isinstance(domain, InteractionSingle) or isinstance(domain, MixedPair2D3D):
             # Ignore surface of the particle and interaction surface
-            ignores = [domain.structure.id, domain.surface.id]
+            ignores = []
+            associated = [domain.structure.id, domain.surface.id]
         else:
-            ignores = [domain.structure.id]
+            # Ignore the structure that the particles are associated with
+            ignores = []
+            associated = [domain.structure.id]
 
 
 
@@ -2191,7 +2196,7 @@ rejected moves = %d
 
             ### Check shell overlap with surfaces
             # TODO should be replace by list of surface
-            surface, distance = get_closest_surface(self.world, shell.shape.position, ignores)
+            surface, distance = get_closest_surface(self.world, shell.shape.position, ignores + associated)
             if surface:
                 surfaces = [(surface, distance), ]
                 for surface, distance in surfaces:
