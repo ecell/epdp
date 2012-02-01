@@ -618,13 +618,9 @@ class EGFRDSimulator(ParticleSimulatorBase):
             bursted = self.burst_single(domain)
         elif isinstance(domain, Pair):  # Pair
             bursted = self.burst_pair(domain)
-        else:  # Multi
+        else:                           # Multi
             assert isinstance(domain, Multi)
             bursted = self.burst_multi(domain)
-#            bursted = self.break_up_multi(domain)       # Multi's can't really be 'bursted' since the
-                                                        # positions of the particles are known. They
-                                                        # are broken up to singles with a dt=0 shell instead.
-#            self.remove_event(domain)
 
         if __debug__:
             # After a burst, InteractionSingles should be gone.
@@ -670,7 +666,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
         for domain_distance in domain_distances:
             domain, distance = domain_distance
-            log.debug("%s" % str(domain))
+#            log.debug("%s" % str(domain))
 
             if distance <= burstradius and \
                domain.domain_id not in already_bursted and \
