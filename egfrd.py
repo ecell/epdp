@@ -237,7 +237,10 @@ class EGFRDSimulator(ParticleSimulatorBase):
                            EventType.BURST:0}
         self.multi_steps = {EventType.MULTI_ESCAPE:0,
                             EventType.MULTI_UNIMOLECULAR_REACTION:0,
-                            EventType.MULTI_BIMOLECULAR_REACTION:0, 3:0}
+                            EventType.MULTI_BIMOLECULAR_REACTION:0,
+                            EventType.MULTI_DIFFUSION:0,
+                            EventType.BURST:0,
+                            3:0}
         self.zero_steps = 0
         self.rejected_moves = 0
         self.reaction_events = 0
@@ -1719,20 +1722,22 @@ class EGFRDSimulator(ParticleSimulatorBase):
         return domains, already_bursted
 
     def process_multi_event(self, multi, already_bursted):
-        self.multi_steps[3] += 1  # multi_steps[3]: total multi steps
-        multi.step()
 
         if __debug__:
             log.info('FIRE MULTI: %s' % multi.last_event)
+
+        self.multi_steps[multi.last_event] += 1
+        self.multi_steps[3] += 1  # multi_steps[3]: total multi steps
+        multi.step()
 
         if(multi.last_event == EventType.MULTI_UNIMOLECULAR_REACTION or
            multi.last_event == EventType.MULTI_BIMOLECULAR_REACTION):
             self.reaction_events += 1
             self.last_reaction = multi.last_reaction
 
-        if multi.last_event is not None:                # if an event took place
+        if multi.last_event is not EventType.MULTI_DIFFUSION:                # if an event took place
             self.break_up_multi(multi, already_bursted)
-            self.multi_steps[multi.last_event] += 1
+#            self.multi_steps[multi.last_event] += 1
         else:
             self.add_domain_event(multi)
 
@@ -2143,7 +2148,7 @@ steps = %d
 \tSingle:\t%d\t(escape: %d, reaction: %d, bursted: %d)
 \tInteraction: %d\t(escape: %d, interaction: %d, bursted: %d)
 \tPair:\t%d\t(escape r: %d, R: %d, reaction pair: %d, single: %d, bursted: %d)
-\tMulti:\t%d\t(escape: %d, reaction pair: %d, single: %d)
+\tMulti:\t%d\t(escape: %d, reaction pair: %d, single: %d, bursted: %d)
 total reactions = %d
 rejected moves = %d
 ''' \
@@ -2166,6 +2171,7 @@ rejected moves = %d
                self.multi_steps[EventType.MULTI_ESCAPE],
                self.multi_steps[EventType.MULTI_BIMOLECULAR_REACTION],
                self.multi_steps[EventType.MULTI_UNIMOLECULAR_REACTION],
+               self.multi_steps[EventType.BURST],
                self.reaction_events,
                self.rejected_moves
                )

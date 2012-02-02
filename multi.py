@@ -19,8 +19,8 @@ class Multi(Domain, hasSphericalShell, Others):
         #       Only the methods of the hasSphericalShell class are used
 
         self.main = ref(main)
-        self.last_event = None
-        self.event_Type = EventType.MULTI_DIFFUSION
+        self.last_event = EventType.MULTI_DIFFUSION     #None
+#        self.event_type = EventType.MULTI_DIFFUSION
 
         self.sphere_container = _gfrd.SphericalShellContainer(main.world.world_size, 3)
         self.particle_container = _gfrd.MultiParticleContainer(main.world)
@@ -98,7 +98,7 @@ class Multi(Domain, hasSphericalShell, Others):
                         shape.position, -(shape.radius + self.outer_.reaction_length) ))
                 if not within_radius:
                     main = self.outer_.main()
-                    if self.outer_.last_event == None:
+                    if self.outer_.last_event == EventType.MULTI_DIFFUSION: #None:
                         self.outer_.last_event = EventType.MULTI_ESCAPE
                     main.burst_volume(shape.position, shape.radius, 
                                       ignore=[self.outer_.domain_id, ])
@@ -117,7 +117,7 @@ class Multi(Domain, hasSphericalShell, Others):
                      myrandom.rng, self.dt, main.dissociation_retry_moves, self.reaction_length,
                      cr, vc, [pid for pid, _ in self.particle_container])
 
-        self.last_event = None        
+        self.last_event = EventType.MULTI_DIFFUSION     #None
         while ppg():
             if cr.reactions:
                 self.last_reaction = cr.reactions[-1]
@@ -137,7 +137,7 @@ class Multi(Domain, hasSphericalShell, Others):
         #         return
 
         #     if not self.within_shell(pid_particle_pair):
-        #         if self.last_event == None:
+        #         if self.last_event == EventType.MULTI_DIFFUSION   #None:
         #             self.last_event = EventType.MULTI_ESCAPE
         #         main.clear_volume(
         #             pid_particle_pair[1].position,
@@ -150,10 +150,10 @@ class Multi(Domain, hasSphericalShell, Others):
         assert self.multiplicity == self.num_shells, \
             'number of particles is not equal to number of shells'
         # Event is DIFFUSION, SINGLE_REACTION, BIMOL_REACTION, ESCAPE
-        assert self.event_Type == EventType.MULTI_DIFFUSION or \
-               self.event_Type == EventType.MULTI_ESCAPE or \
-               self.event_Type == EventType.MULTI_UNIMOLECULAR_REACTION or \
-               self.event_Type == EventType.MULTI_BIMOLECULAR_REACTION, \
+        assert self.last_event == EventType.MULTI_DIFFUSION or \
+               self.last_event == EventType.MULTI_ESCAPE or \
+               self.last_event == EventType.MULTI_UNIMOLECULAR_REACTION or \
+               self.last_event == EventType.MULTI_BIMOLECULAR_REACTION, \
                     'event_type of Multi was not of proper type'
 
         # check that the shells of the multi are contiguous
