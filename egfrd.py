@@ -455,9 +455,9 @@ class EGFRDSimulator(ParticleSimulatorBase):
         # 3. update the proper shell container
         self.geometrycontainer.move_shell(single.shell_id_shell_pair)
 
-        if __debug__:
-            # Used in __str__.
-            single.world = self.world
+#        if __debug__:
+#            # Used in __str__.
+        single.world = self.world
 
         return single
 
@@ -498,9 +498,9 @@ class EGFRDSimulator(ParticleSimulatorBase):
         # 3. update the shell containers 
         self.geometrycontainer.move_shell(interaction.shell_id_shell_pair)
 
-        if __debug__:
-            # Used in __str__.
-            interaction.world = self.world
+#        if __debug__:
+#            # Used in __str__.
+        interaction.world = self.world
 
         return interaction
 
@@ -531,9 +531,9 @@ class EGFRDSimulator(ParticleSimulatorBase):
         # 3. update the shell containers with the new shell
         self.geometrycontainer.move_shell(pair.shell_id_shell_pair)
 
-        if __debug__:
-            # Used in __str__.
-            pair.world = self.world
+#        if __debug__:
+#            # Used in __str__.
+        pair.world = self.world
 
         return pair
 
@@ -1310,7 +1310,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
                 # In case there is really nothing
                 closest_overlap = numpy.inf
 
-            log.debug('Single or Multi: closest_overlap: %s' % (FORMAT_DOUBLE % closest_overlap))
+            if __debug__:
+                log.debug('Single or Multi: closest_overlap: %s' % (FORMAT_DOUBLE % closest_overlap))
 
             # If the closest partner is within the multi horizon we do Multi, otherwise Single
             if closest_overlap > 0.0: 
@@ -1541,16 +1542,18 @@ class EGFRDSimulator(ParticleSimulatorBase):
             log.info('single2 = %s' % pair.single2)
 
         ### 1. check that everything is ok
-        assert self.check_domain(pair)
-        assert pair.single1.domain_id not in self.domains
-        assert pair.single2.domain_id not in self.domains
+        if __debug__:
+            assert self.check_domain(pair)
+            assert pair.single1.domain_id not in self.domains
+            assert pair.single2.domain_id not in self.domains
         # TODO assert that there is no event associated with this domain in the scheduler
 
         # check that the event time of the single (last_time + dt) is equal to the
         # simulator time
-        assert (abs(pair.last_time + pair.dt - self.t) <= TIME_TOLERANCE * self.t), \
-            'Timeline incorrect. pair.last_time = %s, pair.dt = %s, self.t = %s' % \
-            (FORMAT_DOUBLE % pair.last_time, FORMAT_DOUBLE % pair.dt, FORMAT_DOUBLE % self.t)
+        if __debug__:
+            assert (abs(pair.last_time + pair.dt - self.t) <= TIME_TOLERANCE * self.t), \
+                    'Timeline incorrect. pair.last_time = %s, pair.dt = %s, self.t = %s' % \
+                    (FORMAT_DOUBLE % pair.last_time, FORMAT_DOUBLE % pair.dt, FORMAT_DOUBLE % self.t)
 
         ### 2. get some necessary information
         single1 = pair.single1
