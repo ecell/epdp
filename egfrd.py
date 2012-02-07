@@ -2330,21 +2330,17 @@ rejected moves = %d
         ###### check shell consistency
         for shell_id, shell in domain.shell_list:
 
-            ### Check shell overlap with surfaces
-            # TODO should be replace by list of surface
-            surface, distance = get_closest_surface(self.world, shell.shape.position, ignores + associated)
-            if surface:
-                surfaces = [(surface, distance), ]
-                for surface, distance in surfaces:
-                    assert self.check_surface_overlap(shell, surface), \
-                        '%s (%s) overlaps with %s.' % \
-                        (str(domain), str(shell), str(surface))
+            surfaces = get_surfaces(self.world, shell.shape.position, ignores)
+            for surface, _ in surfaces:
+                assert self.check_surface_overlap(shell, surface), \
+                    '%s (%s) overlaps with %s.' % \
+                    (str(domain), str(shell), str(surface))
 
             ### Check shell overlap with other shells
             neighbors = self.geometrycontainer.get_neighbor_domains(shell.shape.position,
                                                                     self.domains, ignore=[domain.domain_id])
-            # TODO maybe don't check all the shells, this takes a lot of time
 
+            # TODO maybe don't check all the shells, this takes a lot of time
             # testing overlap criteria
             for neighbor, _ in neighbors:
                 # note that the shell of a MixedPair or Multi that has have just been bursted can stick into each other.
