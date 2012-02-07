@@ -322,32 +322,33 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
         self.t = t
 
-        non_single_list = []
+#        non_single_list = []
 
         # Burst all the domains that we know of.
-        # TODO because of recursive bursting, domains that are still on the list may already have been bursted.
+        self.burst_all_domains()
         # first burst all Singles, and put Pairs and Multis in a list.
 #        for id, event in self.scheduler:
-        ignore = []
-        for _, domain in self.domains.items():
-#            obj = self.domains[event.data]
-            if isinstance(domain, Pair) or isinstance(domain, Multi):
-                non_single_list.append(domain)
-            elif isinstance(domain, Single):
-                if __debug__:
-                    log.debug('burst %s, last_time= %s' % 
-                              (domain, FORMAT_DOUBLE % domain.last_time))
-                ignore.append(domain.domain_id)
-                ignore = self.burst_single(domain, ignore)
-            else:
-                assert False, 'domain from domains{} was no Single, Pair or Multi'
-
-
-        # then burst all Pairs and Multis.
-        if __debug__:
-            log.debug('burst %s' % non_single_list)
-        non_single_ids = [non_single.domain_id for non_single in non_single_list]
-        self.burst_domains(non_single_ids, ignore)
+#        ignore = []
+#        for domain_id, domain in self.domains.items():
+#            if domain_id not in ignore:
+##                domain = self.domains[event.data]
+#                if isinstance(domain, Pair) or isinstance(domain, Multi):
+#                    non_single_list.append(domain)
+#                elif isinstance(domain, Single):
+#                    if __debug__:
+#                        log.debug('burst %s, last_time= %s' % 
+#                                  (domain, FORMAT_DOUBLE % domain.last_time))
+#                    ignore.append(domain.domain_id)
+#                    ignore = self.burst_single(domain, ignore)
+#                else:
+#                    assert False, 'domain from domains{} was no Single, Pair or Multi'
+#
+#
+#        # then burst all Pairs and Multis.
+#        if __debug__:
+#            log.debug('burst %s' % non_single_list)
+#        non_single_ids = [non_single.domain_id for non_single in non_single_list]
+#        self.burst_domains(non_single_ids, ignore)
 
         self.dt = 0.0
 
@@ -614,14 +615,22 @@ class EGFRDSimulator(ParticleSimulatorBase):
                      (domain.domain_id, domain.event_id, FORMAT_DOUBLE % t))
         self.scheduler.update((domain.event_id, DomainEvent(t, domain)))
 
+
+
+
     def burst_domain(self, domain, ignore):
-    # Reduces and domain (Single, Pair or Multi) to Singles with the zero shell, and dt=0
-    # return a list of Singles that was the result of the bursting
+    # Reduces 'domain' (Single, Pair or Multi) to 'zero_singles', singles
+    # with the zero shell, and dt=0.
+    # returns:
+    # - list of zero_singles that was the result of the bursting
+    # - updated ignore list
+
+        domain_id = domain.domain_id
 
         if __debug__:
             log.info('burst_domain: %s' % domain)
 
-        if isinstance(domain, Single):
+        if isinstance(domain, Single):  # Single
             # TODO. Compare with gfrd.
             zero_singles, ignore = self.burst_single(domain, ignore)
         elif isinstance(domain, Pair):  # Pair
@@ -631,26 +640,84 @@ class EGFRDSimulator(ParticleSimulatorBase):
             zero_singles, ignore = self.burst_multi(domain, ignore)
 
         if __debug__:
-            # After a burst, InteractionSingles should be gone.
-            assert all(not isinstance(b, InteractionSingle) for b in zero_singles)
+            # After a burst, the domain should be gone and should be on the ignore list.
+            # Also the zero_singles should only be NonInteractionSingles
+            assert domain_id not in self.domains
+            assert domain_id in ignore
+            assert all(isinstance(b, NonInteractionSingle) for b in zero_singles)
             log.info('zero_singles = %s' % ',\n\t  '.join(str(i) for i in zero_singles))
 
         return zero_singles, ignore
 
-    def burst_domains(self, domain_ids, ignore=[]):
-    # bursts all the domains that are in the list 'domain_ids'
-    # ignores all the domain ids on ignore
+    def burst_single(self, single, ignore):
+        # Bursts the 'single' domain and updates the 'ignore' list.
+        # Returns:
+        # - zero_singles that are the result of bursting the single (can be multiple
+        #   because the burst is recursive). The zero_single have zero shell and are scheduled.
+        # - the updated ignore list
 
-        zero_singles = []
-        for domain_id in domain_ids:
-            if domain_id not in ignore:
-                ignore.append(domain_id)
+        if __debug__:
+            log.debug('burst single: %s', single)
 
-                domain = self.domains[domain_id]
-                zero_singles2, ignore = self.burst_domain(domain, ignore)
-                zero_singles.extend(zero_singles2)
+        # Check correct timeline ~ MW
+        assert single.last_time <= self.t
+        assert self.t <= single.last_time + single.dt
 
-        return zero_singles, ignore
+        # Override dt, the burst happens before the single's scheduled event.
+        # Override event_type. 
+        single.dt = self.t - single.last_time
+        single.event_type = EventType.BURST
+        # with a burst there is always an associated event in the scheduler.
+        # to simulate the natural occurence of the event we have to remove it from the scheduler
+        self.remove_event(single)
+
+        return self.process_single_event(single, ignore)
+
+    def burst_pair(self, pair, ignore):
+        # Bursts the 'pair' domain and updates the 'ignore' list.
+        # Returns:
+        # - zero_singles that are the result of bursting the pair (can be more than two
+        #   since the burst is recursive). The zero_single have zero shell and are scheduled.
+        # - the updated ignore list
+
+        if __debug__:
+            log.debug('burst_pair: %s', pair)
+
+        # make sure that the current time is between the last time and the event time
+        if __debug__:
+            assert pair.last_time <= self.t
+            assert self.t <= pair.last_time + pair.dt
+
+        # Override event time and event_type. 
+        pair.dt = self.t - pair.last_time 
+        pair.event_type = EventType.BURST
+        # with a burst there is always an associated event in the scheduler.
+        # to simulate the natural occurence of the event we have to remove it from the scheduler
+        self.remove_event(pair)
+
+        return self.process_pair_event(pair, ignore)
+
+    def burst_multi(self, multi, ignore):
+        # Bursts the 'multi' domain and updates the 'ignore' list.
+        # Returns:
+        # - zero_singles that are the result of bursting the multi (note that the burst is
+        #   recursive). The zero_single have zero shell and are scheduled.
+        # - the updated ignore list
+
+        if __debug__:
+            log.debug('burst multi: %s', multi)
+
+        #multi.sim.sync()
+        # make sure that the current time is between the last time and the event time
+        if __debug__:
+            assert multi.last_time <= self.t
+            assert self.t <= multi.last_time + multi.dt
+
+        # with a burst there is always an associated event in the scheduler.
+        # to simulate the natural occurence of the event we have to remove it from the scheduler
+        self.remove_event(multi)        # The old event was still in the scheduler
+
+        return self.break_up_multi(multi, ignore)
 
     def burst_volume(self, pos, radius, ignore=[]):
         """ Burst domains within a certain volume and give their ids.
@@ -660,24 +727,62 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
         Arguments:
             - pos: position of area to be "bursted"
-            - radius: radius of area to be "bursted"
-            - ignore: domains that should be ignored, none by default.
+            - radius: radius of spherical area to be "bursted"
+            - ignore: ids of domains that should be ignored, none by default.
         """ # ~ MW
         # TODO burst_volume now always assumes a spherical volume to burst.
         # It is inefficient to burst on the 'other' side of the membrane or to
         # burst in a circle, when you want to make a new shell in the membrane.
-        # Then we may want to burst in a cylindrical volume, not a sphere
+        # Then we may want to burst in a cylindrical volume, not a sphere.
+
         neighbor_ids = self.geometrycontainer.get_neighbors_within_radius_no_sort(pos, radius, ignore)
+
         return self.burst_domains(neighbor_ids, ignore)
 
-    def burst_non_multis(self, pos, burstradius, ignore):
-        # Recursively bursts the domains in 'domains' if within burstradius
-        # Returns the updated list domains that are already bursted
+    def burst_all_domains(self):
+        # Bursts all the domains in the simulator
+
+        all_domains = self.domains.items()
+        all_domain_ids =[domain_id for domain_id, _ in all_domains]
+        zero_singles, ignore = self.burst_domains(all_domain_ids, [])
+
+        # Check if the bursting procedure was correct.
+        if __debug__:
+            assert len(zero_singles) == self.world.num_particles
+            assert len(ignore) == (len(all_domains) + self.world.num_particles)
+
+    def burst_domains(self, domain_ids, ignore=[]):
+        # bursts all the domains that are in the list 'domain_ids'
+        # ignores all the domain ids on 'ignore'
+        # returns:
+        # - list of zero_singles that was the result of the bursting
+        # - updated ignore list
+
         zero_singles = []
+        for domain_id in domain_ids:
+            if domain_id not in ignore:
+                domain = self.domains[domain_id]
+
+                # add the domain_id to the list of domains that is already bursted (ignore list),
+                # and burst the domain.
+                ignore.append(domain_id)
+                zero_singles2, ignore = self.burst_domain(domain, ignore)
+                # add the resulting zero_singles from the burst to the total list of zero_singles.
+                zero_singles.extend(zero_singles2)
+
+        return zero_singles, ignore
+
+    def burst_non_multis(self, pos, radius, ignore):
+        # Recursively bursts the domains within 'radius' centered around 'pos'
+        # Similarly to burst_volume but now doesn't burst all domains.
+        # Returns:
+        # - the updated list domains that are already bursted -> ignore list
+        # - zero_singles that were the result of the burst
 
         # get the neighbors in the burstradius that are not already bursted.
-        neighbor_ids = self.geometrycontainer.get_neighbors_within_radius_no_sort(pos, burstradius, ignore)
+        neighbor_ids = self.geometrycontainer.get_neighbors_within_radius_no_sort(pos, radius, ignore)
 
+        zero_singles = []
         for domain_id in neighbor_ids:
             if domain_id not in ignore:                 # the list 'ignore' may have been updated in a
                 domain = self.domains[domain_id]        # previous iteration of the loop
@@ -689,17 +794,18 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
                 elif (not isinstance(domain, Multi)) and (self.t != domain.last_time):
                     # Burst domain only if (AND):
-                    # -within burstradius
+                    # -within burst radius
                     # -not already bursted before (not on 'ignore' list)
                     # -domain is not zero dt NonInteractionSingle
                     # -domain is not a multi
                     # -domain has time passed
  
-                    # add the domain_id to the list of domains that is already bursted,
+                    # add the domain_id to the list of domains that is already bursted (ignore list),
                     # and burst the domain.
                     ignore.append(domain_id)
-                    zero_singles, ignore = self.burst_domain(domain, ignore)
-                    # The list 'ignore' is now updated with domains that are recursively bursted
+                    zero_singles2, ignore = self.burst_domain(domain, ignore)
+                    # add the resulting zero_singles from the burst to the total list of zero_singles.
+                    zero_singles.extend(zero_singles2)
 
                 #else:
                     # Don't burst domain if (OR):
@@ -712,6 +818,9 @@ class EGFRDSimulator(ParticleSimulatorBase):
                     # time
 
         return zero_singles, ignore
+
+
+
 
     def fire_single_reaction(self, single, reactant_pos, ignore):
         # This takes care of the identity change when a single particle decays into
@@ -729,6 +838,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
         # 1. remove the particle
 
+        zero_singles = []
+
         if len(rr.products) == 0:
             
             # 1. No products, no info
@@ -737,6 +848,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
             # 4. process the changes (remove particle, make new ones)
             self.world.remove_particle(reactant[0])
             products = []
+            # zero_singles/ignore is unchanged.
 
             # 5. No new single to be made
             # 6. Log the change
@@ -783,7 +895,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
                 # 2. make space for the products.
 #                if product_pos != reactant_pos or product_radius > reactant_radius:
-                _, ignore = self.burst_volume(product_pos, product_radius, ignore)
+                zero_singles, ignore = self.burst_volume(product_pos, product_radius, ignore)
 
                 # 3. check that there is space for the products 
                 if (not self.world.check_overlap((product_pos, product_radius), reactant[0])):
@@ -955,7 +1067,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
             #    calculate the sphere around the two product particles
             rad = max(product1_displacement + product1_radius,
                       product2_displacement + product2_radius)
-            _,ignore = self.burst_volume(reactant_pos, rad, ignore)
+            zero_singles, ignore = self.burst_volume(reactant_pos, rad, ignore)
 
             # 3. check that there is space for the products (try different positions if possible)
             # accept the new positions if there is enough space.
@@ -991,14 +1103,15 @@ class EGFRDSimulator(ParticleSimulatorBase):
         else:
             raise RuntimeError('num products >= 3 not supported.')
 
-        return products, ignore
+        return products, zero_singles, ignore
 
     def fire_interaction(self, single, reactant_pos, ignore):
         # This takes care of the identity change when a particle associates with a surface
         # It performs the reactions:
         # A(structure) + surface -> 0
         # A(structure) + surface -> B(surface)
-        assert isinstance(single, InteractionSingle)
+        if __debug__:
+            assert isinstance(single, InteractionSingle)
 
         # 0. get reactant info
         reactant        = single.pid_particle_pair
@@ -1006,6 +1119,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
         rr = single.interactionrule
 
         # 1. remove the particle
+
+        zero_singles = []
 
         if len(rr.products) == 0:
             
@@ -1015,6 +1130,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
             # 4. process the changes (remove particle, make new ones)
             self.world.remove_particle(reactant[0])
             products = []
+            # zero_singles/ignore is unchanged.
 
             # 5. No new single to be made
             # 6. Log the change
@@ -1040,7 +1156,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
             #    Note that an interaction domain is already sized such that it includes the
             #    reactant particle moving into the surface.
             if product_radius > reactant_radius:
-                _, ignore = self.burst_volume(product_pos, product_radius, ignore)
+                zero_singles, ignore = self.burst_volume(product_pos, product_radius, ignore)
 
             # 3. check that there is space for the products 
             if self.world.check_overlap((product_pos, product_radius), reactant[0]):
@@ -1067,7 +1183,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
         else:
             raise RuntimeError('fire_interaction: num products > 1 not supported.')
 
-        return products, ignore
+        return products, zero_singles, ignore
 
 
     def fire_pair_reaction(self, pair, reactant1_pos, reactant2_pos, ignore):
@@ -1085,6 +1201,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
         rr = pair.draw_reaction_rule(pair.interparticle_rrs)
         # 1. remove the particles
 
+        zero_singles = []
+
         if len(rr.products) == 0:
 
             # 1. no product particles, no info
@@ -1094,6 +1212,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
             self.world.remove_particle(pid_particle_pair1[0])
             self.world.remove_particle(pid_particle_pair2[0])
             products = []
+            # zero_singles/ignore is unchanged.
 
             # 5. No new single to be made
             # 6. Log the change
@@ -1112,7 +1231,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
             # 2.  make space for products
             # 2.1 if the product particle sticks out of the shell
 #            if self.world.distance(old_com, product_pos) > (pair.get_shell_size() - product_radius):
-            _, ignore = self.burst_volume(product_pos, product_radius, ignore)
+            zero_singles, ignore = self.burst_volume(product_pos, product_radius, ignore)
 
             # 3. check that there is space for the products ignoring the reactants
             if self.world.check_overlap((product_pos, product_radius), pid_particle_pair1[0],
@@ -1143,7 +1262,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
         else:
             raise NotImplementedError('num products >= 2 not supported.')
 
-        return products, ignore
+        return products, zero_singles, ignore
 
 
     def fire_move(self, single, reactant_pos, ignore_p=None):
@@ -1187,48 +1306,27 @@ class EGFRDSimulator(ParticleSimulatorBase):
         # 0. Get generic info
         single_pos = single.pid_particle_pair[1].position
         single_radius = single.pid_particle_pair[1].radius
+        reaction_threshold = single_radius * SINGLE_SHELL_FACTOR
 
         # 1.0 Get neighboring domains and surfaces
-        neighbors = self.geometrycontainer.get_neighbor_domains(single_pos, self.domains, ignore=[single.domain_id, ])
+        neighbor_distances = self.geometrycontainer.get_neighbor_domains(single_pos, self.domains, ignore=[single.domain_id, ])
         # Get also surfaces but only if the particle is in 3D
 #        surface_distances = []
 #        if isinstance(single, SphericalSingle):
         surface_distances = self.geometrycontainer.get_neighbor_surfaces(single_pos, single.structure.id, ignores=[])
 
+        # 2.3 We prefer to make NonInteractionSingles for efficiency.
+        #     But if objects (Shells and surfaces) get close enough (closer than
+        #     reaction_threshold) we want to try Interaction and/or Pairs. 
 
-        # Check if there are shells with the burst radius (reaction_threshold)
-        # of the particle (intruders). Note that we approximate the reaction_volume
-        # with a sphere (should be cylinder for 2D or 1D particle)
-        reaction_threshold = single_radius * SINGLE_SHELL_FACTOR
-
-
-        # TODO redundant
-        intruders = self.geometrycontainer.filter_distance(neighbors, reaction_threshold)
-        if __debug__:
-            log.debug("intruders: %s" %
-                      (', '.join(str(i) for i in intruders)))
-
-
-        # 2.2 Burst the shells with the following conditions
-        # -shell is in the reaction_threshold (intruder)
-        # -shell is burstable (not Multi)
-        # -shell is not newly made
-        # -shell is not already a zero shell (just bursted)
-#       _, ignore = self.burst_non_multis(single_pos, reaction_threshold, [single.domain_id])
-#        neighbor_distances = [(self.domains[domain_id], 0) for domain_id in ignore if domain_id != single.domain_id]
-
-        # We prefer to make NonInteractionSingles for efficiency.
-        # But if objects (Shells and surfaces) get close enough (closer than
-        # reaction_threshold) we want to try Interaction and/or Pairs
-
-        neighbor_distances = self.geometrycontainer.get_neighbor_domains(single_pos, self.domains, ignore=[single.domain_id, ])
-        # 2.3 From the updated list of neighbors, we calculate the thresholds (horizons) for trying to form
+        #     From the list of neighbors, we calculate the thresholds (horizons) for trying to form
         #     the various domains. The domains can be:
-        # -zero-shell NonInteractionSingle -> Pair or Multi
-        # -Surface -> Interaction
-        # -Multi -> Multi
+        #     -zero-shell NonInteractionSingle -> Pair or Multi
+        #     -Surface -> Interaction
+        #     -Multi -> Multi
+        #
         # Note that we do not differentiate between directions. This means that we
-        # look around in a sphere, the horizons are spherical
+        # look around in a sphere, the horizons are spherical.
         pair_interaction_partners = []
         for domain, _ in neighbor_distances:
             if (isinstance (domain, NonInteractionSingle) and domain.is_reset()):
@@ -1409,24 +1507,32 @@ class EGFRDSimulator(ParticleSimulatorBase):
     def process_single_event(self, single, ignore):
     # This method handles the things that need to be done when the current event was
     # produced by a single. The single can be a NonInteractionSingle or an InteractionSingle.
-    # Note that this method is also called when a single is bursted. This event in that
-    # case is just a BURST event.
+    # Note that this method is also called when a single is bursted, in that case the event
+    # is a BURST event.
+    # Note that 'ignore' should already contain the id of 'pair'.
+    # Returns:
+    # - the 'domains' that were the results of the processing. This can be a newly made domain
+    #   (since make_new_domain is also called from here) or zero_singles that are the result of
+    #   the process. Note that these could be many since the event can induce recursive bursting.
+    # - the updated ignore list. This contains the id of the 'single' domain, ids of domains
+    #   bursted in the process and the ids of zero-dt singles.
 
-        # TODO assert that there is no event associated with this domain in the scheduler
-#        assert self.check_domain(single)
+        if __debug__:
+#            # TODO assert that there is no event associated with this domain in the scheduler
+#            assert self.check_domain(single)
+            assert (single.domain_id in ignore), \
+                   'Domain_id should already be on ignore list before processing event.'
 
+        ### SPECIAL CASE:
+        # If just need to make new domain.
         if single.is_reset():
-        ### If no event event really happened and just need to make new domain
             if __debug__:
                 log.info('FIRE SINGLE: make_new_domain()')
                 log.info('single = %s' % single)
             domains = [self.make_new_domain(single)]
             # domain is already scheduled in make_new_domain
 
-
-
-
-        ### 1.1 Special cases (shortcuts)
+        ### SPECIAL CASE:
         # In case nothing is scheduled to happen: do nothing and just reschedule
         elif single.dt == numpy.inf:
             if __debug__:
@@ -1435,24 +1541,30 @@ class EGFRDSimulator(ParticleSimulatorBase):
             self.add_domain_event(single)
             domains = [single]
 
+
+
+
+        ### NORMAL:
+        # Process 'normal' event produced by the single
         else:
-        ### 1. Process 'normal' event produced by the single
-            ### log Single event
             if __debug__:
                 log.info('FIRE SINGLE: %s' % single.event_type)
                 log.info('single = %s' % single)
 
-            if single.event_type != EventType.BURST:
-                # The burst of the domain may be caused by an overlapping domain
-                assert self.check_domain(single)
+            ### 1. check that everything is ok
+            if __debug__:
+                if single.event_type != EventType.BURST:
+                    # The burst of the domain may be caused by an overlapping domain
+                    assert self.check_domain(single)
 
-            # check that the event time of the single (last_time + dt) is equal to the
-            # simulator time
-            assert (abs(single.last_time + single.dt - self.t) <= TIME_TOLERANCE * self.t), \
-                'Timeline incorrect. single.last_time = %s, single.dt = %s, self.t = %s' % \
-                (FORMAT_DOUBLE % single.last_time, FORMAT_DOUBLE % single.dt, FORMAT_DOUBLE % self.t)
+                # check that the event time of the single (last_time + dt) is equal to the
+                # simulator time
+                assert (abs(single.last_time + single.dt - self.t) <= TIME_TOLERANCE * self.t), \
+                       'Timeline incorrect. single.last_time = %s, single.dt = %s, self.t = %s' % \
+                        (FORMAT_DOUBLE % single.last_time, FORMAT_DOUBLE % single.dt, FORMAT_DOUBLE % self.t)
 
 
+            ### 2. get some necessary information
             pid_particle_pair = single.pid_particle_pair
             # in case of an interaction domain: determine real event before doing anything
             if single.event_type == EventType.IV_EVENT:
@@ -1483,33 +1595,44 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
                 if single.event_type == EventType.SINGLE_REACTION:
                     self.single_steps[single.event_type] += 1       # TODO counters should also be updated for escape events
-                    particles, ignore = self.fire_single_reaction(single, newpos, ignore)
+                    particles, zero_singles_b, ignore = self.fire_single_reaction(single, newpos, ignore)
+                    # The 'zero_singles_b' list now contains the resulting singles of a putative burst
+                    # that occured in fire_single_reaction
 
                 else:
                     self.interaction_steps[single.event_type] += 1  # TODO similarly here
-                    particles, ignore = self.fire_interaction(single, newpos, ignore)
+                    particles, zero_singles_b, ignore = self.fire_interaction(single, newpos, ignore)
 
             else:
                 particles = self.fire_move(single, newpos)
+                zero_singles_b = []     # no bursting takes place
+                # ignore is unchanged
+            domains = zero_singles_b
 
-            # 5. Make a (new) domain (reuse) domain for each particle(s)
-            #    (Re)schedule the (new) domain
+            ### 5. Make a (new) domain (reuse) domain for each particle(s)
+            #      (Re)schedule the (new) domain
             zero_singles = []
             for pid_particle_pair in particles:
 #               single.pid_particle_pair = pid_particle_pair    # reuse single
                 zero_single = self.create_single(pid_particle_pair)  # TODO re-use NonInteractionSingle domain if possible
                 self.add_domain_event(zero_single)                   # TODO re-use event if possible
-                zero_singles.append(zero_single) 
-                ignore.append(zero_single.domain_id)
+                zero_singles.append(zero_single)       # Add the newly made zero-dt singles to the list
+                ignore.append(zero_single.domain_id)   # Ignore these newly made singles (cannot be bursted)
+            domains.extend(zero_singles)
 
+            ### 6. Recursively burst around the newly made zero-dt NonInteractionSingles that surround the particles.
+            #      Add the resulting zero_singles to the already existing list.
             for zero_single in zero_singles:
                 zero_singles2, ignore = self.burst_non_multis(zero_single.pid_particle_pair[1].position,
                                                               zero_single.pid_particle_pair[1].radius*SINGLE_SHELL_FACTOR,
                                                               ignore)
-            zero_singles.extend(zero_singles2)
-            domains = zero_singles
+                domains.extend(zero_singles2)
 
-            # 6. Log change?
+            if __debug__:
+                # check that at least all the zero_singles are on the ignore list
+                assert all(zero_single.domain_id in ignore for zero_single in domains)
+
+            ### 7. Log change?
                 
 # NOTE Code snippets to re-use the domain/event
 #
@@ -1525,16 +1648,22 @@ class EGFRDSimulator(ParticleSimulatorBase):
 #        particle_radius = single.pid_particle_pair[1].radius
 #        assert newsingle.shell.shape.radius == particle_radius
 
-        # burst around the 'newly made' NonInteractionSingles
 
         return domains, ignore
 
 
     def process_pair_event(self, pair, ignore):
     # This method handles the things that need to be done when the current event was
-    # produced by a pair.
-    # Note that this method is also called when a pair is bursted. This event in that
-    # case is just a BURST event.
+    # produced by a pair. The pair can be any type of pair (Simple or Mixed).
+    # Note that this method is also called when a pair is bursted, in that case the event
+    # is a BURST event.
+    # Note that ignore should already contain the id of 'pair'.
+    # Returns:
+    # - the 'domains' that were the results of the processing. These are zero_singles that are
+    #   the result of the process. Note that these could be many since the event can induce
+    #   recursive bursting.
+    # - the updated ignore list. This contains the id of the 'pair' domain, ids of domains
+    #   bursted in the process and the ids of zero-dt singles.
 
         if __debug__:
             log.info('FIRE PAIR: %s' % pair.event_type)
@@ -1543,14 +1672,15 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
         ### 1. check that everything is ok
         if __debug__:
+            assert (pair.domain_id in ignore), \
+                   'Domain_id should already be on ignore list before processing event.'
             assert self.check_domain(pair)
             assert pair.single1.domain_id not in self.domains
             assert pair.single2.domain_id not in self.domains
-        # TODO assert that there is no event associated with this domain in the scheduler
+            # TODO assert that there is no event associated with this domain in the scheduler
 
-        # check that the event time of the single (last_time + dt) is equal to the
-        # simulator time
-        if __debug__:
+            # check that the event time of the pair (last_time + dt) is equal to the
+            # simulator time
             assert (abs(pair.last_time + pair.dt - self.t) <= TIME_TOLERANCE * self.t), \
                     'Timeline incorrect. pair.last_time = %s, pair.dt = %s, self.t = %s' % \
                     (FORMAT_DOUBLE % pair.last_time, FORMAT_DOUBLE % pair.dt, FORMAT_DOUBLE % self.t)
@@ -1609,12 +1739,12 @@ class EGFRDSimulator(ParticleSimulatorBase):
                 # first move the non-reacting particle
                 particles = self.fire_move(single2, newpos2, pid_particle_pair1)
                 # don't ignore the (moved) non-reacting particle
-                particles2, ignore = self.fire_single_reaction(single1, newpos1, ignore)
+                particles2, zero_singles_b, ignore = self.fire_single_reaction(single1, newpos1, ignore)
                 particles.extend(particles2)
             else:
                 theothersingle = single1
                 particles = self.fire_move(single1, newpos1, pid_particle_pair2)
-                particles2, ignore = self.fire_single_reaction(single2, newpos2, ignore)
+                particles2, zero_singles_b, ignore = self.fire_single_reaction(single2, newpos2, ignore)
                 particles.extend(particles2)
 
             if __debug__:
@@ -1633,7 +1763,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
         #
         elif pair.event_type == EventType.IV_REACTION:
 
-            particles, ignore = self.fire_pair_reaction (pair, newpos1, newpos2, ignore)
+            particles, zero_singles_b, ignore = self.fire_pair_reaction (pair, newpos1, newpos2, ignore)
 
             # Make new NonInteractionSingle domains for every particle after the reaction.
             zero_singles = []
@@ -1652,6 +1782,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
             particles      = self.fire_move (single1, newpos1, pid_particle_pair2)
             particles.extend(self.fire_move (single2, newpos2, pid_particle_pair1))
+            zero_singles_b = []
+            # ignore is unchanged
 
             # Make new NonInteractionSingle domains for every particle after the reaction.
             zero_singles = []
@@ -1711,28 +1843,60 @@ class EGFRDSimulator(ParticleSimulatorBase):
 #        # Now finally we are convinced that the singles were actually made correctly
 
 
-        # Log the event
+        # Put the zero singles resulting from putative bursting in fire_... in the final list.
+        zero_singles_fin = zero_singles_b
+        # Ignore the zero singles that were made around the particles (cannot be bursted)
+        for zero_single in zero_singles:
+            ignore.append(zero_single.domain_id)
+        zero_singles_fin.extend(zero_singles)       # Add the zero-dt singles around the particles
+
+        ### 6. Recursively burst around the newly made zero-dt NonInteractionSingles that surround the particles.
+        for zero_single in zero_singles:
+            zero_singles2, ignore = self.burst_non_multis(zero_single.pid_particle_pair[1].position,
+                                                          zero_single.pid_particle_pair[1].radius*SINGLE_SHELL_FACTOR,
+                                                          ignore)
+            # Also add the zero-dt singles from this bursting to the final list
+            zero_singles_fin.extend(zero_singles2)
+
+
+        # check that at least all the zero_singles are on the ignore list
+        if __debug__:
+            assert all(zero_single.domain_id in ignore for zero_single in zero_singles_fin)
+
+        ### 7. Log the event
         if __debug__:
             log.debug("process_pair_event: #1 { %s: %s => %s }" %
                       (single1, str(oldpos1), str(newpos1)))
             log.debug("process_pair_event: #2 { %s: %s => %s }" %
                       (single2, str(oldpos2), str(newpos2)))
 
-        for zero_single in zero_singles:
-            ignore.append(zero_single.domain_id)
-        # burst around the 'newly made' NonInteractionSingles
-        for zero_single in zero_singles:
-            zero_singles2, ignore = self.burst_non_multis(zero_single.pid_particle_pair[1].position,
-                                                          zero_single.pid_particle_pair[1].radius*SINGLE_SHELL_FACTOR,
-                                                          ignore)
-        zero_singles.extend(zero_singles2)
+        return zero_singles_fin, ignore
 
-        return zero_singles, ignore
 
     def process_multi_event(self, multi, ignore):
+    # This method handles the things that need to be done when the current event was
+    # produced by a multi.
+    # Returns:
+    # - Nothing if the particles were just propagated.
+    # Or:
+    # - The zero_singles that are the result when the multi was broken up due to an event.
+    #   Note that these could be many since the breakup can induce recursive bursting.
+    # - The updated ignore list in case of an event. This contains the id of the 'multi'
+    #   domain, ids of domains bursted in the process and the ids of zero-dt singles of the
+    #   particles.
 
         if __debug__:
             log.info('FIRE MULTI: %s' % multi.last_event)
+
+        if __debug__:
+            assert (multi.domain_id in ignore), \
+                   'Domain_id should already be on ignore list before processing event.'
+
+            # check that the event time of the multi (last_time + dt) is equal to the
+            # simulator time
+            assert (abs(multi.last_time + multi.dt - self.t) <= TIME_TOLERANCE * self.t), \
+                    'Timeline incorrect. multi.last_time = %s, multi.dt = %s, self.t = %s' % \
+                    (FORMAT_DOUBLE % multi.last_time, FORMAT_DOUBLE % multi.dt, FORMAT_DOUBLE % self.t)
 
         self.multi_steps[multi.last_event] += 1
         self.multi_steps[3] += 1  # multi_steps[3]: total multi steps
@@ -1744,13 +1908,23 @@ class EGFRDSimulator(ParticleSimulatorBase):
             self.last_reaction = multi.last_reaction
 
         if multi.last_event is not EventType.MULTI_DIFFUSION:                # if an event took place
-            self.break_up_multi(multi, ignore)
+            zero_singles, ignore = self.break_up_multi(multi, ignore)
 #            self.multi_steps[multi.last_event] += 1
         else:
+            multi.last_time = self.t
             self.add_domain_event(multi)
+            zero_singles = []
+            # ignore is unchanged
+
+        return zero_singles, ignore
 
     def break_up_multi(self, multi, ignore):
-        #Dissolves a multi in singles with a zero shell (dt=0)
+        # Dissolves 'multi' into zero_singles, single with a zero shell (dt=0)
+        # - 'ignore' contains domain ids that should be ignored
+        # returns:
+        # - updated ignore list
+        # - zero_singles that were the product of the breakup
+
         self.remove_domain(multi)
 
         zero_singles = []
@@ -1760,73 +1934,22 @@ class EGFRDSimulator(ParticleSimulatorBase):
             zero_singles.append(zero_single)
             ignore.append(zero_single.domain_id)
 
-        # burst around the 'newly made' NonInteractionSingles
+        zero_singles_fin = zero_singles     # Put the zero-dt singles around the particles into the final list
+
+        ### Recursively burst around the newly made zero-dt NonInteractionSingles that surround the particles.
         for zero_single in zero_singles:
             zero_singles2, ignore = self.burst_non_multis(zero_single.pid_particle_pair[1].position,
                                                           zero_single.pid_particle_pair[1].radius*SINGLE_SHELL_FACTOR,
                                                           ignore)
-        zero_singles.extend(zero_singles2)
-        return zero_singles, ignore
+            zero_singles_fin.extend(zero_singles2)
 
-    def burst_multi(self, multi, ignore):
-        #multi.sim.sync()
-
+        # check that at least all the zero_singles are on the ignore list
         if __debug__:
-            log.debug('burst multi: %s', multi)
+            assert all(zero_single.domain_id in ignore for zero_single in zero_singles_fin)
 
-        self.remove_event(multi)        # The old event was still in the scheduler
+        return zero_singles_fin, ignore
 
-        zero_singles, ignore = self.break_up_multi(multi, ignore)
-        # Note that the multi domain is here also removed from 'domains'
 
-        return zero_singles, ignore
-
-    def burst_single(self, single, ignore):
-        # Sets next event time of 'single' to current time and event to burst event
-        # returns a new single that is the result of firing the old single
-        # new single also has proper zero shell and is rescheduled
-
-        if __debug__:
-            log.debug('burst single: %s', single)
-
-        # Check correct timeline ~ MW
-        assert single.last_time <= self.t
-        assert self.t <= single.last_time + single.dt
-
-        # Override dt, burst happens before single's scheduled event.
-        # Override event_type. 
-        single.dt = self.t - single.last_time
-        single.event_type = EventType.BURST
-        # with a burst there is always an associated event in the scheduler.
-        # to simulate the natural occurence of the event we have to remove it from the scheduler
-        self.remove_event(single)
-
-        zero_singles, ignore = self.process_single_event(single, ignore)
-
-        return zero_singles, ignore
-
-    def burst_pair(self, pair, ignore):
-        # Sets next event time of 'pair' to current time and event to burst event
-        # returns two new singles that are the result of firing the pair
-        # new singles also have proper zero shell and are rescheduled
-
-        if __debug__:
-            log.debug('burst_pair: %s', pair)
-
-        # make sure that the current time is between the last time and the event time
-        assert pair.last_time <= self.t
-        assert self.t <= pair.last_time + pair.dt
-
-        # Override event time and event_type. 
-        pair.dt = self.t - pair.last_time 
-        pair.event_type = EventType.BURST
-        # with a burst there is always an associated event in the scheduler.
-        # to simulate the natural occurence of the event we have to remove it from the scheduler
-        self.remove_event(pair)
-
-        zero_singles, ignore = self.process_pair_event(pair, ignore)
-
-        return zero_singles, ignore
 
 
     def try_interaction(self, single, surface):
@@ -1858,8 +1981,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
             # get the next event time
             interaction.dt, interaction.event_type, = interaction.determine_next_event()
-            assert interaction.dt >= 0.0
             if __debug__:
+                assert interaction.dt >= 0.0
                 log.info('dt=%s' % (FORMAT_DOUBLE % interaction.dt)) 
 
             self.last_time = self.t
@@ -1907,8 +2030,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
                 log.info('        *Created: %s' % (pair))
 
             pair.dt, pair.event_type, pair.reactingsingle = pair.determine_next_event(pair.r0)
-            assert pair.dt >= 0
             if __debug__:
+                assert pair.dt >= 0
                 log.info('dt=%s' % (FORMAT_DOUBLE % pair.dt)) 
 
             self.last_time = self.t
@@ -2012,19 +2135,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
                     log.debug('%s already in multi. skipping.' % domain)
                 return
 
-            
             # 1. Get the neighbors of the domain
             dompos = domain.shell.shape.position
-#            neighbor_distances = self.geometrycontainer.get_neighbor_domains(dompos, self.domains,
-#                                                                             ignore=[domain.domain_id, multi.domain_id])
-
-            # 2. Burst the domains that interfere with making the multi shell
-            # NOTE this should burst nothing!
-#            burstradius = domain.pid_particle_pair[1].radius * MULTI_SHELL_FACTOR
-#            ignore = self.burst_non_multis(dompos, burstradius, [domain.domain_id, multi.domain_id])
-            # This bursts only domains in which time has passed, it is assumed that other domains
-            # have been made 'socially', meaning that they leave enough space for this particle to make a multi
-            # shell without overlapping. 
 
             # neighbor_distances has same format as before
             # It contains the updated list of domains in the neighborhood with distances
