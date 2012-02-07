@@ -2330,7 +2330,7 @@ rejected moves = %d
         ###### check shell consistency
         for shell_id, shell in domain.shell_list:
 
-            surfaces = get_surfaces(self.world, shell.shape.position, ignores)
+            surfaces = get_surfaces(self.world, shell.shape.position, ignores + associated)
             for surface, _ in surfaces:
                 assert self.check_surface_overlap(shell, surface), \
                     '%s (%s) overlaps with %s.' % \
