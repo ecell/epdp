@@ -2328,18 +2328,31 @@ rejected moves = %d
 
 
         ###### check shell consistency
+        # check that shells of the domain don't overlap with surfaces that are not associated with the domain.
+        # check that shells of the domain DO overlap with the structures that it is associated with.
+        # check that shells of the domain do not overlap with shells of other domains
+        # check that shells are not bigger than the allowed maximum
+
         for shell_id, shell in domain.shell_list:
 
+            ### check that shells do not overlap with non associated surfaces
             surfaces = get_surfaces(self.world, shell.shape.position, ignores + associated)
             for surface, _ in surfaces:
                 assert self.check_surface_overlap(shell, surface), \
                     '%s (%s) overlaps with %s.' % \
                     (str(domain), str(shell), str(surface))
 
+            ### check that shells DO overlap with associated surfaces.
+            surfaces = get_surfaces(self.world, shell.shape.position, ignores)
+            for surface, _ in surfaces:
+                if surface.id in associated:
+                    assert not self.check_surface_overlap(shell, surface), \
+                    '%s (%s) should overlap with associated surface %s.' % \
+                    (str(domain), str(shell), str(surface))
+
             ### Check shell overlap with other shells
             neighbors = self.geometrycontainer.get_neighbor_domains(shell.shape.position,
                                                                     self.domains, ignore=[domain.domain_id])
-
             # TODO maybe don't check all the shells, this takes a lot of time
             # testing overlap criteria
             for neighbor, _ in neighbors:
@@ -2443,9 +2456,8 @@ rejected moves = %d
 
 
     def check_domain_for_all(self):
-    # For every event in the scheduler, checks the consistency of the associated domain.
-        for id, event in self.scheduler:
-            domain = self.domains[event.data]
+    # For every domain in domains, checks the consistency
+        for domain in self.domains.itervalues():
             self.check_domain(domain)
 
     def check_event_stoichiometry(self):
@@ -2565,13 +2577,6 @@ rejected moves = %d
 
 
 # check that all the cached singles in Pairs are not in domains{}.
-
-### check shells of domains
-# check that shells of the domain do not overlap with shells of other domains
-# check that shells are not bigger than the allowed maximum
-# check (for Multi's only?) that the shells in a domain are connected (have consecutive overlaps)
-# check that shells of the domain don't overlap with surfaces that are not associated with the domain.
-# check that shells of the domain DO overlap with the structures that it is associated with.
 
 ### check world
 # check that particles do not overlap with cylinderical surfaces unless the domain is associated with the surface
