@@ -2449,17 +2449,43 @@ rejected moves = %d
             self.check_domain(domain)
 
     def check_event_stoichiometry(self):
-    # checks if the number of particles in the world is equal to the number
-    # of particles represented in the EGFRD simulator
+        pass
+
+    def check_particle_consistency(self):
+        ### Checks the particles consistency between the world and the domains of
+        #   the simulator
+
+        # First, check num particles in domains is equal to num particles in the world
         world_population = self.world.num_particles
         domain_population = 0
-        for id, event in self.scheduler:
-            domain = self.domains[event.data]
+        for domain in self.domains.itervalues():
             domain_population += domain.multiplicity
 
         if world_population != domain_population:
             raise RuntimeError('population %d != domain_population %d' %
                                (world_population, domain_population))
+
+#        # Next, check that every particle in the domains is once and only once in the world.
+#        already_in_domain = set()
+#        world_particles = list(self.world)
+#        for domain in self.domains.itervalues():
+#            for domain_particle in domain.particles:
+#                for world_particle in world_particles:
+#                    if domain_particle == world_particle:
+#                        break
+#                else:
+#                    raise RuntimeError('particle %s not in world' % str(domain_particle))
+#
+#                assert domain_particle not in already_in_domain, 'particle %s twice in domains' % str(domain_particle)
+#                already_in_domain.add(domain_particle)
+#
+#        # This now means that all the particles in domains are represented in the world and that
+#        # all the particles in the domains are unique (no particle is represented in two domains)
+#
+#        assert already_in_domain == len(world_particles)
+        # Since the number of particles in the domains is equal to the number of particles in the
+        # world this now also means that all the particles in the world are represented in the
+        # domains.
 
     def check_shell_matrix(self):
         did_map, shell_map = self.geometrycontainer.get_dids_shells()
@@ -2507,9 +2533,6 @@ rejected moves = %d
 # check that shells of the domain DO overlap with the structures that it is associated with.
 
 ### check world
-# check num particles in domains is equal to num particles in the world
-# check that every particle in the world is in one and only one domain
-# check that every particle in the domains is once and only once in the world.
 # check that particles do not overlap with cylinderical surfaces unless the domain is associated with the surface
 
 ### check domains
@@ -2619,6 +2642,7 @@ rejected moves = %d
         self.check_shell_matrix()
         self.check_domains()
         self.check_event_stoichiometry()
+        self.check_particle_consistency()
         
         self.check_domain_for_all()
 
