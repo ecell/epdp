@@ -126,7 +126,7 @@ class Single(ProtectiveDomain):
         return dt, event_type
 
     def get_particles(self):
-        return [self.pid_particles_pair]
+        return [self.pid_particle_pair]
     particles = property(get_particles)
 
     def check(self):
