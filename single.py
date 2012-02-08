@@ -1,10 +1,11 @@
 from _gfrd import (
     SphericalShell,
     CylindricalShell,
-    Cylinder,
     Sphere,
-    CylindricalSurface,
+    Cylinder,
+    CuboidalRegion,
     PlanarSurface,
+    CylindricalSurface,
     )
 from _greens_functions import *
 from greens_function_wrapper import *
@@ -130,8 +131,9 @@ class Single(ProtectiveDomain):
     particles = property(get_particles)
 
     def check(self):
-    # performs an internal consistency check
-        pass
+        # performs an internal consistency check
+        assert ProtectiveDomain.check(self)
+        return True
 
     def __str__(self):
         pid = self.pid_particle_pair[0]
@@ -306,6 +308,19 @@ class SphericalSingle(NonInteractionSingle, hasSphericalShell):
     def create_position_vector(self, r):
         return random_vector(r)
 
+    def check(self):
+        assert ProtectiveDomain.check(self)
+        assert isinstance(self.testShell, SphericalSingletestShell)
+        assert isinstance(self.shell.shape, Sphere)
+        assert self.shell.shape.radius <= self.testShell.get_max_radius()
+        if not self.is_reset():
+            assert self.shell.shape.radius >= self.testShell.get_min_radius()
+        assert self.is_reset() ^ (self.dt != 0.0)
+        assert isinstance(self.structure, CuboidalRegion)
+        assert self.greens_function
+
+        return True
+
     def __str__(self):
         return 'Spherical' + Single.__str__(self)
 
@@ -378,6 +393,20 @@ class PlanarSurfaceSingle(NonInteractionSingle, hasCylindricalShell):
         # project the vector onto the surface unit vectors to make sure that the coordinates are in the surface
         x, y = random_vector2D(r)
         return x * self.structure.shape.unit_x + y * self.structure.shape.unit_y
+
+    def check(self):
+        assert ProtectiveDomain.check(self)
+        assert isinstance(self.testShell, PlanarSurfaceSingletestShell)
+        assert isinstance(self.shell.shape, Cylinder)
+#        assert self.shell.shape.radius <= self.testShell.get_max_radius()
+#        if not self.is_reset():
+#            assert self.shell.shape.radius >= self.testShell.get_min_radius()
+        assert self.is_reset() ^ (self.dt != 0.0)
+        assert isinstance(self.structure, PlanarSurface)
+        assert self.greens_function
+        assert self.shell.shape.unit_z == self.structure.shape.unit_z
+
+        return True
 
     def __str__(self):
         return 'PlanarSurface' + Single.__str__(self)
@@ -487,6 +516,20 @@ class CylindricalSurfaceSingle(NonInteractionSingle, hasCylindricalShell):
             pass
 
         return z * self.structure.shape.unit_z
+
+    def check(self):
+        assert ProtectiveDomain.check(self)
+        assert isinstance(self.testShell, CylindricalSurfaceSingletestShell)
+        assert isinstance(self.shell.shape, Cylinder)
+#        assert self.shell.shape.radius <= self.testShell.get_max_radius()
+#        if not self.is_reset():
+#            assert self.shell.shape.radius >= self.testShell.get_min_radius()
+        assert self.is_reset() ^ (self.dt != 0.0)
+        assert isinstance(self.structure, CylindricalSurface)
+        assert self.greens_function
+        assert self.shell.shape.unit_z == self.structure.shape.unit_z
+
+        return True
 
     def __str__(self):
         return 'CylindricalSurface' + Single.__str__(self)
