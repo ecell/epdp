@@ -2449,7 +2449,40 @@ rejected moves = %d
             self.check_domain(domain)
 
     def check_event_stoichiometry(self):
-        pass
+        ### check scheduler
+        # -check that every event on scheduler is associated with domain or is a non domain related event
+        # -check that every event with domain is also in domains{}
+
+        SMT = 6                 # just some temporary definition to account for non-domain related events
+        self.other_objects = {} # ditto
+        for id, event in self.scheduler:
+            domain_id = event.data
+            if domain_id != SMT:
+                # in case the domain_id is not special, it needs to be in self.domains
+                assert domain_id in self.domains
+            else:
+                # if it is special in needs to be in self.other_objects
+                assert domain_id in self.other_objects
+
+
+        ### performs two checks:
+        # -check that every domain in domains{} has one and only one event in the scheduler
+        # -check that dt, last_time of the domain is consistent with the event time on the scheduler
+        already_in_scheduler = set()        # make a set of domain_ids that we found in the scheduler
+        for domain_id, domain in self.domains.iteritems():
+            # find corresponding event in the scheduler
+            for id, event in self.scheduler:
+                if event.data == domain_id:
+                    # We found the event in the scheduler that is associated with the domain
+                    assert (abs(domain.last_time + domain.dt - event.time) <= TIME_TOLERANCE * event.time)
+                    break
+            else:
+                raise RuntimeError('Event for domain_id %s could not be found in scheduler' % str(domain_id) )
+
+            # make sure that we had not already found it earlier
+            assert domain_id not in already_in_scheduler
+            already_in_scheduler.add(domain_id)
+
 
     def check_particle_consistency(self):
         ### Checks the particles consistency between the world and the domains of
@@ -2510,12 +2543,6 @@ rejected moves = %d
         if shell_population != matrix_population:
             raise RuntimeError('num shells (%d) != matrix population (%d)' %
                                (shell_population, matrix_population))
-
-### check scheduler
-# check that every domain in domains{} has one and only one event in the scheduler
-# check that every event with domain is also in domains{}
-# check that dt, last_time of the domain is consistent with the event time on the scheduler
-# check that every event on scheduler is associated with domain or is a non domain related event
 
 # check that all the cached singles in Pairs are not in domains{}.
 
