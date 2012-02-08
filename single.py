@@ -125,6 +125,10 @@ class Single(ProtectiveDomain):
         event_type = EventType.SINGLE_ESCAPE
         return dt, event_type
 
+    def get_particles(self):
+        return [self.pid_particles_pair]
+    particles = property(get_particles)
+
     def check(self):
     # performs an internal consistency check
         pass
