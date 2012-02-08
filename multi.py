@@ -54,7 +54,9 @@ class Multi(Domain, hasSphericalShell, Others):
     multiplicity = property(get_multiplicity)
 
     def within_shell(self, pp):
-        return bool(self.sphere_container.get_neighbors_within_radius(pp[1].position, -(pp[1].radius + self.reaction_length)))
+        # test if pid_particle_pair 'pp' is within at least one shell.
+        shells = self.sphere_container.get_neighbors_within_radius(pp[1].position, -(pp[1].radius + self.reaction_length))
+        return len(shells) >= 1
 
     def add_shell(self, shell_id_shell_pair):
         if __debug__:
