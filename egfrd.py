@@ -2521,13 +2521,26 @@ rejected moves = %d
         # domains.
 
     def check_shell_matrix(self):
+        ### checks the consistency between the shells in the geometry container and the domains
+        # -check that shells of a domain in domains{} are once and only once in the shell matrix
+        # -check that all shells in the matrix are once and only once in a domain
+
         did_map, shell_map = self.geometrycontainer.get_dids_shells()
 
         shell_population = 0
-        for id, event in self.scheduler:
-            domain = self.domains[event.data]
+        for domain in self.domains.itervalues():
             shell_population += domain.num_shells
+
+            # get the shells associated with the domain according to the geometrycontainer
             shell_ids = did_map[domain.domain_id]
+            for shell_id, shell in domain.shell_list:
+                # check that all shells in the domain are in the matrix and have the proper domain_id
+                assert shell_id in shell_ids
+
+            # check that the number of shells in the shell_list is equal to the number of shells the domain
+            # says it has is equal to the number of shell the geometrycontainer has registered to the domain.
+            assert domain.num_shells == len(list(domain.shell_list))
+            assert domain.num_shells == len(shell_ids)
             if len(shell_ids) != domain.num_shells:
                 diff = set(sid for (sid, _)
                                in domain.shell_list).difference(shell_ids)
@@ -2539,18 +2552,19 @@ rejected moves = %d
                                    (len(shell_ids), domain.num_shells, 
                                     domain.domain_id, diff))
 
+        # check that total number of shells in domains==total number of shells in shell container
         matrix_population = self.geometrycontainer.get_total_num_shells()
         if shell_population != matrix_population:
             raise RuntimeError('num shells (%d) != matrix population (%d)' %
                                (shell_population, matrix_population))
+        # Since the number of shells in the domains is equal to the number of shells in the
+        # geometrycontainer this now also means that all the shells in the geometrycontainer are
+        # represented in the domains.
+
+        # This now also means that the shells of all the cached singles in Pairs are not in the containers.
+
 
 # check that all the cached singles in Pairs are not in domains{}.
-
-### check shell container
-# check that shells of a domain in domains{} are once and only once in the shell matrix
-# check that all shells in the matrix are once and only once in a domain
-# total number of shells in domains==total number of shells in shell container
-# check that the shells of all the cached singles in Pairs are not in the containers
 
 ### check shells of domains
 # check that shells of the domain do not overlap with shells of other domains
