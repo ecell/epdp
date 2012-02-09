@@ -43,6 +43,7 @@ from shells import (
     SphericalPairtestShell,
     PlanarSurfaceSingletestShell,
     PlanarSurfacePairtestShell,
+    PlanarSurfaceEdgeSingletestShell
     CylindricalSurfaceSingletestShell,
     CylindricalSurfacePairtestShell,
     PlanarSurfaceInteractiontestShell,
