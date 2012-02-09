@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from _gfrd import (
     SphericalShell,
     CylindricalShell,
@@ -20,6 +21,7 @@ from shells import *
 __all__ = [
     'CylindricalSurfaceSingle',
     'PlanarSurfaceSingle',
+    'PlanarSurfaceEdgeSingle',
     'SphericalSingle',
     'Single',
     'NonInteractionSingle',
@@ -377,6 +379,159 @@ class PlanarSurfaceSingle(NonInteractionSingle, hasCylindricalShell):
 
     def __str__(self):
         return 'PlanarSurface' + Single.__str__(self)
+
+
+class PlanarSurfaceEdgeSingle(Single, hasSphericalShell, Others):
+    """1 Particle inside a (spherical) shell at the edge of two planar surfaces
+
+        * Particle coordinates on surface: x, y.
+        * Domain: radial r. (determines x and y together with theta).
+        * Initial position: r = 0.
+        * Selected randomly when drawing displacement vector: theta.
+
+    """
+    def __init__(self, domain_id, shell_id, testShell, reactionrules):
+
+        assert isinstance(testShell, PlanarSurfaceEdgeSingletestShell)
+        hasSphericalShell.__init__(self, testShell, domain_id)
+        NonInteractionSingle.__init__(self, domain_id, shell_id, reactionrules)
+
+        self.origin_plane = testShell.origin_plane
+        self.target_plane = testShell.target_plane
+        self.origin_center = origin_plane.shape.position
+        self.target_center = target_plane.shape.position
+        self.origin_half_extent = origin_plane.shape.half_extent
+        self.target_half_extent = target_plane.shape.half_extent      
+
+        self.start_position = self.pid_particle_pair[1].postition
+        self.target_distance = testShell.get_distance_to_target_surface()
+        # Keep the order of the following!
+        # get_edge_point() needs origin_unit_perp, while get_target_unit_vectors() needs edge_point.
+        self.origin_unit_perp, self.origin_unit_par, self.origin_half_extent_perp = self.get_origin_unit_vectors()
+        self.edge_point = self.get_edge_point()
+        self.target_unit_perp, self.target_unit_par, self.target_half_extent_perp = self.get_target_unit_vectors()
+
+    # The same Greens function is used as for the normal PlanarSurfaceSingle;
+    # If the position is off the plane of origin, it will be transformed towards the target plane
+    def greens_function(self):
+        return GreensFunction2DAbsSym(self.D,
+                                          self.get_inner_a())
+
+    def draw_new_position(self, dt, event_type):
+        oldpos = self.start_position
+
+        if self.D == 0:
+            newpos = oldpos
+        elif event_type == EventType.SINGLE_REACTION and len(self.reactionrule.products) == 0:
+            newpos = oldpos
+        else:
+            # Calculate r
+            if event_type == EventType.SINGLE_ESCAPE:
+            # Moving this checks to the Green's functions is not a good 
+            # idea, because then you'd draw an unused random number.  
+            # The same yields for the draw_new_com and draw_new_iv.  
+
+                r = self.get_inner_a()
+            else:
+                gf = self.greens_function()
+                r = draw_r_wrapper(gf, dt, self.get_inner_a())
+                # Note that in case of 1D diffusion r has a direction. It is
+                # the lateral displacement and can be positive or negative. 
+                # In other cases r is always positive and denotes
+                # radial displacement from the center.
+
+            # Calculate the displacement from oldpos in the plane of origin
+            displacement = self.create_position_vector(r)
+
+            # Now check whether the new position is in the plane of origin;
+            # if not, transform it to the target plane
+            newpos = self.process_new_position_vector(oldpos, displacement)
+
+        return newpos
+
+    def create_position_vector(self, r):
+        # project the vector onto the surface unit vectors to make sure
+        # that the coordinates are in the surface
+        x, y = random_vector2D(r)
+        return x * self.structure.shape.unit_x + y * self.structure.shape.unit_y
+
+    def process_new_position_vector(self, oldpos, displacement):
+        # This routine checks whether the new position in the plane of origin
+        # reaches out of it and if necessary calculates the position in the
+        # target plane.
+        # First calculate the coordinate perpendicular to the edge
+        # in the old plane
+        newpos_in_origin = (oldpos - self.origin_center) + displacement
+        d_origin_perp = numpy.dot(newpos_in_origin, self.origin_unit_perp)
+        assert (d_origin_perp >= 0.0 )
+        # Calculate the part of it that reaches out of the plane of origin
+        d_out = d_origin_perp - self.origin_half_extent_perp
+        if d_out <= 0.0 :
+            # The new position is still in the old plane;
+            # no transform required
+            newpos = oldpos + displacement
+        else :
+            # The new position is out of the old plane;
+            # transform it to the target plane.
+            # First calculate the coordinate in the target plane
+            # that is perpendicular to the edge:
+            d_target_perp = self.target_half_extent_perp - d_out
+            # Now the same for the parallel component
+            # Take into account that the parallel unit vector in the target plane might be
+            # either parallel or antiparallel to the parallel unit vector in the origin plane
+            d_origin_par = numpy.dot(newpos_in_origin, self.origin_unit_par)
+            d_target_par = d_origin_par * numpy.dot(self.origin_unit_par, self.target_unit_par)
+            # Construct the new position using the predefined unit vectors of the target plane
+            newpos = target_center + d_target_perp * self.target_unit_perp
+                                   + d_target_par  * self.target_unit_par
+
+        return newpos        
+
+    def get_origin_unit_vectors(self):
+        # calculate the unit vector perpendicular and parallel to the edge
+        # in the plane of origin and the half_extent of this plane in the
+        # perpendicular vector direction
+        w_z = self.target_plane.shape.unit_z
+        u_perp = (1.0/self.target_distance * numpy.dot(self.target_center-self.start_position, w_z )) * w_z
+        assert feq(sqrt(numpy.dot(u_perp, u_perp)), 1.0)
+
+        u_x = self.origin_plane.shape.unit_x
+        u_y = self.origin_plane.shape.unit_y
+        if feq(abs(numpy.dot(u_x, u_perp)), 1.0):
+             u_par  = u_y
+             h_perp = self.origin_half_extent[0] # half_extent in u_x direction
+        else
+             u_par  = u_x
+             h_perp = self.origin_half_extent[1] # half_extent in u_y direction
+
+        return u_perp, u_par, h_perp
+
+    def get_target_unit_vectors(self):
+        # calculate the unit vector perpendicular and parallel to the edge
+        # in the target plane and the half_extent of this plane in the
+        # perpendicular vector direction        
+        w_perp_unnorm = self.edge_point - self.target_center
+        w_perp = ( 1.0/numpy.sqrt(numpy.dot(w_perp_unnorm,w_perp_unnorm)) ) * w_perp_unnorm
+        assert feq(sqrt(numpy.dot(w_perp, w_perp)), 1.0)
+
+        w_x = self.target_plane.shape.unit_x
+        w_y = self.target_plane.shape.unit_y
+        if feq(abs(numpy.dot(w_x, w_perp)), 1.0):
+             w_par = w_y
+             h_perp = self.origin_half_extent[0] # half_extent in w_x direction
+        else
+             w_par = w_x
+             h_perp = self.origin_half_extent[1] # half_extent in w_y direction
+
+        return w_perp, w_par, h_perp
+
+    def get_edge_point(self):
+        ep = self.start_position + (self.target_distance * self.origin_unit_perp)
+        return ep
+
+
+    def __str__(self):
+        return 'PlanarSurfaceEdge' + Single.__str__(self)
 
 
 class CylindricalSurfaceSingle(NonInteractionSingle, hasCylindricalShell):

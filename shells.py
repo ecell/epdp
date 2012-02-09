@@ -1,4 +1,5 @@
 #!/usr/bin/python
+# -*- coding: utf-8 -*-
 
 import math
 
@@ -31,6 +32,7 @@ __all__ = [
     'SphericalPairtestShell',
     'PlanarSurfaceSingletestShell',
     'PlanarSurfacePairtestShell',
+    'PlanarSurfaceEdgeSingletestShell',
     'CylindricalSurfaceSingletestShell',
     'CylindricalSurfacePairtestShell',
     'PlanarSurfaceInteractiontestShell',
@@ -1106,6 +1108,43 @@ class PlanarSurfacePairtestShell(CylindricaltestShell, testSimplePair):
 
     def apply_safety(self, r, z_right, z_left):
         return r/SAFETY, z_right, z_left
+
+#####
+class PlanarSurfaceEdgeSingletestShell(SphericaltestShell, testNonInteractionSingle):
+
+    def __init__(self, single, surface, geometrycontainer, domains):
+        SphericaltestShell.__init__(self, geometrycontainer, domains)  # this must be first because of world definition
+        self.origin_surface = single.structure
+        self.target_surface = surface
+        assert isinstance(origin_surface, _gfrd.Surface)
+        assert isinstance(target_surface, _gfrd.Surface)
+
+        self.particle = single.pid_particle_pair[1]
+        self.single_radius = particle.radius
+        self.center = particle.position
+
+        try:
+            self.radius = self.determine_possible_shell(self.structure.id, 
+                                                        [self.single.domain_id],
+                                                        [self.origin_surface.id, self.target_surface.id]
+                                                       )
+        except ShellmakingError as e:
+            raise testShellError('(PlanarSurfaceEdgeSingle). %s' %
+                                 (str(e)))
+
+    def get_min_radius(self):
+        min_offset = single_radius*(SINGLE_SHELL_FACTOR - 1.0)
+        # The minimal shell size also deterimines the minimal radius of the later 2D domain.
+        # min_offset here is the minimal length that the circular 2D domain protrudes into
+        # the target surface. Make sure that min_offset > 0.0, because only then it is
+        # guaranteed that there is always a certain probability to cross the edge even
+        # if the shell with minimal radius is constructed
+        return self.get_distance_to_target_surface() + min_radius
+
+    def get_distance_to_target_surface(self):
+        distance = world.distance(target_surface.shape, self.center)
+        return distance
+
 #####
 class CylindricalSurfaceSingletestShell(CylindricaltestShell, testNonInteractionSingle):
 

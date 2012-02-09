@@ -69,7 +69,7 @@ def create_default_single(domain_id, shell_id, pid_particle_pair, structure, rea
         testSingle = CylindricalSurfaceSingletestShell(pid_particle_pair, structure, geometrycontainer, domains)
         return CylindricalSurfaceSingle (domain_id, shell_id, testSingle, reaction_rules)
 
-### Interactions
+### Interactions (including changes from one surface to another / crossing edges)
 def try_default_testinteraction(single, surface, geometrycontainer, domains):
     if isinstance(single.structure, CuboidalRegion):
         if isinstance(surface, PlanarSurface):
@@ -79,7 +79,10 @@ def try_default_testinteraction(single, surface, geometrycontainer, domains):
         else:
             raise testShellError('(Interaction). Combination of (3D particle, surface) is not supported')
     elif isinstance(single.structure, PlanarSurface):
-        raise testShellError('(Interaction). Combination of (2D particle, surface) is not supported')
+        if isinstance(surface, PlanarSurface):
+            return PlanarSurfaceEdgeSingletestShell(single, surface, geometrycontainer, domains)
+        else:
+            raise testShellError('(Interaction). Combination of (2D particle, surface other than plane) is not supported')
     elif isinstance(single.structure, CylindricalSurface):
         if isinstance(surface, CylindricalSurface):     # TODO differentiate between a sink and a cap
             return CylindricalSurfaceSinktestShell (single, surface, geometrycontainer, domains)
@@ -1172,7 +1175,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
         surface_distances = self.geometrycontainer.get_neighbor_surfaces(single_pos, single.structure.id, ignores=[])
 
 
-        # Check if there are shells with the burst radius (reaction_threshold)
+        # Check if there are shells within the burst radius (reaction_threshold)
         # of the particle (intruders). Note that we approximate the reaction_volume
         # with a sphere (should be cylinder for 2D or 1D particle)
         reaction_threshold = single_radius * SINGLE_SHELL_FACTOR
