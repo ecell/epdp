@@ -482,10 +482,9 @@ class PlanarSurfaceEdgeSingle(Single, hasSphericalShell, Others):
             d_origin_par = numpy.dot(newpos_in_origin, self.origin_unit_par)
             d_target_par = d_origin_par * numpy.dot(self.origin_unit_par, self.target_unit_par)
             # Construct the new position using the predefined unit vectors of the target plane
-            newpos = target_center + d_target_perp * self.target_unit_perp
-                                   + d_target_par  * self.target_unit_par
+            newpos = target_center + d_target_perp*self.target_unit_perp + d_target_par*self.target_unit_par
 
-        return newpos        
+        return newpos
 
     def get_origin_unit_vectors(self):
         # calculate the unit vector perpendicular and parallel to the edge
@@ -500,7 +499,7 @@ class PlanarSurfaceEdgeSingle(Single, hasSphericalShell, Others):
         if feq(abs(numpy.dot(u_x, u_perp)), 1.0):
              u_par  = u_y
              h_perp = self.origin_half_extent[0] # half_extent in u_x direction
-        else
+        else:
              u_par  = u_x
              h_perp = self.origin_half_extent[1] # half_extent in u_y direction
 
@@ -519,7 +518,7 @@ class PlanarSurfaceEdgeSingle(Single, hasSphericalShell, Others):
         if feq(abs(numpy.dot(w_x, w_perp)), 1.0):
              w_par = w_y
              h_perp = self.origin_half_extent[0] # half_extent in w_x direction
-        else
+        else:
              w_par = w_x
              h_perp = self.origin_half_extent[1] # half_extent in w_y direction
 

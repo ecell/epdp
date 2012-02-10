@@ -43,7 +43,7 @@ from shells import (
     SphericalPairtestShell,
     PlanarSurfaceSingletestShell,
     PlanarSurfacePairtestShell,
-    PlanarSurfaceEdgeSingletestShell
+    PlanarSurfaceEdgeSingletestShell,
     CylindricalSurfaceSingletestShell,
     CylindricalSurfacePairtestShell,
     PlanarSurfaceInteractiontestShell,
@@ -471,7 +471,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
     # The interaction can be any interaction (PlanarSurface or CylindricalSurface). The creation of the testShell was
     # succesful, so here we can just make the domain.
 
-#       assert that the particle is not already associate with another domain
+#       assert that the particle is not already associated with another domain
 
         assert isinstance(testShell, testInteractionSingle)
 
