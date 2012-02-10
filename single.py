@@ -381,7 +381,7 @@ class PlanarSurfaceSingle(NonInteractionSingle, hasCylindricalShell):
         return 'PlanarSurface' + Single.__str__(self)
 
 
-class PlanarSurfaceEdgeSingle(Single, hasSphericalShell, Others):
+class PlanarSurfaceEdgeSingle(InteractionSingle, hasSphericalShell, Others):
     """1 Particle inside a (spherical) shell at the edge of two planar surfaces
 
         * Particle coordinates on surface: x, y.
@@ -390,7 +390,7 @@ class PlanarSurfaceEdgeSingle(Single, hasSphericalShell, Others):
         * Selected randomly when drawing displacement vector: theta.
 
     """
-    def __init__(self, domain_id, shell_id, testShell, reactionrules):
+    def __init__(self, domain_id, shell_id, testShell, reactionrules, interactionrules):
 
         assert isinstance(testShell, PlanarSurfaceEdgeSingletestShell)
         hasSphericalShell.__init__(self, testShell, domain_id)
@@ -483,6 +483,7 @@ class PlanarSurfaceEdgeSingle(Single, hasSphericalShell, Others):
             d_target_par = d_origin_par * numpy.dot(self.origin_unit_par, self.target_unit_par)
             # Construct the new position using the predefined unit vectors of the target plane
             newpos = target_center + d_target_perp*self.target_unit_perp + d_target_par*self.target_unit_par
+            # TODO CHANGE SPECIES TO THE ONE THAT LIVES ON THE TARGET PLANE FOR THIS CASE
 
         return newpos
 

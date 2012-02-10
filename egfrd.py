@@ -99,6 +99,8 @@ def create_default_interaction(domain_id, shell_id, testShell, reaction_rules, i
         return CylindricalSurfaceInteraction (domain_id, shell_id, testShell, reaction_rules, interaction_rules)
     elif isinstance(testShell, PlanarSurfaceInteractiontestShell):
         return PlanarSurfaceInteraction      (domain_id, shell_id, testShell, reaction_rules, interaction_rules)
+    elif isinstance(testShell, PlanarSurfaceEdgeSingletestShell):
+        return PlanarSurfaceEdgeSingle       (domain_id, shell_id, testShell, reaction_rules, interaction_rules)
     elif isinstance(testShell, CylindricalSurfaceSinktestShell):
         return CylindricalSurfaceSink        (domain_id, shell_id, testShell, reaction_rules, interaction_rules)
 

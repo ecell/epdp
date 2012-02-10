@@ -1113,11 +1113,12 @@ class PlanarSurfacePairtestShell(CylindricaltestShell, testSimplePair):
         return r/SAFETY, z_right, z_left
 
 #####
-class PlanarSurfaceEdgeSingletestShell(SphericaltestShell, testNonInteractionSingle):
+class PlanarSurfaceEdgeSingletestShell(SphericaltestShell, testInteractionSingle):
 
     def __init__(self, single, surface, geometrycontainer, domains):
         SphericaltestShell.__init__(self, geometrycontainer, domains)  # this must be first because of world definition
-        self.origin_surface = single.structure
+        testInteractionSingle.__init__(self, single, single.structure, surface)
+        self.origin_surface = structure
         self.target_surface = surface
         assert isinstance(origin_surface, _gfrd.Surface)
         assert isinstance(target_surface, _gfrd.Surface)
