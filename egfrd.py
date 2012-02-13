@@ -2583,14 +2583,12 @@ rejected moves = %d
 
 ### check domains
 # check that testShell is of proper type
-# check that the particles are within the shells of the domain
-# check that proper number of shells for domain, most other number of shells==1
 # check that the shell(s) of domain have the proper geometry (sphere/cylinder)
 # check that shell is within minimum and maximum
 # check that shell obeys scaling properties
+# check that the particles are within the shells of the domain
 # check that the position of the shell(s) and particle(s) are within the structures that the particles live on
 # check that dt != 0 unless NonInteractionSingle.is_reset()
-# check event_type != BURST
 # check associated structures are of proper type (plane etc, but also of proper StructureTypeID)
 # check that Green's functions are defined.
 
@@ -2615,6 +2613,9 @@ rejected moves = %d
 
 ### check Interaction
 # check shell.unit_z = +- surface.unit_z
+
+
+
 
 ### check consistency of the model
 # check that the product species of an interaction lives on the interaction surface.

@@ -310,11 +310,15 @@ class SphericalSingle(NonInteractionSingle, hasSphericalShell):
 
     def check(self):
         assert ProtectiveDomain.check(self)
+        # check shell stuff
         assert isinstance(self.testShell, SphericalSingletestShell)
         assert isinstance(self.shell.shape, Sphere)
         assert self.shell.shape.radius <= self.testShell.get_max_radius()
         if not self.is_reset():
-            assert self.shell.shape.radius >= self.testShell.get_min_radius()
+            assert self.shell.shape.radius*SAFETY >= self.testShell.get_min_radius()
+        if self.is_reset():
+            assert self.shell.shape.radius == self.pid_particle_pair[1].radius
+
         assert self.is_reset() ^ (self.dt != 0.0)
         assert isinstance(self.structure, CuboidalRegion)
         assert self.greens_function
@@ -396,15 +400,27 @@ class PlanarSurfaceSingle(NonInteractionSingle, hasCylindricalShell):
 
     def check(self):
         assert ProtectiveDomain.check(self)
+        # check shell stuff
         assert isinstance(self.testShell, PlanarSurfaceSingletestShell)
         assert isinstance(self.shell.shape, Cylinder)
-#        assert self.shell.shape.radius <= self.testShell.get_max_radius()
-#        if not self.is_reset():
-#            assert self.shell.shape.radius >= self.testShell.get_min_radius()
+
+        max_radius, _, _ = self.testShell.get_max_dr_dzright_dzleft()
+        assert self.shell.shape.radius <= max_radius
+        if not self.is_reset():
+            min_radius, _, _ = self.testShell.get_min_dr_dzright_dzleft()
+            assert self.shell.shape.radius*SAFETY >= min_radius
+        assert self.shell.shape.half_length == self.testShell.z_right(self.shell.shape.radius) 
+        assert self.shell.shape.half_length == self.testShell.z_left (self.shell.shape.radius)
+        if self.is_reset():
+            assert self.shell.shape.radius == self.pid_particle_pair[1].radius
+
         assert self.is_reset() ^ (self.dt != 0.0)
         assert isinstance(self.structure, PlanarSurface)
         assert self.greens_function
-        assert self.shell.shape.unit_z == self.structure.shape.unit_z
+        assert (self.shell.shape.unit_z == self.structure.shape.unit_z).all()
+
+        assert numpy.dot(self.pid_particle_pair[1].position - self.structure.shape.position,
+                         self.structure.shape.unit_z) == 0.0
 
         return True
 
@@ -519,15 +535,20 @@ class CylindricalSurfaceSingle(NonInteractionSingle, hasCylindricalShell):
 
     def check(self):
         assert ProtectiveDomain.check(self)
+        # check shell stuff
         assert isinstance(self.testShell, CylindricalSurfaceSingletestShell)
         assert isinstance(self.shell.shape, Cylinder)
 #        assert self.shell.shape.radius <= self.testShell.get_max_radius()
 #        if not self.is_reset():
 #            assert self.shell.shape.radius >= self.testShell.get_min_radius()
+        if self.is_reset():
+            assert self.shell.shape.half_length == self.pid_particle_pair[1].radius
+
         assert self.is_reset() ^ (self.dt != 0.0)
         assert isinstance(self.structure, CylindricalSurface)
         assert self.greens_function
-        assert self.shell.shape.unit_z == self.structure.shape.unit_z
+        assert (self.shell.shape.unit_z == self.structure.shape.unit_z).all()
+        assert self.v < numpy.inf
 
         return True
 
