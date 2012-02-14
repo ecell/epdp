@@ -381,7 +381,7 @@ class PlanarSurfaceSingle(NonInteractionSingle, hasCylindricalShell):
         return 'PlanarSurface' + Single.__str__(self)
 
 
-class PlanarSurfaceEdgeSingle(InteractionSingle, hasSphericalShell, Others):
+class PlanarSurfaceEdgeSingle(Single, hasSphericalShell, Others):
     """1 Particle inside a (spherical) shell at the edge of two planar surfaces
 
         * Particle coordinates on surface: x, y.
@@ -390,14 +390,14 @@ class PlanarSurfaceEdgeSingle(InteractionSingle, hasSphericalShell, Others):
         * Selected randomly when drawing displacement vector: theta.
 
     """
-    def __init__(self, domain_id, shell_id, testShell, reactionrules, interactionrules):
+    def __init__(self, domain_id, shell_id, testShell, reactionrules):
 
         assert isinstance(testShell, PlanarSurfaceEdgeSingletestShell)
         hasSphericalShell.__init__(self, testShell, domain_id)
         NonInteractionSingle.__init__(self, domain_id, shell_id, reactionrules)
 
-        self.origin_plane = testShell.origin_plane
-        self.target_plane = testShell.target_plane
+        self.origin_plane  = testShell.origin_plane
+        self.target_plane  = testShell.target_plane
         self.origin_center = origin_plane.shape.position
         self.target_center = target_plane.shape.position
         self.origin_half_extent = origin_plane.shape.half_extent
@@ -483,7 +483,7 @@ class PlanarSurfaceEdgeSingle(InteractionSingle, hasSphericalShell, Others):
             d_target_par = d_origin_par * numpy.dot(self.origin_unit_par, self.target_unit_par)
             # Construct the new position using the predefined unit vectors of the target plane
             newpos = target_center + d_target_perp*self.target_unit_perp + d_target_par*self.target_unit_par
-            # TODO CHANGE SPECIES TO THE ONE THAT LIVES ON THE TARGET PLANE FOR THIS CASE
+            change_particle_structure(self.pid_particle_pair, target_plane)
 
         return newpos
 
@@ -528,6 +528,12 @@ class PlanarSurfaceEdgeSingle(InteractionSingle, hasSphericalShell, Others):
     def get_edge_point(self):
         ep = self.start_position + (self.target_distance * self.origin_unit_perp)
         return ep
+
+    def change_particle_surface(pid_particle_pair, new_structure):
+        #pid_particle_pair[1].structure_id = new_structure.id
+        # TODO !!! This will only work once particles can remember their structure !!!
+        # for now...
+        pass
 
 
     def __str__(self):
