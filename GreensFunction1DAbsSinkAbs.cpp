@@ -19,6 +19,9 @@
 #include "findRoot.hpp"
 #include "GreensFunction1DAbsSinkAbs.hpp"
 
+const unsigned int GreensFunction1DAbsSinkAbs::MAX_TERMS;
+const unsigned int GreensFunction1DAbsSinkAbs::MIN_TERMS;
+
 /* This is the appropriate definition of the function defining
    the roots of our Green's functions in GSL.
    Later needed by the rootfinder. */
