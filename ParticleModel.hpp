@@ -6,11 +6,14 @@
 #include "StructureType.hpp"
 
 class ParticleModel: public Model
+// The ParticleModel class add spatial properties (e.g. particles) to the model. The model by itself could
+// namely also just model well mixed systems.
 {
 public:
-    typedef Model base_type;
-    typedef StructureType structure_type_type;
-    typedef structure_type_type::identifier_type structure_id_type;
+    // defining shorthands for the used types
+    typedef Model                                   base_type;
+    typedef StructureType                           structure_type_type;
+    typedef structure_type_type::identifier_type    structure_id_type;
 
     typedef std::map<structure_id_type, boost::shared_ptr<structure_type_type> > structure_type_map_type;
 
@@ -32,6 +35,7 @@ public:
 
     structure_type_range get_structure_types() const;
 
+/////// Member variables
 public:
     structure_type_map_type structure_type_map_;
 };

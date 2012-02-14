@@ -77,10 +77,13 @@ template<typename Tderived_, typename Ttraits_ = typename Tderived_::traits_type
 class ParticleContainerBase
     : public ParticleContainer<Ttraits_>
 {
+// This inherits from the ParticleContainer class which is just an abstract data type.
+// Here most of the methods of the ParticleContainer are actually implemented.
 public:
     typedef ParticleContainerUtils<Ttraits_> utils;
     typedef ParticleContainer<Ttraits_> base_type;
     typedef Ttraits_ traits_type;
+    // define some shorthands for all the types from the traits that we use.
     typedef typename traits_type::length_type length_type;
     typedef typename traits_type::species_type species_type;
     typedef typename traits_type::position_type position_type;
@@ -103,9 +106,11 @@ public:
     typedef unassignable_adapter<particle_id_pair_and_distance, get_default_impl::std::vector> particle_id_pair_and_distance_list;
 
 protected:
+// Implementation of the methods.
 public:
     ParticleContainerBase(length_type world_size, size_type size)
         : pmat_(world_size, size) {}
+    // constructor
 
     virtual size_type num_particles() const
     {
@@ -159,6 +164,7 @@ public:
         return traits_type::cyclic_transpose(p0, p1, world_size());
     }
 
+    // THIS SEEMS STRANGE TO PUT THIS HERE. 
     template<typename T1_>
     T1_ calculate_pair_CoM(
         T1_ const& p1, T1_ const& p2, 
@@ -237,7 +243,7 @@ public:
         return pmat_.end() != pmat_.find(id);
     }
 
-    virtual transaction_type* create_transaction();
+    virtual transaction_type* create_transaction();     // The implementation is below as an inline function?
 
     virtual particle_id_pair_generator* get_particles() const
     {
@@ -259,10 +265,16 @@ public:
         return pmat_.erase(id);
     }
 
+
+
+///////// Member variables
 protected:
-    particle_matrix_type pmat_;
+    particle_matrix_type pmat_;         // just the structure containing the particles.
 };
 
+
+
+//////// Inline methods are defined separately
 template<typename Tderived_, typename Ttraits_>
 inline Transaction<Ttraits_>*
 ParticleContainerBase<Tderived_, Ttraits_>::create_transaction()

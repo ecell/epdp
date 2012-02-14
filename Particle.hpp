@@ -16,13 +16,16 @@
 template<typename T_, typename Td_, typename Tsid_>
 struct Particle
 {
-    typedef Sphere<T_> shape_type;
-    typedef Td_ D_type;
-    typedef Td_ v_type;	// the drift v has the same type as diffusion constant D for now, may be generalized at a later stage
-    typedef Tsid_ species_id_type;
-    typedef typename shape_type::position_type position_type;
-    typedef typename shape_type::length_type length_type;
+    // defining shorthands for used types
+    typedef Sphere<T_>                          shape_type;
+    typedef Td_                                 D_type;
+    // the drift v has the same type as diffusion constant D for now, may be generalized at a later stage
+    typedef Td_                                 v_type;
+    typedef Tsid_                               species_id_type;
+    typedef typename shape_type::position_type  position_type;
+    typedef typename shape_type::length_type    length_type;
 
+    // constructors
     Particle(): shape_(), species_id_(), D_(0.), v_(0.) {}
 
     Particle(species_id_type const& species_id, shape_type const& shape,
@@ -111,6 +114,7 @@ struct Particle
         return strm.str();
     }
 
+////// Member variables
 private:
     shape_type shape_;
     species_id_type species_id_;
@@ -118,12 +122,16 @@ private:
     v_type v_;
 };
 
+
+///// Inline functions
 template<typename Tstrm_, typename Ttraits_, typename T_, typename Td_, typename Tsid_>
 inline std::basic_ostream<Tstrm_, Ttraits_>& operator<<(std::basic_ostream<Tstrm_, Ttraits_>& strm, const Particle<T_, Td_, Tsid_>& p)
 {
     strm << "Particle(" << p.shape() << ", D=" << p.D() << ", v=" << p.v() << ", " << p.sid() << ")";
     return strm;
 }
+
+
 
 #if defined(HAVE_TR1_FUNCTIONAL)
 namespace std { namespace tr1 {

@@ -22,9 +22,9 @@ private:
 
 public:
     // typedef std::string identifier_type;
-    typedef SpeciesTypeID identifier_type;
-    typedef string_map_type::const_iterator string_map_iterator;
-    typedef boost::iterator_range<string_map_iterator> attributes_range;
+    typedef SpeciesTypeID                               identifier_type;    // NOTE: we use the same identifier as for the species!
+    typedef string_map_type::const_iterator             string_map_iterator;
+    typedef boost::iterator_range<string_map_iterator>  attributes_range;
 
 public:
     identifier_type const& id() const;
@@ -49,12 +49,15 @@ protected:
         id_ = id;
     }
 
+
+//////// Member variables
 private:
-    ParticleModel* model_;
-    identifier_type id_;
+    ParticleModel* model_;          // to what model is it associated
+    identifier_type id_;            // identifier Note that these are only defined if the object is bound to a model.
     string_map_type attrs_;
 };
 
+/////// Inline functions
 template<typename Tchar_, typename Ttraits_>
 inline std::basic_ostream<Tchar_, Ttraits_>&
 operator<<(std::basic_ostream<Tchar_, Ttraits_>& out, const StructureType& v)

@@ -13,6 +13,8 @@ class Transaction;
 template<typename Ttraits_>
 class ParticleContainer
 {
+// This class just defines the properties that the ParticleContainer should have.
+// The ParticleContainerBase implements some of them.
 public:
     typedef Ttraits_ traits_type;
     typedef typename traits_type::particle_type particle_type;

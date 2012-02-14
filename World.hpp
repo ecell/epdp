@@ -32,29 +32,39 @@
 
 template<typename Tderived_, typename Tlen_, typename TD_>
 struct WorldTraitsBase
+// Just defines some basic properties of a world. Basically just types and one constant.
+// Tderived_ is the class/structure that inherits from this struct (subclass) -> WorldTraits and CyclicWorldTraits
 {
-    typedef std::size_t size_type;
-    typedef Tlen_ length_type;
-    typedef TD_ D_type;
-    typedef TD_ v_type;
-    typedef ParticleID particle_id_type;                                    // identifier type for particles
-    typedef SerialIDGenerator<particle_id_type> particle_id_generator;
-    typedef SpeciesTypeID species_id_type;                                  // identifier type for species and (structure types)
-    typedef Particle<length_type, D_type, species_id_type> particle_type;   // type for particles
-    typedef std::string structure_id_type;                                  // identifier type for structures
-    // typedef SpeciesTypeID structure_id_type;
-    typedef SpeciesInfo<species_id_type, D_type, length_type, structure_id_type> species_type;
-    typedef Vector3<length_type> point_type;
-    typedef typename particle_type::shape_type::position_type position_type;
-    typedef GSLRandomNumberGenerator rng_type;
-    typedef Structure<Tderived_> structure_type;
+    typedef std::size_t                                     size_type;
+    typedef Tlen_                                           length_type;
+    typedef TD_                                             D_type;
+    typedef TD_                                             v_type;
+    typedef ParticleID                                      particle_id_type;   // identifier type for particles
+    typedef SerialIDGenerator<particle_id_type>             particle_id_generator;
+    typedef SpeciesTypeID                                   species_id_type;    // identifier type for species and (structure types)
+    typedef Particle<length_type, D_type, species_id_type>  particle_type;      // type for particles, NOTE why is there no v_type here?
+    typedef std::string                                     structure_id_type;  // identifier type for structures
+    // typedef SpeciesTypeID                                   structure_id_type;
 
-    static const Real TOLERANCE = 1e-7;
+    typedef SpeciesInfo<species_id_type, D_type, length_type, structure_id_type>    species_type;  // information associated with the species
+    typedef Vector3<length_type>                                                    point_type;
+    typedef typename particle_type::shape_type::position_type                       position_type;
+    typedef GSLRandomNumberGenerator                                                rng_type;
+    typedef Structure<Tderived_>                                                    structure_type; // The structure_type is parameterized with the subclass??
+
+    static const Real TOLERANCE = 1e-7;         // tolerance of what?
 };
+
+
 
 template<typename Tlen_, typename TD_>
 struct WorldTraits: public WorldTraitsBase<WorldTraits<Tlen_, TD_>, Tlen_, TD_>
 {
+// This defines a structure (like a class) with some rudimentairy properties of the world
+// It inherits from WorldTraitsBase which is parameterized with the fully defined WorldTraits class/structure.
+//
+// Implements mostly boundaryconditions related stuff (distance, apply_boundary, cyclic_transpose)
+
 public:
     // This is the normal world (without periodic/cyclic boundary conditions)
     typedef WorldTraitsBase<WorldTraits<Tlen_, TD_>, Tlen_, TD_> base_type;
@@ -70,6 +80,7 @@ public:
 
     template<typename Tval_>
     static Tval_ cyclic_transpose(Tval_ const& p0, Tval_ const& p1, length_type const& world_size)
+    // ditto
     {
         return p0;
     }
@@ -109,15 +120,17 @@ public:
 template<typename Tlen_, typename TD_>
 struct CyclicWorldTraits: public WorldTraitsBase<CyclicWorldTraits<Tlen_, TD_>, Tlen_, TD_>
 {
+// Use these world traits for a world WITH periodic/cyclic boundary conditions
+
 public:
-    // This is the world WITH periodic/cyclic boundary conditions
+    // Specify the types being used.
     typedef WorldTraitsBase<CyclicWorldTraits<Tlen_, TD_>, Tlen_, TD_> base_type;
-    typedef typename base_type::length_type length_type;
-    typedef typename base_type::position_type position_type;
+    typedef typename base_type::length_type                            length_type;
+    typedef typename base_type::position_type                          position_type;
 
     template<typename Tval_>
     static Tval_ apply_boundary(Tval_ const& v, length_type const& world_size)
-    // This applied the periodic boundary conditions
+    // This applied the periodic boundary conditions, unclear what kind of type 'Tval_' is.
     {
         return ::apply_boundary(v, world_size);
     }
@@ -125,12 +138,13 @@ public:
     static length_type cyclic_transpose(length_type const& p0, length_type const& p1, length_type const& world_size)
     // selects the copy of p0 (over the periodic boundaries) such that the distance between p0 and p1 is minimized over
     // over the periodic boundary conditions.
+    // This is the length_type version
     {
         return ::cyclic_transpose(p0, p1, world_size);
     }
 
     static position_type cyclic_transpose(position_type const& p0, position_type const& p1, length_type const& world_size)
-    // Not sure what the difference is with above method
+    // This is the position_type version
     {
         return ::cyclic_transpose(p0, p1, world_size);
     }
@@ -170,45 +184,55 @@ public:
 template<typename Ttraits_>
 class World: public ParticleContainerBase<World<Ttraits_>, Ttraits_>
 {
+// The world 'is a' ParticleContainerBase which is parameterize with the same World class
+// (I think the concrete implementation of it, not just the template)
+// The world is a template that is parametrized with the traits (these define a number of datatypes used in the definition of
+// the world?)
 public:
-    typedef Ttraits_ traits_type;
-    typedef ParticleContainerBase<World> base_type;
-    typedef ParticleContainer<traits_type> particle_container_type;
-    typedef typename traits_type::length_type length_type;
-    typedef typename traits_type::species_type species_type;
-    typedef typename traits_type::position_type position_type;
-    typedef typename traits_type::particle_type particle_type;
-    typedef typename traits_type::particle_id_type particle_id_type;
-    typedef typename traits_type::particle_id_generator particle_id_generator;
-    typedef typename traits_type::species_id_type species_id_type;
+    typedef Ttraits_                        traits_type;                // Needs to be of WorldTraits type???
+    typedef ParticleContainerBase<World>    base_type;                  // the class from which is inherited -> base class
+    typedef ParticleContainer<traits_type>  particle_container_type;    // ParticleContainer is again the superclass of ParticleContainerBase
+
+    // define some short hand names for all the properties (traits) of the world
+    typedef typename traits_type::length_type               length_type;
+    typedef typename traits_type::species_type              species_type;
+    typedef typename traits_type::position_type             position_type;
+    typedef typename traits_type::particle_type             particle_type;
+    typedef typename traits_type::particle_id_type          particle_id_type;
+    typedef typename traits_type::particle_id_generator     particle_id_generator;
+    typedef typename traits_type::species_id_type           species_id_type;        // Note that this is also the structure_type_id_type
     typedef typename traits_type::particle_type::shape_type particle_shape_type;
-    typedef typename traits_type::size_type size_type;
-    typedef typename traits_type::structure_id_type structure_id_type;
-    typedef typename traits_type::structure_type structure_type;
-    typedef std::pair<const particle_id_type, particle_type> particle_id_pair;
-    typedef std::pair<position_type, length_type> projected_type;
-    typedef typename particle_container_type::structure_id_and_distance_pair structure_id_and_distance_pair;
+    typedef typename traits_type::size_type                 size_type;
+    typedef typename traits_type::structure_id_type         structure_id_type;
+    typedef typename traits_type::structure_type            structure_type;
+
+    //
+    typedef std::pair<const particle_id_type, particle_type>                    particle_id_pair;      // defines the pid_particle_pair tuple
+    typedef std::pair<position_type, length_type>                               projected_type;
+    typedef typename particle_container_type::structure_id_and_distance_pair    structure_id_and_distance_pair;
 
 protected:
-    typedef std::map<species_id_type, species_type> species_map;
-    typedef std::map<structure_id_type, boost::shared_ptr<structure_type> > structure_map;
-    typedef std::set<particle_id_type> particle_id_set;
-    typedef std::map<species_id_type, particle_id_set> per_species_particle_id_set;
-    typedef select_second<typename species_map::value_type> species_second_selector_type;
-    typedef select_second<typename structure_map::value_type> surface_second_selector_type;
+    typedef std::map<species_id_type, species_type>                         species_map;
+    typedef std::map<structure_id_type, boost::shared_ptr<structure_type> > structure_map;          // note: this is a structure_map_type
+    typedef std::set<particle_id_type>                                      particle_id_set;
+    typedef std::map<species_id_type, particle_id_set>                      per_species_particle_id_set;
+    typedef select_second<typename species_map::value_type>                 species_second_selector_type;   // not sure what this does.
+    typedef select_second<typename structure_map::value_type>               surface_second_selector_type;
 
 public:
     typedef boost::transform_iterator<species_second_selector_type,
-            typename species_map::const_iterator> species_iterator;
+            typename species_map::const_iterator>                   species_iterator;
     typedef boost::transform_iterator<surface_second_selector_type,
-            typename structure_map::const_iterator> surface_iterator;
-    typedef sized_iterator_range<species_iterator> species_range;
-    typedef sized_iterator_range<surface_iterator> structures_range;
+            typename structure_map::const_iterator>                 surface_iterator;
+    typedef sized_iterator_range<species_iterator>                  species_range;
+    typedef sized_iterator_range<surface_iterator>                  structures_range;
 
 public:
+    // The constructor
     World(length_type world_size = 1., size_type size = 1)
         : base_type(world_size, size) {}
 
+    // To add new particles
     virtual particle_id_pair new_particle(species_id_type const& sid,
             position_type const& pos)
     {
@@ -220,6 +244,7 @@ public:
         return retval;
     }
 
+    // To update particles
     virtual bool update_particle(particle_id_pair const& pi_pair)
     {
         typename base_type::particle_matrix_type::iterator i(
@@ -239,8 +264,8 @@ public:
         return true;
     }
 
+    // Remove the particle by id 'id' if present in the world.
     virtual bool remove_particle(particle_id_type const& id)
-    // Removed the particle by id 'id' if present in the world.
     {
         bool found(false);
         particle_id_pair pp(get_particle(id, found));
@@ -253,14 +278,15 @@ public:
         return true;
     }
 
-    void add_species(species_type const& species)
     // Adds a species to the world.
-    // Wouldn't it make more sence to make this method part of the model class instead of the world class?
+    void add_species(species_type const& species)
+        // Wouldn't it make more sence to make this method part of the model class instead of the world class?
     {
         species_map_[species.id()] = species;
         particle_pool_[species.id()] = particle_id_set();
     }
 
+    // Get the species in the world by id
     virtual species_type const& get_species(species_id_type const& id) const
     {
         typename species_map::const_iterator i(species_map_.find(id));
@@ -271,6 +297,7 @@ public:
         return (*i).second;
     }
 
+    // Get all the species
     species_range get_species() const
     {
         return species_range(
@@ -279,11 +306,13 @@ public:
             species_map_.size());
     }
 
+    // Add a structure 
     bool add_structure(boost::shared_ptr<structure_type> surface)
     {
         return structure_map_.insert(std::make_pair(surface->id(), surface)).second;
     }
 
+    // Get a structure by id
     virtual boost::shared_ptr<structure_type> get_structure(structure_id_type const& id) const
     {
         typename structure_map::const_iterator i(structure_map_.find(id));
@@ -294,6 +323,7 @@ public:
         return (*i).second;
     }
 
+    // Get all the structures
     virtual structures_range get_structures() const
     {
         return structures_range(
@@ -301,7 +331,14 @@ public:
             surface_iterator(structure_map_.end(), surface_second_selector_type()),
             structure_map_.size());
     }
+
+    // TODO
+    // Add structureType
+    // update structure
+    // remove structure
+    // Get structures by structure type
     
+    // FIXME This is probably not very usefull any more.
     virtual structure_id_and_distance_pair get_closest_surface(position_type const& pos, structure_id_type const& ignore) const
     {       
         length_type const world_size( base_type::world_size() );
@@ -326,6 +363,7 @@ public:
         return structure_id_and_distance_pair( ret_id , ret_dist );
     }
    
+    // Get all the particle ids by species
     particle_id_set get_particle_ids(species_id_type const& sid) const
     {
         typename per_species_particle_id_set::const_iterator i(
