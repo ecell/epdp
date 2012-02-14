@@ -20,6 +20,8 @@
 #include "findRoot.hpp"
 #include "GreensFunction1DAbsAbs.hpp"
 
+const unsigned int GreensFunction1DAbsAbs::MAX_TERMS;
+const unsigned int GreensFunction1DAbsAbs::MIN_TERMS;
 
 /* returns a guess for the number of terms needed for 
    the greensfunction to converge at time t */
