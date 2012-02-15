@@ -52,7 +52,8 @@ struct WorldTraitsBase
     typedef Particle<length_type, D_type, species_id_type,
                      StructureID>                           particle_type;      // type for particles, NOTE why is there no v_type here?
 
-    typedef SpeciesInfo<species_id_type, D_type, length_type, structure_id_type>    species_type;  // information associated with the species
+    typedef SpeciesInfo<species_id_type, D_type,
+                        length_type, structure_type_id_type>    species_type;  // information associated with the species
     typedef Vector3<length_type>                                                    point_type;
     typedef typename particle_type::shape_type::position_type                       position_type;
     typedef GSLRandomNumberGenerator                                                rng_type;
@@ -249,6 +250,11 @@ public:
         return "world";
     }
 
+    virtual structure_type_id_type get_def_structure_type_id() const
+    {
+        return default_structure_type_id_;
+    }
+
     // To add new particles
     virtual particle_id_pair new_particle(species_id_type const& sid,
             position_type const& pos)
@@ -401,6 +407,7 @@ private:
     per_species_particle_id_set particle_pool_;
     structure_id_generator      structidgen_;
     StructureID                 default_structure_id_;
+    structure_type_id_type      default_structure_type_id_;
 };
 
 #endif /* WORLD_HPP */

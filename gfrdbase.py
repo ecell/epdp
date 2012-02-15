@@ -157,9 +157,20 @@ def create_world(m, matrix_size=10):
 
     world = _gfrd.World(world_size, matrix_size)
 
+#    for st in m.structure_types:
+#        try:
+#            structure = st["structure"]
+#        except _gfrd.NotFound:
+#            structure = "world"
+#        world.add_structure_type(
+#            _gfrd.SpeciesInfo(st.id, 
+#                              float(st["D"]), 
+#                              float(st["radius"]), 
+#                              structure,
+#                              float(st["v"])))
     for st in m.species_types:
         try:
-            structure = st["structure"]
+            structure = st["structure_type"]     # FIXME
         except _gfrd.NotFound:
             structure = "world"
         world.add_species(
@@ -320,7 +331,7 @@ class ParticleSimulatorBase(object):
               to the user:
                    * SpeciesInfo.id
                    * SpeciesInfo.radius
-                   * SpeciesInfo.structure_id
+                   * SpeciesInfo.structure_type_id
                    * SpeciesInfo.D
                    * SpeciesInfo.v
                 

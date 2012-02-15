@@ -6,24 +6,24 @@
 #include <ostream>
 #include "Defs.hpp"
 
-template<typename Tid_, typename TD_, typename Tlen_, typename Tstructure_id_>
+template<typename Tid_, typename TD_, typename Tlen_, typename Tstructure_type_id_>
 struct SpeciesInfo
 // Unclear if SpeciesInfo replaces the Species when using a World or not
 // (Species itself holds very little information, SpeciesInfo hold info that is relevant in a spatial system)
 {
     // defining shorthands for used types
-    typedef Tid_            identifier_type;        // This is the SpeciesTypeID
-    typedef TD_             D_type;
-    typedef TD_             v_type;
-    typedef Tlen_           length_type;
-    typedef Tstructure_id_  structure_id_type;      // TODO should be structure_type_id_type
+    typedef Tid_                identifier_type;        // This is the SpeciesTypeID
+    typedef TD_                 D_type;
+    typedef TD_                 v_type;
+    typedef Tlen_               length_type;
+    typedef Tstructure_type_id_ structure_type_id_type; // The structure type that the species lives on
 
     // constructors
     SpeciesInfo() {}
 
     SpeciesInfo(identifier_type const& id, D_type const& D = 0., 
-                length_type const& r = 0., structure_id_type const& s = "", v_type const& v = 0.) 
-        : id_(id), diffusion_coef_(D), drift_velocity_(v), radius_(r), structure_id_(s) {}
+                length_type const& r = 0., structure_type_id_type const& s = NULL, v_type const& v = 0.) 
+        : id_(id), diffusion_coef_(D), drift_velocity_(v), radius_(r), structure_type_id_(s) {}
 
 
 
@@ -45,14 +45,14 @@ struct SpeciesInfo
     }
 
     // Get the id of the structure type it lives on
-    structure_id_type const& structure_id() const
+    structure_type_id_type const& structure_type_id() const
     {
-        return structure_id_;
+        return structure_type_id_;
     }
 
-    structure_id_type& structure_id()
+    structure_type_id_type& structure_type_id()
     {
-        return structure_id_;
+        return structure_type_id_;
     }
 
     // Get the diffusion constant
@@ -84,7 +84,7 @@ struct SpeciesInfo
                diffusion_coef_ == rhs.D() &&
                drift_velocity_ == rhs.v() &&
                radius_ == rhs.radius() &&
-               structure_id_ == rhs.structure_id();
+               structure_type_id_ == rhs.structure_type_id();
     }
 
     bool operator!=(SpeciesInfo const& rhs) const
@@ -94,22 +94,22 @@ struct SpeciesInfo
 
 /////// Member variables
 private:
-    identifier_type     id_;
-    D_type              diffusion_coef_;
-    v_type              drift_velocity_;
-    length_type         radius_;
-    structure_id_type   structure_id_;      // The structure type that the particle lives on
+    identifier_type         id_;
+    D_type                  diffusion_coef_;
+    v_type                  drift_velocity_;
+    length_type             radius_;
+    structure_type_id_type  structure_type_id_;      // The structure type that the particle lives on
 };
 
 
 //////// Inline functions
-template<typename Tchar_, typename Ttraits_, typename Tid_, typename TD_, typename Tlen_, typename Tstructure_id_>
+template<typename Tchar_, typename Ttraits_, typename Tid_, typename TD_, typename Tlen_, typename Tstructure_type_id_>
 inline std::basic_ostream<Tchar_, Ttraits_>&
-operator<<(std::basic_ostream<Tchar_, Ttraits_>& strm, const SpeciesInfo<Tid_, TD_, Tlen_, Tstructure_id_>& s)
+operator<<(std::basic_ostream<Tchar_, Ttraits_>& strm, const SpeciesInfo<Tid_, TD_, Tlen_, Tstructure_type_id_>& s)
 // Allows for printing of the object
 // -> provides a stream of 'attributename : attribute_value' pairs.
 {
-    strm << "SpeciesInfo(id=" << s.id() << ", D=" << s.D() << ", v=" << s.v() << ", radius=" << s.radius() << ", surface=" << s.structure_id() << ")";
+    strm << "SpeciesInfo(id=" << s.id() << ", D=" << s.D() << ", v=" << s.v() << ", radius=" << s.radius() << ", structure_type=" << s.structure_type_id() << ")";
     return strm;
 }
 
