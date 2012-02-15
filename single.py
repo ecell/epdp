@@ -430,7 +430,7 @@ class PlanarSurfaceSingle(NonInteractionSingle, hasCylindricalShell):
         return 'PlanarSurface' + Single.__str__(self)
 
 
-class PlanarSurfaceEdgeSingle(Single, hasSphericalShell, Others):
+class PlanarSurfaceEdgeSingle(InteractionSingle, hasSphericalShell, Others): # HACK
     """1 Particle inside a (spherical) shell at the edge of two planar surfaces
 
         * Particle coordinates on surface: x, y.
@@ -439,11 +439,11 @@ class PlanarSurfaceEdgeSingle(Single, hasSphericalShell, Others):
         * Selected randomly when drawing displacement vector: theta.
 
     """
-    def __init__(self, domain_id, shell_id, testShell, reactionrules):
+    def __init__(self, domain_id, shell_id, testShell, reactionrules, interactionrules): # HACK
 
         assert isinstance(testShell, PlanarSurfaceEdgeSingletestShell)
         hasSphericalShell.__init__(self, testShell, domain_id)
-        NonInteractionSingle.__init__(self, domain_id, shell_id, reactionrules)
+        InteractionSingle.__init__(self, domain_id, shell_id, reactionrules, interactionrules) # HACK
 
         self.origin_plane  = testShell.origin_plane
         self.target_plane  = testShell.target_plane
@@ -459,6 +459,8 @@ class PlanarSurfaceEdgeSingle(Single, hasSphericalShell, Others):
         self.origin_unit_perp, self.origin_unit_par, self.origin_half_extent_perp = self.get_origin_unit_vectors()
         self.edge_point = self.get_edge_point()
         self.target_unit_perp, self.target_unit_par, self.target_half_extent_perp = self.get_target_unit_vectors()
+
+        self.changes_structures = 0
 
     # The same Greens function is used as for the normal PlanarSurfaceSingle;
     # If the position is off the plane of origin, it will be transformed towards the target plane
@@ -533,6 +535,7 @@ class PlanarSurfaceEdgeSingle(Single, hasSphericalShell, Others):
             # Construct the new position using the predefined unit vectors of the target plane
             newpos = target_center + d_target_perp*self.target_unit_perp + d_target_par*self.target_unit_par
             change_particle_structure(self.pid_particle_pair, target_plane)
+            self.changes_structures = 1
 
         return newpos
 

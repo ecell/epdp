@@ -117,9 +117,9 @@ def try_default_testtransition(single, surface, geometrycontainer, domains):
     else:
         raise testShellError('(Transition). structure of particle was of invalid type')
 
-def create_default_transition(domain_id, shell_id, testShell, reaction_rules):    
+def create_default_transition(domain_id, shell_id, testShell, reaction_rules, interaction_rules): # HACK
     if isinstance(testShell, PlanarSurfaceEdgeSingletestShell):
-        return PlanarSurfaceEdgeSingle       (domain_id, shell_id, testShell, reaction_rules)
+        return PlanarSurfaceEdgeSingle       (domain_id, shell_id, testShell, reaction_rules, interaction_rules) # HACK
     
 ### Pairs
 def try_default_testpair(single1, single2, geometrycontainer, domains):
@@ -546,15 +546,15 @@ class EGFRDSimulator(ParticleSimulatorBase):
         # TODO !!! care for structure change once particles can remember them !!!
 
         # OLD STUFF, PROB. NOT NEEDED                
-        #surfacetype_id = testShell.surface.sid
-        #interaction_rules = self.network_rules.query_reaction_rule(species_id, surfacetype_id)
+        surfacetype_id = testShell.target_surface.sid
+        interaction_rules = self.network_rules.query_reaction_rule(species_id, surfacetype_id)
 
         # 2. Create and register the interaction domain.
         # The type of the interaction that will be created 
         # depends on the surface (planar or cylindrical) the particle is 
         # trying to associate with. Either PlanarSurfaceInteraction or 
         # CylindricalSurfaceInteraction.
-        transition = create_default_transition(domain_id, shell_id, testShell, reaction_rules)
+        transition = create_default_transition(domain_id, shell_id, testShell, reaction_rules, interaction_rules) # HACK
 
         assert isinstance(transition, Single)
         transition.initialize(self.t)
@@ -1175,7 +1175,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
         # A(structure) + surface -> 0
         # A(structure) + surface -> B(surface)
         if __debug__:
-            assert isinstance(single, InteractionSingle)
+            #assert isinstance(single, InteractionSingle)
+            assert isinstance(single, Single) # HACK
 
         # 0. get reactant info
         reactant        = single.pid_particle_pair
@@ -1212,9 +1213,10 @@ class EGFRDSimulator(ParticleSimulatorBase):
 #                   'Product particle should live on the surface of interaction after the reaction.'
 
             # 1.5 get new position of particle
-            transposed_pos = self.world.cyclic_transpose(reactant_pos, product_surface.shape.position)
-            product_pos, _ = product_surface.projected_point(transposed_pos)
-            product_pos = self.world.apply_boundary(product_pos)        # not sure this is still necessary
+            #transposed_pos = self.world.cyclic_transpose(reactant_pos, product_surface.shape.position)
+            #product_pos, _ = product_surface.projected_point(transposed_pos)
+            #product_pos = self.world.apply_boundary(product_pos)        # not sure this is still necessary
+            product_pos = reactant_pos; # HACK
 
             # 2. burst the volume that will contain the products.
             #    Note that an interaction domain is already sized such that it includes the
@@ -1671,6 +1673,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
                     self.interaction_steps[single.event_type] += 1  # TODO similarly here
                     particles, zero_singles_b, ignore = self.fire_interaction(single, newpos, ignore)
 
+            else if isinstance(single, PlanarSurfaceEdgeSingle) and single.changes_structures : # HACK
+                    particles, zero_singles_b, ignore = self.fire_interaction(single, newpos, ignore)
             else:
                 particles = self.fire_move(single, newpos)
                 zero_singles_b = []     # no bursting takes place
