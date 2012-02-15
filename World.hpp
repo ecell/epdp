@@ -42,6 +42,7 @@ struct WorldTraitsBase
     typedef ParticleID                                      particle_id_type;   // identifier type for particles
     typedef SerialIDGenerator<particle_id_type>             particle_id_generator;
     typedef SpeciesTypeID                                   species_id_type;    // identifier type for species and (structure types)
+    // TODO add structure_type_id_type?
     typedef Particle<length_type, D_type, species_id_type>  particle_type;      // type for particles, NOTE why is there no v_type here?
     typedef std::string                                     structure_id_type;  // identifier type for structures
     // typedef SpeciesTypeID                                   structure_id_type;
@@ -231,6 +232,7 @@ public:
     // The constructor
     World(length_type world_size = 1., size_type size = 1)
         : base_type(world_size, size) {}
+    // TODO Add the default structure of the default structure_type here?
 
     // To add new particles
     virtual particle_id_pair new_particle(species_id_type const& sid,
@@ -336,7 +338,7 @@ public:
     // Add structureType
     // update structure
     // remove structure
-    // Get structures by structure type
+    // Get structure ids by structure type
     
     // FIXME This is probably not very usefull any more.
     virtual structure_id_and_distance_pair get_closest_surface(position_type const& pos, structure_id_type const& ignore) const
@@ -377,9 +379,9 @@ public:
 
 ///////////// Member variables
 private:
-    particle_id_generator pidgen_;                  // generator used to produce the unique ids for the particles
-    species_map species_map_;                       // ?
-    structure_map structure_map_;                   // ?
+    particle_id_generator       pidgen_;            // generator used to produce the unique ids for the particles
+    species_map                 species_map_;       // ?
+    structure_map               structure_map_;     // ?
     per_species_particle_id_set particle_pool_;
 };
 

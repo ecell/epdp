@@ -15,6 +15,7 @@
 
 template<typename T_, typename Td_, typename Tsid_>
 struct Particle
+// T_ is a length_type
 {
     // defining shorthands for used types
     typedef Sphere<T_>                          shape_type;
@@ -24,8 +25,10 @@ struct Particle
     typedef Tsid_                               species_id_type;
     typedef typename shape_type::position_type  position_type;
     typedef typename shape_type::length_type    length_type;
+    // TODO typedef Tstructure_id_              structure_id_type    // The structure (not structure_type) on which the particle currently lives.
 
     // constructors
+    // TODO change constructors, structure_id should be mandatory (?)
     Particle(): shape_(), species_id_(), D_(0.), v_(0.) {}
 
     Particle(species_id_type const& species_id, shape_type const& shape,
@@ -96,6 +99,8 @@ struct Particle
         return species_id_;
     }
 
+    // TODO add methods to get the id of the structure that the particle lives on.
+
     bool operator==(Particle const& rhs) const
     {
         return species_id_ == rhs.sid() && shape_ == rhs.shape();
@@ -116,10 +121,11 @@ struct Particle
 
 ////// Member variables
 private:
-    shape_type shape_;
+    shape_type      shape_;
     species_id_type species_id_;
-    D_type D_;
-    v_type v_;
+    D_type          D_;
+    v_type          v_;
+    // TODO structure_id_type   structure_id_
 };
 
 
@@ -128,6 +134,7 @@ template<typename Tstrm_, typename Ttraits_, typename T_, typename Td_, typename
 inline std::basic_ostream<Tstrm_, Ttraits_>& operator<<(std::basic_ostream<Tstrm_, Ttraits_>& strm, const Particle<T_, Td_, Tsid_>& p)
 {
     strm << "Particle(" << p.shape() << ", D=" << p.D() << ", v=" << p.v() << ", " << p.sid() << ")";
+    // TODO add id of the structure on which the particle lives.
     return strm;
 }
 

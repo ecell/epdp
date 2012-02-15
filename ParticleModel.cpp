@@ -10,14 +10,19 @@
 
 #include "ParticleModel.hpp"
 
+// Constructor
 ParticleModel::ParticleModel()
 {
+    // TODO add default structure_type for the bulk?
 }
 
 ParticleModel::~ParticleModel()
 {
 }
 
+// TODO Get default structure type?
+
+// Add a structure type to the model
 void ParticleModel::add_structure_type(boost::shared_ptr<structure_type_type> const& structure)
 {
     // std::pair<structure_type_map_type::iterator, bool> r(
@@ -33,6 +38,7 @@ void ParticleModel::add_structure_type(boost::shared_ptr<structure_type_type> co
     structure_type_map_.insert(std::make_pair(structure->id(), structure));
 }
 
+// Get a structure type from the model
 boost::shared_ptr<ParticleModel::structure_type_type> ParticleModel::get_structure_type_by_id(structure_id_type const& id) const
 {
     structure_type_map_type::const_iterator i(structure_type_map_.find(id));
@@ -44,8 +50,8 @@ boost::shared_ptr<ParticleModel::structure_type_type> ParticleModel::get_structu
     return (*i).second;
 }
 
+// Get all the structure types that are present in the particle model
 ParticleModel::structure_type_range ParticleModel::get_structure_types() const
-// Returns all the structure types that are present in the particle model
 {
     return structure_type_range(
         structure_type_iterator(structure_type_map_.begin(), structure_second_selector_type()),

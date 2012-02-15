@@ -40,6 +40,8 @@ public:
 public:
     // The model class is more or less an implementation of the network rules
     // The network rules define the possible reactions between species.
+
+    // Constructor
     Model();
 
     virtual ~Model();
@@ -69,7 +71,7 @@ public:
         return attributes_range(attrs_.begin(), attrs_.end());
     }
 
-
+//////// Member variables (why are they public?)
 public:
     species_type_id_generator_type  species_type_id_generator_; // The id generator which makes sure that all species have a unique id
     species_type_map_type           species_type_map_;          // ??

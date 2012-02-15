@@ -20,14 +20,15 @@ class Structure
 {
 public:
     typedef Ttraits_ traits_type;
-    typedef typename traits_type::rng_type rng_type;
-    typedef typename traits_type::structure_id_type identifier_type;
-    typedef typename traits_type::length_type length_type;
-    typedef typename traits_type::position_type position_type;
-    typedef typename traits_type::base_type::species_type species_type;
-    typedef SpeciesTypeID species_id_type;
-    typedef std::pair<position_type, length_type> projected_type;
-    typedef std::pair<position_type, position_type> position_pair_type;
+    // shorthands for types that we use
+    typedef typename traits_type::rng_type                  rng_type;
+    typedef typename traits_type::structure_id_type         identifier_type;
+    typedef typename traits_type::length_type               length_type;
+    typedef typename traits_type::position_type             position_type;
+    typedef typename traits_type::base_type::species_type   species_type;
+    typedef SpeciesTypeID                                   species_id_type;
+    typedef std::pair<position_type, length_type>           projected_type;
+    typedef std::pair<position_type, position_type>         position_pair_type;
 
 public:
     virtual ~Structure() {}
@@ -37,6 +38,7 @@ public:
         return id_;
     }
 
+    // Get the StructureType of the structure
     species_id_type const& sid() const
     {
         if (!sid_)
@@ -121,9 +123,10 @@ public:
     Structure(identifier_type const& id)
         : id_(id) {}
 
+////// Member variables
 protected:
-    identifier_type id_;
-    species_id_type sid_;
+    identifier_type id_;        // id of the structure
+    species_id_type sid_;       // id of the structure_type of the structure
 };
 
 template<typename Tstrm, typename Ttraits, typename T_traits>

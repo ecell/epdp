@@ -27,21 +27,25 @@ public:
     typedef boost::iterator_range<string_map_iterator>  attributes_range;
 
 public:
+    // Constructor
+    StructureType(): model_(0) {}
+ 
+    // Get the id
     identifier_type const& id() const;
 
     std::string const& operator[](std::string const& name) const;
 
     std::string& operator[](std::string const& name);
 
+    // Get all the attributes
     attributes_range attributes() const;
 
+    // Get the particle model to which the structuretype is associated
     ParticleModel* model() const
     {
         return model_;
     }
 
-    StructureType(): model_(0) {}
- 
 protected:
     void bind_to_model(ParticleModel* model, identifier_type const& id)
     {
@@ -52,7 +56,7 @@ protected:
 
 //////// Member variables
 private:
-    ParticleModel* model_;          // to what model is it associated
+    ParticleModel*  model_;         // to what model is it associated
     identifier_type id_;            // identifier Note that these are only defined if the object is bound to a model.
     string_map_type attrs_;
 };

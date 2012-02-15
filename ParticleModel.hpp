@@ -14,6 +14,7 @@ public:
     typedef Model                                   base_type;
     typedef StructureType                           structure_type_type;
     typedef structure_type_type::identifier_type    structure_id_type;
+    // TODO change to structure_type_id_type
 
     typedef std::map<structure_id_type, boost::shared_ptr<structure_type_type> > structure_type_map_type;
 
@@ -21,23 +22,27 @@ public:
 
 public:
     typedef boost::transform_iterator<structure_second_selector_type,
-            structure_type_map_type::const_iterator> structure_type_iterator;
-    typedef boost::iterator_range<structure_type_iterator> structure_type_range;
+            structure_type_map_type::const_iterator>            structure_type_iterator;
+    typedef boost::iterator_range<structure_type_iterator>      structure_type_range;
 
 public:
+    // Constructor
     ParticleModel();
 
     virtual ~ParticleModel();
 
+    // Gets a structure type
     boost::shared_ptr<structure_type_type> get_structure_type_by_id(structure_id_type const& id) const;
 
+    // Add a structure type
     void add_structure_type(boost::shared_ptr<structure_type_type> const& structure);
 
+    // Get all structure types in the model
     structure_type_range get_structure_types() const;
 
 /////// Member variables
 public:
-    structure_type_map_type structure_type_map_;
+    structure_type_map_type structure_type_map_;    // mapping: structure_type_id -> structure_type
 };
 
 

@@ -170,7 +170,7 @@ def create_world(m, matrix_size=10):
                               float(st["v"])))
 
     for r in m.structures.itervalues():
-        world.add_structure(r)
+        world.add_structure(r)      # TODO change to add_structure_type
 
     world.model = m
     return world
