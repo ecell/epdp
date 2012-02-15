@@ -573,7 +573,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
                                           pid_particle_pair[1].radius,
                                           pid_particle_pair[1].D,
                                           pid_particle_pair[1].v,
-                                          pid_particle_pair[1].sid))
+                                          pid_particle_pair[1].sid,
+                                          pid_particle_pair[1].structure_id))
 
         self.world.update_particle(new_pid_particle_pair)
 
