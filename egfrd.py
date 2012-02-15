@@ -2092,7 +2092,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
             # make the domain
             transition = self.create_transition(testShell)
             if __debug__:
-                log.info('        *Created: %s' % (interaction))
+                log.info('        *Created: %s' % (transition))
 
             # get the next event time
             transition.dt, transition.event_type, = transition.determine_next_event()
