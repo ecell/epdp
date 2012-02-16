@@ -426,6 +426,9 @@ def get_dr_dzright_dzleft_to_SphericalShape(shape, testShell, r, z_right, z_left
     reference_point = testShell.get_referencepoint()
     orientation_vector = testShell.get_orientation_vector()
 
+    # FIXME DIRTY HACK TO MAKE DOMAINS LESS GREEDY
+    r = min(r, testShell.world.distance(shape.position, reference_point)/2)
+
     # determine on what side the midpoint of the shell is relative to the reference_point
     shell_position_t = testShell.world.cyclic_transpose (shell_position, reference_point)
     ref_to_shell_vec = shell_position_t - reference_point
@@ -576,6 +579,9 @@ def get_radius_to_SphericalShape(shape, testShell, r):
     scale_point = testShell.center
     r_new = testShell.world.distance(shape, scale_point)
 
+    # FIXME DIRTY HACK TO MAKE DOMAINS LESS GREEDY
+    r_new = min(r_new, testShell.world.distance(shape.position, scale_point)/2)
+
     # if the newly calculated dimensions are smaller than the current one, use them
     return min(r, r_new)
 
@@ -599,6 +605,9 @@ def get_dr_dzright_dzleft_to_CylindricalShape(shape, testShell, r, z_right, z_le
     # get the reference point and orientation of the domain to scale
     reference_point = testShell.get_referencepoint()
     orientation_vector = testShell.get_orientation_vector()
+
+    # FIXME DIRTY HACK TO MAKE DOMAINS LESS GREEDY
+    r = min(r, testShell.world.distance(shape.position, reference_point)/2)
 
     # determine on what side the midpoint of the shell is relative to the reference_point
     shell_position_t = testShell.world.cyclic_transpose (shell_position, reference_point)
