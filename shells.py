@@ -357,7 +357,7 @@ class hasSphericalShell(hasShell):
         # Make the appropriate shell.
         self.shell_center = sphericaltestShell.center
         self.shell_radius = sphericaltestShell.radius
-        self.shell = self.create_new_shell(self.shell_center,
+        self.shell = self.create_new_shell(self.shell_center,     # HACK! Why did it work without first arg. before?!
                                            self.shell_radius,
                                            domain_id)
 
@@ -1117,17 +1117,22 @@ class PlanarSurfaceEdgeSingletestShell(SphericaltestShell, testNonInteractionSin
 
     def __init__(self, single, surface, geometrycontainer, domains):
         SphericaltestShell.__init__(self, geometrycontainer, domains)  # this must be first because of world definition
+        self.single = single
+        self.structure = single.structure
+        self.surface = surface
+
         self.origin_surface = single.structure
         self.target_surface = surface
-        assert isinstance(origin_surface, _gfrd.Surface)
-        assert isinstance(target_surface, _gfrd.Surface)
+        assert isinstance(self.origin_surface, PlanarSurface)
+        assert isinstance(self.target_surface, PlanarSurface)
 
+        self.pid_particle_pair = single.pid_particle_pair
         self.particle = single.pid_particle_pair[1]
-        self.single_radius = particle.radius
-        self.center = particle.position
+        self.single_radius = self.particle.radius
+        self.center = self.particle.position
 
         try:
-            self.radius = self.determine_possible_shell(self.structure.id, 
+            self.radius = self.determine_possible_shell(self.origin_surface.id, 
                                                         [self.single.domain_id],
                                                         [self.origin_surface.id, self.target_surface.id]
                                                        )
@@ -1136,16 +1141,16 @@ class PlanarSurfaceEdgeSingletestShell(SphericaltestShell, testNonInteractionSin
                                  (str(e)))
 
     def get_min_radius(self):
-        min_offset = single_radius*(SINGLE_SHELL_FACTOR - 1.0)
+        min_offset = self.single_radius#*(SINGLE_SHELL_FACTOR - 1.0)
         # The minimal shell size also deterimines the minimal radius of the later 2D domain.
         # min_offset here is the minimal length that the circular 2D domain protrudes into
         # the target surface. Make sure that min_offset > 0.0, because only then it is
         # guaranteed that there is always a certain probability to cross the edge even
         # if the shell with minimal radius is constructed
-        return self.get_distance_to_target_surface() + min_radius
+        return self.get_distance_to_target_surface() + min_offset
 
     def get_distance_to_target_surface(self):
-        distance = world.distance(target_surface.shape, self.center)
+        distance = self.world.distance(self.target_surface.shape, self.center)
         return distance
 
 #####
