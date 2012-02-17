@@ -9,6 +9,7 @@ from _gfrd import (
     Cylinder,
     CylindricalShell,
     CylindricalSurface,
+    Plane,
     PlanarSurface,
     CuboidalRegion,
     )
@@ -688,7 +689,20 @@ def get_radius_to_CylindricalShape(shape, testShell, r):
     return min(r, r_new)
 
 def get_dr_dzright_dzleft_to_PlanarShape(shape, testShell, r, z_right, z_left):
-    return r, z_right, z_left
+    # TODO / HACK : This will work only for PlanarSurfaceSingles for now!
+    assert (type(shape) is Plane)
+    assert isinstance(testShell, PlanarSurfaceSingletestShell)
+
+    scale_point = testShell.get_searchpoint()
+    r_new = testShell.world.distance(shape, scale_point)
+    # HACK for debugging:
+    #print(scale_point)
+    #print(shape.position)
+    #print(shape.unit_z)
+    #print(testShell.structure.shape.unit_z)
+    #print(testShell.world.distance(shape, scale_point))
+
+    return min(r, r_new), z_right, z_left
 
 def get_radius_to_PlanarShape(shape, testShell, r):
     # This function returns the radius for the spherical 'testShell' using the planar 'shape' as its closest
@@ -1032,6 +1046,16 @@ class PlanarSurfaceSingletestShell(CylindricaltestShell, testNonInteractionSingl
         self.dr       = self.pid_particle_pair[1].radius
         # Here determine_possible_shell is not called since the making of a NonInteractionSingle
         # should never fail
+        # HACK:
+        try:
+            self.dr, self.dz_right, self.dz_left = \
+                            self.determine_possible_shell(self.structure.id, [], [])
+            
+            print("PlanarSurfaceSingletestShell:   Determined possible shellsize: dr = %s" % self.dr)
+
+        except ShellmakingError as e:
+            raise testShellError('(PlanarSurfaceSingle). %s' %
+                                 (str(e)))
 
     def get_orientation_vector(self):
         return self.structure.shape.unit_z   # just copy from structure

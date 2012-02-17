@@ -1063,7 +1063,6 @@ class PlanarSurfaceEdgeSingle(NonInteractionSingle, hasSphericalShell, Others): 
         # in the surface of origin and the half_extent of this surface in the
         # perpendicular vector direction
         # ATTENTION! THIS DOES NOT YET WORK WITH PERIODIC BC!
-        print(self.target_surface.id)
         w_z = self.target_surface.shape.unit_z
         u_perp = (1.0/self.target_distance * numpy.dot(self.target_center-self.start_position, w_z )) * w_z
         if not feq(numpy.sqrt(numpy.dot(u_perp, u_perp)), 1.0):

@@ -1403,7 +1403,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
         for surface, surface_distance in surface_distances:
             if isinstance(surface, PlanarSurface):
                 # with a planar surface it is the center of mass that 'looks around'
-                surface_horizon = single_radius * (SINGLE_SHELL_FACTOR - 1.0)
+                surface_horizon = single_radius * (SINGLE_SHELL_FACTOR - 1.0) * 20  # HACK!!! The * 20 factor is added manually! REMOVE THIS!
             else:
                 # with a cylindrical surface it is the surface of the particle
                 surface_horizon = single_radius * SINGLE_SHELL_FACTOR

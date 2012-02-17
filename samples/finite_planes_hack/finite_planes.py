@@ -27,7 +27,9 @@ datetime.datetime.now().month*30.5*24*3600*1e6+
 datetime.datetime.now().day*24*3600*1e6+datetime.datetime.now().hour*3600*1e6+
 datetime.datetime.now().minute*60*1e6+datetime.datetime.now().second*1e6+
 datetime.datetime.now().microsecond))
-myrandom.seed(currenttime)
+#myrandom.seed(currenttime)
+
+myrandom.seed(323)
 print "(Seed " + str(currenttime) + ")"
  
 
@@ -37,7 +39,7 @@ print "(Seed " + str(currenttime) + ")"
 logging = True
 sigma = 1e-9        # Diameter particle
 DC = 1e-13           # Diffusion constant
-N = 20000           # Number of steps simulation will last
+N = 500           # Number of steps simulation will last
 world_size = 1e-6   # Lengths of simulation box
 Nparticles = 1     # Number of particles in the simulation
 k = 2e-14           # Reaction constant
@@ -54,7 +56,7 @@ if (logging == True):
 # Basic set up simulator
 # ===============================
 # Model
-m = model.ParticleModel(2*world_size)
+m = model.ParticleModel(1.2*world_size)
 
 # Planes ("membranes")
 membrane1_type = _gfrd.StructureType()
@@ -94,63 +96,68 @@ m.add_species_type(F)
 # Reaction rules
 rAB = model.create_binding_reaction_rule(A, membrane2_type, B, k)
 m.network_rules.add_reaction_rule(rAB)
-rBA = model.create_unbinding_reaction_rule(B, membrane1_type, A, k)
+rBA = model.create_binding_reaction_rule(B, membrane1_type, A, k)
 m.network_rules.add_reaction_rule(rBA)
 
 rBC = model.create_binding_reaction_rule(B, membrane3_type, C, k)
 m.network_rules.add_reaction_rule(rBC)
-rCB = model.create_unbinding_reaction_rule(C, membrane2_type, B, k)
+rCB = model.create_binding_reaction_rule(C, membrane2_type, B, k)
 m.network_rules.add_reaction_rule(rCB)
 
 rCD = model.create_binding_reaction_rule(C, membrane4_type, D, k)
 m.network_rules.add_reaction_rule(rCD)
-rDC = model.create_unbinding_reaction_rule(D, membrane3_type, C, k)
+rDC = model.create_binding_reaction_rule(D, membrane3_type, C, k)
 m.network_rules.add_reaction_rule(rDC)
 
 rAD = model.create_binding_reaction_rule(A, membrane4_type, D, k)
 m.network_rules.add_reaction_rule(rAD)
-rDA = model.create_unbinding_reaction_rule(D, membrane1_type, A, k)
+rDA = model.create_binding_reaction_rule(D, membrane1_type, A, k)
 m.network_rules.add_reaction_rule(rDA)
 
 rAE = model.create_binding_reaction_rule(A, membrane5_type, E, k)
 m.network_rules.add_reaction_rule(rAE)
-rEA = model.create_unbinding_reaction_rule(E, membrane1_type, A, k)
+rEA = model.create_binding_reaction_rule(E, membrane1_type, A, k)
 m.network_rules.add_reaction_rule(rEA)
 
 rBE = model.create_binding_reaction_rule(B, membrane5_type, E, k)
 m.network_rules.add_reaction_rule(rBE)
-rEB = model.create_unbinding_reaction_rule(E, membrane2_type, B, k)
+rEB = model.create_binding_reaction_rule(E, membrane2_type, B, k)
 m.network_rules.add_reaction_rule(rEB)
 
 rCE = model.create_binding_reaction_rule(C, membrane5_type, E, k)
 m.network_rules.add_reaction_rule(rCE)
-rEC = model.create_unbinding_reaction_rule(E, membrane3_type, C, k)
+rEC = model.create_binding_reaction_rule(E, membrane3_type, C, k)
 m.network_rules.add_reaction_rule(rEC)
 
 rDE = model.create_binding_reaction_rule(D, membrane5_type, E, k)
 m.network_rules.add_reaction_rule(rDE)
-rED = model.create_unbinding_reaction_rule(E, membrane4_type, D, k)
+rED = model.create_binding_reaction_rule(E, membrane4_type, D, k)
 m.network_rules.add_reaction_rule(rED)
 
 rAF = model.create_binding_reaction_rule(A, membrane6_type, F, k)
 m.network_rules.add_reaction_rule(rAF)
-rFA = model.create_unbinding_reaction_rule(F, membrane1_type, A, k)
+rFA = model.create_binding_reaction_rule(F, membrane1_type, A, k)
 m.network_rules.add_reaction_rule(rFA)
 
 rBF = model.create_binding_reaction_rule(B, membrane6_type, F, k)
 m.network_rules.add_reaction_rule(rBF)
-rFB = model.create_unbinding_reaction_rule(F, membrane2_type, B, k)
+rFB = model.create_binding_reaction_rule(F, membrane2_type, B, k)
 m.network_rules.add_reaction_rule(rFB)
 
 rCF = model.create_binding_reaction_rule(C, membrane6_type, F, k)
 m.network_rules.add_reaction_rule(rCF)
-rFC = model.create_unbinding_reaction_rule(F, membrane3_type, C, k)
+rFC = model.create_binding_reaction_rule(F, membrane3_type, C, k)
 m.network_rules.add_reaction_rule(rFC)
 
 rDF = model.create_binding_reaction_rule(D, membrane6_type, F, k)
 m.network_rules.add_reaction_rule(rDF)
-rFD = model.create_unbinding_reaction_rule(F, membrane4_type, D, k)
+rFD = model.create_binding_reaction_rule(F, membrane4_type, D, k)
 m.network_rules.add_reaction_rule(rFD)
+
+rEF = model.create_binding_reaction_rule(E, membrane6_type, F, k)
+m.network_rules.add_reaction_rule(rEF)
+rFE = model.create_binding_reaction_rule(F, membrane5_type, E, k)
+m.network_rules.add_reaction_rule(rFE)
 
 
 # Create instances of membrane types
@@ -172,6 +179,13 @@ m.add_structure(membraneE)
 membraneF = _gfrd.create_planar_surface(membrane6_type['name'], [0,world_size,0], [1,0,0], [0,0,1], world_size, world_size)
 membraneF.sid = membrane6_type.id
 m.add_structure(membraneF)
+
+print("Membrane A : unit_z = " + str(membraneA.shape.unit_z))
+print("Membrane B : unit_z = " + str(membraneB.shape.unit_z))
+print("Membrane C : unit_z = " + str(membraneC.shape.unit_z))
+print("Membrane D : unit_z = " + str(membraneD.shape.unit_z))
+print("Membrane E : unit_z = " + str(membraneE.shape.unit_z))
+print("Membrane F : unit_z = " + str(membraneF.shape.unit_z))
 
 
 # World
