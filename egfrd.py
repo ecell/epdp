@@ -852,6 +852,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
             # 5. No new single to be made
             # 6. Log the change
+            self.reaction_events += 1
+            self.last_reaction = (rr, (reactant[1], None), products)
 
             
         elif len(rr.products) == 1:
@@ -1216,6 +1218,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
             # 5. No new single to be made
             # 6. Log the change
+            self.reaction_events += 1
             self.last_reaction = (rr, (pid_particle_pair1[1], pid_particle_pair2[1]), products)
 
         elif len(rr.products) == 1:

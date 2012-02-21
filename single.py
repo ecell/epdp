@@ -923,10 +923,10 @@ class CylindricalSurfaceSink(InteractionSingle):
                 # Some other event took place and the particle didn't escape
                 z = draw_r_wrapper(gf, dt, self.get_inner_a(), -self.get_inner_a())
 
-        # Add displacement to shell.shape.position, not to particle.position.
-        # The direction of the shell is leading (not direction of the structure)
-        z_vector = self.shell.shape.unit_z * z
-        newpos = self.shell.shape.position + z_vector
+            # Add displacement to shell.shape.position, not to particle.position.
+            # The direction of the shell is leading (not direction of the structure)
+            z_vector = self.shell.shape.unit_z * z
+            newpos = self.shell.shape.position + z_vector
 
         return newpos
 
