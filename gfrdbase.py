@@ -145,34 +145,34 @@ def create_world(m, matrix_size=10):
 
     """
     m.set_all_repulsive()
-    world_region = m.get_structure("world")
-    if not isinstance(world_region, _gfrd.CuboidalRegion):
-        raise TypeError("the world should be a CuboidalRegion")
+#    world_region = m.get_structure("world")
+#    if not isinstance(world_region, _gfrd.CuboidalRegion):
+#        raise TypeError("the world should be a CuboidalRegion")
+#
+#    if not numpy.all(world_region.shape.half_extent ==
+#                     world_region.shape.half_extent[0]):
+#        raise NotImplementedError("non-cuboidal world is not supported")
+#
+#    world_size = world_region.shape.half_extent[0] * 2
 
-    if not numpy.all(world_region.shape.half_extent ==
-                     world_region.shape.half_extent[0]):
-        raise NotImplementedError("non-cuboidal world is not supported")
+    # make the world
+    world = _gfrd.World(m.world_size, matrix_size)
 
-    world_size = world_region.shape.half_extent[0] * 2
+    for st in m.structure_types:
+        world.add_structure_type(st)
 
-    world = _gfrd.World(world_size, matrix_size)
+    # make the default structure: A cuboidal region of the default structure_type
+    # This needs to be done after making the structure_types or add_structure can't
+    # find the proper structure_type.
+    world_structure_type = m.get_def_structure_type()
+    x = numpy.repeat(m.world_size / 2, 3)
+    region = _gfrd.CuboidalRegion(world_structure_type, _gfrd.Box(x, x))
+    world.add_structure(region)
 
-#    for st in m.structure_types:
-#        try:
-#            structure = st["structure"]
-#        except _gfrd.NotFound:
-#            structure = "world"
-#        world.add_structure_type(
-#            _gfrd.SpeciesInfo(st.id, 
-#                              float(st["D"]), 
-#                              float(st["radius"]), 
-#                              structure,
-#                              float(st["v"])))
     for st in m.species_types:
-        try:
-            structure = st["structure_type"]     # FIXME
-        except _gfrd.NotFound:
-            structure = "world"
+        structure = st["structure"]
+        if not structure:
+            structure = region.id
         world.add_species(
             _gfrd.SpeciesInfo(st.id, 
                               structure,
@@ -180,8 +180,8 @@ def create_world(m, matrix_size=10):
                               float(st["radius"]), 
                               float(st["v"])))
 
-    for r in m.structures.itervalues():
-        world.add_structure(r)      # TODO change to add_structure_type
+#    for r in m.structures.itervalues():
+#        world.add_structure(r)
 
     world.model = m
     return world
@@ -285,6 +285,8 @@ def place_particle(world, sid, position):
 
     particle = world.new_particle(sid, position)
     return particle
+
+
 
 class ParticleSimulatorBase(object):
     def __init__(self, world, rng, network_rules):
