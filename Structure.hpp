@@ -43,7 +43,7 @@ public:
     {
         if (!sid_)
         {
-            throw illegal_state("not bound to SpeciesType");
+            throw illegal_state("not bound to StructureType");
         }
         return sid_;
     }
@@ -129,6 +129,8 @@ protected:
     species_id_type sid_;       // id of the structure_type of the structure
 };
 
+
+//////// Inline functions
 template<typename Tstrm, typename Ttraits, typename T_traits>
 inline std::basic_ostream<Tstrm, Ttraits>& operator<<(std::basic_ostream<Tstrm, Ttraits>& strm, const Structure<T_traits>& v)
 {

@@ -46,14 +46,13 @@ typedef ::already_exists AlreadyExists;
 typedef ::illegal_state IllegalState;
 typedef ::GSLRandomNumberGenerator GSLRandomNumberGenerator;
 typedef ::CyclicWorldTraits<Real, Real> WorldTraits;            // parameterize the World traits here -> determines many types!!
-typedef WorldTraits::particle_type Particle;
-//typedef WorldTraits::structure_id_type StructureID;
-typedef WorldTraits::species_id_type SpeciesID;
-typedef WorldTraits::species_type SpeciesInfo;
-typedef WorldTraits::structure_type Structure;
-typedef StructureType::identifier_type StructureTypeID;
-typedef WorldTraits::length_type Length;
-typedef WorldTraits::position_type Position;
+//typedef WorldTraits::structure_id_type  StructureID;
+typedef WorldTraits::species_id_type    SpeciesID;
+typedef WorldTraits::species_type       SpeciesInfo;
+typedef WorldTraits::structure_type     Structure;
+typedef StructureType::identifier_type  StructureTypeID;
+typedef WorldTraits::length_type        Length;
+typedef WorldTraits::position_type      Position;
 typedef ::World<WorldTraits> World;                             // plug in the WorldTraits type to get a fully specified World type.
 
 typedef ::Model                                 Model;

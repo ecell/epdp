@@ -363,6 +363,7 @@ public:
         return real_pair(dt, step_size_factor * r_min);
     }
 
+    // The constructor
     MultiParticleContainer(world_type& world): world_(world) {}
 
 private:
@@ -371,6 +372,10 @@ private:
     species_map species_;
 };
 
+
+
+
+////////////////////////
 template<typename Tsim_>
 class Multi: public Domain<typename Tsim_::traits_type>
 {
@@ -378,23 +383,23 @@ public:
     typedef Tsim_ simulator_type;
     typedef typename simulator_type::traits_type traits_type;
     typedef Domain<traits_type> base_type;
-    typedef typename traits_type::world_type::particle_type particle_type;
-    typedef typename particle_type::shape_type particle_shape_type;
-    typedef typename traits_type::world_type::species_type species_type;
-    typedef typename traits_type::world_type::species_id_type species_id_type;
-    typedef typename traits_type::world_type::position_type position_type;
-    typedef typename traits_type::world_type::particle_id_type particle_id_type;
-    typedef typename traits_type::world_type::length_type length_type;
-    typedef typename traits_type::world_type::size_type size_type;
-    typedef typename traits_type::world_type::structure_type structure_type;
-    typedef typename traits_type::world_type::particle_id_pair particle_id_pair;
-    typedef typename traits_type::network_rules_type network_rules_type;
-    typedef typename traits_type::reaction_rule_type reaction_rule_type;
-    typedef typename network_rules_type::reaction_rules reaction_rules;   
-    typedef typename traits_type::shell_id_type shell_id_type;
-    typedef typename traits_type::domain_id_type identifier_type;
+    typedef typename traits_type::world_type::particle_type         particle_type;
+    typedef typename particle_type::shape_type                      particle_shape_type;
+    typedef typename traits_type::world_type::species_type          species_type;
+    typedef typename traits_type::world_type::species_id_type       species_id_type;
+    typedef typename traits_type::world_type::position_type         position_type;
+    typedef typename traits_type::world_type::particle_id_type      particle_id_type;
+    typedef typename traits_type::world_type::length_type           length_type;
+    typedef typename traits_type::world_type::size_type             size_type;
+    typedef typename traits_type::world_type::structure_type        structure_type;
+    typedef typename traits_type::world_type::particle_id_pair      particle_id_pair;
+    typedef typename traits_type::network_rules_type        network_rules_type;
+    typedef typename traits_type::reaction_rule_type        reaction_rule_type;
+    typedef typename network_rules_type::reaction_rules     reaction_rules;   
+    typedef typename traits_type::shell_id_type             shell_id_type;
+    typedef typename traits_type::domain_id_type            identifier_type;
     typedef typename traits_type::template shell_generator<
-        typename simulator_type::sphere_type>::type spherical_shell_type;
+        typename simulator_type::sphere_type>::type         spherical_shell_type;
     typedef std::pair<const typename traits_type::shell_id_type, spherical_shell_type> spherical_shell_id_pair;
     typedef std::pair<particle_id_pair, length_type> particle_id_pair_and_distance;
     typedef unassignable_adapter<particle_id_pair_and_distance, get_default_impl::std::vector> particle_id_pair_and_distance_list;

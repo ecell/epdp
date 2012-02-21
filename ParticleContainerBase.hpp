@@ -13,12 +13,14 @@
 template<typename Ttraits_>
 struct ParticleContainerUtils
 {
+    // The structure is parameterized with the traits of the world
     typedef Ttraits_ traits_type;
-    typedef typename traits_type::length_type length_type;
-    typedef typename traits_type::particle_type particle_type;
-    typedef typename traits_type::particle_id_type particle_id_type;
-    typedef std::pair<const particle_id_type, particle_type> particle_id_pair;
-    typedef std::pair<particle_id_pair, length_type> particle_id_pair_and_distance;
+    // shorthand names for all the types that we use
+    typedef typename traits_type::length_type                   length_type;
+    typedef typename traits_type::particle_type                 particle_type;
+    typedef typename traits_type::particle_id_type              particle_id_type;
+    typedef std::pair<const particle_id_type, particle_type>    particle_id_pair;
+    typedef std::pair<particle_id_pair, length_type>            particle_id_pair_and_distance;
     typedef unassignable_adapter<particle_id_pair_and_distance, get_default_impl::std::vector> particle_id_pair_and_distance_list;
 
     struct distance_comparator:
@@ -39,9 +41,12 @@ struct ParticleContainerUtils
         const_caster c_;
     };
 
+
+
     template<typename Tset_>
     struct overlap_checker
     {
+        // The constructor
         overlap_checker(Tset_ const& ignore = Tset_()): ignore_(ignore), result_(0) {}
 
         template<typename Titer_>
@@ -73,6 +78,7 @@ struct ParticleContainerUtils
     };
 };
 
+
 template<typename Tderived_, typename Ttraits_ = typename Tderived_::traits_type>
 class ParticleContainerBase
     : public ParticleContainer<Ttraits_>
@@ -83,24 +89,25 @@ public:
     typedef ParticleContainerUtils<Ttraits_> utils;
     typedef ParticleContainer<Ttraits_> base_type;
     typedef Ttraits_ traits_type;
+
     // define some shorthands for all the types from the traits that we use.
-    typedef typename traits_type::length_type length_type;
-    typedef typename traits_type::species_type species_type;
-    typedef typename traits_type::position_type position_type;
-    typedef typename traits_type::particle_type particle_type;
-    typedef typename traits_type::particle_id_type particle_id_type;
-    typedef typename traits_type::particle_id_generator particle_id_generator;
-    typedef typename traits_type::species_id_type species_id_type;
+    typedef typename traits_type::length_type               length_type;
+    typedef typename traits_type::species_type              species_type;
+    typedef typename traits_type::position_type             position_type;
+    typedef typename traits_type::particle_type             particle_type;
+    typedef typename traits_type::particle_id_type          particle_id_type;
+    typedef typename traits_type::particle_id_generator     particle_id_generator;
+    typedef typename traits_type::species_id_type           species_id_type;
     typedef typename traits_type::particle_type::shape_type particle_shape_type;
-    typedef typename traits_type::size_type size_type;
-    typedef typename traits_type::structure_id_type structure_id_type;
-    typedef typename traits_type::structure_type structure_type;
+    typedef typename traits_type::size_type                 size_type;
+    typedef typename traits_type::structure_id_type         structure_id_type;
+    typedef typename traits_type::structure_type            structure_type;
     typedef std::pair<const particle_id_type, particle_type> particle_id_pair;
-    typedef Transaction<traits_type> transaction_type;
+    typedef Transaction<traits_type>                        transaction_type;
 
     typedef MatrixSpace<particle_type, particle_id_type, get_mapper_mf> particle_matrix_type;
-    typedef abstract_limited_generator<particle_id_pair> particle_id_pair_generator;
-    typedef std::pair<particle_id_pair, length_type> particle_id_pair_and_distance;
+    typedef abstract_limited_generator<particle_id_pair>                particle_id_pair_generator;
+    typedef std::pair<particle_id_pair, length_type>                    particle_id_pair_and_distance;
     typedef sized_iterator_range<typename particle_matrix_type::const_iterator> particle_id_pair_range;
 
     typedef unassignable_adapter<particle_id_pair_and_distance, get_default_impl::std::vector> particle_id_pair_and_distance_list;
@@ -269,7 +276,7 @@ public:
 
 ///////// Member variables
 protected:
-    particle_matrix_type pmat_;         // just the structure containing the particles.
+    particle_matrix_type pmat_;         // just the structure (MatrixSpace) containing the particles.
 };
 
 
