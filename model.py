@@ -24,13 +24,13 @@ __all__ = [
 
 # Define _gfrd docstrings here, much easier to format than in C++.
 _gfrd.create_cuboidal_region.__doc__ = \
-"""create_cuboidal_region(id, corner, diagonal)
+"""create_cuboidal_region(sid, corner, diagonal)
 
 Create and return a new cuboidal Region.
 
 Arguments:
-    - id
-        a descriptive name.
+    - sid
+        the structure type of the cuboidal region.
     - corner
         the point [x, y, z] of the cuboidal Region closest to
         [0, 0, 0]. Units: [meters, meters, meters]
@@ -42,13 +42,13 @@ Arguments:
 """
 
 _gfrd.create_cylindrical_surface.__doc__ = \
-"""create_cylindrical_surface(id, corner, radius, orientation, length)
+"""create_cylindrical_surface(sid, corner, radius, orientation, length)
 
 Create and return a new cylindrical Surface.
 
 Arguments:
-    - id
-        a descriptive name.
+    - sid
+        the structure type of the cylindrical surface.
     - corner
         the point [x, y, z] on the axis of the cylinder closest to 
         [0, 0, 0]. Units: [meters, meters, meters]
@@ -66,13 +66,13 @@ Surfaces are not allowed to touch or overlap.
 """
 
 _gfrd.create_planar_surface.__doc__ = \
-"""create_planar_surface(id, corner, unit_x, unit_y, length_x, length_y)
+"""create_planar_surface(sid, corner, unit_x, unit_y, length_x, length_y)
 
 Create and return a new planar Surface.
 
 Arguments:
-    - id
-        a descriptive name.
+    - sid
+        the structure type of the planar surface.
     - corner
         the point [x, y, z] on the plane closest to [0, 0, 0]. Units: 
         [meters, meters, meters]
@@ -89,7 +89,7 @@ Arguments:
         the length of the plane along the unit vector unit_y. Should be 
         equal to the world_size. Units: meters.
 
-Surfaces are not allowed to touch or overlap.
+Surfaces are not allowed to overlap.
 
 Todo: allow the user to specify the position of a planar surface 
 relative to a region.
