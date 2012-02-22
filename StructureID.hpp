@@ -53,7 +53,7 @@ struct hash<StructureID>
 template<typename Tstrm_, typename Ttraits_>
 inline std::basic_ostream<Tstrm_, Ttraits_>& operator<<(std::basic_ostream<Tstrm_, Ttraits_>& strm,
         const StructureID& v)
-// Provides a stream of characters (a string) of the 'particle id' that allows for printing.
+// Provides a stream of characters (a string) of the 'structure_id' that allows for printing.
 {
     strm << "StructureID(" << v().first << ":" << v().second << ")";
     return strm;
