@@ -54,7 +54,7 @@ struct WorldTraitsBase
     // Species
     typedef SpeciesTypeID                                   species_id_type;        // identifier type for species
     typedef SpeciesInfo<species_id_type, D_type,
-                        length_type, structure_type_id_type>species_type;           // This is the definition of the species in the presence of a World
+                        length_type, structure_type_id_type>species_type;           // This is ADDITIONAL species information for use in a (spatial) world.
     // Particles
     typedef Particle<length_type, D_type, species_id_type,
                      structure_id_type>                     particle_type;          // type for particles, NOTE why is there no v_type here?

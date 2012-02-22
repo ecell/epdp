@@ -45,7 +45,7 @@ struct SpeciesInfo
         return radius_;
     }
 
-    // Get the id of the structure type it lives on
+    // Get the id of the structure type the species lives on
     structure_type_id_type const& structure_type_id() const
     {
         return structure_type_id_;
