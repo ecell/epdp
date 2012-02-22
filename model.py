@@ -142,6 +142,10 @@ def Species(name, D, radius=0, structure_type=None, drift=0):
     without an explicit Structure argument.
 
     """
+    # The SpeciesType actually only holds the information needed for a general species
+    # The information needed for spatial simulations (D, r, v etc) is stored in SpeciesInfo
+    # Here it is stored temporarily in string fields and only when the world in create
+    # put in the SpeciesInfo -> TODO SpeciesInfo should be in the ParticleModel
     st = _gfrd.SpeciesType()
     st["name"] = str(name)
     st["D"] = str(D)
