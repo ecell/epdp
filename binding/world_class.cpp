@@ -124,4 +124,4 @@ void register_world_class()
     peer::converters::register_iterable_to_range_converter<twofold_container<ParticleID> >();
 }
 
-} // namesapce binding
+} // namespace binding
