@@ -74,7 +74,7 @@ public:
 //////// Member variables (why are they public?)
 public:
     species_type_id_generator_type  species_type_id_generator_; // The id generator which makes sure that all species have a unique id
-    species_type_map_type           species_type_map_;          // ??
+    species_type_map_type           species_type_map_;          // mapping: species_type_id->species_type
     boost::scoped_ptr<NetworkRules> network_rules_;             // The network rules in the model
     string_map_type                 attrs_;                     // All the attributes
 };

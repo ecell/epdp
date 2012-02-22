@@ -8,8 +8,9 @@
 
 template<typename Tid_, typename TD_, typename Tlen_, typename Tstructure_type_id_>
 struct SpeciesInfo
-// Unclear if SpeciesInfo replaces the Species when using a World or not
-// (Species itself holds very little information, SpeciesInfo hold info that is relevant in a spatial system)
+// SpeciesInfo seems to extend the SpeciesType with extra information which is relevant for spatial simulations.
+// A Species itself holds very little information.
+// Note that the id is the same id as the SpeciesType and can be used to refer to the SpeciesType.
 {
     // defining shorthands for used types
     typedef Tid_                identifier_type;        // This is the SpeciesTypeID
