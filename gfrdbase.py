@@ -169,13 +169,17 @@ def create_world(m, matrix_size=10):
     region = _gfrd.CuboidalRegion(world_structure_type, _gfrd.Box(x, x))
     world.add_structure(region)
 
+    # The model (a ParticleModel) now only holds SpeciesTypes
+    # The SpeciesTYpes hold the information that is required for spatial simulations
+    # in auxiliairy string fields. This information is here converted to the right
+    # SpeciesInfo object and added to the world. Not sure this works -> TODO
     for st in m.species_types:
-        structure = st["structure"]
-        if not structure:
-            structure = region.id
+        structure_type = st["structure_type"]
+        if structure_type == None:
+            structure_type = world_structure_type    #structure = region.id
         world.add_species(
             _gfrd.SpeciesInfo(st.id, 
-                              structure,
+                              structure_type,          # FIXME not sure this works
                               float(st["D"]), 
                               float(st["radius"]), 
                               float(st["v"])))
