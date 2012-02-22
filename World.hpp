@@ -22,6 +22,7 @@
 #include "SerialIDGenerator.hpp"
 #include "Transaction.hpp"
 #include "Structure.hpp"
+#include "StructureID.hpp"
 #include "Surface.hpp"
 #include "Region.hpp"
 #include "geometry.hpp"

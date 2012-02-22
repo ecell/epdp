@@ -47,7 +47,7 @@ typedef ::illegal_state IllegalState;
 typedef ::GSLRandomNumberGenerator GSLRandomNumberGenerator;
 typedef ::CyclicWorldTraits<Real, Real> WorldTraits;            // parameterize the World traits here -> determines many types!!
 typedef WorldTraits::particle_type Particle;
-typedef WorldTraits::structure_id_type StructureID;
+//typedef WorldTraits::structure_id_type StructureID;
 typedef WorldTraits::species_id_type SpeciesID;
 typedef WorldTraits::species_type SpeciesInfo;
 typedef WorldTraits::structure_type Structure;
