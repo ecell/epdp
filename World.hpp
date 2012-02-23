@@ -44,9 +44,11 @@ struct WorldTraitsBase
     typedef SerialIDGenerator<particle_id_type>             particle_id_generator;
     typedef SpeciesTypeID                                   species_id_type;    // identifier type for species and (structure types)
     // TODO add structure_type_id_type?
-    typedef Particle<length_type, D_type, species_id_type>  particle_type;      // type for particles, NOTE why is there no v_type here?
+//    typedef Particle<length_type, D_type, species_id_type>  particle_type;      // type for particles, NOTE why is there no v_type here?
     typedef std::string                                     structure_id_type;  // identifier type for structures
     // typedef SpeciesTypeID                                   structure_id_type;
+    typedef Particle<length_type, D_type, species_id_type,
+                     structure_id_type>                     particle_type;      // type for particles, NOTE why is there no v_type here?
 
     typedef SpeciesInfo<species_id_type, D_type, length_type, structure_id_type>    species_type;  // information associated with the species
     typedef Vector3<length_type>                                                    point_type;
@@ -241,8 +243,11 @@ public:
     {
         species_type const& species(get_species(sid));
         particle_id_pair retval(pidgen_(),
+//                                particle_type(sid, particle_shape_type(pos, species.radius()),
+//                                              species.D(), species.v() ));
                                 particle_type(sid, particle_shape_type(pos, species.radius()),
-                                              species.D(), species.v() ));
+                                              "World", species.D(), species.v() ));
+
         update_particle(retval);
         return retval;
     }
