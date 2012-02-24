@@ -35,11 +35,11 @@ print "(Seed " + str(currenttime) + ")"
 
 # Constants
 # ===============================
-#logging = False
-logging = True
-sigma = 1e-9        # Diameter particle
+logging = False
+#logging = True
+sigma = 1e-8        # Diameter particle
 DC = 1e-13           # Diffusion constant
-N = 500           # Number of steps simulation will last
+N = 1000           # Number of steps simulation will last
 world_size = 1e-6   # Lengths of simulation box
 Nparticles = 1     # Number of particles in the simulation
 k = 2e-14           # Reaction constant
@@ -56,7 +56,7 @@ if (logging == True):
 # Basic set up simulator
 # ===============================
 # Model
-m = model.ParticleModel(1.2*world_size)
+m = model.ParticleModel(2.01*world_size)
 
 # Planes ("membranes")
 membrane1_type = _gfrd.StructureType()
@@ -199,6 +199,8 @@ if (logging == True):
 
 # Throw in particles
 place_particle(w, A, [world_size/2, world_size/2, 0])  # place one particle on membraneA
+place_particle(w, A, [world_size/4, world_size/4, 0])  # place one particle on membraneA
+place_particle(w, A, [3*world_size/4, 3*world_size/4, 0])  # place one particle on membraneA
 #throw_in_particles(w, A, Nparticles) # THIS DOES NOT WORK BECAUSE PARTICLES INTERSECT WITH PLANES YET!
 #throw_in_particles(w, B, Nparticles)
 

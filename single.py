@@ -387,10 +387,12 @@ class PlanarSurfaceSingle(NonInteractionSingle, hasCylindricalShell):
     def create_updated_shell(self, position):
         # TODO what should we do with the position now?
         try:
+
             dr, dz_right, dz_left = self.testShell.determine_possible_shell(self.structure.id, [self.domain_id], [])
             center, radius, half_length = self.r_zright_zleft_to_r_center_hl(self.testShell.get_referencepoint(),
                                                                              self.testShell.get_orientation_vector(),
-                                                                             dr, dz_right, dz_left)            
+                                                                             dr, dz_right, dz_left) 
+            
             return self.create_new_shell(center, radius, half_length, self.domain_id)
         except ShellmakingError as e:
             raise Exception('PlanarSurfaceSingle, create_updated_shell failed: %s' % str(e) )
@@ -1051,6 +1053,20 @@ class PlanarSurfaceEdgeSingle(NonInteractionSingle, hasSphericalShell, Others): 
             # either parallel or antiparallel to the parallel unit vector in the origin surface
             d_origin_par = numpy.dot(newpos_in_origin, self.origin_unit_par)
             d_target_par = d_origin_par * numpy.dot(self.origin_unit_par, self.target_unit_par)
+            # DEBUG
+            print("process_new_position_vector")
+            print(self.origin_surface.id)
+            print(self.origin_unit_par)
+            print(self.origin_unit_perp)
+            print(self.target_surface.id)
+            print(self.target_unit_par)
+            print(self.target_unit_perp)
+            print(self.target_surface.shape.unit_x)
+            print(self.target_surface.shape.unit_y)
+            print(self.target_surface.shape.unit_z)
+            print(d_origin_perp)
+            print(d_origin_par)
+            print(d_target_par)
             # Construct the new position using the predefined unit vectors of the target surface
             newpos = self.target_center + d_target_perp*self.target_unit_perp + d_target_par*self.target_unit_par
             self.change_particle_structure(self.pid_particle_pair, self.target_surface)
@@ -1065,13 +1081,15 @@ class PlanarSurfaceEdgeSingle(NonInteractionSingle, hasSphericalShell, Others): 
         # ATTENTION! THIS DOES NOT YET WORK WITH PERIODIC BC!
         w_z = self.target_surface.shape.unit_z
         u_perp = (1.0/self.target_distance * numpy.dot(self.target_center-self.start_position, w_z )) * w_z
+        # DEBUG
         if not feq(numpy.sqrt(numpy.dot(u_perp, u_perp)), 1.0):
+            print("get_origin_unit_vectors")
             print(self.target_distance)
             print(self.target_center)
             print(self.start_position)
             print(self.target_center - self.start_position)
             print(w_z)
-            print( u_perp)
+            print(u_perp)
             
             
         assert feq(numpy.sqrt(numpy.dot(u_perp, u_perp)), 1.0)
@@ -1092,7 +1110,7 @@ class PlanarSurfaceEdgeSingle(NonInteractionSingle, hasSphericalShell, Others): 
         # in the target surface and the half_extent of this surface in the
         # perpendicular vector direction
         # ATTENTION! THIS DOES NOT YET WORK WITH PERIODIC BC!
-        w_perp_unnorm = self.edge_point - self.target_center
+        w_perp_unnorm = (self.origin_center - self.target_center) + self.origin_half_extent_perp * self.origin_unit_perp
         w_perp = ( 1.0/numpy.sqrt(numpy.dot(w_perp_unnorm,w_perp_unnorm)) ) * w_perp_unnorm
         assert feq(numpy.sqrt(numpy.dot(w_perp, w_perp)), 1.0)
 
@@ -1104,6 +1122,14 @@ class PlanarSurfaceEdgeSingle(NonInteractionSingle, hasSphericalShell, Others): 
         else:
              w_par = w_x
              h_perp = self.origin_half_extent[1] # half_extent in w_y direction
+
+        # DEBUG
+        print("get_target_unit_vectors")
+        print(self.edge_point)
+        print(self.target_center)
+        print(w_perp_unnorm)
+        print(w_perp)
+        print(w_par)
 
         return w_perp, w_par, h_perp
 

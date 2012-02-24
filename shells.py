@@ -693,8 +693,15 @@ def get_dr_dzright_dzleft_to_PlanarShape(shape, testShell, r, z_right, z_left):
     assert (type(shape) is Plane)
     assert isinstance(testShell, PlanarSurfaceSingletestShell)
 
-    scale_point = testShell.get_searchpoint()
-    r_new = testShell.world.distance(shape, scale_point)
+    if( feq(numpy.dot(shape.unit_z, testShell.get_orientation_vector()), 0.0) ) :
+    #if(True) :
+        # only check distance to perpendicular surfaces for the radius
+        scale_point = testShell.get_searchpoint()
+        r_new = testShell.world.distance(shape, scale_point)
+        r_ret = min(r, r_new)
+    else :
+        r_ret = r
+
     # HACK for debugging:
     #print(scale_point)
     #print(shape.position)
@@ -702,7 +709,7 @@ def get_dr_dzright_dzleft_to_PlanarShape(shape, testShell, r, z_right, z_left):
     #print(testShell.structure.shape.unit_z)
     #print(testShell.world.distance(shape, scale_point))
 
-    return min(r, r_new), z_right, z_left
+    return r_ret, z_right, z_left
 
 def get_radius_to_PlanarShape(shape, testShell, r):
     # This function returns the radius for the spherical 'testShell' using the planar 'shape' as its closest
@@ -886,6 +893,7 @@ class CylindricaltestShell(testShell):
  
         # first check the maximum dr, dz_right, dz_left against the surfaces
         # NOTE: we assume that all relevant surfaces are cylindrical and parallel to the testCylinder
+        # or planar surfaces and parallel to the testCylinder axis
         for surface, distance in neighbor_surfaces:
             # TODO
             if isinstance(surface, CylindricalSurface):
@@ -899,9 +907,8 @@ class CylindricaltestShell(testShell):
 
             if (dr < min_dr) or (dz_right < min_dz_right) or (dz_left < min_dz_left):
                 raise ShellmakingError('Surface too close to make cylindrical testshell, '
-                                       'surface = %s, dr = %s, dz_right = %s, dz_left = %s, testShell = %s' %
-                                       (surface, dr, dz_right, dz_left, self))
-
+                                       'surface = %s, dr = %s, dz_right = %s, dz_left = %s, testShell = %s, min_dr = %s' %
+                                       (surface, dr, dz_right, dz_left, self, min_dr))
         # TODO first sort the neighbors to distance -> faster to find if we fail
 
         # then check against all the shells of the neighboring domains (remember that domains can have
@@ -909,6 +916,9 @@ class CylindricaltestShell(testShell):
         for neighbor, distance in neighbor_domains:
 
             shell_list = self.get_neighbor_shell_list(neighbor)
+            # FIXME: This gives an error 'NoneType' object is not iterable if neighbours are present
+            # Probably sth. about get_neighbor_shell_list not returning the right type
+            print shell_list # HACK
             for _, shell_appearance in shell_list:
                 if isinstance(shell_appearance.shape, Sphere):
                     dr, dz_right, dz_left = get_dr_dzright_dzleft_to_SphericalShape(shell_appearance.shape, self,
@@ -930,7 +940,7 @@ class CylindricaltestShell(testShell):
                 dr = %s, dz_right = %s, dz_left = %s, min_dr = %s, min_dz_right = %s, min_dz_left = %s.' % \
                (dr, dz_right, dz_left, min_dr, min_dz_right, min_dz_left)
 
-        # Note that dr, dz_right, dz_left can now actually be smaller than the minimum
+        # Note that dr, dz_right, dz_left can now actually be smaller than the minimum        
         dr, dz_right, dz_left = self.apply_safety(dr, dz_right, dz_left)
 
         return dr, dz_right, dz_left
@@ -1045,17 +1055,7 @@ class PlanarSurfaceSingletestShell(CylindricaltestShell, testNonInteractionSingl
         self.dz_left  = self.pid_particle_pair[1].radius
         self.dr       = self.pid_particle_pair[1].radius
         # Here determine_possible_shell is not called since the making of a NonInteractionSingle
-        # should never fail
-        # HACK:
-        try:
-            self.dr, self.dz_right, self.dz_left = \
-                            self.determine_possible_shell(self.structure.id, [], [])
-            
-            print("PlanarSurfaceSingletestShell:   Determined possible shellsize: dr = %s" % self.dr)
-
-        except ShellmakingError as e:
-            raise testShellError('(PlanarSurfaceSingle). %s' %
-                                 (str(e)))
+        # should never fail        
 
     def get_orientation_vector(self):
         return self.structure.shape.unit_z   # just copy from structure
