@@ -25,11 +25,19 @@ struct Particle
     typedef Tsid_                               species_id_type;
     typedef typename shape_type::position_type  position_type;
     typedef typename shape_type::length_type    length_type;
-    typedef Tstructure_id_                      structure_id_type    // The structure (not structure_type) on which the particle currently lives.
+    typedef Tstructure_id_                      structure_id_type;    // The structure (not structure_type) on which the particle currently lives.
 
     // constructors
     // Note that the structure_id is mandatory (?)
     Particle(): shape_(), species_id_(), structure_id_(), D_(0.), v_(0.) {}
+
+    Particle(species_id_type const& species_id, shape_type const& shape,
+             D_type const& D)
+        : shape_(shape), species_id_(species_id), structure_id_(), D_(D), v_(0.){}
+
+    Particle(species_id_type const& species_id, shape_type const& shape,
+             D_type const& D, v_type const& v)
+        : shape_(shape), species_id_(species_id), structure_id_(), D_(D), v_(v) {}
 
     Particle(species_id_type const& species_id, shape_type const& shape,
              structure_id_type const& structure_id, D_type const& D)
@@ -139,15 +147,15 @@ struct Particle
 private:
     shape_type          shape_;
     species_id_type     species_id_;
+    structure_id_type   structure_id_;
     D_type              D_;
     v_type              v_;
-    structure_id_type   structure_id_
 };
 
 
 ///// Inline functions
-template<typename Tstrm_, typename Ttraits_, typename T_, typename Td_, typename Tsid_>
-inline std::basic_ostream<Tstrm_, Ttraits_>& operator<<(std::basic_ostream<Tstrm_, Ttraits_>& strm, const Particle<T_, Td_, Tsid_>& p)
+template<typename Tstrm_, typename Ttraits_, typename T_, typename Td_, typename Tsid_, typename Tstructure_id_>
+inline std::basic_ostream<Tstrm_, Ttraits_>& operator<<(std::basic_ostream<Tstrm_, Ttraits_>& strm, const Particle<T_, Td_, Tsid_, Tstructure_id_>& p)
 {
     strm << "Particle(" << p.shape() << ", D=" << p.D() << ", v=" << p.v() << ", " << p.sid() << ", " << p.structure_id() << ")";
     return strm;
@@ -163,10 +171,10 @@ namespace std {
 namespace boost {
 #endif
 
-template<typename T_, typename Td_, typename Tsid_>
-struct hash<Particle<T_, Td_, Tsid_> >
+template<typename T_, typename Td_, typename Tsid_, typename Tstructure_id_>
+struct hash<Particle<T_, Td_, Tsid_, Tstructure_id_> >
 {
-    typedef Particle<T_, Td_, Tsid_> argument_type;
+    typedef Particle<T_, Td_, Tsid_, Tstructure_id_> argument_type;
 
     std::size_t operator()(argument_type const& val)
     {
