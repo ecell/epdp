@@ -46,9 +46,10 @@ struct WorldTraitsBase
     // TODO add structure_type_id_type?
 //    typedef Particle<length_type, D_type, species_id_type>  particle_type;      // type for particles, NOTE why is there no v_type here?
     typedef std::string                                     structure_id_type;  // identifier type for structures
+    typedef SerialIDGenerator<StructureID>            structure_id_generator;
     // typedef SpeciesTypeID                                   structure_id_type;
     typedef Particle<length_type, D_type, species_id_type,
-                     structure_id_type>                     particle_type;      // type for particles, NOTE why is there no v_type here?
+                     StructureID>                     particle_type;      // type for particles, NOTE why is there no v_type here?
 
     typedef SpeciesInfo<species_id_type, D_type, length_type, structure_id_type>    species_type;  // information associated with the species
     typedef Vector3<length_type>                                                    point_type;
@@ -208,6 +209,7 @@ public:
     typedef typename traits_type::particle_type::shape_type particle_shape_type;
     typedef typename traits_type::size_type                 size_type;
     typedef typename traits_type::structure_id_type         structure_id_type;
+    typedef typename traits_type::structure_id_generator    structure_id_generator;
     typedef typename traits_type::structure_type            structure_type;
 
     //
@@ -234,7 +236,10 @@ public:
 public:
     // The constructor
     World(length_type world_size = 1., size_type size = 1)
-        : base_type(world_size, size) {}
+        : base_type(world_size, size)
+    {
+        default_structure_id_ = structidgen_();
+    }
     // TODO Add the default structure of the default structure_type here?
 
     // To add new particles
@@ -243,10 +248,8 @@ public:
     {
         species_type const& species(get_species(sid));
         particle_id_pair retval(pidgen_(),
-//                                particle_type(sid, particle_shape_type(pos, species.radius()),
-//                                              species.D(), species.v() ));
                                 particle_type(sid, particle_shape_type(pos, species.radius()),
-                                              "World", species.D(), species.v() ));
+                                              default_structure_id_, species.D(), species.v() ));
 
         update_particle(retval);
         return retval;
@@ -389,6 +392,8 @@ private:
     species_map                 species_map_;       // ?
     structure_map               structure_map_;     // ?
     per_species_particle_id_set particle_pool_;
+    structure_id_generator      structidgen_;
+    StructureID                 default_structure_id_;
 };
 
 #endif /* WORLD_HPP */

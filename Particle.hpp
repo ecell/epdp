@@ -29,15 +29,15 @@ struct Particle
 
     // constructors
     // Note that the structure_id is mandatory (?)
-    Particle(): shape_(), species_id_(), structure_id_("World"), D_(0.), v_(0.) {}
+    Particle(): shape_(), species_id_(), structure_id_(), D_(0.), v_(0.) {}
 
     Particle(species_id_type const& species_id, shape_type const& shape,
              D_type const& D)
-        : shape_(shape), species_id_(species_id), structure_id_("World"), D_(D), v_(0.){}
+        : shape_(shape), species_id_(species_id), structure_id_(), D_(D), v_(0.){}
 
     Particle(species_id_type const& species_id, shape_type const& shape,
              D_type const& D, v_type const& v)
-        : shape_(shape), species_id_(species_id), structure_id_("World"), D_(D), v_(v) {}
+        : shape_(shape), species_id_(species_id), structure_id_(), D_(D), v_(v) {}
 
     Particle(species_id_type const& species_id, shape_type const& shape,
              structure_id_type const& structure_id, D_type const& D)
@@ -147,9 +147,9 @@ struct Particle
 private:
     shape_type          shape_;
     species_id_type     species_id_;
+    structure_id_type   structure_id_;
     D_type              D_;
     v_type              v_;
-    structure_id_type   structure_id_;
 };
 
 
