@@ -43,13 +43,14 @@ struct WorldTraitsBase
     typedef ParticleID                                      particle_id_type;   // identifier type for particles
     typedef SerialIDGenerator<particle_id_type>             particle_id_generator;
     typedef SpeciesTypeID                                   species_id_type;    // identifier type for species and (structure types)
+    typedef SpeciesTypeID                                   structure_type_id_type;
     // TODO add structure_type_id_type?
 //    typedef Particle<length_type, D_type, species_id_type>  particle_type;      // type for particles, NOTE why is there no v_type here?
     typedef std::string                                     structure_id_type;  // identifier type for structures
-    typedef SerialIDGenerator<StructureID>            structure_id_generator;
+    typedef SerialIDGenerator<StructureID>                  structure_id_generator;
     // typedef SpeciesTypeID                                   structure_id_type;
     typedef Particle<length_type, D_type, species_id_type,
-                     StructureID>                     particle_type;      // type for particles, NOTE why is there no v_type here?
+                     StructureID>                           particle_type;      // type for particles, NOTE why is there no v_type here?
 
     typedef SpeciesInfo<species_id_type, D_type, length_type, structure_id_type>    species_type;  // information associated with the species
     typedef Vector3<length_type>                                                    point_type;
@@ -211,6 +212,7 @@ public:
     typedef typename traits_type::structure_id_type         structure_id_type;
     typedef typename traits_type::structure_id_generator    structure_id_generator;
     typedef typename traits_type::structure_type            structure_type;
+    typedef typename traits_type::structure_type_id_type    structure_type_id_type;
 
     //
     typedef std::pair<const particle_id_type, particle_type>                    particle_id_pair;      // defines the pid_particle_pair tuple
