@@ -15,6 +15,7 @@ inline void register_particle_model_class(char const* name)
     class_<impl_type, bases<typename impl_type::base_type>, boost::noncopyable>(name)
         .def("add_structure_type", &impl_type::add_structure_type)
         .def("get_structure_type_by_id", &impl_type::get_structure_type_by_id)
+        .def("get_def_structure_type", &impl_type::get_def_structure_type)
         .add_property("structure_types",
                 peer::util::range_from_range<
                     typename impl_type::structure_type_range,

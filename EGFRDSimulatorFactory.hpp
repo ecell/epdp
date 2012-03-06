@@ -50,7 +50,7 @@ public:
         world->add_structure(
             boost::shared_ptr<cuboidal_region_type>(
                 new cuboidal_region_type(
-                    "world",
+                    "world", model.get_def_structure_type(),
                     typename cuboidal_region_type::shape_type(x, x))));
 
         BOOST_FOREACH (boost::shared_ptr<StructureType> st,

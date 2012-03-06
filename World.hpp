@@ -47,8 +47,8 @@ struct WorldTraitsBase
     // TODO add structure_type_id_type?
 //    typedef Particle<length_type, D_type, species_id_type>  particle_type;      // type for particles, NOTE why is there no v_type here?
     typedef std::string                                     structure_id_type;  // identifier type for structures
+//    typedef StructureID                                     structure_id_type;
     typedef SerialIDGenerator<StructureID>                  structure_id_generator;
-    // typedef SpeciesTypeID                                   structure_id_type;
     typedef Particle<length_type, D_type, species_id_type,
                      StructureID>                           particle_type;      // type for particles, NOTE why is there no v_type here?
 
@@ -243,6 +243,10 @@ public:
         default_structure_id_ = structidgen_();
     }
     // TODO Add the default structure of the default structure_type here?
+
+    virtual structure_id_type get_def_structure_id() const
+    {   return default_structure_id_;
+    }
 
     // To add new particles
     virtual particle_id_pair new_particle(species_id_type const& sid,

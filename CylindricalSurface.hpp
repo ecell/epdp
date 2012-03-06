@@ -16,7 +16,8 @@ class CylindricalSurface
 public:
     typedef BasicSurfaceImpl<Ttraits_, Cylinder<typename Ttraits_::world_type::traits_type::length_type> > base_type;
     typedef typename base_type::traits_type traits_type;
-    typedef typename base_type::identifier_type identifier_type;
+    typedef typename base_type::identifier_type         identifier_type;        // THis is just the name of the structure
+    typedef typename base_type::structure_type_id_type  structure_type_id_type;
     typedef typename base_type::shape_type shape_type;
     typedef typename base_type::rng_type rng_type;
     typedef typename base_type::position_type position_type;
@@ -225,8 +226,8 @@ public:
         visitor(*this);
     }
 
-    CylindricalSurface(identifier_type const& id, shape_type const& shape)
-        : base_type(id, shape) {}
+    CylindricalSurface(identifier_type const& id, structure_type_id_type const& sid, shape_type const& shape)
+        : base_type(id, sid, shape) {}
 };
 
 #endif /* CYLINDRICAL_SURFACE_HPP */
