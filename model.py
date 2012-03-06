@@ -24,13 +24,15 @@ __all__ = [
 
 # Define _gfrd docstrings here, much easier to format than in C++.
 _gfrd.create_cuboidal_region.__doc__ = \
-"""create_cuboidal_region(sid, corner, diagonal)
+"""create_cuboidal_region(sid, id, corner, diagonal)
 
 Create and return a new cuboidal Region.
 
 Arguments:
     - sid
         the structure type of the cuboidal region.
+    - id
+        the name of the structure
     - corner
         the point [x, y, z] of the cuboidal Region closest to
         [0, 0, 0]. Units: [meters, meters, meters]
@@ -42,13 +44,15 @@ Arguments:
 """
 
 _gfrd.create_cylindrical_surface.__doc__ = \
-"""create_cylindrical_surface(sid, corner, radius, orientation, length)
+"""create_cylindrical_surface(sid, id, corner, radius, orientation, length)
 
 Create and return a new cylindrical Surface.
 
 Arguments:
     - sid
         the structure type of the cylindrical surface.
+    - id
+        the name of the structure
     - corner
         the point [x, y, z] on the axis of the cylinder closest to 
         [0, 0, 0]. Units: [meters, meters, meters]
@@ -66,13 +70,15 @@ Surfaces are not allowed to touch or overlap.
 """
 
 _gfrd.create_planar_surface.__doc__ = \
-"""create_planar_surface(sid, corner, unit_x, unit_y, length_x, length_y)
+"""create_planar_surface(sid, id, corner, unit_x, unit_y, length_x, length_y)
 
 Create and return a new planar Surface.
 
 Arguments:
     - sid
         the structure type of the planar surface.
+    - id
+        the name of the structure
     - corner
         the point [x, y, z] on the plane closest to [0, 0, 0]. Units: 
         [meters, meters, meters]
@@ -174,8 +180,8 @@ class ParticleModel(_gfrd.ParticleModel):
         _gfrd.ParticleModel.add_structure_type(self, structure_type)
         
         x = numpy.repeat(world_size / 2, 3)
-        region = _gfrd.CuboidalRegion('world', _gfrd.Box(x, x))
-        region.sid = structure_type.id
+        region = _gfrd.CuboidalRegion('world', structure_type, _gfrd.Box(x, x))
+#        region.sid = structure_type.id
         
         self.add_structure(region)
 

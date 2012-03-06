@@ -245,7 +245,8 @@ public:
     // TODO Add the default structure of the default structure_type here?
 
     virtual structure_id_type get_def_structure_id() const
-    {   return default_structure_id_;
+    {   //   return default_structure_id_;
+        return "world";
     }
 
     // To add new particles
