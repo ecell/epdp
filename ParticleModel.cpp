@@ -20,22 +20,20 @@ ParticleModel::~ParticleModel()
 {
 }
 
-// TODO Get default structure type?
-
 // Add a structure type to the model
-void ParticleModel::add_structure_type(boost::shared_ptr<structure_type_type> const& structure)
+void ParticleModel::add_structure_type(boost::shared_ptr<structure_type_type> const& structure_type)
 {
     // std::pair<structure_type_map_type::iterator, bool> r(
-    //     structure_type_map_.insert(std::make_pair(structure->id(), structure)));
+    //     structure_type_map_.insert(std::make_pair(structure_type->id(), structure_type)));
     // if (!r.second)
     // {
     //     throw already_exists(
-    //         (boost::format("structure id \"%s\" is already used by %s") %
-    //             structure->id() %
+    //         (boost::format("structure_type id \"%s\" is already used by %s") %
+    //             structure_type->id() %
     //             boost::lexical_cast<std::string>(*(*(r.first)).second)).str());
     // }
-    structure->bind_to_model(this, species_type_id_generator_());
-    structure_type_map_.insert(std::make_pair(structure->id(), structure));
+    structure_type->bind_to_model(this, species_type_id_generator_());
+    structure_type_map_.insert(std::make_pair(structure_type->id(), structure_type));
 }
 
 // Get a structure type from the model
@@ -58,9 +56,9 @@ ParticleModel::structure_type_range ParticleModel::get_structure_types() const
         structure_type_iterator(structure_type_map_.end(), structure_second_selector_type()));
 }
 
-ParticleModel::structure_type_id_type ParticleModel::get_def_structure_type() const
+ParticleModel::structure_type_id_type ParticleModel::get_def_structure_type_id() const
 {
 //    return boost::shared_ptr<ParticleModel::structure_type_id_type>(default_structure_type_);
-    return default_structure_type_;
+    return default_structure_type_id_;
 }
 

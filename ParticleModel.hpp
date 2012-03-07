@@ -40,12 +40,12 @@ public:
     structure_type_range get_structure_types() const;
 
     // Gets and sets the default structure_type
-    structure_type_id_type get_def_structure_type() const;
+    structure_type_id_type get_def_structure_type_id() const;
 
 /////// Member variables
 public:
     structure_type_map_type structure_type_map_;    // mapping: structure_type_id -> structure_type
-    structure_type_id_type  default_structure_type_;    // The id of the default structure_type ("world")
+    structure_type_id_type  default_structure_type_id_;    // The id of the default structure_type ("world")
 };
 
 
