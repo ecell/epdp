@@ -175,14 +175,16 @@ class ParticleModel(_gfrd.ParticleModel):
         # Particles of a Species whose Surface is not specified will be 
         # added to the "world". Dimensions don't matter, except for 
         # visualization.
-        structure_type = _gfrd.StructureType()
-        structure_type['name'] = 'world'
-        _gfrd.ParticleModel.add_structure_type(self, structure_type)
-        
+#        structure_type = _gfrd.StructureType()
+#        structure_type['name'] = 'world'
+#        _gfrd.ParticleModel.add_structure_type(self, structure_type)
+
+        def_structure_type_id = _gfrd.ParticleModel.get_def_structure_type_id(self)
+        structure_type        = _gfrd.ParticleModel.get_structure_type_by_id(self, def_structure_type_id)
         x = numpy.repeat(world_size / 2, 3)
+
         region = _gfrd.CuboidalRegion('world', structure_type, _gfrd.Box(x, x))
-#        region.sid = structure_type.id
-        
+#        region.sid = structure_type.id       
         self.add_structure(region)
 
     def add_structure(self, structure):

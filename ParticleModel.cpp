@@ -14,6 +14,9 @@
 ParticleModel::ParticleModel()
 {
     // TODO add default structure_type for the bulk?
+    boost::shared_ptr<ParticleModel::structure_type_type> default_structure_type(new StructureType());
+    add_structure_type(default_structure_type);
+    default_structure_type_id_ = default_structure_type->id();
 }
 
 ParticleModel::~ParticleModel()
