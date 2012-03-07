@@ -27,6 +27,7 @@ public:
     typedef typename traits_type::size_type         size_type;
     typedef typename traits_type::structure_id_type structure_id_type;
     typedef typename traits_type::structure_type    structure_type;
+    typedef typename traits_type::structure_type_id_type    structure_type_id_type;
 
     typedef std::pair<const particle_id_type, particle_type>    particle_id_pair;
     typedef std::pair<structure_id_type, length_type>           structure_id_and_distance_pair;
@@ -56,6 +57,10 @@ public:
     virtual boost::shared_ptr<structure_type> get_structure(structure_id_type const& id) const = 0;
     
     virtual structures_range get_structures() const = 0;
+
+    virtual structure_type_id_type get_def_structure_type_id() const = 0;
+
+    virtual structure_id_type get_def_structure_id() const = 0;
     
     virtual structure_id_and_distance_pair get_closest_surface(position_type const& pos, structure_id_type const& ignore) const = 0;
 

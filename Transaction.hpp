@@ -167,6 +167,16 @@ public:
     {
         return pc_.get_structures();
     }    
+
+    virtual structure_type_id_type get_def_structure_type_id() const
+    {
+        return pc_.get_def_structure_type_id();
+    }    
+        
+    virtual structure_id_type get_def_structure_id() const
+    {
+        return pc_.get_def_structure_id();
+    }    
         
     virtual structure_id_and_distance_pair get_closest_surface(position_type const& pos, structure_id_type const& ignore) const
     {
