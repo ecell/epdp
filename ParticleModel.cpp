@@ -45,7 +45,7 @@ boost::shared_ptr<ParticleModel::structure_type_type> ParticleModel::get_structu
     structure_type_map_type::const_iterator i(structure_type_map_.find(id));
     if (structure_type_map_.end() == i)
     {
-        throw not_found(boost::lexical_cast<std::string>(id));
+        throw not_found(std::string("Unknown structure_type (id=") + boost::lexical_cast<std::string>(id) + ")");
     }
 
     return (*i).second;

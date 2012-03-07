@@ -34,7 +34,7 @@ public:
     boost::shared_ptr<structure_type_type> get_structure_type_by_id(structure_type_id_type const& id) const;
 
     // Add a structure type
-    void add_structure_type(boost::shared_ptr<structure_type_type> const& structure);
+    void add_structure_type(boost::shared_ptr<structure_type_type> const& structure_type);
 
     // Get all structure types in the model
     structure_type_range get_structure_types() const;
@@ -44,8 +44,8 @@ public:
 
 /////// Member variables
 public:
-    structure_type_map_type structure_type_map_;    // mapping: structure_type_id -> structure_type
-    structure_type_id_type  default_structure_type_id_;    // The id of the default structure_type ("world")
+    structure_type_map_type structure_type_map_;            // mapping: structure_type_id -> structure_type
+    structure_type_id_type  default_structure_type_id_;     // The id of the default structure_type ("world")
 };
 
 
