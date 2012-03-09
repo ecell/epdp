@@ -46,11 +46,10 @@ struct WorldTraitsBase
     typedef SpeciesTypeID                                   species_id_type;    // identifier type for species and (structure types)
     typedef SpeciesTypeID                                   structure_type_id_type;
     typedef StructureType                                   structure_type_type;
-    // TODO add structure_type_id_type?
 //    typedef Particle<length_type, D_type, species_id_type>  particle_type;      // type for particles, NOTE why is there no v_type here?
 //    typedef std::string                                     structure_id_type;  // identifier type for structures
     typedef StructureID                                     structure_id_type;
-    typedef SerialIDGenerator<StructureID>                  structure_id_generator;
+    typedef SerialIDGenerator<structure_id_type>            structure_id_generator;
     typedef Particle<length_type, D_type, species_id_type,
                      structure_id_type>                     particle_type;      // type for particles, NOTE why is there no v_type here?
 
