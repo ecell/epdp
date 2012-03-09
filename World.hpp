@@ -22,6 +22,7 @@
 #include "SerialIDGenerator.hpp"
 #include "Transaction.hpp"
 #include "Structure.hpp"
+#include "StructureType.hpp"
 #include "StructureID.hpp"
 #include "Surface.hpp"
 #include "Region.hpp"
@@ -44,16 +45,17 @@ struct WorldTraitsBase
     typedef SerialIDGenerator<particle_id_type>             particle_id_generator;
     typedef SpeciesTypeID                                   species_id_type;    // identifier type for species and (structure types)
     typedef SpeciesTypeID                                   structure_type_id_type;
+    typedef StructureType                                   structure_type_type;
     // TODO add structure_type_id_type?
 //    typedef Particle<length_type, D_type, species_id_type>  particle_type;      // type for particles, NOTE why is there no v_type here?
-    typedef std::string                                     structure_id_type;  // identifier type for structures
-//    typedef StructureID                                     structure_id_type;
+//    typedef std::string                                     structure_id_type;  // identifier type for structures
+    typedef StructureID                                     structure_id_type;
     typedef SerialIDGenerator<StructureID>                  structure_id_generator;
     typedef Particle<length_type, D_type, species_id_type,
-                     StructureID>                           particle_type;      // type for particles, NOTE why is there no v_type here?
+                     structure_id_type>                     particle_type;      // type for particles, NOTE why is there no v_type here?
 
     typedef SpeciesInfo<species_id_type, D_type,
-                        length_type, structure_type_id_type>    species_type;  // information associated with the species
+                        length_type, structure_type_id_type>species_type;       // information associated with the species
     typedef Vector3<length_type>                                                    point_type;
     typedef typename particle_type::shape_type::position_type                       position_type;
     typedef GSLRandomNumberGenerator                                                rng_type;
@@ -213,6 +215,7 @@ public:
     typedef typename traits_type::structure_id_type         structure_id_type;
     typedef typename traits_type::structure_id_generator    structure_id_generator;
     typedef typename traits_type::structure_type            structure_type;
+    typedef typename traits_type::structure_type_type       structure_type_type;
     typedef typename traits_type::structure_type_id_type    structure_type_id_type;
 
     //
@@ -244,16 +247,6 @@ public:
         default_structure_id_ = structidgen_();
     }
     // TODO Add the default structure of the default structure_type here?
-
-    virtual structure_id_type get_def_structure_id() const
-    {   //   return default_structure_id_;
-        return "world";
-    }
-
-    virtual structure_type_id_type get_def_structure_type_id() const
-    {
-        return default_structure_type_id_;
-    }
 
     // To add new particles
     virtual particle_id_pair new_particle(species_id_type const& sid,
@@ -356,6 +349,20 @@ public:
             structure_map_.size());
     }
 
+    virtual structure_type_id_type get_def_structure_type_id() const
+    {
+        return default_structure_type_id_;
+    }
+
+    virtual structure_type_type get_structure_type(structure_type_id_type const& sid) const
+    {
+        return default_structure_; // TODO
+    }
+
+    virtual structure_id_type get_def_structure_id() const
+    {   return default_structure_id_;
+    }
+
     // TODO
     // Add structureType
     // update structure
@@ -408,6 +415,7 @@ private:
     structure_id_generator      structidgen_;
     StructureID                 default_structure_id_;
     structure_type_id_type      default_structure_type_id_;
+    structure_type_type         default_structure_; // TODO remove later again.
 };
 
 #endif /* WORLD_HPP */
