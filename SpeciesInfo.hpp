@@ -21,8 +21,8 @@ struct SpeciesInfo
     // constructors
     SpeciesInfo() {}
 
-    SpeciesInfo(identifier_type const& id, D_type const& D = 0., 
-                length_type const& r = 0., structure_type_id_type const& s = NULL, v_type const& v = 0.) 
+    SpeciesInfo(identifier_type const& id, structure_type_id_type const& s, D_type const& D = 0., 
+                length_type const& r = 0., v_type const& v = 0.) 
         : id_(id), diffusion_coef_(D), drift_velocity_(v), radius_(r), structure_type_id_(s) {}
 
 

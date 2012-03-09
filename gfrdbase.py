@@ -175,9 +175,9 @@ def create_world(m, matrix_size=10):
             structure = "world"
         world.add_species(
             _gfrd.SpeciesInfo(st.id, 
+                              structure,
                               float(st["D"]), 
                               float(st["radius"]), 
-                              structure,
                               float(st["v"])))
 
     for r in m.structures.itervalues():
