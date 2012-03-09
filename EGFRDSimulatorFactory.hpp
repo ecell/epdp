@@ -60,18 +60,19 @@ public:
             // TODO: add surfaces to world
         }
 
+        // Making sure that all the species have a structure_type defined?
         BOOST_FOREACH (boost::shared_ptr<SpeciesType> st,
                        model.get_species_types())
         {
-            std::string const& structure_id((*st)["structure"]);
+            structure_type_id_type const& structure_type_id((*st)["structure_type"]);
             world->add_species(
                 typename world_traits_type::species_type(
                     st->id(),
                     boost::lexical_cast<typename world_traits_type::D_type>(
                         (*st)["D"]),
                     boost::lexical_cast<length_type>((*st)["radius"]),
-                    boost::lexical_cast<typename world_traits_type::structure_id_type>(
-                        structure_id.empty() ? "world": structure_id)
+                    boost::lexical_cast<typename world_traits_type::structure_type_id_type>(
+                        structure_type_id.empty() ? model.get_def_structure_type_id(): structure_type_id)
                     ));
         }
 

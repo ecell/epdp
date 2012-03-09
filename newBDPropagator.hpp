@@ -106,7 +106,7 @@ public:
         species_type const pp_species(tx_.get_species(pp.second.sid()));
         length_type const r0( pp_species.radius() );
         position_type const old_pos( pp.second.position() );
-        boost::shared_ptr<structure_type> const pp_structure( tx_.get_structure( pp_species.structure_id() ) );
+        boost::shared_ptr<structure_type> const pp_structure( tx_.get_structure( pp.second.structure_id() ) );
         
         structure_id_and_distance_pair struct_id_distance_pair;
         length_type particle_surface_distance = 0;
@@ -142,7 +142,7 @@ public:
         
         /* If the particle has not bounced with another particle and lives in the bulk: 
            check for core overlap with a surface. */
-        if(!bounced && pp_structure->id() == "world")
+        if(!bounced && pp_structure->id() == tx_.get_def_structure_id())
         {
             struct_id_distance_pair = tx_.get_closest_surface( new_pos, pp_structure->id() );
             particle_surface_distance = struct_id_distance_pair.second;
@@ -167,7 +167,7 @@ public:
                                             
             particles_in_overlap = overlapped ? overlapped->size(): 0; 
             
-            if(pp_structure->id() == "world")
+            if(pp_structure->id() == tx_.get_def_structure_id())
             {
                 struct_id_distance_pair = tx_.get_closest_surface( new_pos, pp_structure->id() );
                 particle_surface_distance = struct_id_distance_pair.second;  
@@ -180,7 +180,7 @@ public:
         Real const rnd( rng_() );
         
         /* First, if a surface is inside the reaction volume, attempt an interaction. */
-        if( pp_structure->id() == "world" )
+        if( pp_structure->id() == tx_.get_def_structure_id())
         {
             if( tx_.get_structure( struct_id_distance_pair.first )->
                 in_reaction_volume( particle_surface_distance, r0, reaction_length_ ) )
@@ -227,22 +227,23 @@ public:
         {
             particle_id_pair_and_distance const& closest( overlapped->at(j) );
 
-            species_type s0(pp_species),s1(tx_.get_species(closest.first.second.sid()));
+            species_type s0(pp_species),
+                         s1(tx_.get_species(closest.first.second.sid()));
                 
             /* If the structures of the reactants do not equal, one of the reactants has to come from the bulk,
                and we let this be s1, the particle from the surface is named s0. */
-            if(s0.structure_id() != s1.structure_id())
+            if(s0.structure_type_id() != s1.structure_type_id())
             {
-                if( !(s0.structure_id() == "world" || s1.structure_id() == "world")  )
+                if( !(s0.structure_type_id() == tx_.get_def_structure_type_id() || s1.structure_type_id() == tx_.get_def_structure_type_id())  )
                 {
                     log_.warn("A surface particle overlapped with a particle living on a different surface. No reaction implemented.");
                     continue;
                 }
-                if(s0.structure_id() == "world")
+                if(s0.structure_type_id() == tx_.get_def_structure_type_id())
                     std::swap(s0,s1);
             }
             
-            boost::shared_ptr<structure_type> s1_struct( tx_.get_structure( s1.structure_id()) );
+            boost::shared_ptr<structure_type> s1_struct( tx_.get_structure( closest.first.second.structure_id()) );
             const Real reaction_volume( s1_struct->particle_reaction_volume( s0.radius() + s1.radius(), reaction_length_ ) );
             accumulated_prob += k_total(s0.id(), s1.id()) * dt_ / ( 2. * reaction_volume ); 
             
@@ -281,7 +282,7 @@ public:
         if(!bounced)
         {   
             particle_id_pair particle_to_update( pp.first, 
-                        particle_type(pp_species.id(), particle_shape_type(new_pos, r0), pp_species.D()) );
+                        particle_type(pp_species.id(), particle_shape_type(new_pos, r0), pp.second.structure_id(), pp_species.D()) );
                 
             if (vc_)
             {
@@ -334,13 +335,13 @@ private:
                 case 1:
                     {
                         const species_type s0(tx_.get_species(products[0]));
-                        boost::shared_ptr<structure_type> pp_struct( tx_.get_structure( tx_.get_species(pp.second.sid()).structure_id() ) );
+                        boost::shared_ptr<structure_type> pp_struct( tx_.get_structure(pp.second.structure_id()) );
                         position_type new_pos = pp.second.position();
                         
-                        /* If the product particle does NOT live of the same structure as the reactant => surface -> bulk dissociation. */
-                        if( s0.structure_id() != pp_struct->id() )
+                        /* If the product particle does NOT live on the same structure type as the reactant => surface -> bulk dissociation. */
+                        if( s0.structure_type_id() != pp_struct->sid() )
                         {
-                            if( s0.structure_id() != "world" )
+                            if( s0.structure_type_id() != tx_.get_def_structure_type_id() )
                                 throw not_implemented("No surface -> surface dissociation allowed");
                         
                             position_type const displacement( pp_struct->surface_dissociation_vector(rng_, s0.radius(), reaction_length_ ) );
@@ -367,9 +368,9 @@ private:
                             }
                         }
 
-                        if( s0.structure_id() == "world" && pp_struct->id() == "world" )
+                        if( s0.structure_type_id() == tx_.get_def_structure_type_id() && pp_struct->id() == tx_.get_def_structure_id() )
                         {
-                            structure_id_and_distance_pair const struct_id_distance_pair( tx_.get_closest_surface( new_pos, s0.structure_id()) );
+                            structure_id_and_distance_pair const struct_id_distance_pair( tx_.get_closest_surface( new_pos, pp_struct->id()) );
                             
                             boost::shared_ptr<structure_type> closest_struct( tx_.get_structure( struct_id_distance_pair.first ) );
 
@@ -394,11 +395,11 @@ private:
                 case 2:
                     {
                         species_type s0(tx_.get_species(products[0])),
-                                s1(tx_.get_species(products[1]));
+                                     s1(tx_.get_species(products[1]));
                         int i = max_retry_count_;
                         position_pair_type pp01;
 
-                        boost::shared_ptr<structure_type> pp_struct( tx_.get_structure( tx_.get_species( pp.second.sid() ).structure_id() ) );
+                        boost::shared_ptr<structure_type> pp_struct( tx_.get_structure( pp.second.structure_id() ) );
                         
                         /* Create positions (np0, np1) for the reaction products. 
                         The ipv between the products lies within the reation volume. */
@@ -414,12 +415,12 @@ private:
                                => standard geminate dissociation. 
                                
                                We set: species 0 lives on the surface; species 1 lives in the bulk. */
-                            if( s0.structure_id() != s1.structure_id() )
+                            if( s0.structure_type_id() != s1.structure_type_id() )
                             {
-                                if( !(s0.structure_id() == "world" || s1.structure_id() == "world")  )
+                                if( !(s0.structure_type_id() == tx_.get_def_structure_type_id() || s1.structure_type_id() == tx_.get_def_structure_type_id())  )
                                     throw not_implemented("No surface -> surface + surface - dissociation allowed");
                                                  
-                                if(s0.structure_id() == "world")    
+                                if(s0.structure_type_id() == tx_.get_def_structure_type_id())    
                                      std::swap(s0,s1);
 
                                 pp01 = pp_struct->
@@ -446,21 +447,21 @@ private:
                             /* Only when both products live in the bulk, check for possible overlap with a surface. */
                             bool surface_bounce0( false );
                             bool surface_bounce1( false );
-                            if( s0.structure_id() == "world" && s1.structure_id() == "world" )
+                            if( s0.structure_type_id() == tx_.get_def_structure_type_id() && s1.structure_type_id() == tx_.get_def_structure_type_id() )
                             {
-                                structure_id_and_distance_pair struct_id_distance_pair( tx_.get_closest_surface( pp01.first, s0.structure_id() ) );
+                                structure_id_and_distance_pair struct_id_distance_pair( tx_.get_closest_surface( pp01.first, tx_.get_def_structure_id() ) );
                                 boost::shared_ptr<structure_type> closest_struct( tx_.get_structure( struct_id_distance_pair.first ) );
 
                                 surface_bounce0 = closest_struct->bounced( tx_.cyclic_transpose( pp.second.position(), closest_struct->structure_position() ), 
-                                                                          tx_.cyclic_transpose( pp01.first, closest_struct->structure_position() ), 
-                                                                          struct_id_distance_pair.second, s0.radius() );
+                                                                           tx_.cyclic_transpose( pp01.first, closest_struct->structure_position() ), 
+                                                                           struct_id_distance_pair.second, s0.radius() );
 
-                                struct_id_distance_pair = tx_.get_closest_surface( pp01.second, s1.structure_id() );
+                                struct_id_distance_pair = tx_.get_closest_surface( pp01.second, tx_.get_def_structure_id() );
                                 closest_struct = tx_.get_structure( struct_id_distance_pair.first );
 
                                 surface_bounce1 = closest_struct->bounced( tx_.cyclic_transpose( pp.second.position(), closest_struct->structure_position() ), 
-                                                                          tx_.cyclic_transpose( pp01.second, closest_struct->structure_position() ), 
-                                                                          struct_id_distance_pair.second, s1.radius() );
+                                                                           tx_.cyclic_transpose( pp01.second, closest_struct->structure_position() ), 
+                                                                           struct_id_distance_pair.second, s1.radius() );
                             }
                                     
                             if ( !(overlapped_s0 && overlapped_s0->size() > 0) && !(overlapped_s1 && overlapped_s1->size() > 0) 
@@ -524,12 +525,13 @@ private:
     
     
     bool fire_reaction(particle_id_pair const& pp0, particle_id_pair const& pp1, species_type const& s0, species_type const& s1)
+    // unclear what the convention for pp0, pp1 and s0,s1 is with regard to being in 3D/2D.
     {
         reaction_rules const& rules(rules_.query_reaction_rule(pp0.second.sid(), pp1.second.sid()));
         if(::size(rules) == 0)
             throw propagation_error("trying to fire a reaction between non-reactive particles");
         
-        boost::shared_ptr<structure_type> s1_struct( tx_.get_structure( s1.structure_id() ) );
+//        boost::shared_ptr<structure_type> s1_struct( tx_.get_structure( pp1.structure_id() ) );
         
         const Real k_tot( k_total(pp0.second.sid(), pp1.second.sid()) );
         const Real rnd( k_tot * rng_() );
@@ -561,9 +563,18 @@ private:
                                         (s0.D() + s1.D()))) );
 
                         //For unequal structures, project new_pos on surface.
-                        if(sp.structure_id() != s1.structure_id())
+                        if(sp.structure_type_id() != s1.structure_type_id())
                         {
-                            boost::shared_ptr<structure_type> sp_struct( tx_.get_structure( sp.structure_id() ) );
+                            // make sure that pp1 is the particle that is in 3D.
+                            // FIXME Ugly!!
+                            boost::shared_ptr<structure_type> sp_struct;
+                            if(pp0.second.structure_id() == tx_.get_def_structure_id())
+                            {   sp_struct = tx_.get_structure( pp1.second.structure_id() );
+                            }
+                            else
+                            {   sp_struct = tx_.get_structure( pp0.second.structure_id() );
+                            }
+
                             projected_type const position_on_surface( sp_struct->
                                                                       projected_point( tx_.cyclic_transpose( new_pos, 
                                                                                                              sp_struct->structure_position() ) ) );
@@ -589,9 +600,9 @@ private:
                             }
                         }
                         
-                        if( sp.structure_id() == "world" )
+                        if( sp.structure_type_id() == tx_.get_def_structure_type_id() )
                         {
-                            structure_id_and_distance_pair const struct_id_distance_pair( tx_.get_closest_surface( new_pos, sp.structure_id() ) );
+                            structure_id_and_distance_pair const struct_id_distance_pair( tx_.get_closest_surface( new_pos, tx_.get_def_structure_id() ) );
                             boost::shared_ptr<structure_type> closest_struct( tx_.get_structure( struct_id_distance_pair.first ) );
 
                             if( closest_struct->bounced( tx_.cyclic_transpose( pp0.second.position(), closest_struct->structure_position() ), 
@@ -711,10 +722,10 @@ private:
     /* Given a position pair and two species, the function generates two new 
        positions based on two moves drawn from the free propegator. */
     position_pair_type const make_pair_move(species_type const& s0, species_type const& s1, position_pair_type const& pp01, 
-                                                particle_id_type const& ignore)
+                                            particle_id_type const& ignore)
     {
-        boost::shared_ptr<structure_type> s0_struct( tx_.get_structure( s0.structure_id() ) );
-        boost::shared_ptr<structure_type> s1_struct( tx_.get_structure( s1.structure_id() ) );
+//        boost::shared_ptr<structure_type> s0_struct( tx_.get_structure( s0.structure_id() ) );
+//        boost::shared_ptr<structure_type> s1_struct( tx_.get_structure( s1.structure_id() ) );
 
         length_type const r01( s0.radius() + s1.radius() );
         
@@ -743,11 +754,12 @@ private:
     }
 
     position_type const make_move(species_type const& s0, position_type const& old_pos, particle_id_type const& ignore)
+    // generates a move for a particle.
     {
         if(s0.D() == 0)
             return old_pos;
     
-        boost::shared_ptr<structure_type> s0_struct( tx_.get_structure( s0.structure_id() ) );
+        boost::shared_ptr<structure_type> s0_struct( tx_.get_structure( tx_.get_particle(ignore).second.structure_id() ) );
 
         position_type displacement( s0_struct->
                                     bd_displacement(s0.v() * dt_, std::sqrt(2.0 * s0.D() * dt_), rng_) );
@@ -762,9 +774,9 @@ private:
         if ( (overlapped && overlapped->size() > 0) )
             return old_pos;
         
-        if(s0.structure_id() == "world")
+        if(s0.structure_type_id() == tx_.get_def_structure_type_id())
         {
-            structure_id_and_distance_pair const struct_id_distance_pair( tx_.get_closest_surface( new_pos, s0.structure_id() ) );
+            structure_id_and_distance_pair const struct_id_distance_pair( tx_.get_closest_surface( new_pos, tx_.get_particle(ignore).second.structure_id() ) );
             boost::shared_ptr<structure_type> closest_struct( tx_.get_structure( struct_id_distance_pair.first ) );
 
             if( closest_struct->bounced( tx_.cyclic_transpose( old_pos, closest_struct->structure_position() ), 
