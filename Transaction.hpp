@@ -14,22 +14,25 @@
 
 template<typename Ttraits_>
 class Transaction: public ParticleContainer<Ttraits_>
+// A transaction 'is a' ParticleContainer that makes it possible to revert the moves of the particles
+// The Transaction is actually just an abstract datatype, not a class from which can be instantiated.
 {
 public:
     typedef Ttraits_ traits_type;
-    typedef typename traits_type::particle_type particle_type;
-    typedef typename particle_type::shape_type particle_shape_type;
-    typedef typename traits_type::species_type species_type;
-    typedef typename traits_type::species_id_type species_id_type;
-    typedef typename traits_type::position_type position_type;
-    typedef typename traits_type::particle_id_type particle_id_type;
-    typedef typename traits_type::size_type size_type;
-    typedef typename traits_type::length_type length_type;
+    // useful shorthands for types that we are using.
+    typedef typename traits_type::particle_type     particle_type;
+    typedef typename particle_type::shape_type      particle_shape_type;
+    typedef typename traits_type::species_type      species_type;
+    typedef typename traits_type::species_id_type   species_id_type;
+    typedef typename traits_type::position_type     position_type;
+    typedef typename traits_type::particle_id_type  particle_id_type;
+    typedef typename traits_type::size_type         size_type;
+    typedef typename traits_type::length_type       length_type;
     typedef typename traits_type::structure_id_type structure_id_type;
-    typedef typename traits_type::structure_type structure_type;
-    typedef std::pair<const particle_id_type, particle_type> particle_id_pair;
-    typedef abstract_limited_generator<particle_id_pair> particle_id_pair_generator;
-    typedef std::pair<particle_id_pair, length_type> particle_id_pair_and_distance;
+    typedef typename traits_type::structure_type    structure_type;
+    typedef std::pair<const particle_id_type, particle_type>    particle_id_pair;
+    typedef abstract_limited_generator<particle_id_pair>        particle_id_pair_generator;
+    typedef std::pair<particle_id_pair, length_type>            particle_id_pair_and_distance;
     typedef unassignable_adapter<particle_id_pair_and_distance, get_default_impl::std::vector> particle_id_pair_and_distance_list;
 
     virtual ~Transaction() {}
@@ -48,21 +51,23 @@ class TransactionImpl: public Transaction<typename Tpc_::traits_type>
 {
 public:
     typedef Tpc_ particle_container_type;
-    typedef typename particle_container_type::traits_type traits_type;
-    typedef typename traits_type::particle_type particle_type;
-    typedef typename particle_type::shape_type particle_shape_type;
-    typedef typename traits_type::species_type species_type;
-    typedef typename traits_type::species_id_type species_id_type;
-    typedef typename traits_type::position_type position_type;
-    typedef typename traits_type::particle_id_type particle_id_type;
-    typedef typename traits_type::size_type size_type;
-    typedef typename traits_type::length_type length_type;
-    typedef typename traits_type::structure_id_type structure_id_type;
-    typedef typename traits_type::structure_type structure_type;
+    typedef typename particle_container_type::traits_type   traits_type;
+    typedef typename traits_type::particle_type             particle_type;
+    typedef typename particle_type::shape_type              particle_shape_type;
+    typedef typename traits_type::species_type              species_type;
+    typedef typename traits_type::species_id_type           species_id_type;
+    typedef typename traits_type::position_type             position_type;
+    typedef typename traits_type::particle_id_type          particle_id_type;
+    typedef typename traits_type::size_type                 size_type;
+    typedef typename traits_type::length_type               length_type;
+    typedef typename traits_type::structure_id_type         structure_id_type;
+    typedef typename traits_type::structure_type            structure_type;
+    typedef typename traits_type::structure_type_type       structure_type_type;
+    typedef typename traits_type::structure_type_id_type    structure_type_id_type;
     typedef std::pair<const particle_id_type, particle_type> particle_id_pair;
-    typedef std::pair<structure_id_type, length_type> structure_id_and_distance_pair;
-    typedef abstract_limited_generator<particle_id_pair> particle_id_pair_generator;
-    typedef std::pair<particle_id_pair, length_type> particle_id_pair_and_distance;
+    typedef std::pair<structure_id_type, length_type>       structure_id_and_distance_pair;
+    typedef abstract_limited_generator<particle_id_pair>    particle_id_pair_generator;
+    typedef std::pair<particle_id_pair, length_type>        particle_id_pair_and_distance;
     typedef unassignable_adapter<particle_id_pair_and_distance, get_default_impl::std::vector> particle_id_pair_and_distance_list;
 
 private:
@@ -158,6 +163,7 @@ public:
         return new TransactionImpl<particle_container_type>(*this);
     }
 
+    // Start Structure stuff
     virtual boost::shared_ptr<structure_type> get_structure(structure_id_type const& id) const
     {
         return pc_.get_structure(id);
@@ -173,6 +179,11 @@ public:
         return pc_.get_def_structure_type_id();
     }    
         
+    virtual structure_type_type get_structure_type(structure_type_id_type const& sid) const
+    {
+        return pc_.get_structure_type(sid);
+    }
+
     virtual structure_id_type get_def_structure_id() const
     {
         return pc_.get_def_structure_id();
@@ -182,6 +193,8 @@ public:
     {
         return pc_.get_closest_surface( pos, ignore );
     }
+    // End structure stuff
+
 
     virtual species_type const& get_species(species_id_type const& id) const
     {
