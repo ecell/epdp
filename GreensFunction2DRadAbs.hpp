@@ -189,9 +189,11 @@ public:
 
 //    const Real getAlpha0( const RealVector::size_type i ) const;
 
-    virtual Real givePDF( const Real theta,
+    Real givePDFTheta( const Real theta,
 					   const Real r, 
 					   const Real t ) const;    
+					   
+    Real givePDFR( const Real r, const Real t ) const;
 
 protected:
 

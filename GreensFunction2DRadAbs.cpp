@@ -379,6 +379,11 @@ GreensFunction2DRadAbs::Y0J0J1_constants ( const Real alpha,
 // Root finding algorithm for alpha function. 
 // Roots (y=0) are necessary to calculate 
 // Modified by wehrens@amolf.nl. nov, 2011
+//
+// Note mar 2012:
+// The modified root finding algorithm can only work if the roots are calculated
+// in a "chronological" sequence (i.e. i = 0, i = 1, i = 2 etc). Therefore roots
+// are now all calculated immediately when the roots-table is expanded.
 // =============================================================================
 
 // Scans for next interval where a sign change is observed, and thus where a 
@@ -616,59 +621,81 @@ const Real GreensFunction2DRadAbs::getAlpha( size_t n,               // order
     
     // # "Administration"
 
-    // Gets the line of table that corresponds to order (n),     
+    // Equals reading/writing to/from alphaTable to reading/writing from/to to 
+    // this->alphaTable[n]; n being the order of the Bessel function. 
+    // (Funky pointer operations.)
     RealVector& alphaTable( this->alphaTable[n] );		        
     
     // Gets it's size 
     const RealVector::size_type oldSize( alphaTable.size() );	
+
+    // # Expansion of root table
     
-    // Resizes and fills with zeroes if the vector is too small
+    // If doesn't contain requested value, expand table until value
     if( i >= oldSize )
     {
+        // Expand the table, temporarily fill with zeroes
         alphaTable.resize( i+1, 0 );	
-    }
 
-    // # Calculating the root
+        // # Calculating the necessary roots to expand the table
+        for(unsigned int j = oldSize; j <= i; j++)
+        {
+            std::cerr << "\n\nSearching for j="<<j<<",n="<<n<<".\n";
+            if (alphaTable[j] != 0)		
+            {
+                std::cerr << "Error: tried accessing root that's not 0. Didn't search.. \n";
+                std::cerr << "       i = " << i << ", oldSize = " << oldSize << ", j = " << j << " \n";                
+            }  else   
+            {
+                // Method 1. SCANNING. If the roots are not expected to lie close enough 
+                // to the estimate, use the "scanning" procedure to find an interval 
+                // that contains a root. (More robust method.)
+                //      If it is established that we can use method 2, 
+                // alpha_x_scan_table_[n] will contain a value < 0.
+                if (alpha_x_scan_table_[n] >= 0)
+                {		        
+                    std::cerr << "Scanning.\n";
+                
+                    // ### Gets estimate of interval by sign-change-searching
+                    //      high and low are the return-values of GiveRootInterval.
+                    GiveRootInterval(low, high, n);	        
 
-    // Only calculates the root is this has not been done already
-    if (alphaTable[i] == 0)		
-    {        
+                    std::cerr << "Called getAlphaRoot(low="<<low<<",high="<< high<<",n="<< n<<").\n";
+                    
+                    // ### Finds the root using the GSL rootfinder
+                    current_root_ = getAlphaRoot(low, high, n);
+                    
+                    // ### Puts the found root in the table.
+	                alphaTable[j]= current_root_;
+	                		    
+	                // Check if we can use method 2 for next roots
+	                decideOnMethod2(n, j);		    
+                }
+                // Method 2. ASSUMING ROOTS AT ~FIXED INTERVAL. If next root is expected 
+                // to lie at distance close enough to estimated distance the root finder 
+                // can be called using a simple estimated interval.
+                else 
+                {
+                    std::cerr << "Estimating.\n";                
+                
+                    // ### Get interval by simple extrapolation
+                    GiveRootIntervalSimple(low, high, n, j);	        
+                
+                    std::cerr << "Called getAlphaRoot(low="<<low<<",high="<< high<<",n="<< n<<").\n";
+                
+                    // ### Finds the root using the GSL rootfinder
+                    current_root_ = getAlphaRoot(low, high, n);
+
+                    // ### Puts the found root in the table.
+	                alphaTable[j] = current_root_;		    
+                }
+                std::cerr << "Found root:" << current_root_ << "\n";
+            }
+        }
     
-        // Method 1. SCANNING. If the roots are not expected to lie close enough 
-        // to the estimate, use the "scanning" procedure to find an interval 
-        // that contains a root. (More robust method.)
-        //      If it is established that we can use method 2, 
-        // alpha_x_scan_table_[n] will contain a value < 0.
-	    if (alpha_x_scan_table_[n] >= 0)
-	    {		        
-	        // ### Gets estimate of interval by sign-change-searching
-	        //      high and low are the return-values of GiveRootInterval.
-	        GiveRootInterval(low, high, n);	        
-	        
-	        // ### Finds the root using the GSL rootfinder
-            current_root_ = getAlphaRoot(low, high, n);
-            
-            // ### Puts the found root in the table.
-		    alphaTable[i]= current_root_;
-		    		    
-		    // Check if we can use method 2 for next roots
-		    decideOnMethod2(n, i);		    
-	    }
-	    // Method 2. ASSUMING ROOTS AT ~FIXED INTERVAL. If next root is expected 
-	    // to lie at distance close enough to estimated distance the root finder 
-	    // can be called using a simple estimated interval.
-	    else 
-	    {
-            // ### Get interval by simple extrapolation
-	        GiveRootIntervalSimple(low, high, n, i);	        
-	    
-	        // ### Finds the root using the GSL rootfinder
-            current_root_ = getAlphaRoot(low, high, n);
-
-            // ### Puts the found root in the table.
-		    alphaTable[i] = current_root_;		    
-	    }
     }
+    
+    std::cerr << "Return root (n,i) = " << alphaTable[i] << "(n=" << n << ",i=" << i << ")\n";   
     
     return alphaTable[i];
 
@@ -784,21 +811,27 @@ GreensFunction2DRadAbs::p_survival_table( const Real t,
 {
 	Real p;
 	const unsigned int maxi( guess_maxi( t ) );	// guess the maximum number of iterations required
+//	const unsigned int maxi( 500 );	// THIS LEADS TO BIZARRE RESULTS
             
+    // If the estimated # terms needed for convergence is bigger than number
+    // of terms summed over (MAX_ALPHA_SEQ), give error.
     if( maxi == this->MAX_ALPHA_SEQ )
         std::cerr << " p_survival_table (used by drawTime) couldn't converge; max terms reached: " << maxi << std::endl;
            
-        if( psurvTable.size() < maxi + 1 )		// if the dimensions are good then this means
-        {						// that the table is filled
-        	IGNORE_RETURN getAlpha( 0, maxi );	// this updates the table of roots
-                this->createPsurvTable( psurvTable);	// then the table is filled with data
-        }
-        p = funcSum_all( boost::bind( &GreensFunction2DRadAbs::p_survival_i_exp_table,
-                                          this,
-                                          _1, t, psurvTable ),
-                         maxi );	// calculate the sum at time t
+    if( psurvTable.size() < maxi + 1 )		// if the dimensions are good then this means
+    {						// that the table is filled
+    	IGNORE_RETURN getAlpha( 0, maxi );	// this updates the table of roots
+            this->createPsurvTable( psurvTable);	// then the table is filled with data
+    }
+    // A sum over terms is performed, where convergence is assumed. It is not 
+    // clear if this is a just assumption.
+    // TODO!
+    p = funcSum_all( boost::bind( &GreensFunction2DRadAbs::p_survival_i_exp_table,
+                                      this,
+                                      _1, t, psurvTable ),
+                     maxi );	// calculate the sum at time t
 
-        return p*M_PI*M_PI_2;
+    return p*M_PI*M_PI_2;
 }
 
 // calculates the flux leaving through the inner interface at a given moment
@@ -1041,7 +1074,8 @@ GreensFunction2DRadAbs::drawEventType( const Real rnd,
 // This draws a radius R at a given time, provided that the particle was at r0 at t=0
 Real GreensFunction2DRadAbs::drawR( const Real rnd, 
 						  const Real t ) const
-{
+{     
+    // Diffusion constant, inner boundary, outer boundary, starting r.
     const Real D( this->getD() );
     const Real sigma( getSigma() );
     const Real a( this->geta() );
@@ -1130,7 +1164,6 @@ Real GreensFunction2DRadAbs::drawR( const Real rnd,
 
 
     // root finding by iteration.
-
     const gsl_root_fsolver_type* solverType( gsl_root_fsolver_brent );
     gsl_root_fsolver* solver( gsl_root_fsolver_alloc( solverType ) );
     const Real r( findRoot( F, solver, low, high,		// find the intersection between the random
@@ -1494,7 +1527,7 @@ GreensFunction2DRadAbs::drawTheta( const Real rnd,
 
 	// making the tables with constants
 
-	RealVector p_mTable;			// a table with constants to make calculations much faster
+	RealVector p_mTable;			// a table with constants to make calculationdraws much faster
 	if( fabs(r - a) <= EPSILON*L_TYPICAL )	// If the r is at the outer boundary
 	{
 		makedp_m_at_aTable( p_mTable, t );	// making the table if particle on the outer boundary
@@ -1551,7 +1584,7 @@ std::string GreensFunction2DRadAbs::dump() const
 // Directly outputs probability distribution function value of leaving angle
 // for given theta, r and t.
 Real 
-GreensFunction2DRadAbs::givePDF( const Real theta,
+GreensFunction2DRadAbs::givePDFTheta( const Real theta,
 					   const Real r, 
 					   const Real t ) const
 {
@@ -1581,6 +1614,39 @@ GreensFunction2DRadAbs::givePDF( const Real theta,
     Real PDF (ip_theta_F( theta, &params ));
     return PDF;
 	
+}
+
+// Output the PDF of r, given time t has passed.
+Real GreensFunction2DRadAbs::givePDFR( const Real r, const Real t ) const
+{
+    const Real D( this->getD() );
+    const Real sigma( getSigma() );
+    const Real a( this->geta() );
+    const Real r0( this->getr0() );
+
+    if( t == 0.0 )		// if no time has passed
+    {
+	return r0;
+    }
+
+    const Real psurv( p_survival( t ) );	// calculate the survival probability at this time
+						// this is used as the normalization factor
+						// BEWARE!!! This also produces the roots An and therefore
+						// SETS THE HIGHEST INDEX -> side effect
+						// VERY BAD PROGRAMMING PRACTICE!!
+
+    RealVector Y0_aAnTable;
+    RealVector J0_aAnTable;
+    RealVector Y0J1J0Y1Table;
+    createY0J0Tables( Y0_aAnTable, J0_aAnTable, Y0J1J0Y1Table, t);
+
+    // Create a struct params with the corrects vars.
+    p_int_r_params params = { this, t, Y0_aAnTable, J0_aAnTable, Y0J1J0Y1Table, 0.0 };
+
+    // Calculate PDF(r) with these vars,
+    Real PDF (p_int_r_F( r, &params ));
+
+    return PDF;
 }
 
 // It is used by the drawTheta method
