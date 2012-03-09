@@ -25,8 +25,9 @@ public:
     typedef typename traits_type::particle_id_type  particle_id_type;
     typedef typename traits_type::length_type       length_type;
     typedef typename traits_type::size_type         size_type;
-    typedef typename traits_type::structure_id_type structure_id_type;
-    typedef typename traits_type::structure_type    structure_type;
+    typedef typename traits_type::structure_type            structure_type;
+    typedef typename traits_type::structure_id_type         structure_id_type;
+    typedef typename traits_type::structure_type_type       structure_type_type;
     typedef typename traits_type::structure_type_id_type    structure_type_id_type;
 
     typedef std::pair<const particle_id_type, particle_type>    particle_id_pair;
@@ -60,8 +61,10 @@ public:
 
     virtual structure_type_id_type get_def_structure_type_id() const = 0;
 
+    virtual structure_type_type get_structure_type(structure_type_id_type const& sid) const = 0;
+
     virtual structure_id_type get_def_structure_id() const = 0;
-    
+
     virtual structure_id_and_distance_pair get_closest_surface(position_type const& pos, structure_id_type const& ignore) const = 0;
 
     // Particle stuff
