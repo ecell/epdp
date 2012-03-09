@@ -640,7 +640,6 @@ const Real GreensFunction2DRadAbs::getAlpha( size_t n,               // order
         // # Calculating the necessary roots to expand the table
         for(unsigned int j = oldSize; j <= i; j++)
         {
-            std::cerr << "\n\nSearching for j="<<j<<",n="<<n<<".\n";
             if (alphaTable[j] != 0)		
             {
                 std::cerr << "Error: tried accessing root that's not 0. Didn't search.. \n";
@@ -653,15 +652,11 @@ const Real GreensFunction2DRadAbs::getAlpha( size_t n,               // order
                 //      If it is established that we can use method 2, 
                 // alpha_x_scan_table_[n] will contain a value < 0.
                 if (alpha_x_scan_table_[n] >= 0)
-                {		        
-                    std::cerr << "Scanning.\n";
-                
+                {		                        
                     // ### Gets estimate of interval by sign-change-searching
                     //      high and low are the return-values of GiveRootInterval.
                     GiveRootInterval(low, high, n);	        
 
-                    std::cerr << "Called getAlphaRoot(low="<<low<<",high="<< high<<",n="<< n<<").\n";
-                    
                     // ### Finds the root using the GSL rootfinder
                     current_root_ = getAlphaRoot(low, high, n);
                     
@@ -676,12 +671,8 @@ const Real GreensFunction2DRadAbs::getAlpha( size_t n,               // order
                 // can be called using a simple estimated interval.
                 else 
                 {
-                    std::cerr << "Estimating.\n";                
-                
                     // ### Get interval by simple extrapolation
                     GiveRootIntervalSimple(low, high, n, j);	        
-                
-                    std::cerr << "Called getAlphaRoot(low="<<low<<",high="<< high<<",n="<< n<<").\n";
                 
                     // ### Finds the root using the GSL rootfinder
                     current_root_ = getAlphaRoot(low, high, n);
@@ -689,13 +680,10 @@ const Real GreensFunction2DRadAbs::getAlpha( size_t n,               // order
                     // ### Puts the found root in the table.
 	                alphaTable[j] = current_root_;		    
                 }
-                std::cerr << "Found root:" << current_root_ << "\n";
             }
         }
     
     }
-    
-    std::cerr << "Return root (n,i) = " << alphaTable[i] << "(n=" << n << ",i=" << i << ")\n";   
     
     return alphaTable[i];
 
