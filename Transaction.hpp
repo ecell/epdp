@@ -28,8 +28,6 @@ public:
     typedef typename traits_type::particle_id_type  particle_id_type;
     typedef typename traits_type::size_type         size_type;
     typedef typename traits_type::length_type       length_type;
-    typedef typename traits_type::structure_id_type structure_id_type;
-    typedef typename traits_type::structure_type    structure_type;
     typedef std::pair<const particle_id_type, particle_type>    particle_id_pair;
     typedef abstract_limited_generator<particle_id_pair>        particle_id_pair_generator;
     typedef std::pair<particle_id_pair, length_type>            particle_id_pair_and_distance;
@@ -48,10 +46,12 @@ public:
 
 template<typename Tpc_>
 class TransactionImpl: public Transaction<typename Tpc_::traits_type>
+// Tpc_ is the 'particlecontainer_type'
 {
 public:
     typedef Tpc_ particle_container_type;
-    typedef typename particle_container_type::traits_type   traits_type;
+    typedef typename particle_container_type::traits_type   traits_type;        // get the traits that are passed on from the particlecontainer.
+    // define shorthands to the types that we are using here.
     typedef typename traits_type::particle_type             particle_type;
     typedef typename particle_type::shape_type              particle_shape_type;
     typedef typename traits_type::species_type              species_type;
@@ -216,6 +216,7 @@ public:
         return pc_.get_particles();
     }
 
+    // Begin Transaction methods. The following methods are prototyped in the base class Transaction (see above)
     virtual particle_id_pair_generator* get_added_particles() const
     {
         return make_range_generator<true>(
@@ -258,6 +259,8 @@ public:
         removed_particles_.clear();
         orig_particles_.clear();
     }
+    // end Transaction methods.
+
 
     virtual length_type distance(position_type const& lhs,
                                  position_type const& rhs) const
@@ -302,11 +305,11 @@ private:
     }
 
 private:
-    particle_container_type& pc_;
-    particle_id_list_type added_particles_;
-    particle_id_list_type modified_particles_;
-    particle_id_pair_set_type orig_particles_;
-    particle_id_list_type removed_particles_;
+    particle_container_type&    pc_;        // the particle container
+    particle_id_list_type       added_particles_;
+    particle_id_list_type       modified_particles_;
+    particle_id_pair_set_type   orig_particles_;
+    particle_id_list_type       removed_particles_;
 };
 
 #endif /* TRANSACTION_HPP */
