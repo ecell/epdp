@@ -41,11 +41,11 @@ struct WorldTraitsBase
     typedef Tlen_                                           length_type;
     typedef TD_                                             D_type;
     typedef TD_                                             v_type;
-    typedef ParticleID                                      particle_id_type;   // identifier type for particles
+    typedef ParticleID                                      particle_id_type;       // identifier type for particles
     typedef SerialIDGenerator<particle_id_type>             particle_id_generator;
-    typedef SpeciesTypeID                                   species_id_type;    // identifier type for species and (structure types)
+    typedef SpeciesTypeID                                   species_id_type;        // identifier type for species and (structure types)
     typedef SpeciesTypeID                                   structure_type_id_type;
-    typedef StructureType                                   structure_type_type;
+    typedef StructureType                                   structure_type_type;    // definition of what class to use for structure_type
 //    typedef Particle<length_type, D_type, species_id_type>  particle_type;      // type for particles, NOTE why is there no v_type here?
 //    typedef std::string                                     structure_id_type;  // identifier type for structures
     typedef StructureID                                     structure_id_type;
@@ -54,7 +54,7 @@ struct WorldTraitsBase
                      structure_id_type>                     particle_type;      // type for particles, NOTE why is there no v_type here?
 
     typedef SpeciesInfo<species_id_type, D_type,
-                        length_type, structure_type_id_type>species_type;       // information associated with the species
+                        length_type, structure_type_id_type>species_type;       // This is the definition of the species in the presence of a World
     typedef Vector3<length_type>                                                    point_type;
     typedef typename particle_type::shape_type::position_type                       position_type;
     typedef GSLRandomNumberGenerator                                                rng_type;
@@ -219,24 +219,33 @@ public:
 
     //
     typedef std::pair<const particle_id_type, particle_type>                    particle_id_pair;      // defines the pid_particle_pair tuple
+    typedef std::pair<const structure_id_type, structure_type>                  structure_id_pair;
     typedef std::pair<position_type, length_type>                               projected_type;
     typedef typename particle_container_type::structure_id_and_distance_pair    structure_id_and_distance_pair;
 
 protected:
     typedef std::map<species_id_type, species_type>                         species_map;
-    typedef std::map<structure_id_type, boost::shared_ptr<structure_type> > structure_map;          // note: this is a structure_map_type
     typedef std::set<particle_id_type>                                      particle_id_set;
     typedef std::map<species_id_type, particle_id_set>                      per_species_particle_id_set;
     typedef select_second<typename species_map::value_type>                 species_second_selector_type;   // not sure what this does.
-    typedef select_second<typename structure_map::value_type>               surface_second_selector_type;
+
+    typedef std::map<structure_type_id_type, structure_type_type>           structure_type_map;
+    typedef std::map<structure_id_type, boost::shared_ptr<structure_type> > structure_map;          // note: this is a structure_map_type
+    typedef std::set<structure_id_type>                                     structure_id_set;
+    typedef std::map<structure_type_id_type, structure_id_set>              per_structure_type_structure_id_set;
+    typedef select_second<typename structure_map::value_type>               structures_second_selector_type;
+    typedef select_second<typename structure_type_map::value_type>          structure_types_second_selector_type;
 
 public:
     typedef boost::transform_iterator<species_second_selector_type,
-            typename species_map::const_iterator>                   species_iterator;
-    typedef boost::transform_iterator<surface_second_selector_type,
-            typename structure_map::const_iterator>                 surface_iterator;
-    typedef sized_iterator_range<species_iterator>                  species_range;
-    typedef sized_iterator_range<surface_iterator>                  structures_range;
+            typename species_map::const_iterator>                           species_iterator;
+    typedef boost::transform_iterator<structures_second_selector_type,
+            typename structure_map::const_iterator>                         structure_iterator;
+    typedef boost::transform_iterator<structure_types_second_selector_type,
+            typename structure_type_map::const_iterator>                    structure_type_iterator;
+    typedef sized_iterator_range<species_iterator>                          species_range;
+    typedef sized_iterator_range<structure_iterator>                        structures_range;
+    typedef sized_iterator_range<structure_type_iterator>                   structure_types_range;
 
 public:
     // The constructor
@@ -247,7 +256,7 @@ public:
     }
     // TODO Add the default structure of the default structure_type here?
 
-    // To add new particles
+    // To create new particles
     virtual particle_id_pair new_particle(species_id_type const& sid,
             position_type const& pos)
     {
@@ -259,7 +268,6 @@ public:
         update_particle(retval);
         return retval;
     }
-
     // To update particles
     virtual bool update_particle(particle_id_pair const& pi_pair)
     {
@@ -268,6 +276,7 @@ public:
         if (i != base_type::pmat_.end())
         {
             if ((*i).second.sid() != pi_pair.second.sid())
+            // If the species changed we need to erase it from the 'species_id -> particle ids' mapping
             {
                 particle_pool_[(*i).second.sid()].erase((*i).first);
                 particle_pool_[pi_pair.second.sid()].insert(pi_pair.first);
@@ -279,7 +288,6 @@ public:
         particle_pool_[pi_pair.second.sid()].insert(pi_pair.first);
         return true;
     }
-
     // Remove the particle by id 'id' if present in the world.
     virtual bool remove_particle(particle_id_type const& id)
     {
@@ -296,12 +304,10 @@ public:
 
     // Adds a species to the world.
     void add_species(species_type const& species)
-        // Wouldn't it make more sence to make this method part of the model class instead of the world class?
     {
         species_map_[species.id()] = species;
         particle_pool_[species.id()] = particle_id_set();
     }
-
     // Get the species in the world by id
     virtual species_type const& get_species(species_id_type const& id) const
     {
@@ -312,7 +318,6 @@ public:
         }
         return (*i).second;
     }
-
     // Get all the species
     species_range get_species() const
     {
@@ -322,31 +327,73 @@ public:
             species_map_.size());
     }
 
+    // TODO
+    // remove structure
     // Add a structure 
-    bool add_structure(boost::shared_ptr<structure_type> surface)
+    bool add_structure(boost::shared_ptr<structure_type> structure)
     {
-        return structure_map_.insert(std::make_pair(surface->id(), surface)).second;
+//        return structure_map_.insert(std::make_pair(structure->id(), structure)).second;
+        // FIXME check that the structure_type that is defined in the structure exists!
+        // TODO add mapping from structure id -> set of particles
+        return update_structure(std::make_pair(structidgen_(), structure))
     }
 
+
+    // update structure
+    // FIXME what to do when the structure has particles and moves or changes structure_type?!?!
+    virtual bool update_structure(structure_id_pair const& structid_pair)
+    {
+        typename structure_map::const_iterator i(structure_map_.find(structid_pair.first));
+        if (i != structure_map_.end())
+        // The item was already found in the map
+        {
+            if ((*i).second.sid() != structid_pair.second.sid())
+            // If the structuretype changed we need to update the 'structure_type_id -> structure ids' mapping
+            {
+                structure_pool_[(*i).second.sid()].erase((*i).first);
+                structure_pool_[structid_pair.second.sid()].insert(structid_pair.first);
+            }
+            structure_map_.update(i, structid_pair);
+            return false;
+        }
+
+        // create a new item in the structure mapping
+        structure_map_[structid_pair.first] = structid_pair.second;
+        // update the mapping 'structure_type_id -> set of structure ids'
+        structure_pool_[structid_pair.second.sid()].insert(structid_pair.first);
+        return true;
+    }
     // Get a structure by id
     virtual boost::shared_ptr<structure_type> get_structure(structure_id_type const& id) const
     {
         typename structure_map::const_iterator i(structure_map_.find(id));
         if (structure_map_.end() == i)
         {
-            throw not_found(std::string("Unknown surface (id=") + boost::lexical_cast<std::string>(id) + ")");
+            throw not_found(std::string("Unknown structure (id=") + boost::lexical_cast<std::string>(id) + ")");
         }
         return (*i).second;
     }
-
     // Get all the structures
     virtual structures_range get_structures() const
     {
         return structures_range(
-            surface_iterator(structure_map_.begin(), surface_second_selector_type()),
-            surface_iterator(structure_map_.end(), surface_second_selector_type()),
+            structure_iterator(structure_map_.begin(), structures_second_selector_type()),
+            structure_iterator(structure_map_.end(),   structures_second_selector_type()),
             structure_map_.size());
     }
+    // Get all the structure ids by structure_type id
+    structure_id_set get_structure_ids(structure_type_id_type const& sid) const
+    {
+        typename per_structure_type_structure_id_set::const_iterator i(
+            structure_pool_.find(sid));
+        if (i == structure_pool_.end())
+        {
+            throw not_found(std::string("Unknown structure_type (id=") + boost::lexical_cast<std::string>(sid) + ")");
+        }
+        return (*i).second;
+    }
+
+
 
     virtual structure_type_id_type get_def_structure_type_id() const
     {
@@ -364,11 +411,31 @@ public:
 
     // TODO
     // Add structureType
-    // update structure
-    // remove structure
-    // Get structure ids by structure type
-    
-    // FIXME This is probably not very usefull any more.
+    void add_structure_type(structure_type_type const& structure_type)
+    {
+        structure_type_map_[structure_type.id()] = structure_type;
+        structure_pool_[structure_type.id()] = structure_id_set();
+    }
+    // Get structureType by id
+    virtual structure_type_type const& get_structure_type(structure_type_id_type const& id) const
+    {
+        typename structure_type_map::const_iterator i(structure_type_map_.find(id));
+        if (structure_type_map_.end() == i)
+        {
+            throw not_found(std::string("Unknown structure_type (id=") + boost::lexical_cast<std::string>(id) + ")");
+        }
+        return (*i).second;
+    }
+    // Get all structureTypes in the world
+    structure_types_range get_structure_types() const
+    {
+        return structure_types_range(
+            structure_type_iterator(structure_type_map_.begin(), structure_types_second_selector_type()),
+            structure_type_iterator(structure_type_map_.end(), structure_types_second_selector_type()),
+            structure_type_map_.size());
+    }
+
+    // Get the closest surface
     virtual structure_id_and_distance_pair get_closest_surface(position_type const& pos, structure_id_type const& ignore) const
     {       
         length_type const world_size( base_type::world_size() );
@@ -407,14 +474,16 @@ public:
 
 ///////////// Member variables
 private:
-    particle_id_generator       pidgen_;            // generator used to produce the unique ids for the particles
-    species_map                 species_map_;       // ?
-    structure_map               structure_map_;     // ?
-    per_species_particle_id_set particle_pool_;
-    structure_id_generator      structidgen_;
-    StructureID                 default_structure_id_;
+    Structure_id_type           default_structure_id_;
     structure_type_id_type      default_structure_type_id_;
     structure_type_type         default_structure_; // TODO remove later again.
+    particle_id_generator               pidgen_;            // generator used to produce the unique ids for the particles
+    structure_id_generator              structidgen_;
+    species_map                         species_map_;       // mapping: species_id -> species
+    structure_type_map                  structure_type_map_;// mapping: structure_type_id -> structure_type
+    structure_map                       structure_map_;     // mapping: structure_id -> structure
+    per_structure_type_structure_id_set structure_pool_;    // mapping: structure_type_id -> set of structure ids of that structure type
+    per_species_particle_id_set         particle_pool_;     // mapping: species_id -> set of particle ids of that species
 };
 
 #endif /* WORLD_HPP */
