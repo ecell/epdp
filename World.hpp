@@ -233,6 +233,7 @@ protected:
     typedef std::map<structure_id_type, boost::shared_ptr<structure_type> > structure_map;          // note: this is a structure_map_type
     typedef std::set<structure_id_type>                                     structure_id_set;
     typedef std::map<structure_type_id_type, structure_id_set>              per_structure_type_structure_id_set;
+    typedef std::map<structure_id_type, particle_id_set>                    per_structure_particle_id_set;
     typedef select_second<typename structure_map::value_type>               structures_second_selector_type;
     typedef select_second<typename structure_type_map::value_type>          structure_types_second_selector_type;
 
@@ -257,10 +258,15 @@ public:
     // TODO Add the default structure of the default structure_type here?
 
     // To create new particles
-    virtual particle_id_pair new_particle(species_id_type const& sid,
+    virtual particle_id_pair new_particle(species_id_type const& sid, structure_id_type const& structure_id,
             position_type const& pos)
     {
         species_type const& species(get_species(sid));
+//        structure_type const& structure(get_structure(structure_id));
+        boost::shared_ptr<structure_type> structure(get_structure(structure_id));
+        // assert that the structure is of the type denoted by the species of the particle.
+        BOOST_ASSERT(structure.sid == species.structure_type_id)
+
         particle_id_pair retval(pidgen_(),
                                 particle_type(sid, particle_shape_type(pos, species.radius()),
                                               default_structure_id_, species.D(), species.v() ));
@@ -274,18 +280,28 @@ public:
         typename base_type::particle_matrix_type::iterator i(
                 base_type::pmat_.find(pi_pair.first));
         if (i != base_type::pmat_.end())
+        // The particle was already in the matrix
         {
             if ((*i).second.sid() != pi_pair.second.sid())
-            // If the species changed we need to erase it from the 'species_id -> particle ids' mapping
+            // If the species changed we need to change the 'species_id -> particle ids' mapping
             {
                 particle_pool_[(*i).second.sid()].erase((*i).first);
                 particle_pool_[pi_pair.second.sid()].insert(pi_pair.first);
             }
+            if ((*i).second.structure_id() != pi_pair.second.structure_id())
+            // If the structure changed we need to change the 'structure_id -> particle ids' mapping
+            {
+                particleonstruct_pool_[(*i).second.structure_id()].erase((*i).first);
+                particleonstruct_pool_[pi_pair.second.structure_id()].insert(pi_pair.first);
+            }
             base_type::pmat_.update(i, pi_pair);
             return false;
         }
-        BOOST_ASSERT(base_type::update_particle(pi_pair));
-        particle_pool_[pi_pair.second.sid()].insert(pi_pair.first);
+
+        // The particle didn't exist yet
+        BOOST_ASSERT(base_type::update_particle(pi_pair));                              // update particle
+        particle_pool_[pi_pair.second.sid()].insert(pi_pair.first);                     // update species->particles map
+        particleonstruct_pool_[pi_pair.second.structure_id()].insert(pi_pair.first);    // update structure->particles map
         return true;
     }
     // Remove the particle by id 'id' if present in the world.
@@ -297,18 +313,22 @@ public:
         {
             return false;
         }
-        particle_pool_[pp.second.sid()].erase(id);
-        base_type::remove_particle(id);
+        particle_pool_[pp.second.sid()].erase(id);                  // remove particle from species->particles
+        particleonstruct_pool_[pp.second.structure_id()].erase(id); // remove particle from structure->particles
+        base_type::remove_particle(id);                             // remove particle
         return true;
     }
 
     // Adds a species to the world.
     void add_species(species_type const& species)
     {
+        // make sure that the structure_type defined in the species exists
+        structure_type_type const& structure_type(get_structure_type(species.structure_type_id()));
+
         species_map_[species.id()] = species;
         particle_pool_[species.id()] = particle_id_set();
     }
-    // Get the species in the world by id
+    // Get a species in the world by id
     virtual species_type const& get_species(species_id_type const& id) const
     {
         typename species_map::const_iterator i(species_map_.find(id));
@@ -329,38 +349,46 @@ public:
 
     // TODO
     // remove structure
+    //  get all particles on structure
+    //  only remove if no particles
+
     // Add a structure 
     bool add_structure(boost::shared_ptr<structure_type> structure)
     {
-//        return structure_map_.insert(std::make_pair(structure->id(), structure)).second;
-        // FIXME check that the structure_type that is defined in the structure exists!
-        // TODO add mapping from structure id -> set of particles
+        // check that the structure_type that is defined in the structure exists!
+        structure_type_type const& structure_type(get_structure_type(structure.sid))
+
         return update_structure(std::make_pair(structidgen_(), structure))
     }
-
-
     // update structure
-    // FIXME what to do when the structure has particles and moves or changes structure_type?!?!
     virtual bool update_structure(structure_id_pair const& structid_pair)
     {
         typename structure_map::const_iterator i(structure_map_.find(structid_pair.first));
         if (i != structure_map_.end())
         // The item was already found in the map
         {
-            if ((*i).second.sid() != structid_pair.second.sid())
-            // If the structuretype changed we need to update the 'structure_type_id -> structure ids' mapping
+            // FIXME what to do when the structure has particles and moves or changes structure_type?!?!
+            //  get all particles on the structure
+            //  assert that no particles if structure type changes.
+
+
+            if ((*i).second.sid != structid_pair.second.sid)
+            // If the structuretype changed we need to update the 'structure_type_id->structure ids' mapping
             {
-                structure_pool_[(*i).second.sid()].erase((*i).first);
-                structure_pool_[structid_pair.second.sid()].insert(structid_pair.first);
+                structure_pool_[(*i).second.sid].erase((*i).first);
+                structure_pool_[structid_pair.second.sid].insert(structid_pair.first);
             }
             structure_map_.update(i, structid_pair);
             return false;
         }
 
+        // The structure was not yet in the world.
         // create a new item in the structure mapping
         structure_map_[structid_pair.first] = structid_pair.second;
         // update the mapping 'structure_type_id -> set of structure ids'
         structure_pool_[structid_pair.second.sid()].insert(structid_pair.first);
+        // create a new mapping from structure id -> set of particles
+        particleonstruct_pool_[structid_pair.first] = particle_id_set();
         return true;
     }
     // Get a structure by id
@@ -471,6 +499,18 @@ public:
         }
         return (*i).second;
     }
+    // Get all the particle ids of the particles on a structure
+    particle_id_set get_particle_ids_on_struct(structure_id_type const& struct_id) const
+    {
+        typename per_structure_particle_id_set::const_iterator i(
+            particleonstruct_pool_.find(struct_id));
+        if (i == particleonstruct_pool_.end())
+        {
+            throw not_found(std::string("Unknown structure (id=") + boost::lexical_cast<std::string>(sid) + ")");
+        }
+        return (*i).second;
+    }
+
 
 ///////////// Member variables
 private:
@@ -484,6 +524,7 @@ private:
     structure_map                       structure_map_;     // mapping: structure_id -> structure
     per_structure_type_structure_id_set structure_pool_;    // mapping: structure_type_id -> set of structure ids of that structure type
     per_species_particle_id_set         particle_pool_;     // mapping: species_id -> set of particle ids of that species
+    per_structure_particle_id_set       particleonstruct_pool_;
 };
 
 #endif /* WORLD_HPP */
