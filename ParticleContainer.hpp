@@ -52,16 +52,18 @@ public:
 
     virtual length_type world_size() const = 0;
 
+    // Species stuff
     virtual species_type const& get_species(species_id_type const& id) const = 0;
+
+    // StructureType stuff
+    virtual structure_type_type get_structure_type(structure_type_id_type const& sid) const = 0;
+
+    virtual structure_type_id_type get_def_structure_type_id() const = 0;
 
     // Structure stuff
     virtual boost::shared_ptr<structure_type> get_structure(structure_id_type const& id) const = 0;
     
     virtual structures_range get_structures() const = 0;
-
-    virtual structure_type_id_type get_def_structure_type_id() const = 0;
-
-    virtual structure_type_type get_structure_type(structure_type_id_type const& sid) const = 0;
 
     virtual structure_id_type get_def_structure_id() const = 0;
 
