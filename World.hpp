@@ -258,7 +258,7 @@ public:
         : base_type(world_size, size)
     {
         // TODO Add the default structure of the default structure_type here?
-        default_structure_id_ = structidgen_();
+//        default_structure_id_ = structidgen_();
     }
 
     // Old method is case no structure_id is supplied.
@@ -361,7 +361,9 @@ public:
         // check that the structure_type that is defined in the structure exists!
         structure_type_type const& structure_type(get_structure_type(structure->sid()));
 
-        return update_structure(std::make_pair(structidgen_(), structure));
+        structure_id_type structure_id(structidgen_());
+        if (update_structure(std::make_pair(structure_id, structure)))
+            return structure_id;
     }
     // update structure
     virtual bool update_structure(structure_id_pair const& structid_pair)
@@ -435,6 +437,10 @@ public:
     {
         return default_structure_id_;
     }
+    void set_def_structure_id(structure_id_type const& id)
+    {
+        default_structure_id_ = id;
+    }
 
     // TODO
     // Add structureType
@@ -464,6 +470,10 @@ public:
     virtual structure_type_id_type get_def_structure_type_id() const
     {
         return default_structure_type_id_;
+    }
+    void set_def_structure_type_id(structure_type_id_type const& sid)
+    {
+        default_structure_type_id_ = sid;
     }
 
 
