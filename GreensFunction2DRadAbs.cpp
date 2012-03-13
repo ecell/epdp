@@ -110,12 +110,14 @@ void GreensFunction2DRadAbs::clearAlphaTable() const
 const Real 
 GreensFunction2DRadAbs::f_alpha0( const Real alpha ) const
 {
+
 	const Real a( this->geta() );
 	const Real sigma( getSigma() );
 	const Real h( this->geth() );
 	const Real s_An( sigma * alpha );
 	const Real a_An( a * alpha );
-//	const Real h_s( h * sigma);
+	// Needed? TODO
+	const Real h_s( h * sigma);
 
 	const double J0_s_An (gsl_sf_bessel_J0(s_An));
 	const double J1_s_An (gsl_sf_bessel_J1(s_An));
@@ -125,15 +127,24 @@ GreensFunction2DRadAbs::f_alpha0( const Real alpha ) const
 	const double Y1_s_An (gsl_sf_bessel_Y1(s_An));
 	const double Y0_a_An (gsl_sf_bessel_Y0(a_An));	
 
-//  const double rho1 ( ( (h_s * J0_s_An) + (s_An * J1_s_An) ) * Y0_a_An );
+//    const double rho1 ( ( (h_s * J0_s_An) + (s_An * J1_s_An) ) * Y0_a_An );
 //	const double rho2 ( ( (h_s * Y0_s_An) + (s_An * Y1_s_An) ) * J0_a_An );
 //	return (rho1 - rho2); 
+
 //
 //  Sigma can be divided out, roots will remain same:
-
+// TODO, WILL THEY? ????? YUP
 	const double rho1 ( ( (h * J0_s_An) + (alpha * J1_s_An) ) * Y0_a_An );
 	const double rho2 ( ( (h * Y0_s_An) + (alpha * Y1_s_An) ) * J0_a_An );
+	
+//    std::cerr << "Term 1 (" << (h * J0_s_An) ; 
+//    std::cerr << ") plus term 2 (" << (alpha * J1_s_An) << ").\n" ;
+
+//    std::cerr << "ALT 1 (" << (h_s * J0_s_An) ; 
+//    std::cerr << ") plus ALT 2 (" << (s_An * J1_s_An) << ").\n" ;
+	
 	return rho1 - rho2;
+
 }
 
 
@@ -513,7 +524,8 @@ GreensFunction2DRadAbs::getAlphaRoot0( const Real low,  // root lies between low
 		 EPSILON/L_TYPICAL, EPSILON, "GreensFunction2DRadAbs::getAlphaRoot0" ) );
     gsl_root_fsolver_free( solver );
     
-    return alpha;
+    const Real sigma(getSigma());
+    return alpha; 
 }    
 
 // This function calls the GSL root finder, for roots for which n > 0. (n = 0 is
@@ -1635,6 +1647,20 @@ Real GreensFunction2DRadAbs::givePDFR( const Real r, const Real t ) const
     Real PDF (p_int_r_F( r, &params ));
 
     return PDF;
+}
+
+void GreensFunction2DRadAbs::dumpRoots( int n )
+{
+//        return this->alphaTable[n];
+      std::cout << "Roots are: {";
+      
+      const int size( alphaTable.size() );
+      RealVector& alphaTable( this->alphaTable[n] );
+      
+      for (int i = 0; i < size; i++) {
+          std::cout << alphaTable[i] << ",";          	
+      }
+      std::cout << "}.\n";
 }
 
 // It is used by the drawTheta method

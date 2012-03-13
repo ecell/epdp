@@ -158,6 +158,7 @@ BOOST_PYTHON_MODULE( _greens_functions )
     // DEBUG: TODO REMOVE?
     .def( "givePDFR", &GreensFunction2DRadAbs::givePDFR )    
     .def( "givePDFTheta", &GreensFunction2DRadAbs::givePDFTheta )        
+    .def( "dumpRoots", &GreensFunction2DRadAbs::dumpRoots )
 	;
     
     class_<GreensFunction3DSym>("GreensFunction3DSym", init<Real>())
