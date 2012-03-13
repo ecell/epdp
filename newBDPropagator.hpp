@@ -44,7 +44,7 @@ public:
     typedef typename particle_container_type::particle_id_pair_and_distance particle_id_pair_and_distance;
     typedef typename particle_container_type::particle_id_pair_and_distance_list particle_id_pair_and_distance_list;
     typedef typename particle_container_type::structure_type structure_type;
-    typedef typename particle_container_type::structure_id_type structure_id_type;    
+//    typedef typename particle_container_type::structure_id_type structure_id_type;    
     typedef typename traits_type::world_type::traits_type::rng_type rng_type;
     typedef typename traits_type::time_type time_type;
     typedef typename traits_type::network_rules_type network_rules_type;
@@ -142,9 +142,9 @@ public:
         
         /* If the particle has not bounced with another particle and lives in the bulk: 
            check for core overlap with a surface. */
-        if(!bounced && pp_structure->id() == tx_.get_def_structure_id())
+        if(!bounced && pp.second.structure_id() == tx_.get_def_structure_id())
         {
-            struct_id_distance_pair = tx_.get_closest_surface( new_pos, pp_structure->id() );
+            struct_id_distance_pair = tx_.get_closest_surface( new_pos, pp.second.structure_id());
             particle_surface_distance = struct_id_distance_pair.second;
 
             /* Check for overlap with nearest surface. */
@@ -167,9 +167,9 @@ public:
                                             
             particles_in_overlap = overlapped ? overlapped->size(): 0; 
             
-            if(pp_structure->id() == tx_.get_def_structure_id())
+            if(pp.second.structure_id() == tx_.get_def_structure_id())
             {
-                struct_id_distance_pair = tx_.get_closest_surface( new_pos, pp_structure->id() );
+                struct_id_distance_pair = tx_.get_closest_surface( new_pos, pp.second.structure_id() );
                 particle_surface_distance = struct_id_distance_pair.second;  
             }
         }
@@ -180,7 +180,7 @@ public:
         Real const rnd( rng_() );
         
         /* First, if a surface is inside the reaction volume, attempt an interaction. */
-        if( pp_structure->id() == tx_.get_def_structure_id())
+        if( pp.second.structure_id() == tx_.get_def_structure_id())
         {
             if( tx_.get_structure( struct_id_distance_pair.first )->
                 in_reaction_volume( particle_surface_distance, r0, reaction_length_ ) )
@@ -368,9 +368,9 @@ private:
                             }
                         }
 
-                        if( s0.structure_type_id() == tx_.get_def_structure_type_id() && pp_struct->id() == tx_.get_def_structure_id() )
+                        if( s0.structure_type_id() == tx_.get_def_structure_type_id() && pp.second.structure_id() == tx_.get_def_structure_id() )
                         {
-                            structure_id_and_distance_pair const struct_id_distance_pair( tx_.get_closest_surface( new_pos, pp_struct->id()) );
+                            structure_id_and_distance_pair const struct_id_distance_pair( tx_.get_closest_surface( new_pos, pp.second.structure_id()) );
                             
                             boost::shared_ptr<structure_type> closest_struct( tx_.get_structure( struct_id_distance_pair.first ) );
 
