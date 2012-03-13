@@ -127,22 +127,15 @@ GreensFunction2DRadAbs::f_alpha0( const Real alpha ) const
 	const double Y1_s_An (gsl_sf_bessel_Y1(s_An));
 	const double Y0_a_An (gsl_sf_bessel_Y0(a_An));	
 
-//    const double rho1 ( ( (h_s * J0_s_An) + (s_An * J1_s_An) ) * Y0_a_An );
+//  const double rho1 ( ( (h_s * J0_s_An) + (s_An * J1_s_An) ) * Y0_a_An );
 //	const double rho2 ( ( (h_s * Y0_s_An) + (s_An * Y1_s_An) ) * J0_a_An );
 //	return (rho1 - rho2); 
 
-//
 //  Sigma can be divided out, roots will remain same:
-// TODO, WILL THEY? ????? YUP
+//  (Note: actually double checked this).
 	const double rho1 ( ( (h * J0_s_An) + (alpha * J1_s_An) ) * Y0_a_An );
 	const double rho2 ( ( (h * Y0_s_An) + (alpha * Y1_s_An) ) * J0_a_An );
-	
-//    std::cerr << "Term 1 (" << (h * J0_s_An) ; 
-//    std::cerr << ") plus term 2 (" << (alpha * J1_s_An) << ").\n" ;
 
-//    std::cerr << "ALT 1 (" << (h_s * J0_s_An) ; 
-//    std::cerr << ") plus ALT 2 (" << (s_An * J1_s_An) << ").\n" ;
-	
 	return rho1 - rho2;
 
 }
@@ -175,6 +168,7 @@ const Real GreensFunction2DRadAbs::f_alpha( const Real alpha,
 	const Real s_An( sigma * alpha );
 	const Real a_An( a * alpha );	
     const Real realn( static_cast<Real>( n ) );
+    const Real h_sigma( h * sigma);
 
 	const double Jn_s_An (gsl_sf_bessel_Jn(n,s_An));
 	const double Jn1_s_An (gsl_sf_bessel_Jn(n+1,s_An));
@@ -184,8 +178,8 @@ const Real GreensFunction2DRadAbs::f_alpha( const Real alpha,
 	const double Yn1_s_An (gsl_sf_bessel_Yn(n+1,s_An));
 	const double Yn_a_An (gsl_sf_bessel_Yn(n,a_An));
 
-    const double rho1 ( ( (h*sigma * Jn_s_An) + (s_An * Jn1_s_An) - realn*Jn_s_An ) * Yn_a_An );
-	const double rho2 ( ( (h*sigma * Yn_s_An) + (s_An * Yn1_s_An) - realn*Yn_s_An ) * Jn_a_An );
+    const double rho1 ( ( (h_sigma * Jn_s_An) + (s_An * Jn1_s_An) - realn*Jn_s_An ) * Yn_a_An );
+	const double rho2 ( ( (h_sigma * Yn_s_An) + (s_An * Yn1_s_An) - realn*Yn_s_An ) * Jn_a_An );
 	return (rho1 - rho2); 
 
 //  Or..? -:	
