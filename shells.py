@@ -68,7 +68,7 @@ class testShellError(Exception):
 # dimensions dependent on the one who asks. The asker and the askee are now both a NonInteractionSingle
 # or an Other.
 # The main difference between the NonInteractionSingles and Others is that the NonInteractionSingle
-# keep the Other domains at a distance such that the probably that the Other domain get bursted is
+# keep the Other domains at a distance such that the probability that the Other domain get bursted is
 # minimized.
 class Others(object):
 # Subclasses of Others are: all Pair, Interaction and Multi domains.
@@ -689,9 +689,9 @@ def get_radius_to_CylindricalShape(shape, testShell, r):
     return min(r, r_new)
 
 def get_dr_dzright_dzleft_to_PlanarShape(shape, testShell, r, z_right, z_left):
-    # TODO / HACK : This will work only for PlanarSurfaceSingles for now!
+    # TODO / HACK : This will work only for PlanarSurface shells for now!
     assert (type(shape) is Plane)
-    assert isinstance(testShell, PlanarSurfaceSingletestShell)
+    assert isinstance(testShell, PlanarSurfaceSingletestShell) or isinstance(testShell, PlanarSurfacePairtestShell)
 
     if( feq(numpy.dot(shape.unit_z, testShell.get_orientation_vector()), 0.0) ) :
     #if(True) :
@@ -917,7 +917,7 @@ class CylindricaltestShell(testShell):
 
             shell_list = self.get_neighbor_shell_list(neighbor)
             # FIXME: This gives an error 'NoneType' object is not iterable if neighbours are present
-            # Probably sth. about get_neighbor_shell_list not returning the right type
+            # This is because get_neighbor_shell_list_for_single is not implemented in PlanarSurfaceEdgeSingle yet! TODO!
             print shell_list # HACK
             for _, shell_appearance in shell_list:
                 if isinstance(shell_appearance.shape, Sphere):
