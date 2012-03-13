@@ -16,7 +16,7 @@ struct StructureUtils
     typedef typename simulator_type::traits_type traits_type;
     typedef typename traits_type::world_type::position_type             position_type;
     typedef typename traits_type::world_type::length_type               length_type;
-    typedef typename traits_type::world_type::structure_id_type         structure_id_type;
+    typedef typename traits_type::world_type::structure_name_type       structure_id_type;
     typedef typename traits_type::world_type::structure_type            structure_type;
     typedef typename traits_type::world_type::structure_type_id_type    structure_type_id_type;
     typedef typename simulator_type::surface_type               surface_type;

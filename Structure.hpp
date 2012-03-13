@@ -22,7 +22,8 @@ public:
     typedef Ttraits_ traits_type;
     // shorthands for types that we use
     typedef typename traits_type::rng_type                  rng_type;
-    typedef typename traits_type::structure_id_type         identifier_type;
+    typedef typename traits_type::structure_name_type       identifier_type;
+    typedef typename traits_type::structure_id_type         structure_id_type;
     typedef typename traits_type::length_type               length_type;
     typedef typename traits_type::position_type             position_type;
     typedef typename traits_type::base_type::species_type   species_type;
@@ -33,9 +34,23 @@ public:
 public:
     virtual ~Structure() {}
 
-    identifier_type const& id() const
+    identifier_type const& name()
     {
         return id_;
+    }
+
+    structure_id_type const& real_id() const
+    {
+        if (!real_id_)
+        {
+            throw illegal_state("ID for structure not defined");
+        }
+        return real_id_;
+    }
+
+    void set_id(structure_id_type const& id)
+    {
+        real_id_ = id;
     }
 
     // Get the StructureType of the structure
@@ -55,7 +70,7 @@ public:
 
     virtual bool operator==(Structure const& rhs) const
     {
-        return id_ == rhs.id() && sid_ == rhs.sid();
+        return real_id_ == rhs.real_id() && sid_ == rhs.sid();
     }
 
     bool operator!=(Structure const& rhs) const
@@ -117,7 +132,7 @@ public:
     virtual std::string as_string() const
     {
         std::ostringstream out;
-        out << "Structure(" << id() << ", " << sid() << ")";
+        out << "Structure(" << real_id() << ", " << sid() << ")";
         return out.str();
     }
 
@@ -127,7 +142,8 @@ public:
 
 ////// Member variables
 protected:
-    identifier_type         id_;        // id of the structure
+    structure_id_type       real_id_;   // id of the structure
+    identifier_type         id_;        // This is now just the name
     structure_type_id_type  sid_;       // id of the structure_type of the structure
 };
 

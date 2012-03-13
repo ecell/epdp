@@ -214,7 +214,7 @@ public:
                 else                
                 {
                     LOG_DEBUG(("Particle attempted an interaction with the non-interactive surface %s.", 
-                               boost::lexical_cast<std::string>(closest_surf->id()).c_str()));
+                               boost::lexical_cast<std::string>(closest_surf->real_id()).c_str()));
                     ++rejected_move_count_;
                 }
             }

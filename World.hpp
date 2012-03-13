@@ -50,7 +50,7 @@ struct WorldTraitsBase
     typedef Structure<Tderived_>                            structure_type;         // The structure_type is parameterized with the subclass??
     typedef StructureID                                     structure_id_type;      // identifier type for structures
     typedef SerialIDGenerator<structure_id_type>            structure_id_generator;
-//    typedef std::string                                     structure_name_type;
+    typedef std::string                                     structure_name_type;
     // Species
     typedef SpeciesTypeID                                   species_id_type;        // identifier type for species
     typedef SpeciesInfo<species_id_type, D_type,
@@ -218,6 +218,7 @@ public:
     typedef typename traits_type::size_type                 size_type;
     typedef typename traits_type::structure_type            structure_type;
     typedef typename traits_type::structure_id_type         structure_id_type;
+    typedef typename traits_type::structure_name_type       structure_name_type;
     typedef typename traits_type::structure_id_generator    structure_id_generator;
     typedef typename traits_type::structure_type_type       structure_type_type;
     typedef typename traits_type::structure_type_id_type    structure_type_id_type;
@@ -362,6 +363,7 @@ public:
         structure_type_type const& structure_type(get_structure_type(structure->sid()));
 
         structure_id_type structure_id(structidgen_());
+        structure->set_id(structure_id);
         if (update_structure(std::make_pair(structure_id, structure)))
             return structure_id;
     }
@@ -486,7 +488,7 @@ public:
 
         BOOST_FOREACH(boost::shared_ptr<structure_type> const structure, get_structures())
         {
-            if( structure->id() == ignore )
+            if( structure->real_id() == ignore)
                 continue;
             
             position_type const cyc_pos(cyclic_transpose(pos, structure->structure_position(), world_size));
@@ -495,7 +497,7 @@ public:
             if( dist < ret_dist )
             {
                 ret_dist = dist;
-                ret_id = structure->id();
+                ret_id = structure->real_id();
             }  
         }
         

@@ -59,7 +59,7 @@ public:
     {
         BasicRegionImpl const* _rhs(dynamic_cast<BasicRegionImpl const*>(&rhs));
         return _rhs &&
-               base_type::id_ == rhs.id() &&
+               base_type::real_id_ == rhs.real_id() &&
                base_type::sid_ == rhs.sid() &&
                shape_ == _rhs->shape();
     }
@@ -81,7 +81,7 @@ public:
     virtual std::string as_string() const
     {
         std::ostringstream out;
-        out << "Region(" << base_type::id_ << ":" << shape() << ")";
+        out << "Region(" << base_type::real_id_ << ":" << shape() << ")";
         return out.str();
     }
 

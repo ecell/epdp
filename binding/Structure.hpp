@@ -18,7 +18,7 @@ inline boost::python::objects::class_base register_structure_class(char const *n
     return class_<impl_type, boost::shared_ptr<impl_type>,
                   boost::noncopyable>(name, no_init)
         .add_property("id", 
-            make_function(&impl_type::id,
+            make_function(&impl_type::real_id,
                           return_value_policy<return_by_value>()))
         .add_property("sid",
             make_function(
