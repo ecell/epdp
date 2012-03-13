@@ -164,9 +164,9 @@ def create_world(m, matrix_size=10):
     # make the default structure: A cuboidal region of the default structure_type
     # This needs to be done after making the structure_types or add_structure can't
     # find the proper structure_type.
-    world_structure_type = m.get_def_structure_type()
+    world_structure_type = m.get_def_structure_type_id()
     x = numpy.repeat(m.world_size / 2, 3)
-    region = _gfrd.CuboidalRegion(world_structure_type.id, _gfrd.Box(x, x))
+    region = _gfrd.CuboidalRegion("world", world_structure_type, _gfrd.Box(x, x))
     world.add_structure(region)
 
     # The model (a ParticleModel) now only holds SpeciesTypes
