@@ -15,7 +15,7 @@ __all__ = [
     'create_surface_binding_reaction_rule',
     'create_surface_unbinding_reaction_rule',
 
-    # From _gfrd. Should be part of the model class.
+    # From _gfrd. Should be part of the world class.
     'create_cuboidal_region',
     'create_cylindrical_surface',
     'create_planar_surface',
@@ -23,6 +23,8 @@ __all__ = [
 
 
 # Define _gfrd docstrings here, much easier to format than in C++.
+# TODO These functions should be moved to gfrdbase.py because structures are no longer a part of the model,
+# but part of the world instead.
 _gfrd.create_cuboidal_region.__doc__ = \
 """create_cuboidal_region(sid, id, corner, diagonal)
 
@@ -151,7 +153,19 @@ def Species(name, D, radius=0, structure_type=None, drift=0):
     st["D"] = str(D)
     st["v"] = str(drift)
     st["radius"] = str(radius)
-    st["structure_type"] = structure_type
+#    st["structure_type"] = str(id(structure_type))  # The most ugly way of getting the reference in there.
+
+    # Particles of a Species whose Surface is not specified will be 
+    # added to the "world". 
+    if structure_type:
+        st["structure_type"] = structure_type['name']  # The most ugly way of getting the reference in there.
+    else:
+        st["structure_type"] = "world"
+
+#    # create the associated SpeciesInfo
+#    si = _gfrd.SpeciesInfo(st.id, structure_type.id,
+#                           D, radius, v)
+
     return st
 
 
@@ -173,28 +187,16 @@ class ParticleModel(_gfrd.ParticleModel):
 
         """
         _gfrd.ParticleModel.__init__(self)
+        # Note that in _gfrd.ParticleModel the default structure_type is
+        # created and added to the model.
+
         self.world_size = world_size
+        # Dimensions don't matter, except for 
+        # visualization.
+
 #        self.structures = {}
 
-        # Particles of a Species whose Surface is not specified will be 
-        # added to the "world". Dimensions don't matter, except for 
-        # visualization.
-#        structure_type = _gfrd.StructureType()
-#        structure_type['name'] = 'world'
-#        _gfrd.ParticleModel.add_structure_type(self, structure_type)
 
-#        def_structure_type_id = _gfrd.ParticleModel.get_def_structure_type_id(self)
-#        structure_type        = _gfrd.ParticleModel.get_structure_type_by_id(self, def_structure_type_id)
-#        x = numpy.repeat(world_size / 2, 3)
-
-#        region = _gfrd.CuboidalRegion('world', structure_type, _gfrd.Box(x, x))
-#        self.add_structure(region)
-
-        structure_type = _gfrd.StructureType()
-        structure_type['name'] = 'world'
-        _gfrd.ParticleModel.add_structure_type(self, structure_type)
-        _gfrd.ParticleModel.set_def_structure_type(self, structure_type.id)
-        
 ### TODO change to add_structure_type
 #    def add_structure(self, structure):
 #        """Add a Structure (Region or Surface) to the ParticleModel.

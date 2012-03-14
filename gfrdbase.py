@@ -145,47 +145,46 @@ def create_world(m, matrix_size=10):
 
     """
     m.set_all_repulsive()
-#    world_region = m.get_structure("world")
-#    if not isinstance(world_region, _gfrd.CuboidalRegion):
-#        raise TypeError("the world should be a CuboidalRegion")
-#
-#    if not numpy.all(world_region.shape.half_extent ==
-#                     world_region.shape.half_extent[0]):
-#        raise NotImplementedError("non-cuboidal world is not supported")
-#
-#    world_size = world_region.shape.half_extent[0] * 2
 
     # make the world
     world = _gfrd.World(m.world_size, matrix_size)
 
+    # copy all structure_types to the world (including the default one) and set the default id.
     for st in m.structure_types:
         world.add_structure_type(st)
-
-    # make the default structure: A cuboidal region of the default structure_type
-    # This needs to be done after making the structure_types or add_structure can't
-    # find the proper structure_type.
-    world_structure_type = m.get_def_structure_type_id()
-    x = numpy.repeat(m.world_size / 2, 3)
-    region = _gfrd.CuboidalRegion("world", world_structure_type, _gfrd.Box(x, x))
-    world.add_structure(region)
+    world_structure_type_id = m.get_def_structure_type_id(self)
+    world.set_def_structure_type_id(world_structure_type_id)
 
     # The model (a ParticleModel) now only holds SpeciesTypes
     # The SpeciesTYpes hold the information that is required for spatial simulations
     # in auxiliairy string fields. This information is here converted to the right
     # SpeciesInfo object and added to the world. Not sure this works -> TODO
     for st in m.species_types:
-        structure_type = st["structure_type"]
-        if structure_type == None:
-            structure_type = world_structure_type    #structure = region.id
+        if st["structure_type"] == "world":
+            # The default structure_type
+            structure_type_id = world_structure_type_id
+        else:
+            # Find the corresponding structure_type between all the structure_types known
+            for stt in m.structure_types:
+                if st["structure_type"] == stt['name']:
+                    structure_type_id = stt.id
+                    break
+            else:
+                raise RuntimeError("StructureType used in Species not found in Model when initializing World.")
+
         world.add_species(
             _gfrd.SpeciesInfo(st.id, 
-                              structure_type,          # FIXME not sure this works
+                              structure_type_id,    # FIXME not sure this works
                               float(st["D"]), 
                               float(st["radius"]), 
                               float(st["v"])))
 
-#    for r in m.structures.itervalues():
-#        world.add_structure(r)
+    # make the default structure: A cuboidal region of the default structure_type
+    # This needs to be done after making the structure_types or add_structure can't
+    # find the proper structure_type.
+    x = numpy.repeat(m.world_size / 2, 3)
+    region = _gfrd.CuboidalRegion("world", world_structure_type_id, _gfrd.Box(x, x))
+    world.add_structure(region)
 
     world.model = m
     return world
