@@ -59,17 +59,22 @@ public:
 
 private:
     typedef std::map<structure_id_type, boost::shared_ptr<structure_type> > structure_map;
-    typedef select_second<typename structure_map::value_type> surface_second_selector_type;
-    typedef std::map<species_id_type, species_type> species_map;
-    typedef select_second<typename species_map::value_type> species_second_selector_type;
+    typedef select_second<typename structure_map::value_type>               structure_second_selector_type;
+    typedef std::map<structure_type_id_type, boost::shared_ptr<structure_type_type> > structure_type_map;
+    typedef select_second<typename structure_type_map::value_type>          structure_type_second_selector_type;
+    typedef std::map<species_id_type, species_type>                         species_map;
+    typedef select_second<typename species_map::value_type>                 species_second_selector_type;
 
 public:    
-    typedef boost::transform_iterator<surface_second_selector_type,
-            typename structure_map::const_iterator> surface_iterator;
-    typedef sized_iterator_range<surface_iterator> structures_range;
+    typedef boost::transform_iterator<structure_second_selector_type,
+            typename structure_map::const_iterator>             structure_iterator;
+    typedef sized_iterator_range<structure_iterator>            structures_range;
+    typedef boost::transform_iterator<structure_type_second_selector_type,
+            typename structure_type_map::const_iterator>        structure_type_iterator;
+    typedef sized_iterator_range<structure_type_iterator>       structure_types_range;
     typedef boost::transform_iterator<species_second_selector_type,
-        typename species_map::const_iterator> species_iterator;
-    typedef sized_iterator_range<species_iterator> species_range;
+        typename species_map::const_iterator>                   species_iterator;
+    typedef sized_iterator_range<species_iterator>              species_range;
 
 
     virtual ~MultiParticleContainer() {}
@@ -94,32 +99,38 @@ public:
     {
         return world_.get_structure(id);
     }
-    
     virtual structures_range get_structures() const
     {
         return world_.get_structures();
     }
-    
-    virtual structure_type_id_type get_def_structure_type_id() const
-    {
-        return world_.get_def_structure_type_id();
-    }
-
-    virtual structure_type_type get_structure_type(structure_type_id_type const& sid) const
-    {
-        return world_.get_structure_type(sid);
-    }
-
     virtual structure_id_type get_def_structure_id() const
     {
         return world_.get_def_structure_id();
     }
-
     virtual structure_id_and_distance_pair get_closest_surface(position_type const& pos, structure_id_type const& ignore) const
     {        
         return world_.get_closest_surface( pos, ignore );
     }
     // End structure stuff
+
+    // StructureType stuff
+    virtual structure_type_type get_structure_type(structure_type_id_type const& sid) const
+    {
+        return world_.get_structure_type(sid);
+    }
+    virtual structure_types_range get_structure_types() const
+    {
+        return world_.get_structure_types();
+    }
+    virtual structure_type_id_type get_def_structure_type_id() const
+    {
+        return world_.get_def_structure_type_id();
+    }
+    virtual void set_def_structure_type_id(structure_type_id_type const& sid) const
+    {
+        return world_.set_def_structure_type_id(sid);
+    }
+
         
     virtual particle_id_pair new_particle(species_id_type const& sid,
             position_type const& pos)

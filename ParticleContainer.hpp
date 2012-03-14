@@ -17,14 +17,14 @@ class ParticleContainer
 // The ParticleContainerBase implements some of them.
 public:
     typedef Ttraits_ traits_type;
-    typedef typename traits_type::particle_type     particle_type;
-    typedef typename particle_type::shape_type      particle_shape_type;
-    typedef typename traits_type::species_type      species_type;
-    typedef typename traits_type::species_id_type   species_id_type;
-    typedef typename traits_type::position_type     position_type;
-    typedef typename traits_type::particle_id_type  particle_id_type;
-    typedef typename traits_type::length_type       length_type;
-    typedef typename traits_type::size_type         size_type;
+    typedef typename traits_type::particle_type         particle_type;
+    typedef typename particle_type::shape_type          particle_shape_type;
+    typedef typename traits_type::species_type          species_type;
+    typedef typename traits_type::species_id_type       species_id_type;
+    typedef typename traits_type::position_type         position_type;
+    typedef typename traits_type::particle_id_type      particle_id_type;
+    typedef typename traits_type::length_type           length_type;
+    typedef typename traits_type::size_type             size_type;
     typedef typename traits_type::structure_type            structure_type;
     typedef typename traits_type::structure_id_type         structure_id_type;
     typedef typename traits_type::structure_type_type       structure_type_type;
@@ -38,13 +38,18 @@ public:
     typedef unassignable_adapter<particle_id_pair_and_distance, get_default_impl::std::vector> particle_id_pair_and_distance_list;
 
 private:
-    typedef std::map<structure_id_type, boost::shared_ptr<structure_type> > structure_map;
-    typedef select_second<typename structure_map::value_type> surface_second_selector_type;
+    typedef std::map<structure_id_type, boost::shared_ptr<structure_type> >             structure_map;
+    typedef select_second<typename structure_map::value_type>                           structure_second_selector_type;
+    typedef std::map<structure_type_id_type, boost::shared_ptr<structure_type_type> >   structure_type_map;
+    typedef select_second<typename structure_type_map::value_type>                      structure_type_second_selector_type;
 
 public:    
-    typedef boost::transform_iterator<surface_second_selector_type,
-            typename structure_map::const_iterator> surface_iterator;
-    typedef sized_iterator_range<surface_iterator> structures_range;
+    typedef boost::transform_iterator<structure_second_selector_type,
+            typename structure_map::const_iterator>                 structure_iterator;
+    typedef sized_iterator_range<structure_iterator>                structures_range;
+    typedef boost::transform_iterator<structure_type_second_selector_type,
+            typename structure_type_map::const_iterator>            structure_type_iterator;
+    typedef sized_iterator_range<structure_type_iterator>           structure_types_range;
 
     virtual ~ParticleContainer() {};
 
@@ -58,7 +63,11 @@ public:
     // StructureType stuff
     virtual structure_type_type get_structure_type(structure_type_id_type const& sid) const = 0;
 
+    virtual structure_types_range get_structure_types() const = 0;
+
     virtual structure_type_id_type get_def_structure_type_id() const = 0;
+
+    virtual void set_def_structure_type_id(structure_type_id_type const& sid) = 0;
 
     // Structure stuff
     virtual boost::shared_ptr<structure_type> get_structure(structure_id_type const& id) const = 0;

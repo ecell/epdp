@@ -462,7 +462,7 @@ public:
         return (*i).second;
     }
     // Get all structureTypes in the world
-    structure_types_range get_structure_types() const
+    virtual structure_types_range get_structure_types() const
     {
         return structure_types_range(
             structure_type_iterator(structure_type_map_.begin(), structure_types_second_selector_type()),
@@ -473,7 +473,7 @@ public:
     {
         return default_structure_type_id_;
     }
-    void set_def_structure_type_id(structure_type_id_type const& sid)
+    virtual void set_def_structure_type_id(structure_type_id_type const& sid)
     {
         default_structure_type_id_ = sid;
     }
