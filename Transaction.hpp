@@ -85,7 +85,10 @@ public:
     typedef sized_iterator_range<structure_iterator>                structures_range;
     typedef boost::transform_iterator<structure_type_second_selector_type,
             typename structure_type_map::const_iterator>            structure_type_iterator;
-    typedef sized_iterator_range<structure_type_iterator>           structure_types_range;
+//    typedef sized_iterator_range<structure_type_iterator>           structure_types_range;
+    typedef typename particle_container_type::structure_types_range         structure_types_range;
+    typedef typename particle_container_type::structure_id_set              structure_id_set;
+
 
 
     virtual particle_id_pair new_particle(species_id_type const& sid,
@@ -175,6 +178,8 @@ public:
     }
 
     // StructureType stuff
+//    virtual bool add_structure_type(structure_type_type const& structure_type);   // TODO
+
     virtual structure_type_type get_structure_type(structure_type_id_type const& sid) const
     {
         return pc_.get_structure_type(sid);
@@ -187,12 +192,10 @@ public:
     {
         return pc_.get_def_structure_type_id();
     }    
-    virtual void set_def_structure_type_id(structure_type_id_type const& sid) const
-    {
-        return pc_.set_def_structure_type_id(sid);
-    }    
 
     // Start Structure stuff
+//    virtual bool add_structure(structure_type const& structure);   // TODO
+
     virtual boost::shared_ptr<structure_type> get_structure(structure_id_type const& id) const
     {
         return pc_.get_structure(id);
@@ -201,6 +204,10 @@ public:
     {
         return pc_.get_structures();
     }    
+    virtual structure_id_set get_structure_ids(structure_type_id_type const& sid) const
+    {
+        return pc_.get_structure_ids(sid);
+    }
     virtual structure_id_type get_def_structure_id() const
     {
         return pc_.get_def_structure_id();

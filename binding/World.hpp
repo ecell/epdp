@@ -268,10 +268,22 @@ inline boost::python::objects::class_base register_world_class(char const* name)
         .add_property("structures",
             make_function(
                 (typename impl_type::structures_range(impl_type::*)() const)&impl_type::get_structures, structures_range_converter_type()))
+//        .add_property("structure_types",
+//            make_function(
+//                (typename impl_type::structure_types_range(impl_type::*)() const)&impl_type::get_structure_types,
+//                 structure_types_range_converter_type()))
         .add_property("particle_ids", &World_get_particle_ids<impl_type>)
-        .def("add_species", &impl_type::add_species)
-        .def("add_structure", &impl_type::add_structure)
         .def("get_particle_ids", &impl_type::get_particle_ids)
+        .def("get_particle_ids_on_struct", &impl_type::get_particle_ids_on_struct)
+        .def("add_species", &impl_type::add_species)
+        // Structure stuff
+        .def("add_structure", &impl_type::add_structure)
+        .def("update_structure", &impl_type::update_structure)      // Not sure if this should be here or in ParticleContainer.hpp
+//        .def("remove_structure", &impl_type::remove_structure)
+        .def("set_def_structure_id", &impl_type::set_def_structure_id)
+        // StructureType stuff
+        .def("add_structure_type", &impl_type::add_structure_type)
+        .def("set_def_structure_type_id", &impl_type::set_def_structure_type_id)
         .def("distance", &impl_type::template distance<typename impl_type::position_type>)
         .def("distance", &impl_type::template distance<typename Tsim::sphere_type>)
         .def("distance", &impl_type::template distance<typename Tsim::cylinder_type>)

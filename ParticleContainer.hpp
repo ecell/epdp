@@ -50,6 +50,7 @@ public:
     typedef boost::transform_iterator<structure_type_second_selector_type,
             typename structure_type_map::const_iterator>            structure_type_iterator;
     typedef sized_iterator_range<structure_type_iterator>           structure_types_range;
+    typedef std::set<structure_id_type>                             structure_id_set;
 
     virtual ~ParticleContainer() {};
 
@@ -61,18 +62,22 @@ public:
     virtual species_type const& get_species(species_id_type const& id) const = 0;
 
     // StructureType stuff
+//    virtual bool add_structure_type(structure_type_type const& structure_type) = 0;   // TODO
+
     virtual structure_type_type get_structure_type(structure_type_id_type const& sid) const = 0;
 
     virtual structure_types_range get_structure_types() const = 0;
 
     virtual structure_type_id_type get_def_structure_type_id() const = 0;
 
-    virtual void set_def_structure_type_id(structure_type_id_type const& sid) = 0;
-
     // Structure stuff
+//    virtual bool add_structure(structure_type const& structure) = 0;   // TODO
+
     virtual boost::shared_ptr<structure_type> get_structure(structure_id_type const& id) const = 0;
     
     virtual structures_range get_structures() const = 0;
+
+    virtual structure_id_set get_structure_ids(structure_type_id_type const& sid) const = 0;
 
     virtual structure_id_type get_def_structure_id() const = 0;
 

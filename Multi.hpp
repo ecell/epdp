@@ -41,6 +41,9 @@ public:
     typedef typename traits_type::structure_type            structure_type;
     typedef typename traits_type::structure_type_type       structure_type_type;
     typedef typename traits_type::structure_type_id_type    structure_type_id_type;
+    typedef typename world_type::structure_types_range      structure_types_range;
+    typedef typename world_type::structures_range           structures_range;
+    typedef typename world_type::structure_id_set           structure_id_set;
 
     typedef typename Ttraits_::network_rules_type   network_rules_type;
     typedef typename Ttraits_::reaction_rule_type   reaction_rule_type;
@@ -58,20 +61,20 @@ public:
     typedef std::pair<const Real, const Real> real_pair;
 
 private:
-    typedef std::map<structure_id_type, boost::shared_ptr<structure_type> > structure_map;
-    typedef select_second<typename structure_map::value_type>               structure_second_selector_type;
-    typedef std::map<structure_type_id_type, boost::shared_ptr<structure_type_type> > structure_type_map;
-    typedef select_second<typename structure_type_map::value_type>          structure_type_second_selector_type;
+//    typedef std::map<structure_id_type, boost::shared_ptr<structure_type> > structure_map;
+//    typedef select_second<typename structure_map::value_type>               structure_second_selector_type;
+//    typedef std::map<structure_type_id_type, boost::shared_ptr<structure_type_type> > structure_type_map;
+//    typedef select_second<typename structure_type_map::value_type>          structure_type_second_selector_type;
     typedef std::map<species_id_type, species_type>                         species_map;
     typedef select_second<typename species_map::value_type>                 species_second_selector_type;
 
 public:    
-    typedef boost::transform_iterator<structure_second_selector_type,
-            typename structure_map::const_iterator>             structure_iterator;
-    typedef sized_iterator_range<structure_iterator>            structures_range;
-    typedef boost::transform_iterator<structure_type_second_selector_type,
-            typename structure_type_map::const_iterator>        structure_type_iterator;
-    typedef sized_iterator_range<structure_type_iterator>       structure_types_range;
+//    typedef boost::transform_iterator<structure_second_selector_type,
+//            typename structure_map::const_iterator>             structure_iterator;
+//    typedef sized_iterator_range<structure_iterator>            structures_range;
+//    typedef boost::transform_iterator<structure_type_second_selector_type,
+//            typename structure_type_map::const_iterator>        structure_type_iterator;
+//    typedef sized_iterator_range<structure_type_iterator>       structure_types_range;
     typedef boost::transform_iterator<species_second_selector_type,
         typename species_map::const_iterator>                   species_iterator;
     typedef sized_iterator_range<species_iterator>              species_range;
@@ -89,6 +92,7 @@ public:
         return world_.world_size();
     }
     
+    // Species stuff
     virtual species_type const& get_species(species_id_type const& id) const
     {
         return world_.get_species(id);
@@ -101,34 +105,36 @@ public:
     }
     virtual structures_range get_structures() const
     {
-        return world_.get_structures();
+        return world_.get_structures();     // TODO now gets all structures in world, -> make structure local to Multi
     }
+    virtual structure_id_set get_structure_ids(structure_type_id_type const& sid) const
+    {
+        return world_.get_structure_ids(sid);
+    }
+    // virtual bool add_structure(structure_type const& structure); // TODO add structure from the world to multi
     virtual structure_id_type get_def_structure_id() const
     {
         return world_.get_def_structure_id();
     }
     virtual structure_id_and_distance_pair get_closest_surface(position_type const& pos, structure_id_type const& ignore) const
     {        
-        return world_.get_closest_surface( pos, ignore );
+        return world_.get_closest_surface( pos, ignore );   // TODO loop only over 'local' surfaces
     }
     // End structure stuff
 
     // StructureType stuff
+    // virtual bool add_structure_type(structure_type_type const& structure_type); // TODO add structure_type from the world to multi
     virtual structure_type_type get_structure_type(structure_type_id_type const& sid) const
     {
-        return world_.get_structure_type(sid);
+        return world_.get_structure_type(sid);      // TODO make local just like structures.
     }
     virtual structure_types_range get_structure_types() const
     {
-        return world_.get_structure_types();
+        return world_.get_structure_types();        // TODO ditto
     }
     virtual structure_type_id_type get_def_structure_type_id() const
     {
-        return world_.get_def_structure_type_id();
-    }
-    virtual void set_def_structure_type_id(structure_type_id_type const& sid) const
-    {
-        return world_.set_def_structure_type_id(sid);
+        return world_.get_def_structure_type_id();  // This information stays in the world.
     }
 
         

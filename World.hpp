@@ -228,13 +228,15 @@ public:
     typedef std::pair<const structure_id_type, boost::shared_ptr<structure_type> >  structure_id_pair;
     typedef std::pair<position_type, length_type>                                   projected_type;
     typedef typename particle_container_type::structure_id_and_distance_pair        structure_id_and_distance_pair;
+//    typedef typename particle_container_type::structure_types_range         structure_types_range;
+    typedef typename particle_container_type::structure_id_set              structure_id_set;
 
 protected:
     typedef std::map<species_id_type, species_type>                         species_map;
     typedef std::map<structure_id_type, boost::shared_ptr<structure_type> > structure_map;          // note: this is a structure_map_type
     typedef std::map<structure_type_id_type, structure_type_type>           structure_type_map;
     typedef std::set<particle_id_type>                                      particle_id_set;
-    typedef std::set<structure_id_type>                                     structure_id_set;
+//    typedef std::set<structure_id_type>                                     structure_id_set;
     typedef std::map<species_id_type, particle_id_set>                      per_species_particle_id_set;
     typedef std::map<structure_type_id_type, structure_id_set>              per_structure_type_structure_id_set;
     typedef std::map<structure_id_type, particle_id_set>                    per_structure_particle_id_set;
@@ -473,7 +475,7 @@ public:
     {
         return default_structure_type_id_;
     }
-    virtual void set_def_structure_type_id(structure_type_id_type const& sid)
+    void set_def_structure_type_id(structure_type_id_type const& sid)
     {
         default_structure_type_id_ = sid;
     }
