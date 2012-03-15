@@ -42,7 +42,7 @@ void ParticleModel::add_structure_type(boost::shared_ptr<structure_type_type> co
 // Get a structure type from the model
 boost::shared_ptr<ParticleModel::structure_type_type> ParticleModel::get_structure_type_by_id(structure_type_id_type const& id) const
 {
-    structure_type_map_type::const_iterator i(structure_type_map_.find(id));
+    structure_type_map::const_iterator i(structure_type_map_.find(id));
     if (structure_type_map_.end() == i)
     {
         throw not_found(std::string("Unknown structure_type (id=") + boost::lexical_cast<std::string>(id) + ")");
@@ -52,11 +52,11 @@ boost::shared_ptr<ParticleModel::structure_type_type> ParticleModel::get_structu
 }
 
 // Get all the structure types that are present in the particle model
-ParticleModel::structure_type_range ParticleModel::get_structure_types() const
+ParticleModel::structure_types_range ParticleModel::get_structure_types() const
 {
-    return structure_type_range(
-        structure_type_iterator(structure_type_map_.begin(), structure_second_selector_type()),
-        structure_type_iterator(structure_type_map_.end(), structure_second_selector_type()));
+    return structure_types_range(
+        structure_type_iterator(structure_type_map_.begin(), structure_type_second_selector_type()),
+        structure_type_iterator(structure_type_map_.end(), structure_type_second_selector_type()));
 }
 
 ParticleModel::structure_type_id_type ParticleModel::get_def_structure_type_id() const

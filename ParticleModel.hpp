@@ -12,17 +12,17 @@ class ParticleModel: public Model
 public:
     // defining shorthands for the used types
     typedef Model                                   base_type;
-    typedef StructureType                           structure_type_type;
-    typedef structure_type_type::identifier_type    structure_type_id_type;
 
-    typedef std::map<structure_type_id_type, boost::shared_ptr<structure_type_type> > structure_type_map_type;
+    typedef StructureType                                           structure_type_type;
+    typedef structure_type_type::identifier_type                    structure_type_id_type;
 
-    typedef select_second<structure_type_map_type::value_type> structure_second_selector_type;
+    typedef std::map<structure_type_id_type, boost::shared_ptr<structure_type_type> >   structure_type_map;
+    typedef select_second<structure_type_map::value_type>                               structure_type_second_selector_type;
 
 public:
-    typedef boost::transform_iterator<structure_second_selector_type,
-            structure_type_map_type::const_iterator>            structure_type_iterator;
-    typedef boost::iterator_range<structure_type_iterator>      structure_type_range;
+    typedef boost::transform_iterator<structure_type_second_selector_type,
+            structure_type_map::const_iterator>                                         structure_type_iterator;
+    typedef boost::iterator_range<structure_type_iterator>                               structure_types_range;
 
 public:
     // Constructor
@@ -37,14 +37,14 @@ public:
     void add_structure_type(boost::shared_ptr<structure_type_type> const& structure_type);
 
     // Get all structure types in the model
-    structure_type_range get_structure_types() const;
+    structure_types_range get_structure_types() const;
 
     // Gets and sets the default structure_type
     structure_type_id_type get_def_structure_type_id() const;
 
 /////// Member variables
 public:
-    structure_type_map_type structure_type_map_;            // mapping: structure_type_id -> structure_type
+    structure_type_map      structure_type_map_;            // mapping: structure_type_id -> structure_type
     structure_type_id_type  default_structure_type_id_;     // The id of the default structure_type ("world")
 };
 
