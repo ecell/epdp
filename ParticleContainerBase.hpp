@@ -104,7 +104,9 @@ public:
     typedef typename traits_type::structure_type            structure_type;
     typedef typename base_type::particle_id_set             particle_id_set;
     typedef typename base_type::structure_id_set            structure_id_set;
-    typedef std::pair<const particle_id_type, particle_type> particle_id_pair;
+    typedef typename base_type::structure_id_pair           structure_id_pair;
+//    typedef std::pair<const particle_id_type, particle_type> particle_id_pair;
+    typedef typename base_type::particle_id_pair            particle_id_pair;
     typedef Transaction<traits_type>                        transaction_type;
 
     typedef MatrixSpace<particle_type, particle_id_type, get_mapper_mf> particle_matrix_type;

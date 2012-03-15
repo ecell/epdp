@@ -44,13 +44,15 @@ public:
     typedef typename world_type::particle_container_type::structure_types_range      structure_types_range;
     typedef typename world_type::particle_container_type::structures_range           structures_range;
     typedef typename world_type::particle_container_type::structure_id_set           structure_id_set;
+    typedef typename world_type::particle_container_type::structure_id_pair          structure_id_pair;
+    typedef typename world_type::particle_container_type::particle_id_pair           particle_id_pair;
 
     typedef typename Ttraits_::network_rules_type   network_rules_type;
     typedef typename Ttraits_::reaction_rule_type   reaction_rule_type;
     typedef typename network_rules_type::reaction_rules reaction_rules;      
 
     typedef typename Ttraits_::world_type::particle_container_type::structure_id_and_distance_pair structure_id_and_distance_pair;
-    typedef std::pair<const particle_id_type, particle_type>    particle_id_pair;
+//    typedef std::pair<const particle_id_type, particle_type>    particle_id_pair;
     typedef Transaction<traits_type>                            transaction_type;
     typedef abstract_limited_generator<particle_id_pair>        particle_id_pair_generator;
     typedef std::pair<particle_id_pair, length_type>            particle_id_pair_and_distance;

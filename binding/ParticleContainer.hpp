@@ -68,6 +68,46 @@ struct particle_id_pair_generator_converter
 };
 
 template<typename Timpl_>
+struct structure_id_pair_generator_converter
+{
+    typedef Timpl_ native_type;
+
+    struct to_native_converter
+    {
+        static void* convert(PyObject* ptr)
+        {
+            boost::python::handle<> iter(
+                boost::python::allow_null(PyObject_GetIter(ptr)));
+            if (!iter)
+            {
+                boost::python::throw_error_already_set();
+            }
+            return new peer::wrappers::pyiterator_generator<
+                    typename native_type::result_type>(iter);
+        }
+
+        static PyTypeObject const* expected_pytype()
+        {
+            return &PyBaseObject_Type;
+        }
+    };
+
+    static void __register()
+    {
+        peer::wrappers::generator_wrapper<
+                ptr_generator<native_type, std::auto_ptr<native_type> > >
+                ::__register_class("StructureIDPairGenerator");
+        boost::python::to_python_converter<
+                native_type*,
+                peer::converters::ptr_generator_to_pyiterator_converter<
+                    native_type, std::auto_ptr<native_type> > >();
+                    
+
+        peer::util::to_native_lvalue_converter<native_type, to_native_converter>();
+    }
+};
+
+template<typename Timpl_>
 struct particle_id_pair_and_distance_list_converter
 {
     typedef Timpl_ native_type;
@@ -191,8 +231,10 @@ public:
     typedef typename wrapped_type::structure_type_type      structure_type_type;
     typedef typename wrapped_type::structure_type_id_type   structure_type_id_type;
     typedef typename wrapped_type::particle_id_pair         particle_id_pair;
+    typedef typename wrapped_type::structure_id_pair        structure_id_pair;
     typedef typename wrapped_type::transaction_type         transaction_type;
     typedef typename wrapped_type::particle_id_pair_generator           particle_id_pair_generator;
+    typedef typename wrapped_type::structure_id_pair_generator          structure_id_pair_generator;
     typedef typename wrapped_type::particle_id_pair_and_distance_list   particle_id_pair_and_distance_list;
     typedef typename wrapped_type::structure_id_and_distance_pair       structure_id_and_distance_pair;
     typedef typename wrapped_type::structure_id_set                     structure_id_set;
@@ -382,12 +424,14 @@ inline boost::python::objects::class_base register_particle_container_class(
     using namespace boost::python;
     typedef Timpl impl_type;
     peer::converters::register_tuple_converter<typename impl_type::particle_id_pair>();
+    peer::converters::register_tuple_converter<typename impl_type::structure_id_pair>();
     peer::converters::register_tuple_converter<typename impl_type::structure_id_and_distance_pair>();
     peer::converters::register_tuple_converter<typename impl_type::particle_id_pair_and_distance>();
 
     // register the converters (not sure what this does)
     particle_id_pair_and_distance_list_converter<typename impl_type::particle_id_pair_and_distance_list>::__register();
     particle_id_pair_generator_converter<typename impl_type::particle_id_pair_generator>::__register();
+    structure_id_pair_generator_converter<typename impl_type::structure_id_pair_generator>::__register();
 
     return class_<ParticleContainerWrapper<impl_type>, boost::noncopyable>(name)
         .add_property("num_particles", &impl_type::num_particles)

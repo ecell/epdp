@@ -224,8 +224,10 @@ public:
     typedef typename traits_type::structure_type_id_type    structure_type_id_type;
 
     //
-    typedef std::pair<const particle_id_type, particle_type>                        particle_id_pair;      // defines the pid_particle_pair tuple
-    typedef std::pair<const structure_id_type, boost::shared_ptr<structure_type> >  structure_id_pair;
+//    typedef std::pair<const particle_id_type, particle_type>                        particle_id_pair;      // defines the pid_particle_pair tuple
+//    typedef std::pair<const structure_id_type, boost::shared_ptr<structure_type> >  structure_id_pair;
+    typedef typename base_type::particle_id_pair                particle_id_pair;
+    typedef typename base_type::structure_id_pair               structure_id_pair;
     typedef std::pair<position_type, length_type>                                   projected_type;
     typedef typename particle_container_type::structure_id_and_distance_pair        structure_id_and_distance_pair;
 
