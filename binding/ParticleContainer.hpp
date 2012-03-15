@@ -27,6 +27,8 @@
 
 namespace binding {
 
+
+// Converters. These convert C++ types to something that Python can handle.
 template<typename Timpl_>
 struct particle_id_pair_generator_converter
 {
@@ -212,6 +214,8 @@ struct particle_id_pair_and_distance_list_converter
     }
 };
 
+
+// ParticleContainer wrapper class
 template<typename Tbase_>
 class ParticleContainerWrapper
     : public Tbase_, public boost::python::wrapper<Tbase_>
@@ -238,6 +242,7 @@ public:
     typedef typename wrapped_type::particle_id_pair_and_distance_list   particle_id_pair_and_distance_list;
     typedef typename wrapped_type::structure_id_and_distance_pair       structure_id_and_distance_pair;
     typedef typename wrapped_type::structure_id_set                     structure_id_set;
+    typedef typename wrapped_type::structure_types_range    structure_types_range;
 
 private:
     typedef std::map<structure_id_type, boost::shared_ptr<structure_type> >             structure_map;
@@ -251,7 +256,7 @@ public:
     typedef sized_iterator_range<structure_iterator>            structures_range;
     typedef boost::transform_iterator<structure_type_second_selector_type,
             typename structure_type_map::const_iterator>        structure_type_iterator;
-    typedef sized_iterator_range<structure_type_iterator>       structure_types_range;
+//    typedef sized_iterator_range<structure_type_iterator>       structure_types_range;
 
     virtual ~ParticleContainerWrapper() {}
 

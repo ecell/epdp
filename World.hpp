@@ -233,6 +233,7 @@ public:
 
     typedef typename base_type::particle_id_set                             particle_id_set;
     typedef typename base_type::structure_id_set                            structure_id_set;
+    typedef typename base_type::structure_types_range                       structure_types_range;
 
 protected:
     typedef std::map<species_id_type, species_type>                         species_map;
@@ -254,7 +255,7 @@ public:
             typename structure_type_map::const_iterator>                    structure_type_iterator;
     typedef sized_iterator_range<species_iterator>                          species_range;
     typedef sized_iterator_range<structure_iterator>                        structures_range;
-    typedef sized_iterator_range<structure_type_iterator>                   structure_types_range;
+//    typedef sized_iterator_range<structure_type_iterator>                   structure_types_range;
 
 public:
     // The constructor

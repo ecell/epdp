@@ -12,9 +12,11 @@ inline boost::python::objects::class_base register_structure_class(char const *n
     using namespace boost::python;
     typedef Timpl impl_type;
 
+    // registers the projected_point/projected_distance tuple defined in ../Structure.hpp
     peer::converters::register_tuple_converter<
             typename impl_type::projected_type>();
 
+    // TODO add name and change id->real_id
     return class_<impl_type, boost::shared_ptr<impl_type>,
                   boost::noncopyable>(name, no_init)
         .add_property("id", 

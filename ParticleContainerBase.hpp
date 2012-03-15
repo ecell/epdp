@@ -105,6 +105,7 @@ public:
     typedef typename base_type::particle_id_set             particle_id_set;
     typedef typename base_type::structure_id_set            structure_id_set;
     typedef typename base_type::structure_id_pair           structure_id_pair;
+    typedef typename base_type::structure_types_range       structure_types_range;
 //    typedef std::pair<const particle_id_type, particle_type> particle_id_pair;
     typedef typename base_type::particle_id_pair            particle_id_pair;
     typedef Transaction<traits_type>                        transaction_type;
