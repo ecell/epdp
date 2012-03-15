@@ -186,8 +186,8 @@ public:
     typedef typename wrapped_type::position_type            position_type;
     typedef typename wrapped_type::species_id_type          species_id_type;
     typedef typename wrapped_type::species_type             species_type;
-    typedef typename wrapped_type::structure_id_type        structure_id_type;
     typedef typename wrapped_type::structure_type           structure_type;
+    typedef typename wrapped_type::structure_id_type        structure_id_type;
     typedef typename wrapped_type::structure_type_type      structure_type_type;
     typedef typename wrapped_type::structure_type_id_type   structure_type_id_type;
     typedef typename wrapped_type::particle_id_pair         particle_id_pair;
@@ -195,11 +195,12 @@ public:
     typedef typename wrapped_type::particle_id_pair_generator           particle_id_pair_generator;
     typedef typename wrapped_type::particle_id_pair_and_distance_list   particle_id_pair_and_distance_list;
     typedef typename wrapped_type::structure_id_and_distance_pair       structure_id_and_distance_pair;
+    typedef typename wrapped_type::structure_id_set                     structure_id_set;
 
 private:
     typedef std::map<structure_id_type, boost::shared_ptr<structure_type> >             structure_map;
     typedef select_second<typename structure_map::value_type>                           structure_second_selector_type;
-    typedef std::map<structure_type_id_type, boost::shared_ptr<structure_type_type> >   structure_type_map;
+    typedef std::map<structure_type_id_type, structure_type_type >                      structure_type_map;
     typedef select_second<typename structure_type_map::value_type>                      structure_type_second_selector_type;
 
 public:    
@@ -384,6 +385,7 @@ inline boost::python::objects::class_base register_particle_container_class(
     peer::converters::register_tuple_converter<typename impl_type::structure_id_and_distance_pair>();
     peer::converters::register_tuple_converter<typename impl_type::particle_id_pair_and_distance>();
 
+    // register the converters (not sure what this does)
     particle_id_pair_and_distance_list_converter<typename impl_type::particle_id_pair_and_distance_list>::__register();
     particle_id_pair_generator_converter<typename impl_type::particle_id_pair_generator>::__register();
 

@@ -37,13 +37,13 @@ public:
     typedef typename traits_type::particle_id_type  particle_id_type;
     typedef typename traits_type::length_type       length_type;
     typedef typename traits_type::size_type         size_type;
-    typedef typename traits_type::structure_id_type         structure_id_type;
     typedef typename traits_type::structure_type            structure_type;
+    typedef typename traits_type::structure_id_type         structure_id_type;
     typedef typename traits_type::structure_type_type       structure_type_type;
     typedef typename traits_type::structure_type_id_type    structure_type_id_type;
-    typedef typename world_type::structure_types_range      structure_types_range;
-    typedef typename world_type::structures_range           structures_range;
-    typedef typename world_type::structure_id_set           structure_id_set;
+    typedef typename world_type::particle_container_type::structure_types_range      structure_types_range;
+    typedef typename world_type::particle_container_type::structures_range           structures_range;
+    typedef typename world_type::particle_container_type::structure_id_set           structure_id_set;
 
     typedef typename Ttraits_::network_rules_type   network_rules_type;
     typedef typename Ttraits_::reaction_rule_type   reaction_rule_type;

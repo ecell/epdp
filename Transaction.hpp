@@ -76,7 +76,7 @@ private:
     typedef sorted_list<std::vector<particle_id_type> > particle_id_list_type;
     typedef std::map<structure_id_type, boost::shared_ptr<structure_type> >             structure_map;
     typedef select_second<typename structure_map::value_type>                           structure_second_selector_type;
-    typedef std::map<structure_type_id_type, boost::shared_ptr<structure_type_type> >   structure_type_map;
+    typedef std::map<structure_type_id_type, structure_type_type >                      structure_type_map;
     typedef select_second<typename structure_type_map::value_type>                      structure_type_second_selector_type;
 
 public:    
