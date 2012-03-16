@@ -185,7 +185,8 @@ def create_world(m, matrix_size=10):
     # find the proper structure_type.
     x = numpy.repeat(m.world_size / 2, 3)
     region = _gfrd.CuboidalRegion("world", world_structure_type_id, _gfrd.Box(x, x))
-    world.add_structure(region)
+    world_structure_id = world.add_structure(region)
+    world.set_def_structure_id(world_structure_id)
 
     world.model = m
     return world
@@ -262,6 +263,7 @@ def place_particle(world, sid, position):
     model.ParticleModel.add_species_type.
 
     """
+    # TODO make sure that placed particle lives on the right structure.
     species = world.get_species(sid)
     structure = world.get_structure(species.structure_id)
     radius = species.radius

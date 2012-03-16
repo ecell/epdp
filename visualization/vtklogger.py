@@ -344,16 +344,16 @@ class VTKLogger:
                self.process_cylinders(cylinders, cylinder_colors)
 
     def get_cuboidal_region_data(self):
-        boxes = [self.sim.world.get_structure("world").shape]
+        boxes = [self.sim.world.get_structure(self.sim.world.get_def_structure_id()).shape]
 
         return self.process_boxes(boxes)
 
     def get_planar_surface_data(self):
-        world = self.sim.world.get_structure("world")
+        world_id = self.sim.world.get_def_structure_id()
         boxes = [surface.shape for surface
                                in self.sim.world.structures
                                if isinstance(surface.shape, Plane)
-                               and not surface == world]
+                               and not surface.id == world_id]  # why this here? The world is not a plane!
     
         return self.process_boxes(boxes)
 
