@@ -77,7 +77,7 @@ public:
     virtual structure_type_id_type get_def_structure_type_id() const = 0;
 
     // Structure stuff
-//    virtual bool add_structure(structure_type const& structure) = 0;   // TODO
+//    virtual structure_id_type add_structure(structure_type const& structure) = 0;   // TODO
 
     virtual boost::shared_ptr<structure_type> get_structure(structure_id_type const& id) const = 0;
     

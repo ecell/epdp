@@ -194,7 +194,7 @@ public:
     }    
 
     // Start Structure stuff
-//    virtual bool add_structure(structure_type const& structure);   // TODO
+//    virtual structure_id_type add_structure(structure_type const& structure);   // TODO
 
     virtual boost::shared_ptr<structure_type> get_structure(structure_id_type const& id) const
     {

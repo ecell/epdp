@@ -113,7 +113,7 @@ public:
     {
         return world_.get_structure_ids(sid);
     }
-    // virtual bool add_structure(structure_type const& structure); // TODO add structure from the world to multi
+    // virtual structure_id_type add_structure(structure_type const& structure); // TODO add structure from the world to multi
     virtual structure_id_type get_def_structure_id() const
     {
         return world_.get_def_structure_id();

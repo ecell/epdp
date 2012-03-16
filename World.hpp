@@ -361,7 +361,7 @@ public:
     }
 
     // Add a structure 
-    bool add_structure(boost::shared_ptr<structure_type> structure)
+    virtual structure_id_type add_structure(boost::shared_ptr<structure_type> structure)
     {
         // check that the structure_type that is defined in the structure exists!
         structure_type_type const& structure_type(get_structure_type(structure->sid()));
