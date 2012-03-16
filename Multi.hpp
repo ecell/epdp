@@ -28,19 +28,20 @@ public:
     typedef ParticleContainerUtils<typename Ttraits_::world_type::traits_type> utils;
     typedef typename Ttraits_::world_type world_type;
     typedef typename world_type::traits_type traits_type;
-    // shorthands for used types
-    typedef typename traits_type::particle_type     particle_type;
-    typedef typename particle_type::shape_type      particle_shape_type;
-    typedef typename traits_type::species_type      species_type;
-    typedef typename traits_type::species_id_type   species_id_type;
-    typedef typename traits_type::position_type     position_type;
-    typedef typename traits_type::particle_id_type  particle_id_type;
-    typedef typename traits_type::length_type       length_type;
-    typedef typename traits_type::size_type         size_type;
+    // shorthands types for used types
+    typedef typename traits_type::particle_type             particle_type;
+    typedef typename particle_type::shape_type              particle_shape_type;
+    typedef typename traits_type::species_type              species_type;
+    typedef typename traits_type::species_id_type           species_id_type;
+    typedef typename traits_type::position_type             position_type;
+    typedef typename traits_type::particle_id_type          particle_id_type;
+    typedef typename traits_type::length_type               length_type;
+    typedef typename traits_type::size_type                 size_type;
     typedef typename traits_type::structure_type            structure_type;
     typedef typename traits_type::structure_id_type         structure_id_type;
     typedef typename traits_type::structure_type_type       structure_type_type;
     typedef typename traits_type::structure_type_id_type    structure_type_id_type;
+    // types inherited from the ParticleContainerBase class
     typedef typename world_type::particle_container_type::structure_types_range      structure_types_range;
     typedef typename world_type::particle_container_type::structures_range           structures_range;
     typedef typename world_type::particle_container_type::structure_id_set           structure_id_set;
@@ -52,36 +53,27 @@ public:
     typedef typename network_rules_type::reaction_rules reaction_rules;      
 
     typedef typename Ttraits_::world_type::particle_container_type::structure_id_and_distance_pair structure_id_and_distance_pair;
-//    typedef std::pair<const particle_id_type, particle_type>    particle_id_pair;
-    typedef Transaction<traits_type>                            transaction_type;
-    typedef abstract_limited_generator<particle_id_pair>        particle_id_pair_generator;
-    typedef std::pair<particle_id_pair, length_type>            particle_id_pair_and_distance;
+    typedef Transaction<traits_type>                                        transaction_type;
+    typedef abstract_limited_generator<particle_id_pair>                    particle_id_pair_generator;
+    typedef std::pair<particle_id_pair, length_type>                        particle_id_pair_and_distance;
     typedef unassignable_adapter<particle_id_pair_and_distance,
-                                 get_default_impl::std::vector> particle_id_pair_and_distance_list;
-    typedef std::map<particle_id_type, particle_type>           particle_map;
-    typedef sized_iterator_range<typename particle_map::const_iterator> particle_id_pair_range;
+                                 get_default_impl::std::vector>             particle_id_pair_and_distance_list;
+    typedef std::map<particle_id_type, particle_type>                       particle_map;
+    typedef sized_iterator_range<typename particle_map::const_iterator>     particle_id_pair_range;
     typedef std::pair<const Real, const Real> real_pair;
 
 private:
-//    typedef std::map<structure_id_type, boost::shared_ptr<structure_type> > structure_map;
-//    typedef select_second<typename structure_map::value_type>               structure_second_selector_type;
-//    typedef std::map<structure_type_id_type, boost::shared_ptr<structure_type_type> > structure_type_map;
-//    typedef select_second<typename structure_type_map::value_type>          structure_type_second_selector_type;
     typedef std::map<species_id_type, species_type>                         species_map;
     typedef select_second<typename species_map::value_type>                 species_second_selector_type;
 
 public:    
-//    typedef boost::transform_iterator<structure_second_selector_type,
-//            typename structure_map::const_iterator>             structure_iterator;
-//    typedef sized_iterator_range<structure_iterator>            structures_range;
-//    typedef boost::transform_iterator<structure_type_second_selector_type,
-//            typename structure_type_map::const_iterator>        structure_type_iterator;
-//    typedef sized_iterator_range<structure_type_iterator>       structure_types_range;
     typedef boost::transform_iterator<species_second_selector_type,
-        typename species_map::const_iterator>                   species_iterator;
-    typedef sized_iterator_range<species_iterator>              species_range;
+        typename species_map::const_iterator>                               species_iterator;
+    typedef sized_iterator_range<species_iterator>                          species_range;
 
 
+
+    //
     virtual ~MultiParticleContainer() {}
 
     virtual size_type num_particles() const
@@ -408,10 +400,11 @@ public:
     // The constructor
     MultiParticleContainer(world_type& world): world_(world) {}
 
+////// Member variables
 private:
-    world_type& world_;
-    particle_map particles_;
-    species_map species_;
+    world_type&         world_;     // reference to the world. The MultiParticleContainer reflects a part of the World(ParticleContainer)
+    particle_map        particles_; // local copy of the particles (the particles in the Multi are a subset of the particles in the world)
+    species_map         species_;   // local copy of the species
 };
 
 

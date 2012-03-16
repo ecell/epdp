@@ -20,14 +20,15 @@ class Transaction: public ParticleContainer<Ttraits_>
 public:
     typedef Ttraits_ traits_type;
     // useful shorthands for types that we are using.
-    typedef typename traits_type::particle_type     particle_type;
-    typedef typename particle_type::shape_type      particle_shape_type;
-    typedef typename traits_type::species_type      species_type;
-    typedef typename traits_type::species_id_type   species_id_type;
-    typedef typename traits_type::position_type     position_type;
-    typedef typename traits_type::particle_id_type  particle_id_type;
-    typedef typename traits_type::size_type         size_type;
-    typedef typename traits_type::length_type       length_type;
+    typedef typename traits_type::particle_type                 particle_type;
+    typedef typename particle_type::shape_type                  particle_shape_type;
+    typedef typename traits_type::species_type                  species_type;
+    typedef typename traits_type::species_id_type               species_id_type;
+    typedef typename traits_type::position_type                 position_type;
+    typedef typename traits_type::particle_id_type              particle_id_type;
+    typedef typename traits_type::size_type                     size_type;
+    typedef typename traits_type::length_type                   length_type;
+
     typedef std::pair<const particle_id_type, particle_type>    particle_id_pair;
     typedef abstract_limited_generator<particle_id_pair>        particle_id_pair_generator;
     typedef std::pair<particle_id_pair, length_type>            particle_id_pair_and_distance;
@@ -64,6 +65,7 @@ public:
     typedef typename traits_type::structure_type            structure_type;
     typedef typename traits_type::structure_type_type       structure_type_type;
     typedef typename traits_type::structure_type_id_type    structure_type_id_type;
+
     typedef std::pair<const particle_id_type, particle_type> particle_id_pair;
     typedef std::pair<structure_id_type, length_type>       structure_id_and_distance_pair;
     typedef abstract_limited_generator<particle_id_pair>    particle_id_pair_generator;
@@ -72,25 +74,24 @@ public:
 
 private:
     typedef std::map<typename particle_id_pair::first_type,
-            typename particle_id_pair::second_type> particle_id_pair_set_type;
-    typedef sorted_list<std::vector<particle_id_type> > particle_id_list_type;
-    typedef std::map<structure_id_type, boost::shared_ptr<structure_type> >             structure_map;
-    typedef select_second<typename structure_map::value_type>                           structure_second_selector_type;
-    typedef std::map<structure_type_id_type, structure_type_type >                      structure_type_map;
-    typedef select_second<typename structure_type_map::value_type>                      structure_type_second_selector_type;
+            typename particle_id_pair::second_type>                         particle_id_pair_set_type;
+    typedef sorted_list<std::vector<particle_id_type> >                     particle_id_list_type;
+    typedef std::map<structure_id_type, boost::shared_ptr<structure_type> > structure_map;
+    typedef select_second<typename structure_map::value_type>               structure_second_selector_type;
+    typedef std::map<structure_type_id_type, structure_type_type >          structure_type_map;
+    typedef select_second<typename structure_type_map::value_type>          structure_type_second_selector_type;
 
 public:    
     typedef boost::transform_iterator<structure_second_selector_type,
-            typename structure_map::const_iterator>                 structure_iterator;
-    typedef sized_iterator_range<structure_iterator>                structures_range;
+            typename structure_map::const_iterator>                         structure_iterator;
+    typedef sized_iterator_range<structure_iterator>                        structures_range;
     typedef boost::transform_iterator<structure_type_second_selector_type,
-            typename structure_type_map::const_iterator>            structure_type_iterator;
-//    typedef sized_iterator_range<structure_type_iterator>           structure_types_range;
+            typename structure_type_map::const_iterator>                    structure_type_iterator;
     typedef typename particle_container_type::structure_types_range         structure_types_range;
     typedef typename particle_container_type::structure_id_set              structure_id_set;
 
 
-
+    // Particle Stuff
     virtual particle_id_pair new_particle(species_id_type const& sid, structure_id_type const& structure_id,
             position_type const& pos)
     {
@@ -171,6 +172,7 @@ public:
         return new TransactionImpl<particle_container_type>(*this);
     }
 
+    ///// All the other methods are passed on to the associated ParticleContainer.
     // Species stuff
     virtual species_type const& get_species(species_id_type const& id) const
     {
@@ -322,8 +324,9 @@ private:
         return *i;
     }
 
+//////// Member variables.
 private:
-    particle_container_type&    pc_;        // the particle container
+    particle_container_type&    pc_;                    // the associated particle container
     particle_id_list_type       added_particles_;
     particle_id_list_type       modified_particles_;
     particle_id_pair_set_type   orig_particles_;

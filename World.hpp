@@ -198,9 +198,8 @@ template<typename Ttraits_>
 class World: public ParticleContainerBase<World<Ttraits_>, Ttraits_>
 {
 // The world 'is a' ParticleContainerBase which is parameterize with the same World class
-// (I think the concrete implementation of it, not just the template)
 // The world is a template that is parametrized with the traits (these define a number of datatypes used in the definition of
-// the world?)
+// the world)
 public:
     typedef Ttraits_                        traits_type;                // Needs to be of WorldTraits type???
     typedef ParticleContainerBase<World>    base_type;                  // the class from which is inherited -> base class
@@ -224,12 +223,10 @@ public:
     typedef typename traits_type::structure_type_id_type    structure_type_id_type;
 
     //
-//    typedef std::pair<const particle_id_type, particle_type>                        particle_id_pair;      // defines the pid_particle_pair tuple
-//    typedef std::pair<const structure_id_type, boost::shared_ptr<structure_type> >  structure_id_pair;
-    typedef typename base_type::particle_id_pair                particle_id_pair;
-    typedef typename base_type::structure_id_pair               structure_id_pair;
-    typedef std::pair<position_type, length_type>                                   projected_type;
-    typedef typename particle_container_type::structure_id_and_distance_pair        structure_id_and_distance_pair;
+    typedef typename base_type::particle_id_pair                            particle_id_pair;      // defines the pid_particle_pair tuple
+    typedef typename base_type::structure_id_pair                           structure_id_pair;
+    typedef std::pair<position_type, length_type>                           projected_type;
+    typedef typename particle_container_type::structure_id_and_distance_pair structure_id_and_distance_pair;
 
     typedef typename base_type::particle_id_set                             particle_id_set;
     typedef typename base_type::structure_id_set                            structure_id_set;
@@ -255,22 +252,12 @@ public:
             typename structure_type_map::const_iterator>                    structure_type_iterator;
     typedef sized_iterator_range<species_iterator>                          species_range;
     typedef sized_iterator_range<structure_iterator>                        structures_range;
-//    typedef sized_iterator_range<structure_type_iterator>                   structure_types_range;
 
 public:
     // The constructor
     World(length_type world_size = 1., size_type size = 1)
-        : base_type(world_size, size)
-    {
-        // TODO Add the default structure of the default structure_type here?
-//        default_structure_id_ = structidgen_();
-    }
+        : base_type(world_size, size) {}
 
-    // Old method is case no structure_id is supplied.
-//    virtual particle_id_pair new_particle(species_id_type const& sid, position_type const& pos)
-//    {
-//        return new_particle(sid, default_structure_id_, pos);
-//    }
     // To create new particles
     virtual particle_id_pair new_particle(species_id_type const& sid, structure_id_type const& structure_id,
             position_type const& pos)
@@ -332,6 +319,7 @@ public:
         return true;
     }
 
+    ////// Species stuff
     // Adds a species to the world.
     void add_species(species_type const& species)
     {
@@ -359,7 +347,19 @@ public:
             species_iterator(species_map_.end(),   species_second_selector_type()),
             species_map_.size());
     }
+    // Get all the particle ids by species
+    particle_id_set get_particle_ids(species_id_type const& sid) const
+    {
+        typename per_species_particle_id_set::const_iterator i(
+            particle_pool_.find(sid));
+        if (i == particle_pool_.end())
+        {
+            throw not_found(std::string("Unknown species (id=") + boost::lexical_cast<std::string>(sid) + ")");
+        }
+        return (*i).second;
+    }
 
+    ////// Structure stuff
     // Add a structure 
     virtual structure_id_type add_structure(boost::shared_ptr<structure_type> structure)
     {
@@ -439,50 +439,19 @@ public:
         }
         return (*i).second;
     }
+    // Get and set the default structure of the World
     virtual structure_id_type get_def_structure_id() const
     {
+        if (!default_structure_id_)
+        {
+            throw not_found("Default structure is not defined.");
+        }
         return default_structure_id_;
     }
     void set_def_structure_id(structure_id_type const& id)
     {
         default_structure_id_ = id;
     }
-
-    // TODO
-    // Add structureType
-    void add_structure_type(structure_type_type const& structure_type)
-    {
-        structure_type_map_[structure_type.id()] = structure_type;
-        structure_pool_[structure_type.id()] = structure_id_set();
-    }
-    // Get structureType by id
-    virtual structure_type_type get_structure_type(structure_type_id_type const& sid) const
-    {
-        typename structure_type_map::const_iterator i(structure_type_map_.find(sid));
-        if (structure_type_map_.end() == i)
-        {
-            throw not_found(std::string("Unknown structure_type (id=") + boost::lexical_cast<std::string>(sid) + ")");
-        }
-        return (*i).second;
-    }
-    // Get all structureTypes in the world
-    virtual structure_types_range get_structure_types() const
-    {
-        return structure_types_range(
-            structure_type_iterator(structure_type_map_.begin(), structure_types_second_selector_type()),
-            structure_type_iterator(structure_type_map_.end(), structure_types_second_selector_type()),
-            structure_type_map_.size());
-    }
-    virtual structure_type_id_type get_def_structure_type_id() const
-    {
-        return default_structure_type_id_;
-    }
-    void set_def_structure_type_id(structure_type_id_type const& sid)
-    {
-        default_structure_type_id_ = sid;
-    }
-
-
     // Get the closest surface(surface is a subclass of structures)
     virtual structure_id_and_distance_pair get_closest_surface(position_type const& pos, structure_id_type const& ignore) const
     {       
@@ -507,18 +476,6 @@ public:
         
         return structure_id_and_distance_pair( ret_id , ret_dist );
     }
-   
-    // Get all the particle ids by species
-    particle_id_set get_particle_ids(species_id_type const& sid) const
-    {
-        typename per_species_particle_id_set::const_iterator i(
-            particle_pool_.find(sid));
-        if (i == particle_pool_.end())
-        {
-            throw not_found(std::string("Unknown species (id=") + boost::lexical_cast<std::string>(sid) + ")");
-        }
-        return (*i).second;
-    }
     // Get all the particle ids of the particles on a structure
     particle_id_set get_particle_ids_on_struct(structure_id_type const& struct_id) const
     {
@@ -531,6 +488,47 @@ public:
         return (*i).second;
     }
 
+
+    ////// StructureType stuff
+    // Add structureType
+    void add_structure_type(structure_type_type const& structure_type)
+    {
+        structure_type_map_[structure_type.id()] = structure_type;
+        structure_pool_[structure_type.id()] = structure_id_set();
+    }
+    // Get structureType by id
+    virtual structure_type_type get_structure_type(structure_type_id_type const& sid) const
+    {
+        typename structure_type_map::const_iterator i(structure_type_map_.find(sid));
+        if (structure_type_map_.end() == i)
+        {
+            throw not_found(std::string("Unknown structure_type (id=") + boost::lexical_cast<std::string>(sid) + ")");
+        }
+        return (*i).second;
+    }
+    // Get all structureTypes in the world
+    virtual structure_types_range get_structure_types() const
+    {
+        return structure_types_range(
+            structure_type_iterator(structure_type_map_.begin(), structure_types_second_selector_type()),
+            structure_type_iterator(structure_type_map_.end(), structure_types_second_selector_type()),
+            structure_type_map_.size());
+    }
+    // Get and set the default structure_type of the world
+    virtual structure_type_id_type get_def_structure_type_id() const
+    {
+        if (!default_structure_type_id_)
+        {
+            throw not_found("Default structure_type is not defined.");
+        }
+        return default_structure_type_id_;
+    }
+    void set_def_structure_type_id(structure_type_id_type const& sid)
+    {
+        default_structure_type_id_ = sid;
+    }
+
+
 ///////////// Member variables
 private:
     particle_id_generator               pidgen_;            // generator used to produce the unique ids for the particles
@@ -542,8 +540,8 @@ private:
     per_species_particle_id_set         particle_pool_;     // mapping: species_id -> set of particle ids of that species
     per_structure_particle_id_set       particleonstruct_pool_;
 
-    structure_id_type                   default_structure_id_;
-    structure_type_id_type              default_structure_type_id_;
+    structure_id_type                   default_structure_id_;      // The default structure of the World (is a CuboidalRegion of the size of the world)
+    structure_type_id_type              default_structure_type_id_; // The default structure_type of the World (every structure must have a StructureType)
 };
 
 #endif /* WORLD_HPP */
