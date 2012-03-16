@@ -419,8 +419,8 @@ class PlanarSurfaceSingle(NonInteractionSingle, hasCylindricalShell):
         assert self.greens_function
         assert (self.shell.shape.unit_z == self.structure.shape.unit_z).all()
 
-        assert numpy.dot(self.pid_particle_pair[1].position - self.structure.shape.position,
-                         self.structure.shape.unit_z) == 0.0
+        assert feq(numpy.dot(self.pid_particle_pair[1].position - self.structure.shape.position,
+                             self.structure.shape.unit_z), 0.0, typical=self.shell.shape.half_length)
 
         return True
 
