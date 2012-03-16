@@ -246,15 +246,22 @@ template<typename Timpl_, typename Tbase_, typename Tsim>
 inline boost::python::objects::class_base register_world_class(char const* name)
 {
     using namespace boost::python;
-    typedef Timpl_ impl_type;
+    typedef Timpl_ impl_type;       // The class World that is being wrapped.
+
     typedef species_range_converter<typename impl_type::species_range> species_range_converter_type;
+//    typedef structure_types_range_converter<typename impl_type::structure_types_range> structure_types_range_converter_type;
     typedef structures_range_converter<typename impl_type::structures_range> structures_range_converter_type;
 
     species_range_converter_type::__register();
+//    structure_types_range_converter_type::__register();
     structures_range_converter_type::__register();
 
     class_<std::set<typename impl_type::particle_id_type> >("ParticleIDSet")
         .def(peer::util::set_indexing_suite<std::set<typename impl_type::particle_id_type> >())
+        ;
+
+    class_<std::set<typename impl_type::structure_id_type> >("StructureIDSet")
+        .def(peer::util::set_indexing_suite<std::set<typename impl_type::structure_id_type> >())
         ;
 
     return class_<impl_type, bases<Tbase_>,
