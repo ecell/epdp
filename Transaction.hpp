@@ -91,10 +91,10 @@ public:
 
 
 
-    virtual particle_id_pair new_particle(species_id_type const& sid,
+    virtual particle_id_pair new_particle(species_id_type const& sid, structure_id_type const& structure_id,
             position_type const& pos)
     {
-        particle_id_pair retval(pc_.new_particle(sid, pos));
+        particle_id_pair retval(pc_.new_particle(sid, structure_id, pos));
         const bool result(added_particles_.push_no_duplicate(retval.first));
         BOOST_ASSERT(result);
         return retval;

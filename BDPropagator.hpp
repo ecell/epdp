@@ -274,8 +274,8 @@ private:
 
                         tx_.remove_particle(pp.first);
                         const particle_id_pair
-                            npp0(tx_.new_particle(s0.id(), np0)),
-                            npp1(tx_.new_particle(s1.id(), np1));
+                            npp0(tx_.new_particle(s0.id(), pp.second.structure_id(), np0)),
+                            npp1(tx_.new_particle(s1.id(), pp.second.structure_id(), np1));
 
                         if (rrec_)
                         {
@@ -375,7 +375,7 @@ private:
 
                         remove_particle(pp0.first);
                         remove_particle(pp1.first);
-                        particle_id_pair npp(tx_.new_particle(product, new_pos));
+                        particle_id_pair npp(tx_.new_particle(product, pp0.second.structure_id(), new_pos));
                         if (rrec_)
                         {
                             (*rrec_)(

@@ -267,10 +267,10 @@ public:
     }
 
     // Old method is case no structure_id is supplied.
-    virtual particle_id_pair new_particle(species_id_type const& sid, position_type const& pos)
-    {
-        return new_particle(sid, default_structure_id_, pos);
-    }
+//    virtual particle_id_pair new_particle(species_id_type const& sid, position_type const& pos)
+//    {
+//        return new_particle(sid, default_structure_id_, pos);
+//    }
     // To create new particles
     virtual particle_id_pair new_particle(species_id_type const& sid, structure_id_type const& structure_id,
             position_type const& pos)

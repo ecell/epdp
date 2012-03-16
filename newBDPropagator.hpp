@@ -27,29 +27,29 @@ class newBDPropagator
 {
 public:
     typedef Ttraits_ traits_type;
-    typedef typename Ttraits_::world_type::particle_container_type particle_container_type;
-    typedef typename particle_container_type::species_id_type species_id_type;
-    typedef typename particle_container_type::position_type position_type;
-    typedef typename particle_container_type::particle_shape_type particle_shape_type;
-    typedef typename particle_container_type::species_type species_type;
-    typedef typename particle_container_type::length_type length_type;
-    typedef typename particle_container_type::particle_id_type particle_id_type;
-    typedef typename particle_container_type::particle_type particle_type;
-    typedef typename particle_container_type::particle_id_pair particle_id_pair;
+    typedef typename Ttraits_::world_type::particle_container_type  particle_container_type;
+    typedef typename particle_container_type::species_id_type       species_id_type;
+    typedef typename particle_container_type::position_type         position_type;
+    typedef typename particle_container_type::particle_shape_type   particle_shape_type;
+    typedef typename particle_container_type::species_type          species_type;
+    typedef typename particle_container_type::length_type           length_type;
+    typedef typename particle_container_type::particle_id_type      particle_id_type;
+    typedef typename particle_container_type::particle_type         particle_type;
+    typedef typename particle_container_type::particle_id_pair      particle_id_pair;
     typedef typename particle_container_type::structure_id_and_distance_pair structure_id_and_distance_pair;
-    typedef std::vector<particle_id_type> particle_id_vector_type;
-    typedef std::pair<position_type, position_type> position_pair_type;
-    typedef std::pair<position_type, length_type> projected_type;
+    typedef std::vector<particle_id_type>                           particle_id_vector_type;
+    typedef std::pair<position_type, position_type>                 position_pair_type;
+    typedef std::pair<position_type, length_type>                   projected_type;
     typedef typename particle_container_type::particle_id_pair_generator particle_id_pair_generator;
     typedef typename particle_container_type::particle_id_pair_and_distance particle_id_pair_and_distance;
     typedef typename particle_container_type::particle_id_pair_and_distance_list particle_id_pair_and_distance_list;
-    typedef typename particle_container_type::structure_type structure_type;
-//    typedef typename particle_container_type::structure_id_type structure_id_type;    
+    typedef typename particle_container_type::structure_type        structure_type;
+    typedef typename particle_container_type::structure_id_type     structure_id_type;    
     typedef typename traits_type::world_type::traits_type::rng_type rng_type;
-    typedef typename traits_type::time_type time_type;
-    typedef typename traits_type::network_rules_type network_rules_type;
-    typedef typename network_rules_type::reaction_rules reaction_rules;
-    typedef typename network_rules_type::reaction_rule_type reaction_rule_type;
+    typedef typename traits_type::time_type                         time_type;
+    typedef typename traits_type::network_rules_type                network_rules_type;
+    typedef typename network_rules_type::reaction_rules             reaction_rules;
+    typedef typename network_rules_type::reaction_rule_type         reaction_rule_type;
     typedef typename traits_type::reaction_record_type reaction_record_type;
     typedef typename traits_type::reaction_recorder_type reaction_recorder_type;
     typedef typename traits_type::volume_clearer_type volume_clearer_type;
@@ -337,6 +337,7 @@ private:
                         const species_type s0(tx_.get_species(products[0]));
                         boost::shared_ptr<structure_type> pp_struct( tx_.get_structure(pp.second.structure_id()) );
                         position_type new_pos = pp.second.position();
+                        structure_id_type new_structure_id(pp.second.structure_id());
                         
                         /* If the product particle does NOT live on the same structure type as the reactant => surface -> bulk dissociation. */
                         if( s0.structure_type_id() != pp_struct->sid() )
@@ -350,6 +351,7 @@ private:
                             
                             //Particle is allowed to move after dissociation from surface.
                             new_pos = make_move(s0, new_pos, pp.first);
+                            new_structure_id = tx_.get_def_structure_id();
                         }
                       
                         const particle_shape_type new_shape(new_pos, s0.radius());
@@ -381,7 +383,7 @@ private:
                         }
 
                         tx_.remove_particle(pp.first);
-                        const particle_id_pair product( tx_.new_particle(s0.id(), new_pos) );
+                        const particle_id_pair product( tx_.new_particle(s0.id(), new_structure_id, new_pos) );
 
                         if (rrec_)
                         {
@@ -398,6 +400,8 @@ private:
                                      s1(tx_.get_species(products[1]));
                         int i = max_retry_count_;
                         position_pair_type pp01;
+                        structure_id_type new_structure_id0;
+                        structure_id_type new_structure_id1;
 
                         boost::shared_ptr<structure_type> pp_struct( tx_.get_structure( pp.second.structure_id() ) );
                         
@@ -425,11 +429,15 @@ private:
 
                                 pp01 = pp_struct->
                                         special_geminate_dissociation_positions( rng_, s0, s1, pp.second.position(), reaction_length_ );
+                                new_structure_id0 = pp.second.structure_id();
+                                new_structure_id1 = tx_.get_def_structure_id();
                             }
                             else
                             {
                                 pp01 = pp_struct->
                                         geminate_dissociation_positions( rng_, s0, s1, pp.second.position(), reaction_length_ );
+                                new_structure_id0 = pp.second.structure_id();
+                                new_structure_id1 = pp.second.structure_id();
                             }
                             
                             pp01.first = tx_.apply_boundary( pp01.first );
@@ -482,8 +490,8 @@ private:
 
                         tx_.remove_particle(pp.first);
                         const particle_id_pair
-                            npp0(tx_.new_particle(s0.id(), pp01.first)),
-                            npp1(tx_.new_particle(s1.id(), pp01.second));
+                            npp0(tx_.new_particle(s0.id(), new_structure_id0, pp01.first)),
+                            npp1(tx_.new_particle(s1.id(), new_structure_id1, pp01.second));
 
                         if (rrec_)
                         {
@@ -561,6 +569,7 @@ private:
                                                 pp1.second.position(),
                                                 pp0.second.position()), s0.D())),
                                         (s0.D() + s1.D()))) );
+                        structure_id_type new_structure_id;
 
                         //For unequal structures, project new_pos on surface.
                         if(sp.structure_type_id() != s1.structure_type_id())
@@ -569,12 +578,14 @@ private:
                             // FIXME Ugly!!
                             boost::shared_ptr<structure_type> sp_struct;
                             if(pp0.second.structure_id() == tx_.get_def_structure_id())
-                            {   sp_struct = tx_.get_structure( pp1.second.structure_id() );
+                            {
+                                new_structure_id = pp1.second.structure_id();
                             }
                             else
-                            {   sp_struct = tx_.get_structure( pp0.second.structure_id() );
+                            {
+                                new_structure_id = pp0.second.structure_id();
                             }
-
+                            sp_struct = tx_.get_structure( new_structure_id );
                             projected_type const position_on_surface( sp_struct->
                                                                       projected_point( tx_.cyclic_transpose( new_pos, 
                                                                                                              sp_struct->structure_position() ) ) );
@@ -600,6 +611,7 @@ private:
                             }
                         }
                         
+                        // If the product lives in the bulk
                         if( sp.structure_type_id() == tx_.get_def_structure_type_id() )
                         {
                             structure_id_and_distance_pair const struct_id_distance_pair( tx_.get_closest_surface( new_pos, tx_.get_def_structure_id() ) );
@@ -613,7 +625,7 @@ private:
 
                         remove_particle(pp0.first);
                         remove_particle(pp1.first);
-                        particle_id_pair npp(tx_.new_particle(product, new_pos));
+                        particle_id_pair npp(tx_.new_particle(product, new_structure_id, new_pos));
                         if (rrec_)
                         {
                             (*rrec_)(
@@ -692,7 +704,7 @@ private:
                         }
 
                         remove_particle(pp.first);
-                        const particle_id_pair product_particle( tx_.new_particle(sp.id(), new_pos) );
+                        const particle_id_pair product_particle( tx_.new_particle(sp.id(), surface->real_id(), new_pos) );
                         if (rrec_)
                         {
                             (*rrec_)(

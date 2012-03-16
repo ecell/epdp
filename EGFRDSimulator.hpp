@@ -2103,7 +2103,7 @@ protected:
                 (*base_type::world_).remove_particle(reactant.first);
                 particle_id_pair product(
                     (*base_type::world_).new_particle(
-                        product_species.id(), reactant.second.position()));
+                        product_species.id(), reactant.second.structure_id(), reactant.second.position()));
                 boost::shared_ptr<single_type> new_domain(create_single(product));
                 add_event(*new_domain, SINGLE_EVENT_ESCAPE);
                 if (base_type::rrec_)
@@ -2182,9 +2182,9 @@ protected:
 
                 particle_id_pair const pp[] = {
                     (*base_type::world_).new_particle(
-                        product_species[0]->id(), new_particles[0].position()),
+                        product_species[0]->id(), reactant.second.structure_id(), new_particles[0].position()),
                     (*base_type::world_).new_particle(
-                        product_species[1]->id(), new_particles[1].position())
+                        product_species[1]->id(), reactant.second.structure_id(), new_particles[1].position())
                 };
                 // create domains for two particles and add them to
                 // the event queue
@@ -3267,7 +3267,7 @@ protected:
 
                         particle_id_pair const new_particle(
                             (*base_type::world_).new_particle(
-                                new_species.id(), new_com));
+                                new_species.id(), domain.particles()[0].second.structure_id(), new_com));
                         boost::shared_ptr<single_type> new_single(
                             create_single(new_particle));
                         add_event(*new_single, SINGLE_EVENT_ESCAPE);

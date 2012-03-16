@@ -330,9 +330,9 @@ public:
     // end StructureType stuff
 
     virtual particle_id_pair new_particle(species_id_type const& sid,
-            position_type const& pos)
+            structure_id_type const& structure_id, position_type const& pos)
     {
-        return py_wrapper_type::get_override("new_particle")(sid, pos);
+        return py_wrapper_type::get_override("new_particle")(sid, structure_id, pos);
     }
 
     virtual bool update_particle(particle_id_pair const& pi_pair)

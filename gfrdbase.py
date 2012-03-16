@@ -14,6 +14,7 @@ import os
 import logging
 import logging.handlers
 
+import random
 import myrandom
 
 import model
@@ -208,7 +209,7 @@ def throw_in_particles(world, sid, n):
     """
     species = world.get_species(sid)
     structure_type = world.get_structure_type(species.structure_type_id)
-    structures = [world.get_structure(structure_id) for structure_id in world.get_structure_ids(structure_type)]
+    structure = world.get_structure(random.choice(list(world.get_structure_ids(structure_type))))
 
     if __debug__:
         name = world.model.get_species_type_by_id(sid)["name"]
@@ -239,7 +240,7 @@ def throw_in_particles(world, sid, n):
                     create = False
             if create:
                 # All checks passed. Create particle.
-                p = world.new_particle(sid, position)
+                p = world.new_particle(sid, structure.id, position)
                 i += 1
                 if __debug__:
                     log.info('(%s,\n %s' % (p[0], p[1]))

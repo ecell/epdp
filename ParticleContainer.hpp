@@ -90,7 +90,7 @@ public:
     virtual structure_id_and_distance_pair get_closest_surface(position_type const& pos, structure_id_type const& ignore) const = 0;
 
     // Particle stuff
-    virtual particle_id_pair new_particle(species_id_type const& sid,
+    virtual particle_id_pair new_particle(species_id_type const& sid, structure_id_type const& structure_id,
             position_type const& pos) = 0;
 
     virtual bool update_particle(particle_id_pair const& pi_pair) = 0;

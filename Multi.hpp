@@ -140,10 +140,10 @@ public:
     }
 
         
-    virtual particle_id_pair new_particle(species_id_type const& sid,
+    virtual particle_id_pair new_particle(species_id_type const& sid, structure_id_type const& structure_id,
             position_type const& pos)
     {
-        particle_id_pair const retval(world_.new_particle(sid, pos));
+        particle_id_pair const retval(world_.new_particle(sid, structure_id, pos));
         particles_.insert(retval);
 	    add_species_to_multi(sid);
         return retval;
