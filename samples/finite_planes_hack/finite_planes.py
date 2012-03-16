@@ -29,7 +29,7 @@ datetime.datetime.now().minute*60*1e6+datetime.datetime.now().second*1e6+
 datetime.datetime.now().microsecond))
 #myrandom.seed(currenttime)
 
-myrandom.seed(323)
+myrandom.seed(323) # 323 for 3 part., 523 for one is good
 print "(Seed " + str(currenttime) + ")"
  
 
@@ -92,6 +92,9 @@ E = model.Species('E', DC, sigma, membrane5_type['name'])
 m.add_species_type(E)
 F = model.Species('F', DC, sigma, membrane6_type['name'])
 m.add_species_type(F)
+
+Statist = model.Species('Statist', 0.0, 10.0*sigma)
+m.add_species_type(Statist)
 
 # Reaction rules
 rAB = model.create_binding_reaction_rule(A, membrane2_type, B, k)
@@ -201,6 +204,19 @@ if (logging == True):
 place_particle(w, A, [world_size/2, world_size/2, 0])  # place one particle on membraneA
 place_particle(w, A, [world_size/4, world_size/4, 0])  # place one particle on membraneA
 place_particle(w, A, [3*world_size/4, 3*world_size/4, 0])  # place one particle on membraneA
+
+# Statist particles in the corners of the system
+# does not really work because they intersect with membranes...
+#place_particle(w, Statist, [0, 0, 0])
+#place_particle(w, Statist, [world_size, 0, 0])
+#place_particle(w, Statist, [0, world_size, 0])
+#place_particle(w, Statist, [0, 0, world_size])
+#place_particle(w, Statist, [0, world_size, world_size])
+#place_particle(w, Statist, [world_size, 0, world_size])
+#place_particle(w, Statist, [world_size, world_size, 0])
+#place_particle(w, Statist, [world_size, world_size, world_size])
+
+
 #throw_in_particles(w, A, Nparticles) # THIS DOES NOT WORK BECAUSE PARTICLES INTERSECT WITH PLANES YET!
 #throw_in_particles(w, B, Nparticles)
 
