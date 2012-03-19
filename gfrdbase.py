@@ -263,34 +263,45 @@ def place_particle(world, sid, position):
     model.ParticleModel.add_species_type.
 
     """
-    # TODO make sure that placed particle lives on the right structure.
     species = world.get_species(sid)
-    structure = world.get_structure(species.structure_id)
     radius = species.radius
 
+    # check that particle doesn't overlap with other particles.
     if world.check_overlap((position, radius)):
-        raise NoSpace, 'overlap check failed'
+        raise NoSpace, 'Placing particle failed: overlaps with other particle.'
 
+    surface, distance = get_closest_surface(world, position, [])
     # Check if not too close to a neighbouring structures for particles 
     # added to the world, or added to a self-defined box.
-    if isinstance(structure, _gfrd.CuboidalRegion):
-        surface, distance = get_closest_surface(world, position, [])
+    if species.structure_type_id == world.get_def_structure_type_id():
         if(surface and
            distance < surface.minimal_distance(species.radius)):
             raise RuntimeError('Placing particle failed: %s %s. '
                                'Too close to surface: %s.' %
                                (sid, position, distance))
+        else:
+            structure_id = world.get_def_structure_id()
+    else:
+        # If the particle lives on a surface then the position should be in the closest surface.
+        # The closest surface should also be of the structure_type associated with the species.
+        structure_ids = world.get_structure_ids(world.get_structure_type(species.structure_type_id))
+        if not (surface and 
+                distance < TOLERANCE*radius and 
+                surface.id in structure_ids):
+            raise RuntimeError('Placing particle failed: %s %s. Position should be in structure of structure_type %s.' %
+                                (sid, position, species.structure_type_id))
+        else:
+            structure_id = surface.id
 
     if __debug__:
-        species = world.get_species(sid)
-        structure = world.get_structure(species.structure_id)
         name = world.model.get_species_type_by_id(sid)["name"]
         if name[0] != '(':
             name = '(' + name + ')'
         log.info('\n\tplacing particle of type %s to %s at position %s' %
-                 (name, structure.id, position))
+                 (name, structure_id, position))
+        # TODO put the name of the structure here instead of its ID.
 
-    particle = world.new_particle(sid, position)
+    particle = world.new_particle(sid, structure_id, position)
     return particle
 
 
