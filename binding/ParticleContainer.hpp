@@ -27,8 +27,9 @@
 
 namespace binding {
 
+//// Converters. These convert C++ types to something that Python can handle.
 
-// Converters. These convert C++ types to something that Python can handle.
+// 
 template<typename Timpl_>
 struct particle_id_pair_generator_converter
 {
@@ -54,6 +55,7 @@ struct particle_id_pair_generator_converter
         }
     };
 
+    // Also need to register the converter.
     static void __register()
     {
         peer::wrappers::generator_wrapper<
@@ -69,6 +71,7 @@ struct particle_id_pair_generator_converter
     }
 };
 
+// Not sure if this should be defined here or in binding/World.hpp
 template<typename Timpl_>
 struct structure_id_pair_generator_converter
 {
@@ -94,6 +97,7 @@ struct structure_id_pair_generator_converter
         }
     };
 
+    // Also need to register the converter.
     static void __register()
     {
         peer::wrappers::generator_wrapper<
@@ -206,6 +210,7 @@ struct particle_id_pair_and_distance_list_converter
         }
     };
 
+    // Also need to register the converter.
     static void __register()
     {
         to_python_converter::wrapper_type::__class_init__("ParticleIDAndDistanceVector", boost::python::scope().ptr());
@@ -223,41 +228,34 @@ class ParticleContainerWrapper
 public:
     typedef boost::python::wrapper<Tbase_> py_wrapper_type;
     typedef Tbase_ wrapped_type;
-    typedef typename wrapped_type::size_type                size_type;
-    typedef typename wrapped_type::length_type              length_type;
-    typedef typename wrapped_type::particle_id_type         particle_id_type;
-    typedef typename wrapped_type::particle_shape_type      particle_shape_type;
-    typedef typename wrapped_type::position_type            position_type;
-    typedef typename wrapped_type::species_id_type          species_id_type;
-    typedef typename wrapped_type::species_type             species_type;
-    typedef typename wrapped_type::structure_type           structure_type;
-    typedef typename wrapped_type::structure_id_type        structure_id_type;
-    typedef typename wrapped_type::structure_type_type      structure_type_type;
-    typedef typename wrapped_type::structure_type_id_type   structure_type_id_type;
-    typedef typename wrapped_type::particle_id_pair         particle_id_pair;
-    typedef typename wrapped_type::structure_id_pair        structure_id_pair;
-    typedef typename wrapped_type::transaction_type         transaction_type;
+    // Get types that are defined in the ParticleContainer class that we are wrapping.
+    typedef typename wrapped_type::size_type                            size_type;
+    typedef typename wrapped_type::length_type                          length_type;
+    typedef typename wrapped_type::particle_id_type                     particle_id_type;
+    typedef typename wrapped_type::particle_shape_type                  particle_shape_type;
+    typedef typename wrapped_type::position_type                        position_type;
+    typedef typename wrapped_type::species_type                         species_type;
+    typedef typename wrapped_type::species_id_type                      species_id_type;
+    typedef typename wrapped_type::structure_type                       structure_type;
+    typedef typename wrapped_type::structure_id_type                    structure_id_type;
+    typedef typename wrapped_type::structure_type_type                  structure_type_type;
+    typedef typename wrapped_type::structure_type_id_type               structure_type_id_type;
+
+    typedef typename wrapped_type::particle_id_pair                     particle_id_pair;
+    typedef typename wrapped_type::structure_id_pair                    structure_id_pair;
     typedef typename wrapped_type::particle_id_pair_generator           particle_id_pair_generator;
     typedef typename wrapped_type::structure_id_pair_generator          structure_id_pair_generator;
     typedef typename wrapped_type::particle_id_pair_and_distance_list   particle_id_pair_and_distance_list;
     typedef typename wrapped_type::structure_id_and_distance_pair       structure_id_and_distance_pair;
     typedef typename wrapped_type::structure_id_set                     structure_id_set;
-    typedef typename wrapped_type::structure_types_range    structure_types_range;
+    typedef typename wrapped_type::structures_range                     structures_range;
+    typedef typename wrapped_type::structure_types_range                structure_types_range;
 
-private:
-    typedef std::map<structure_id_type, boost::shared_ptr<structure_type> >             structure_map;
-    typedef select_second<typename structure_map::value_type>                           structure_second_selector_type;
-    typedef std::map<structure_type_id_type, structure_type_type >                      structure_type_map;
-    typedef select_second<typename structure_type_map::value_type>                      structure_type_second_selector_type;
+    typedef typename wrapped_type::transaction_type                     transaction_type;
 
 public:    
-    typedef boost::transform_iterator<structure_second_selector_type,
-            typename structure_map::const_iterator>             structure_iterator;
-    typedef sized_iterator_range<structure_iterator>            structures_range;
-    typedef boost::transform_iterator<structure_type_second_selector_type,
-            typename structure_type_map::const_iterator>        structure_type_iterator;
-//    typedef sized_iterator_range<structure_type_iterator>       structure_types_range;
 
+    //
     virtual ~ParticleContainerWrapper() {}
 
     virtual size_type num_particles() const
@@ -422,22 +420,26 @@ public:
 };
 
 
+////// Registering master function
 template<typename Timpl>
 inline boost::python::objects::class_base register_particle_container_class(
         char const *name)
 {
     using namespace boost::python;
     typedef Timpl impl_type;
+
+    // registering converters from standard boost templates.
     peer::converters::register_tuple_converter<typename impl_type::particle_id_pair>();
     peer::converters::register_tuple_converter<typename impl_type::structure_id_pair>();
     peer::converters::register_tuple_converter<typename impl_type::structure_id_and_distance_pair>();
     peer::converters::register_tuple_converter<typename impl_type::particle_id_pair_and_distance>();
 
-    // register the converters (not sure what this does)
+    // register the converters that are defined above (not sure what this does)
     particle_id_pair_and_distance_list_converter<typename impl_type::particle_id_pair_and_distance_list>::__register();
     particle_id_pair_generator_converter<typename impl_type::particle_id_pair_generator>::__register();
     structure_id_pair_generator_converter<typename impl_type::structure_id_pair_generator>::__register();
 
+    // defining the python class
     return class_<ParticleContainerWrapper<impl_type>, boost::noncopyable>(name)
         .add_property("num_particles", &impl_type::num_particles)
         .add_property("world_size", &impl_type::world_size)

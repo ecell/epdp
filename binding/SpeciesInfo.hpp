@@ -6,6 +6,8 @@
 
 namespace binding {
 
+
+////// Registering master function
 template<typename Timpl_>
 inline boost::python::objects::class_base register_species_info_class(
         char const* name)
@@ -13,6 +15,7 @@ inline boost::python::objects::class_base register_species_info_class(
     using namespace boost::python;
     typedef Timpl_ impl_type;
 
+    // defining the python class
     return class_<impl_type>("SpeciesInfo",
             init<>() )
         .def(init<typename impl_type::identifier_type, typename impl_type::structure_type_id_type,

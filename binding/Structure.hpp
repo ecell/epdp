@@ -6,16 +6,20 @@
 
 namespace binding {
 
+
+////// Registering master function
 template<typename Timpl>
 inline boost::python::objects::class_base register_structure_class(char const *name)
 {
     using namespace boost::python;
     typedef Timpl impl_type;
 
+    // registering converters from standard boost templates
     // registers the projected_point/projected_distance tuple defined in ../Structure.hpp
     peer::converters::register_tuple_converter<
             typename impl_type::projected_type>();
 
+    // defining the python class
     // TODO add name and change id->real_id
     return class_<impl_type, boost::shared_ptr<impl_type>,
                   boost::noncopyable>(name, no_init)

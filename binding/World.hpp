@@ -14,6 +14,9 @@
 
 namespace binding {
 
+//// Converters. These convert C++ types to something that Python can handle.
+
+// Species_range converter
 template<typename Timpl_>
 struct species_range_converter: public boost::python::default_call_policies
 {
@@ -118,12 +121,14 @@ struct species_range_converter: public boost::python::default_call_policies
         return result;
     }
 
+    // Register the converter.
     static void __register()
     {
         wrapper_type::__class_init__("SpeciesRange", boost::python::scope().ptr());
     }
 };
 
+// Structures_range converter
 template<typename Timpl_>
 struct structures_range_converter: public boost::python::default_call_policies
 {
@@ -228,6 +233,7 @@ struct structures_range_converter: public boost::python::default_call_policies
         return result;
     }
 
+    // Register the converter.
     static void __register()
     {
         wrapper_type::__class_init__("SurfacesRange", boost::python::scope().ptr());
@@ -242,6 +248,8 @@ World_get_particle_ids(T const& world)
 }
 
 
+
+////// Registering master function
 template<typename Timpl_, typename Tbase_, typename Tsim>
 inline boost::python::objects::class_base register_world_class(char const* name)
 {
@@ -252,10 +260,12 @@ inline boost::python::objects::class_base register_world_class(char const* name)
 //    typedef structure_types_range_converter<typename impl_type::structure_types_range> structure_types_range_converter_type;
     typedef structures_range_converter<typename impl_type::structures_range> structures_range_converter_type;
 
+    // registering the converters defined above
     species_range_converter_type::__register();
 //    structure_types_range_converter_type::__register();
     structures_range_converter_type::__register();
 
+    // registering converters from standard boost templates
     class_<std::set<typename impl_type::particle_id_type> >("ParticleIDSet")
         .def(peer::util::set_indexing_suite<std::set<typename impl_type::particle_id_type> >())
         ;
@@ -264,6 +274,7 @@ inline boost::python::objects::class_base register_world_class(char const* name)
         .def(peer::util::set_indexing_suite<std::set<typename impl_type::structure_id_type> >())
         ;
 
+    // defining the python class
     return class_<impl_type, bases<Tbase_>,
                   boost::shared_ptr<impl_type> >(
         "World", init<typename impl_type::length_type, typename impl_type::size_type>())

@@ -5,6 +5,8 @@
 
 namespace binding {
 
+
+////// Registering master function
 template<typename Timpl>
 inline boost::python::objects::class_base register_cylindrical_surface_class(char const *name)
 {
