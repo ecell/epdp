@@ -288,8 +288,8 @@ def place_particle(world, sid, position):
         if not (surface and 
                 distance < TOLERANCE*radius and 
                 surface.id in structure_ids):
-            raise RuntimeError('Placing particle failed: %s %s. Position should be in structure of structure_type %s.' %
-                                (sid, position, species.structure_type_id))
+            raise RuntimeError('Placing particle failed: %s %s. Position should be in structure of structure_type \"%s\".' %
+                                (sid, position, world.get_structure_type(species.structure_type_id)['name']))
         else:
             structure_id = surface.id
 
@@ -298,8 +298,7 @@ def place_particle(world, sid, position):
         if name[0] != '(':
             name = '(' + name + ')'
         log.info('\n\tplacing particle of type %s to %s at position %s' %
-                 (name, structure_id, position))
-        # TODO put the name of the structure here instead of its ID.
+                 (name, world.get_structure(structure_id).name, position))
 
     particle = world.new_particle(sid, structure_id, position)
     return particle
