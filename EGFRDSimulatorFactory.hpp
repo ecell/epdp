@@ -10,16 +10,20 @@ template<typename Ttraits_>
 class EGFRDSimulatorFactory: public ParticleSimulatorFactory<Ttraits_>
 {
 public:
-    typedef ParticleSimulatorFactory<Ttraits_> base_type;
-    typedef Ttraits_ traits_type;
-    typedef typename traits_type::world_type::traits_type world_traits_type;
-    typedef typename traits_type::world_type world_type;
-    typedef typename traits_type::network_rules_type network_rules_type;
-    typedef typename world_traits_type::length_type length_type;
-    typedef typename world_traits_type::size_type size_type;
-    typedef typename world_traits_type::position_type position_type;
-    typedef typename world_traits_type::rng_type rng_type;
-    typedef CuboidalRegion<traits_type> cuboidal_region_type;
+    typedef ParticleSimulatorFactory<Ttraits_>  base_type;
+    typedef Ttraits_                            traits_type;
+    typedef typename traits_type::world_type    world_type;
+    typedef typename world_type::traits_type    world_traits_type;
+
+    // shorthand typedefs
+    typedef typename world_traits_type::length_type     length_type;
+    typedef typename world_traits_type::size_type       size_type;
+    typedef typename world_traits_type::position_type   position_type;
+    typedef typename world_traits_type::rng_type        rng_type;
+    typedef typename traits_type::network_rules_type    network_rules_type;
+
+    typedef CuboidalRegion<traits_type>                 cuboidal_region_type;
+
 
 public:
     EGFRDSimulatorFactory(rng_type& rng): rng_(rng) {}
@@ -83,6 +87,8 @@ public:
             rng_, dissociation_retry_moves);
     }
 
+
+///// Member variables
 protected:
     rng_type& rng_;
 };

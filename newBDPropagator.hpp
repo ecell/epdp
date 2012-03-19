@@ -28,32 +28,35 @@ class newBDPropagator
 public:
     typedef Ttraits_ traits_type;
     typedef typename Ttraits_::world_type::particle_container_type  particle_container_type;
-    typedef typename particle_container_type::species_id_type       species_id_type;
-    typedef typename particle_container_type::position_type         position_type;
-    typedef typename particle_container_type::particle_shape_type   particle_shape_type;
-    typedef typename particle_container_type::species_type          species_type;
+
+    // shorthand typedef that we use
     typedef typename particle_container_type::length_type           length_type;
+    typedef typename particle_container_type::position_type         position_type;
+    typedef typename particle_container_type::species_type          species_type;
+    typedef typename particle_container_type::species_id_type       species_id_type;
     typedef typename particle_container_type::particle_id_type      particle_id_type;
     typedef typename particle_container_type::particle_type         particle_type;
     typedef typename particle_container_type::particle_id_pair      particle_id_pair;
-    typedef typename particle_container_type::structure_id_and_distance_pair structure_id_and_distance_pair;
-    typedef std::vector<particle_id_type>                           particle_id_vector_type;
-    typedef std::pair<position_type, position_type>                 position_pair_type;
-    typedef std::pair<position_type, length_type>                   projected_type;
-    typedef typename particle_container_type::particle_id_pair_generator particle_id_pair_generator;
-    typedef typename particle_container_type::particle_id_pair_and_distance particle_id_pair_and_distance;
-    typedef typename particle_container_type::particle_id_pair_and_distance_list particle_id_pair_and_distance_list;
+    typedef typename particle_container_type::particle_shape_type   particle_shape_type;
     typedef typename particle_container_type::structure_type        structure_type;
     typedef typename particle_container_type::structure_id_type     structure_id_type;    
+
+    typedef typename particle_container_type::structure_id_and_distance_pair     structure_id_and_distance_pair;
+    typedef typename particle_container_type::particle_id_pair_generator         particle_id_pair_generator;
+    typedef typename particle_container_type::particle_id_pair_and_distance      particle_id_pair_and_distance;
+    typedef typename particle_container_type::particle_id_pair_and_distance_list particle_id_pair_and_distance_list;
     typedef typename traits_type::world_type::traits_type::rng_type rng_type;
     typedef typename traits_type::time_type                         time_type;
     typedef typename traits_type::network_rules_type                network_rules_type;
     typedef typename network_rules_type::reaction_rules             reaction_rules;
     typedef typename network_rules_type::reaction_rule_type         reaction_rule_type;
-    typedef typename traits_type::reaction_record_type reaction_record_type;
-    typedef typename traits_type::reaction_recorder_type reaction_recorder_type;
-    typedef typename traits_type::volume_clearer_type volume_clearer_type;
+    typedef typename traits_type::reaction_record_type              reaction_record_type;
+    typedef typename traits_type::reaction_recorder_type            reaction_recorder_type;
+    typedef typename traits_type::volume_clearer_type               volume_clearer_type;
 
+    typedef std::vector<particle_id_type>                           particle_id_vector_type;
+    typedef std::pair<position_type, position_type>                 position_pair_type;
+    typedef std::pair<position_type, length_type>                   projected_type;
 
 public:
     template<typename Trange_>
@@ -817,18 +820,19 @@ private:
         return v / length(v);
     }
 
+////// Member variables
 private:
-    particle_container_type& tx_;
-    network_rules_type const& rules_;
-    rng_type& rng_;
-    Real const dt_;
-    int const max_retry_count_;
+    particle_container_type&    tx_;
+    network_rules_type const&   rules_;
+    rng_type&                   rng_;
+    Real const                  dt_;
+    int const                   max_retry_count_;
     reaction_recorder_type* const rrec_;
-    volume_clearer_type* const vc_;
-    particle_id_vector_type queue_;
-    int rejected_move_count_;
-    Real const reaction_length_;
-    static Logger& log_;
+    volume_clearer_type* const  vc_;
+    particle_id_vector_type     queue_;
+    int                         rejected_move_count_;
+    Real const                  reaction_length_;
+    static Logger&              log_;
 };
 
 template<typename Ttraits_>

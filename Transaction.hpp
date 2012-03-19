@@ -19,15 +19,16 @@ class Transaction: public ParticleContainer<Ttraits_>
 {
 public:
     typedef Ttraits_ traits_type;
+
     // useful shorthands for types that we are using.
+    typedef typename traits_type::length_type                   length_type;
+    typedef typename traits_type::position_type                 position_type;
+    typedef typename traits_type::size_type                     size_type;
     typedef typename traits_type::particle_type                 particle_type;
+    typedef typename traits_type::particle_id_type              particle_id_type;
     typedef typename particle_type::shape_type                  particle_shape_type;
     typedef typename traits_type::species_type                  species_type;
     typedef typename traits_type::species_id_type               species_id_type;
-    typedef typename traits_type::position_type                 position_type;
-    typedef typename traits_type::particle_id_type              particle_id_type;
-    typedef typename traits_type::size_type                     size_type;
-    typedef typename traits_type::length_type                   length_type;
 
     typedef std::pair<const particle_id_type, particle_type>    particle_id_pair;
     typedef abstract_limited_generator<particle_id_pair>        particle_id_pair_generator;
@@ -52,25 +53,27 @@ class TransactionImpl: public Transaction<typename Tpc_::traits_type>
 public:
     typedef Tpc_ particle_container_type;
     typedef typename particle_container_type::traits_type   traits_type;        // get the traits that are passed on from the particlecontainer.
+
     // define shorthands to the types that we are using here.
-    typedef typename traits_type::particle_type             particle_type;
-    typedef typename particle_type::shape_type              particle_shape_type;
+    typedef typename traits_type::length_type               length_type;
+    typedef typename traits_type::size_type                 size_type;
+    typedef typename traits_type::position_type             position_type;
     typedef typename traits_type::species_type              species_type;
     typedef typename traits_type::species_id_type           species_id_type;
-    typedef typename traits_type::position_type             position_type;
+    typedef typename traits_type::particle_type             particle_type;
     typedef typename traits_type::particle_id_type          particle_id_type;
-    typedef typename traits_type::size_type                 size_type;
-    typedef typename traits_type::length_type               length_type;
-    typedef typename traits_type::structure_id_type         structure_id_type;
-    typedef typename traits_type::structure_type            structure_type;
+    typedef typename particle_type::shape_type              particle_shape_type;
     typedef typename traits_type::structure_type_type       structure_type_type;
     typedef typename traits_type::structure_type_id_type    structure_type_id_type;
+    typedef typename traits_type::structure_type            structure_type;
+    typedef typename traits_type::structure_id_type         structure_id_type;
 
-    typedef std::pair<const particle_id_type, particle_type> particle_id_pair;
-    typedef std::pair<structure_id_type, length_type>       structure_id_and_distance_pair;
-    typedef abstract_limited_generator<particle_id_pair>    particle_id_pair_generator;
-    typedef std::pair<particle_id_pair, length_type>        particle_id_pair_and_distance;
-    typedef unassignable_adapter<particle_id_pair_and_distance, get_default_impl::std::vector> particle_id_pair_and_distance_list;
+    typedef std::pair<const particle_id_type, particle_type>    particle_id_pair;
+    typedef abstract_limited_generator<particle_id_pair>        particle_id_pair_generator;
+    typedef std::pair<particle_id_pair, length_type>            particle_id_pair_and_distance;
+    typedef unassignable_adapter<particle_id_pair_and_distance,
+                                 get_default_impl::std::vector> particle_id_pair_and_distance_list;
+    typedef std::pair<structure_id_type, length_type>           structure_id_and_distance_pair;
 
 private:
     typedef std::map<typename particle_id_pair::first_type,

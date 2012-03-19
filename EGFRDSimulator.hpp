@@ -44,6 +44,7 @@ struct EGFRDSimulatorTraitsBase: public ParticleSimulatorTraitsBase<Tworld_>
 {
     typedef ParticleSimulatorTraitsBase<Tworld_> base_type;
     typedef Tworld_ world_type;
+
     typedef ShellID shell_id_type;
     typedef DomainID domain_id_type;
     typedef SerialIDGenerator<shell_id_type> shell_id_generator;

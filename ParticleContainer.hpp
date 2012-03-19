@@ -19,43 +19,45 @@ public:
     typedef Ttraits_ traits_type;
 
     // some shorthand typename inherited from the traits
-    typedef typename traits_type::particle_type                 particle_type;
-    typedef typename particle_type::shape_type                  particle_shape_type;
-    typedef typename traits_type::species_type                  species_type;
-    typedef typename traits_type::species_id_type               species_id_type;
-    typedef typename traits_type::position_type                 position_type;
-    typedef typename traits_type::particle_id_type              particle_id_type;
     typedef typename traits_type::length_type                   length_type;
     typedef typename traits_type::size_type                     size_type;
-    typedef typename traits_type::structure_type                structure_type;
-    typedef typename traits_type::structure_id_type             structure_id_type;
+    typedef typename traits_type::position_type                 position_type;
+    typedef typename traits_type::species_type                  species_type;
+    typedef typename traits_type::species_id_type               species_id_type;
+    typedef typename traits_type::particle_type                 particle_type;
+    typedef typename traits_type::particle_id_type              particle_id_type;
     typedef typename traits_type::structure_type_type           structure_type_type;
     typedef typename traits_type::structure_type_id_type        structure_type_id_type;
+    typedef typename traits_type::structure_type                structure_type;
+    typedef typename traits_type::structure_id_type             structure_id_type;
+
+    typedef typename particle_type::shape_type                  particle_shape_type;
+    typedef Transaction<traits_type>                            transaction_type;
 
     typedef std::pair<const particle_id_type, particle_type>                        particle_id_pair;
+    typedef abstract_limited_generator<particle_id_pair>                            particle_id_pair_generator;
+    typedef std::pair<particle_id_pair, length_type>                                particle_id_pair_and_distance;
+    typedef unassignable_adapter<particle_id_pair_and_distance,
+                                 get_default_impl::std::vector>                     particle_id_pair_and_distance_list;
+    typedef std::set<particle_id_type>                                              particle_id_set;
     typedef std::pair<const structure_id_type, boost::shared_ptr<structure_type> >  structure_id_pair;
+    typedef abstract_limited_generator<structure_id_pair>                           structure_id_pair_generator;
     typedef std::pair<structure_id_type, length_type>                               structure_id_and_distance_pair;
-    typedef Transaction<traits_type>                            transaction_type;
-    typedef abstract_limited_generator<particle_id_pair>        particle_id_pair_generator;
-    typedef abstract_limited_generator<structure_id_pair>       structure_id_pair_generator;
-    typedef std::pair<particle_id_pair, length_type>            particle_id_pair_and_distance;
-    typedef unassignable_adapter<particle_id_pair_and_distance, get_default_impl::std::vector> particle_id_pair_and_distance_list;
+    typedef std::set<structure_id_type>                                             structure_id_set;
 
 private:
-    typedef std::map<structure_id_type, boost::shared_ptr<structure_type> >         structure_map;
-    typedef select_second<typename structure_map::value_type>                       structure_second_selector_type;
-    typedef std::map<structure_type_id_type, structure_type_type >                  structure_type_map;
-    typedef select_second<typename structure_type_map::value_type>                  structure_type_second_selector_type;
+    typedef std::map<structure_id_type, boost::shared_ptr<structure_type> >     structure_map;
+    typedef select_second<typename structure_map::value_type>                   structure_second_selector_type;
     typedef boost::transform_iterator<structure_second_selector_type,
-            typename structure_map::const_iterator>                                 structure_iterator;
+            typename structure_map::const_iterator>                             structure_iterator;
+    typedef std::map<structure_type_id_type, structure_type_type >              structure_type_map;
+    typedef select_second<typename structure_type_map::value_type>              structure_type_second_selector_type;
     typedef boost::transform_iterator<structure_type_second_selector_type,
-            typename structure_type_map::const_iterator>                            structure_type_iterator;
+            typename structure_type_map::const_iterator>                        structure_type_iterator;
 
 public:    
-    typedef sized_iterator_range<structure_iterator>                structures_range;
-    typedef sized_iterator_range<structure_type_iterator>           structure_types_range;
-    typedef std::set<particle_id_type>                              particle_id_set;
-    typedef std::set<structure_id_type>                             structure_id_set;
+    typedef sized_iterator_range<structure_iterator>                            structures_range;
+    typedef sized_iterator_range<structure_type_iterator>                       structure_types_range;
 
 
 
