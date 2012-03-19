@@ -37,6 +37,9 @@ inline boost::python::objects::class_base register_structure_class(char const *n
                 impl_type, typename impl_type::structure_type_id_type,
                 &impl_type::sid,
                 &impl_type::sid>::set)
+        .add_property("name", 
+            make_function(&impl_type::name,
+                          return_value_policy<return_by_value>()))
         .def("random_position", &impl_type::random_position)
         .def("random_vector", &impl_type::random_vector)
         .def("bd_displacement", &impl_type::bd_displacement)
