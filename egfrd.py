@@ -629,7 +629,6 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
     def move_particle(self, pid_particle_pair, position):
         # moves a particle in world based on an existing particle
-        p = Particle(position, pid_particle_pair[1].radius, pid_particle_pair[1].D, pid_particle_pair[1].v, pid_particle_pair[1].sid)
 
         new_pid_particle_pair = (pid_particle_pair[0],
                                  Particle(position,

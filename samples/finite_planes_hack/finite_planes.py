@@ -29,13 +29,13 @@ datetime.datetime.now().minute*60*1e6+datetime.datetime.now().second*1e6+
 datetime.datetime.now().microsecond))
 #myrandom.seed(currenttime)
 
-myrandom.seed(323) # 323 for 3 part., 523 for one is good
+myrandom.seed(523) # 323 for 3 part., 523 for one is good
 print "(Seed " + str(currenttime) + ")"
  
 
 # Constants
 # ===============================
-logging = False
+logging = True
 #logging = True
 sigma = 1e-8        # Diameter particle
 DC = 1e-13           # Diffusion constant
@@ -80,17 +80,17 @@ m.add_structure_type(membrane5_type)
 m.add_structure_type(membrane6_type)
 
 # Species
-A = model.Species('A', DC, sigma, membrane1_type['name'])
+A = model.Species('A', DC, sigma, membrane1_type)
 m.add_species_type(A)
-B = model.Species('B', DC, sigma, membrane2_type['name'])
+B = model.Species('B', DC, sigma, membrane2_type)
 m.add_species_type(B)
-C = model.Species('C', DC, sigma, membrane3_type['name'])
+C = model.Species('C', DC, sigma, membrane3_type)
 m.add_species_type(C)
-D = model.Species('D', DC, sigma, membrane4_type['name'])
+D = model.Species('D', DC, sigma, membrane4_type)
 m.add_species_type(D)
-E = model.Species('E', DC, sigma, membrane5_type['name'])
+E = model.Species('E', DC, sigma, membrane5_type)
 m.add_species_type(E)
-F = model.Species('F', DC, sigma, membrane6_type['name'])
+F = model.Species('F', DC, sigma, membrane6_type)
 m.add_species_type(F)
 
 Statist = model.Species('Statist', 0.0, 10.0*sigma)
@@ -163,25 +163,22 @@ rFE = model.create_binding_reaction_rule(F, membrane5_type, E, k)
 m.network_rules.add_reaction_rule(rFE)
 
 
+# World
+w = gfrdbase.create_world(m, 3)
+
 # Create instances of membrane types
-membraneA = _gfrd.create_planar_surface(membrane1_type['name'], [0,0,0], [1,0,0], [0,1,0], world_size, world_size)
-membraneA.sid = membrane1_type.id
-m.add_structure(membraneA)
-membraneB = _gfrd.create_planar_surface(membrane2_type['name'], [0,0,0], [0,0,1], [0,1,0], world_size, world_size)
-membraneB.sid = membrane2_type.id
-m.add_structure(membraneB)
-membraneC = _gfrd.create_planar_surface(membrane3_type['name'], [0,0,world_size], [1,0,0], [0,1,0], world_size, world_size)
-membraneC.sid = membrane3_type.id
-m.add_structure(membraneC)
-membraneD = _gfrd.create_planar_surface(membrane4_type['name'], [world_size,0,0], [0,0,1], [0,1,0], world_size, world_size)
-membraneD.sid = membrane4_type.id
-m.add_structure(membraneD)
-membraneE = _gfrd.create_planar_surface(membrane5_type['name'], [0,0,0], [1,0,0], [0,0,1], world_size, world_size)
-membraneE.sid = membrane5_type.id
-m.add_structure(membraneE)
-membraneF = _gfrd.create_planar_surface(membrane6_type['name'], [0,world_size,0], [1,0,0], [0,0,1], world_size, world_size)
-membraneF.sid = membrane6_type.id
-m.add_structure(membraneF)
+membraneA = model.create_planar_surface(membrane1_type.id, 'name1', [0,0,0], [1,0,0], [0,1,0], world_size, world_size)
+w.add_structure(membraneA)
+membraneB = model.create_planar_surface(membrane2_type.id, 'name2', [0,0,0], [0,0,1], [0,1,0], world_size, world_size)
+w.add_structure(membraneB)
+membraneC = model.create_planar_surface(membrane3_type.id, 'name3', [0,0,world_size], [1,0,0], [0,1,0], world_size, world_size)
+w.add_structure(membraneC)
+membraneD = model.create_planar_surface(membrane4_type.id, 'name4', [world_size,0,0], [0,0,1], [0,1,0], world_size, world_size)
+w.add_structure(membraneD)
+membraneE = model.create_planar_surface(membrane5_type.id, 'name5', [0,0,0], [1,0,0], [0,0,1], world_size, world_size)
+w.add_structure(membraneE)
+membraneF = model.create_planar_surface(membrane6_type.id, 'name6', [0,world_size,0], [1,0,0], [0,0,1], world_size, world_size)
+w.add_structure(membraneF)
 
 print("Membrane A : unit_z = " + str(membraneA.shape.unit_z))
 print("Membrane B : unit_z = " + str(membraneB.shape.unit_z))
@@ -191,8 +188,6 @@ print("Membrane E : unit_z = " + str(membraneE.shape.unit_z))
 print("Membrane F : unit_z = " + str(membraneF.shape.unit_z))
 
 
-# World
-w = gfrdbase.create_world(m, 3)
 # Simulator
 s = EGFRDSimulator(w, myrandom.rng)
 
@@ -202,8 +197,8 @@ if (logging == True):
 
 # Throw in particles
 place_particle(w, A, [world_size/2, world_size/2, 0])  # place one particle on membraneA
-place_particle(w, A, [world_size/4, world_size/4, 0])  # place one particle on membraneA
-place_particle(w, A, [3*world_size/4, 3*world_size/4, 0])  # place one particle on membraneA
+#place_particle(w, A, [world_size/4, world_size/4, 0])  # place one particle on membraneA
+#place_particle(w, A, [3*world_size/4, 3*world_size/4, 0])  # place one particle on membraneA
 
 # Statist particles in the corners of the system
 # does not really work because they intersect with membranes...
