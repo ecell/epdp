@@ -565,8 +565,9 @@ class EGFRDSimulator(ParticleSimulatorBase):
 #        single.shell_id_shell_pair = shell_id_shell_pair
 #        self.geometrycontainer.move_shell(shell_id_shell_pair)
 
-    def move_particle(self, pid_particle_pair, position):
-        # moves a particle in world based on an existing particle
+    def move_particle(self, pid_particle_pair, position, structure_id):
+        # Moves a particle in World and performs the required change of structure_id
+        # based on an existing particle.
 
         new_pid_particle_pair = (pid_particle_pair[0],
                                  Particle(position,
@@ -574,7 +575,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
                                           pid_particle_pair[1].D,
                                           pid_particle_pair[1].v,
                                           pid_particle_pair[1].sid,
-                                          pid_particle_pair[1].structure_id))
+                                          structure_id))
 
         self.world.update_particle(new_pid_particle_pair)
 
@@ -830,22 +831,26 @@ class EGFRDSimulator(ParticleSimulatorBase):
         # A(any structure) -> 0
         # A(any structure) -> B(same structure or 3D)
         # A(any structure) -> B(same structure) + C(same structure or 3D)
+        if __debug__:
+            assert isinstance(single, Single)
 
         # 0. get reactant info
-        reactant           = single.pid_particle_pair
-        reactant_radius    = reactant[1].radius
-        reactant_structure = single.structure
-        species = self.world.get_species(reactant[1].sid)
-        reactant_structure_type_id = species.structure_type_id
+        reactant                    = single.pid_particle_pair
+        reactant_radius             = reactant[1].radius
+        species                     = self.world.get_species(reactant[1].sid)
+        reactant_structure_type_id  = species.structure_type_id
+        reactant_structure          = single.structure          # TODO make argument to method
+        reactant_structure_id       = reactant_structure.id     # TODO should be the structure_id at the time of the reaction.
         rr = single.reactionrule
 
-        # 1. remove the particle
-
+        # The zero_singles are the NonInteractionSingles that are the total result of the recursive
+        # bursting process.
         zero_singles = []
 
         if len(rr.products) == 0:
             
             # 1. No products, no info
+            # 1.5 No new position/structure_id required
             # 2. No space required
             # 3. No space required
             # 4. process the changes (remove particle, make new ones)
@@ -853,9 +858,13 @@ class EGFRDSimulator(ParticleSimulatorBase):
             products = []
             # zero_singles/ignore is unchanged.
 
-            # 5. No new single to be made
-            # 6. Log the change
+            # 5. Update counters
+            self.reaction_events += 1
+            self.last_reaction = (rr, (reactant, None), products)
 
+            # 6. Log the change
+            if __debug__:
+                 log.info('single reaction: product = None.')
             
         elif len(rr.products) == 1:
             
@@ -864,13 +873,14 @@ class EGFRDSimulator(ParticleSimulatorBase):
             product_radius            = product_species.radius
             product_structure_type_id = product_species.structure_type_id
 
-            # 1.5 produce a number of new possible positions for the product particle
-            # TODO make these generators for efficiency
+            # 1.5 get new position and structure_id of particle
+            # If the particle falls of a surface (non CuboidalRegion)
             if product_structure_type_id != reactant_structure_type_id:
                 assert (product_structure_type_id == self.world.get_def_structure_type_id())
 
-                product_structure_id = self.world.get_def_structure_id()
-
+                # produce a number of new possible positions for the product particle
+                # TODO make these generators for efficiency
+                product_pos_list = []
                 if isinstance(reactant_structure, PlanarSurface):
                     a = myrandom.choice(-1, 1)
                     directions = [-a,a]
@@ -881,7 +891,6 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
                 elif isinstance(reactant_structure, CylindricalSurface):
                     vector_length = (product_radius + reactant_structure.shape.radius) * MINIMAL_SEPARATION_FACTOR
-                    product_pos_list = []
                     for _ in range(self.dissociation_retry_moves):
                         unit_vector3D = random_unit_vector()
                         unit_vector2D = normalize(unit_vector3D - 
@@ -891,18 +900,28 @@ class EGFRDSimulator(ParticleSimulatorBase):
                 else:
                     # cannot decay from 3D to other structure
                     raise RuntimeError('fire_single_reaction: Can not decay from 3D to other structure')
-            else:
-                product_structure_id = reactant_structure.id
-                product_pos_list = [reactant_pos]               # no change of position is required if structure doesn't change
 
+                product_structure_id = self.world.get_def_structure_id()    # product structure is always the default structure (bulk)
+
+            # If decay happens to same structure_type
+            else:
+                product_pos_list     = [reactant_pos]           # no change of position is required if structure_type doesn't change
+                product_structure_id = reactant_structure_id    # The product structure is the structure where the reaction takes place.
+
+
+            # 2. make space for the products (kinda brute force, but now we only have to burst once).
+            if not ((product_pos_list[0] == reactant_pos).all()) or product_radius > reactant_radius:
+                product_pos = self.world.apply_boundary(product_pos_list[0])
+                radius = self.world.distance(product_pos, reactant_pos) + product_radius
+                zero_singles, ignore = self.burst_volume(product_pos, radius, ignore)
+
+            # 3. check that there is space for the products (try different positions if possible)
+            # accept the new positions if there is enough space.
             for product_pos in product_pos_list:
                 product_pos = self.world.apply_boundary(product_pos)
 
-                # 2. make space for the products.
-#                if product_pos != reactant_pos or product_radius > reactant_radius:
-                zero_singles, ignore = self.burst_volume(product_pos, product_radius, ignore)
-
-                # 3. check that there is space for the products 
+                # check that there is space for the products 
+                # Note that we do not check overlap with surfaces (we assume that its no problem)
                 if (not self.world.check_overlap((product_pos, product_radius), reactant[0])):
 
                     # 4. process the changes (remove particle, make new ones)
@@ -912,68 +931,55 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
                     # 5. update counters
                     self.reaction_events += 1
-                    self.last_reaction = (rr, (reactant[1], None), products)
+                    self.last_reaction = (rr, (reactant, None), products)
 
                     # 6. Log the change
                     if __debug__:
-                        log.info('product (%s) = %s' % (len(products), products))
+                        log.info('single reaction: product (%s) = %s' % (len(products), products))
 
                     # exit the loop, we have found a new position
                     break
 
             else:
                     # 4. Process (the lack of) change
-                    moved_reactant = self.move_particle(reactant, reactant_pos)
-                    products = [moved_reactant]     # no change
+                    moved_reactant = self.move_particle(reactant, reactant_pos, reactant_structure_id)
+                    products = [moved_reactant]
 
                     # 5. update counters
                     self.rejected_moves += 1
 
                     # 6. Log the event
                     if __debug__:
-                        log.info('single reaction; placing product failed.')
+                        log.info('single reaction: placing product failed.')
 
             
         elif len(rr.products) == 2:
             # 1. get product info
-            product1_species = self.world.get_species(rr.products[0])
-            product2_species = self.world.get_species(rr.products[1])
-            product1_structure_type_id = product1_species.structure_type_id 
-            product2_structure_type_id = product2_species.structure_type_id 
-            
+            product1_species            = self.world.get_species(rr.products[0])
+            product2_species            = self.world.get_species(rr.products[1])
+            product1_structure_type_id  = product1_species.structure_type_id 
+            product2_structure_type_id  = product2_species.structure_type_id 
+            product1_radius             = product1_species.radius
+            product2_radius             = product2_species.radius
             D1 = product1_species.D
             D2 = product2_species.D
-            
-            product1_radius = product1_species.radius
-            product2_radius = product2_species.radius
-            particle_radius12 = product1_radius + product2_radius
-
-            # calculate the displace of the particles according to the ratio D1:D2
-            # this way, species with small D only have small displacement from the reaction point.
-            if D1 == D2:
-            # special case (this should also catch D1==D2==0.0)
-                product1_displacement = particle_radius12 * 0.5
-                product2_displacement = particle_radius12 * 0.5
-            else:
-                D12 = D1 + D2
-                product1_displacement = particle_radius12 * (D1 / D12)
-                product2_displacement = particle_radius12 * (D2 / D12)
-
-            product1_displacement *= MINIMAL_SEPARATION_FACTOR
-            product2_displacement *= MINIMAL_SEPARATION_FACTOR
+            particle_radius12           = product1_radius + product2_radius
 
 
+            # 1.5 Get new positions and structure_ids of particles
+            #     If one of the particle is not on the surface of the reactant.
             if product1_structure_type_id != product2_structure_type_id:
                 # make sure that the reactant was on a 2D or 1D surface
-                assert not isinstance(reactant_structure, CuboidalRegion)
+                assert reactant_structure_type_id != self.world.get_def_structure_type_id()
                 # make sure that only either one of the target structures is the 3D ('^' is exclusive-OR)
                 assert ((product1_structure_type_id == self.world.get_def_structure_type_id()) ^ \
                         (product2_structure_type_id == self.world.get_def_structure_type_id()))
 
                 # figure out which product stays in the surface and which one goes to 3D
-                if (product2_structure_type_id == self.get_def_structure_type_id()):
+                # Note that A is a particle in the surface and B is in the 3D
+                if (product2_structure_type_id == self.world.get_def_structure_type_id()):
                     # product2 goes to 3D and is now particleB (product1 is particleA and is on the surface)
-                    product1_structure_id = reactant_structure.id
+                    product1_structure_id = reactant_structure_id               # TODO after the displacement the structure can change!
                     product2_structure_id = self.world.get_def_structure_id()
                     productA_radius = product1_radius
                     productB_radius = product2_radius
@@ -982,24 +988,21 @@ class EGFRDSimulator(ParticleSimulatorBase):
                     default = True      # we like to think of this as the default
                 else:
                     # product1 goes to 3D and is now particleB (product2 is particleA)
-                    product2_structure_id = reactant_structure.id
+                    product2_structure_id = reactant_structure_id
                     product1_structure_id = self.world.get_def_structure_id()
                     productA_radius = product2_radius
                     productB_radius = product1_radius
                     DA = D2
                     DB = D1
                     default = False
-                # Note that A is a particle in the surface and B is in the 3D
 
                 if isinstance(reactant_structure, PlanarSurface):
-
                     # draw a number of new positions for the two product particles
                     # TODO make this into a generator
 
                     product_pos_list = []
                     for _ in range(self.dissociation_retry_moves):
                         # draw the random angle for the 3D particle relative to the particle left in the membrane
-                        # not all angles are available because particle cannot intersect with the membrane
 
                         # do the backtransform with a random iv with length such that the particles are at contact
                         # Note we make the iv slightly longer because otherwise the anisotropic transform will produce illegal
@@ -1007,84 +1010,85 @@ class EGFRDSimulator(ParticleSimulatorBase):
                         iv = random_vector(particle_radius12 * MixedPair2D3D.calc_z_scaling_factor(DA, DB))
                         iv *= MINIMAL_SEPARATION_FACTOR
 
+                        # determine the side of the membrane the dissociation takes place
                         unit_z = reactant_structure.shape.unit_z * myrandom.choice(-1, 1)
                         newposA, newposB = MixedPair2D3D.do_back_transform(reactant_pos, iv, DA, DB,
                                                                            productA_radius, productB_radius,
                                                                            reactant_structure, unit_z)
-
-                        newposA = self.world.apply_boundary(newposA)
-                        newposB = self.world.apply_boundary(newposB)
-
-                        assert (self.world.distance(newposA, newposB) >= particle_radius12)
-#                        assert (self.world.distance(reactant_structure.shape, newposB) >= productB_radius)
-
                         if default:
                             newpos1, newpos2 = newposA, newposB
                         else:
                             newpos1, newpos2 = newposB, newposA
-
                         product_pos_list.append((newpos1, newpos2))
 
                 elif isinstance(reactant_structure, CylindricalSurface):
 
                     product_pos_list = []
                     for _ in range(self.dissociation_retry_moves):
-
                         iv = random_vector(particle_radius12 * MixedPair1D3D.calc_r_scaling_factor(DA, DB))
                         iv *= MINIMAL_SEPARATION_FACTOR
 
                         newposA, newposB = MixedPair1D3D.do_back_transform(reactant_pos, iv, DA, DB,
-                                                                           productA_radius, productB_radius, reactant_structure)
+                                                                           productA_radius, productB_radius,
+                                                                           reactant_structure)
 
-                        newposA = self.world.apply_boundary(newposA)
                         newposB = self.world.apply_boundary(newposB)
-
-                        assert (self.world.distance(newposA, newposB) >= particle_radius12)
-                        assert (self.world.distance(reactant_structure.shape, newposB) >= productB_radius)
+                        if __debug__:
+                            assert (self.world.distance(reactant_structure.shape, newposB) >= productB_radius)
 
                         if default:
                             newpos1, newpos2 = newposA, newposB
                         else:
                             newpos1, newpos2 = newposB, newposA
-
                         product_pos_list.append((newpos1, newpos2))
 
                 else:
                     # cannot decay from 3D to other structure
                     raise RuntimeError('fire_single_reaction: Can not decay from 3D to other structure')
 
+            # 1.5 Get new positions and structure_ids of particles
+            #     If the two particles stay on the same structure as the reactant.
             else:
-                # The two particles stay on the same structure as the reactant.
-                product1_structure_id = reactant_structure.id
-                product2_structure_id = reactant_structure.id
-
                 # generate new positions in the structure
                 # TODO Make this into a generator
                 product_pos_list = []
                 for _ in range(self.dissociation_retry_moves):
                     # FIXME for particles on the cylinder there are only two possibilities
                     # calculate a random vector in the structure with unit length
-                    orientation_vector = _random_vector(reactant_structure, 1.0, self.rng)
-            
-                    newpos1 = reactant_pos + product1_displacement * orientation_vector
-                    newpos2 = reactant_pos - product2_displacement * orientation_vector
-                    newpos1 = self.world.apply_boundary(newpos1)
-                    newpos2 = self.world.apply_boundary(newpos2)
+                    iv = _random_vector(reactant_structure, particle_radius12, self.rng)
+                    iv *= MINIMAL_SEPARATION_FACTOR
 
-                    assert (self.world.distance(newpos1, newpos2) >= particle_radius12)
+                    unit_z = reactant_structure.shape.unit_z    # not used
+                    newpos1, newpos2 = SimplePair.do_back_transform(reactant_pos, iv, D1, D2,
+                                                                    product1_radius, product2_radius,
+                                                                    reactant_structure, unit_z)
+
                     product_pos_list.append((newpos1, newpos2))
 
+                # structure_ids are the same as reactant. TODO this is not necessarily true in the corners.
+                product1_structure_id = reactant_structure_id
+                product2_structure_id = reactant_structure_id
+
+
             # 2. make space for the products. 
-            # TODO
             #    calculate the sphere around the two product particles
-            rad = max(product1_displacement + product1_radius,
-                      product2_displacement + product2_radius)
-            zero_singles, ignore = self.burst_volume(reactant_pos, rad, ignore)
+            product1_pos = self.world.apply_boundary(product_pos_list[0][0])
+            product2_pos = self.world.apply_boundary(product_pos_list[0][1])
+            radius = max(self.world.distance(product1_pos, reactant_pos) + product1_radius,
+                         self.world.distance(product2_pos, reactant_pos) + product2_radius)
+            zero_singles, ignore = self.burst_volume(reactant_pos, radius, ignore)
 
             # 3. check that there is space for the products (try different positions if possible)
             # accept the new positions if there is enough space.
             for newpos1, newpos2 in product_pos_list:
+                newpos1 = self.world.apply_boundary(newpos1)
+                newpos2 = self.world.apply_boundary(newpos2)
 
+                if __debug__:
+                    assert (self.world.distance(newpos1, newpos2) >= particle_radius12)
+
+                # check that there is space for the products 
+                # Note that we do not check overlap with surfaces -> TODO
                 if (not self.world.check_overlap((newpos1, product1_radius), reactant[0])
                    and
                    not self.world.check_overlap((newpos2, product2_radius), reactant[0])):
@@ -1097,28 +1101,33 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
                     # 5. update counters
                     self.reaction_events += 1
-                    self.last_reaction = (rr, (reactant[1], None), products)
+                    self.last_reaction = (rr, (reactant, None), products)
 
                     # 6. Log the change
                     if __debug__:
-                        log.info('products (%s) = %s' % (len(products), products))
+                        log.info('single reaction: products (%s) = %s' % (len(products), products))
 
                     # exit the loop, we have found new positions
                     break
             else:
+                # Log the lack of change
                 if __debug__:
-                    log.info('single reaction; placing products failed.')
-                moved_reactant = self.move_particle(reactant, reactant_pos)
+                    log.info('single reaction: placing products failed.')
+
+                # 4. process the changes (move the particle and update structure)
+                moved_reactant = self.move_particle(reactant, reactant_pos, reactant_structure_id)
                 products = [moved_reactant]
+
+                # 5. update counters.
                 self.rejected_moves += 1
 
         else:
-            raise RuntimeError('num products >= 3 not supported.')
+            raise RuntimeError('fire_single_reaction: num products >= 3 not supported.')
 
         return products, zero_singles, ignore
 
     def fire_interaction(self, single, reactant_pos, ignore):
-        # This takes care of the identity change when a particle associates with a surface
+        # This takes care of the identity change when a particle associates with a surface.
         # It performs the reactions:
         # A(structure) + surface -> 0
         # A(structure) + surface -> B(surface)
@@ -1126,17 +1135,19 @@ class EGFRDSimulator(ParticleSimulatorBase):
             assert isinstance(single, InteractionSingle)
 
         # 0. get reactant info
-        reactant        = single.pid_particle_pair
-        reactant_radius = reactant[1].radius
+        reactant              = single.pid_particle_pair
+        reactant_radius       = reactant[1].radius
+        reactant_structure_id = reactant[1].structure_id        # TODO make argument of method
         rr = single.interactionrule
 
-        # 1. remove the particle
-
+        # The zero_singles are the NonInteractionSingles that are the total result of the recursive
+        # bursting process.
         zero_singles = []
 
         if len(rr.products) == 0:
             
             # 1. No products, no info
+            # 1.5 No new position/structure_id required
             # 2. No space required
             # 3. No space required
             # 4. process the changes (remove particle, make new ones)
@@ -1144,39 +1155,52 @@ class EGFRDSimulator(ParticleSimulatorBase):
             products = []
             # zero_singles/ignore is unchanged.
 
-            # 5. No new single to be made
-            # 6. Log the change
+            # 5. Update counters
+            self.reaction_events += 1
+            self.last_reaction = (rr, (reactant, None), products)
 
+            # 6. Log the change
+            if __debug__:
+                 log.info('interaction: product = None.')
             
         elif len(rr.products) == 1:
             
             # 1. get product info
-            product_species = self.world.get_species(rr.products[0])
-            product_radius  = product_species.radius
-            product_surface = single.surface
-            product_structure_id = single.surface.id
+            product_species      = self.world.get_species(rr.products[0])
+            product_radius       = product_species.radius
+            product_surface      = single.surface
+
             # TODO make sure that the product species lives on the same type of the interaction surface
 #            product_structure_type = self.world.get_structure(product_species.structure_id)
 #            assert (single.surface.sid == self.world.get_structure(product_species.structure_id)), \
 #                   'Product particle should live on the surface of interaction after the reaction.'
 
-            # 1.5 get new position of particle
-            transposed_pos = self.world.cyclic_transpose(reactant_pos, product_surface.shape.position)
-            product_pos, _ = product_surface.projected_point(transposed_pos)
-            product_pos = self.world.apply_boundary(product_pos)        # not sure this is still necessary
+            # 1.5 get new position and structure_id of particle
+            transposed_pos       = self.world.cyclic_transpose(reactant_pos, product_surface.shape.position)
+            product_pos, _       = product_surface.projected_point(transposed_pos)
+            product_pos          = self.world.apply_boundary(product_pos)        # not sure this is still necessary
+            product_structure_id = product_surface.id
 
             # 2. burst the volume that will contain the products.
             #    Note that an interaction domain is already sized such that it includes the
             #    reactant particle moving into the surface.
+            #    Note that the burst is recursive!!
             if product_radius > reactant_radius:
                 zero_singles, ignore = self.burst_volume(product_pos, product_radius, ignore)
 
             # 3. check that there is space for the products 
+            # Note that we do not check for interfering surfaces (we assume this is no problem)
             if self.world.check_overlap((product_pos, product_radius), reactant[0]):
+
+                # Log the (absence of) change
                 if __debug__:
-                    log.info('interaction; placing product failed.')
-                moved_reactant = self.move_particle(reactant, reactant_pos)
-                products = [moved_reactant]     # no change 
+                    log.info('interaction: no space for product particle.')
+
+                # 4. process the changes (only move particle, stay on same structure)
+                moved_reactant = self.move_particle(reactant, reactant_pos, reactant_structure_id)
+                products = [moved_reactant]
+
+                # 5. update counters
                 self.rejected_moves += 1
 
             else:
@@ -1187,11 +1211,11 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
                 # 5. update counters
                 self.reaction_events += 1
-                self.last_reaction = (rr, (reactant[1], None), products)
+                self.last_reaction = (rr, (reactant, None), products)
 
                 # 6. Log the change
                 if __debug__:
-                     log.info('product (%s) = %s' % (len(products), products))
+                     log.info('interaction: product (%s) = %s' % (len(products), products))
 
         else:
             raise RuntimeError('fire_interaction: num products > 1 not supported.')
@@ -1204,23 +1228,25 @@ class EGFRDSimulator(ParticleSimulatorBase):
         # It performs the reactions:
         # A(any structure) + B(same structure) -> 0
         # A(any structure) + B(same structure or 3D) -> C(same structure)
+        if __debug__:
+            assert isinstance(pair, Pair)
 
         # 0. get reactant info
-        pid_particle_pair1 = pair.pid_particle_pair1
-        pid_particle_pair2 = pair.pid_particle_pair2
-        reactant1_species_id = pid_particle_pair1[1].sid
-        reactant2_species_id = pid_particle_pair2[1].sid
-        reactant1_structure_id = pid_particle_pair1[1].structure_id
-        reactant2_structure_id = pid_particle_pair2[1].structure_id
+        pid_particle_pair1     = pair.pid_particle_pair1
+        pid_particle_pair2     = pair.pid_particle_pair2
+        reactant1_structure_id = pid_particle_pair1[1].structure_id # TODO these are the structures at the time of the reaction
+        reactant2_structure_id = pid_particle_pair2[1].structure_id # and are set these according to transition/crossing event.
 
         rr = pair.draw_reaction_rule(pair.interparticle_rrs)
-        # 1. remove the particles
 
+        # The zero_singles are the NonInteractionSingles that are the Total result of the recursive
+        # bursting process.
         zero_singles = []
 
         if len(rr.products) == 0:
 
             # 1. no product particles, no info
+            # 1.5 No new position/structure_id required
             # 2. No space required
             # 3. No space required
             # 4. process the change (remove particles, make new ones)
@@ -1229,9 +1255,13 @@ class EGFRDSimulator(ParticleSimulatorBase):
             products = []
             # zero_singles/ignore is unchanged.
 
-            # 5. No new single to be made
+            # 5. update counters
+            self.reaction_events += 1
+            self.last_reaction = (rr, (pid_particle_pair1, pid_particle_pair2), products)
+
             # 6. Log the change
-            self.last_reaction = (rr, (pid_particle_pair1[1], pid_particle_pair2[1]), products)
+            if __debug__:
+                 log.info('pair reaction: product = None.')
 
         elif len(rr.products) == 1:
 
@@ -1239,17 +1269,18 @@ class EGFRDSimulator(ParticleSimulatorBase):
             product_species = self.world.get_species(rr.products[0])
             product_radius  = product_species.radius
 
-            # select the proper structure_id for the product particle to live on.
+
+            # 1.5 get new position and structure_id for product particle
+            product_pos = pair.draw_new_com (pair.dt, pair.event_type)
+            product_pos = self.world.apply_boundary(product_pos)
+
+            # select the structure_id for the product particle to live on.
+            # TODO doesn't work for all needed cases
             product_structure_ids = self.world.get_structure_ids(self.world.get_structure_type(product_species.structure_type_id))
             if reactant1_structure_id in product_structure_ids:
                 product_structure_id = reactant1_structure_id
             elif reactant2_structure_id in product_structure_ids:
                 product_structure_id = reactant2_structure_id
-
-
-            # 1.5 get new position for product particle
-            product_pos = pair.draw_new_com (pair.dt, pair.event_type)
-            product_pos = self.world.apply_boundary(product_pos)
 
             # 2.  make space for products
             # 2.1 if the product particle sticks out of the shell
@@ -1257,13 +1288,19 @@ class EGFRDSimulator(ParticleSimulatorBase):
             zero_singles, ignore = self.burst_volume(product_pos, product_radius, ignore)
 
             # 3. check that there is space for the products ignoring the reactants
+            # Note that we do not check for interfering surfaces (we assume this is no problem)
             if self.world.check_overlap((product_pos, product_radius), pid_particle_pair1[0],
                                                                        pid_particle_pair2[0]):
+                # Log the (lack of) change
                 if __debug__:
-                    log.info('fire_pair_reaction: no space for product particle.')
-                moved_reactant1 = self.move_particle(pid_particle_pair1, reactant1_pos)
-                moved_reactant2 = self.move_particle(pid_particle_pair2, reactant2_pos)
-                products = [moved_reactant1, moved_reactant2]     # no change 
+                    log.info('pair reaction: no space for product particle.')
+
+                # 4. process the changes (move particles, change structure)
+                moved_reactant1 = self.move_particle(pid_particle_pair1, reactant1_pos, reactant1_structure_id)
+                moved_reactant2 = self.move_particle(pid_particle_pair2, reactant2_pos, reactant2_structure_id)
+                products = [moved_reactant1, moved_reactant2]
+
+                # 5. update counters
                 self.rejected_moves += 1
 
             else:
@@ -1280,20 +1317,28 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
                 # 6. Log the change
                 if __debug__:
-                    log.info('fire_pair_reaction: product (%s) = %s' % (len(products), products))
+                    log.info('pair reaction: product (%s) = %s' % (len(products), products))
 
         else:
-            raise NotImplementedError('num products >= 2 not supported.')
+            raise NotImplementedError('fire_pair_reaction: num products >= 2 not supported.')
 
         return products, zero_singles, ignore
 
 
     def fire_move(self, single, reactant_pos, ignore_p=None):
         # No reactions/Interactions have taken place -> no identity change of the particle
-        # Just only move the particles
+        # Just only move the particles and process putative structure change
+        if __debug__:
+            assert isinstance(single, Single)
 
+        # 0. get reactant info
         reactant = single.pid_particle_pair
+        reactant_structure_id = reactant[1].structure_id #TODO make argument of method
+        # 1. No product->no info
+        # 1.5 No additional positional/structure change is needed
+        # 2. Position is in protective shell
 
+        # 3. check that there is space for the reactants
         if ignore_p:
             if self.world.check_overlap((reactant_pos, reactant[1].radius),
                                         reactant[0], ignore_p[0]):
@@ -1303,7 +1348,10 @@ class EGFRDSimulator(ParticleSimulatorBase):
                                         reactant[0]):
                 raise RuntimeError('fire_move: particle overlap failed.')
 
-        moved_reactant = self.move_particle(reactant, reactant_pos)
+        # 4. process the changes (move particles, change structure)
+        moved_reactant = self.move_particle(reactant, reactant_pos, reactant_structure_id)
+        # 5. No counting
+        # 6. No Logging
         return [moved_reactant]
 
 
