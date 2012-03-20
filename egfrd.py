@@ -458,7 +458,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
         reaction_rules = self.network_rules.query_reaction_rule(pid_particle_pair[1].sid)
         # Get structure (region or surface) where the particle lives.
         species = self.world.get_species(pid_particle_pair[1].sid)
-        structure = self.world.get_structure(species.structure_id)
+        structure = self.world.get_structure(pid_particle_pair[1].structure_id)
 
         # 2. Create and register the single domain.
         # The type of the single that will be created 
@@ -636,7 +636,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
                                           pid_particle_pair[1].radius,
                                           pid_particle_pair[1].D,
                                           pid_particle_pair[1].v,
-                                          pid_particle_pair[1].sid))
+                                          pid_particle_pair[1].sid,
+                                          pid_particle_pair[1].structure_id))
 
         self.world.update_particle(new_pid_particle_pair)
 
@@ -897,6 +898,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
         reactant           = single.pid_particle_pair
         reactant_radius    = reactant[1].radius
         reactant_structure = single.structure
+        species = self.world.get_species(reactant[1].sid)
+        reactant_structure_type_id = species.structure_type_id
         rr = single.reactionrule
 
         # 1. remove the particle
@@ -920,14 +923,16 @@ class EGFRDSimulator(ParticleSimulatorBase):
         elif len(rr.products) == 1:
             
             # 1. get product info
-            product_species = self.world.get_species(rr.products[0])
-            product_radius  = product_species.radius
-            product_structure = self.world.get_structure(product_species.structure_id) 
+            product_species           = self.world.get_species(rr.products[0])
+            product_radius            = product_species.radius
+            product_structure_type_id = product_species.structure_type_id
 
             # 1.5 produce a number of new possible positions for the product particle
             # TODO make these generators for efficiency
-            if product_structure != reactant_structure:
-                assert isinstance(product_structure, CuboidalRegion)
+            if product_structure_type_id != reactant_structure_type_id:
+                assert (product_structure_type_id == self.world.get_def_structure_type_id())
+
+                product_structure_id = self.world.get_def_structure_id()
 
                 if isinstance(reactant_structure, PlanarSurface):
                     a = myrandom.choice(-1, 1)
@@ -950,8 +955,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
                     # cannot decay from 3D to other structure
                     raise RuntimeError('fire_single_reaction: Can not decay from 3D to other structure')
             else:
+                product_structure_id = reactant_structure.id
                 product_pos_list = [reactant_pos]               # no change of position is required if structure doesn't change
-
 
             for product_pos in product_pos_list:
                 product_pos = self.world.apply_boundary(product_pos)
@@ -965,7 +970,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
                     # 4. process the changes (remove particle, make new ones)
                     self.world.remove_particle(reactant[0])
-                    newparticle = self.world.new_particle(product_species.id, product_pos)
+                    newparticle = self.world.new_particle(product_species.id, product_structure_id, product_pos)
                     products = [newparticle]
 
                     # 5. update counters
@@ -996,8 +1001,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
             # 1. get product info
             product1_species = self.world.get_species(rr.products[0])
             product2_species = self.world.get_species(rr.products[1])
-            product1_structure = self.world.get_structure(product1_species.structure_id) 
-            product2_structure = self.world.get_structure(product2_species.structure_id) 
+            product1_structure_type_id = product1_species.structure_type_id 
+            product2_structure_type_id = product2_species.structure_type_id 
             
             D1 = product1_species.D
             D2 = product2_species.D
@@ -1021,15 +1026,18 @@ class EGFRDSimulator(ParticleSimulatorBase):
             product2_displacement *= MINIMAL_SEPARATION_FACTOR
 
 
-            if product1_structure != product2_structure:
+            if product1_structure_type_id != product2_structure_type_id:
                 # make sure that the reactant was on a 2D or 1D surface
                 assert not isinstance(reactant_structure, CuboidalRegion)
                 # make sure that only either one of the target structures is the 3D ('^' is exclusive-OR)
-                assert (isinstance(product1_structure, CuboidalRegion) ^ isinstance(product2_structure, CuboidalRegion))
+                assert ((product1_structure_type_id == self.world.get_def_structure_type_id()) ^ \
+                        (product2_structure_type_id == self.world.get_def_structure_type_id()))
 
                 # figure out which product stays in the surface and which one goes to 3D
-                if isinstance(product2_structure, CuboidalRegion):
-                    # product2 goes to 3D and is now particleB (product1 is particleA)
+                if (product2_structure_type_id == self.get_def_structure_type_id()):
+                    # product2 goes to 3D and is now particleB (product1 is particleA and is on the surface)
+                    product1_structure_id = reactant_structure.id
+                    product2_structure_id = self.world.get_def_structure_id()
                     productA_radius = product1_radius
                     productB_radius = product2_radius
                     DA = D1
@@ -1037,6 +1045,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
                     default = True      # we like to think of this as the default
                 else:
                     # product1 goes to 3D and is now particleB (product2 is particleA)
+                    product2_structure_id = reactant_structure.id
+                    product1_structure_id = self.world.get_def_structure_id()
                     productA_radius = product2_radius
                     productB_radius = product1_radius
                     DA = D2
@@ -1107,7 +1117,9 @@ class EGFRDSimulator(ParticleSimulatorBase):
                     raise RuntimeError('fire_single_reaction: Can not decay from 3D to other structure')
 
             else:
-                # The two particles stay on the same structure.
+                # The two particles stay on the same structure as the reactant.
+                product1_structure_id = reactant_structure.id
+                product2_structure_id = reactant_structure.id
 
                 # generate new positions in the structure
                 # TODO Make this into a generator
@@ -1142,8 +1154,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
                     
                     # 4. process the changes (remove particle, make new ones)
                     self.world.remove_particle(reactant[0])
-                    product1_pair = self.world.new_particle(product1_species.id, newpos1)
-                    product2_pair = self.world.new_particle(product2_species.id, newpos2)
+                    product1_pair = self.world.new_particle(product1_species.id, product1_structure_id, newpos1)
+                    product2_pair = self.world.new_particle(product2_species.id, product2_structure_id, newpos2)
                     products = [product1_pair, product2_pair]
 
                     # 5. update counters
@@ -1206,6 +1218,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
             product_species = self.world.get_species(rr.products[0])
             product_radius  = product_species.radius
             product_surface = single.surface
+            product_structure_id = single.surface.id
             # TODO make sure that the product species lives on the same type of the interaction surface
 #            product_structure_type = self.world.get_structure(product_species.structure_id)
 #            assert (single.surface.sid == self.world.get_structure(product_species.structure_id)), \
@@ -1234,7 +1247,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
             else:
                 # 4. process the changes (remove particle, make new ones)
                 self.world.remove_particle(reactant[0])
-                newparticle = self.world.new_particle(product_species.id, product_pos)
+                newparticle = self.world.new_particle(product_species.id, product_structure_id, product_pos)
                 products = [newparticle]
 
                 # 5. update counters
@@ -1262,6 +1275,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
         pid_particle_pair2 = pair.pid_particle_pair2
         reactant1_species_id = pid_particle_pair1[1].sid
         reactant2_species_id = pid_particle_pair2[1].sid
+        reactant1_structure_id = pid_particle_pair1[1].structure_id
+        reactant2_structure_id = pid_particle_pair2[1].structure_id
 
         rr = pair.draw_reaction_rule(pair.interparticle_rrs)
         # 1. remove the particles
@@ -1289,6 +1304,14 @@ class EGFRDSimulator(ParticleSimulatorBase):
             product_species = self.world.get_species(rr.products[0])
             product_radius  = product_species.radius
 
+            # select the proper structure_id for the product particle to live on.
+            product_structure_ids = self.world.get_structure_ids(self.world.get_structure_type(product_species.structure_type_id))
+            if reactant1_structure_id in product_structure_ids:
+                product_structure_id = reactant1_structure_id
+            elif reactant2_structure_id in product_structure_ids:
+                product_structure_id = reactant2_structure_id
+
+
             # 1.5 get new position for product particle
             product_pos = pair.draw_new_com (pair.dt, pair.event_type)
             product_pos = self.world.apply_boundary(product_pos)
@@ -1312,7 +1335,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
                 # 4. process the changes (remove particle, make new ones)
                 self.world.remove_particle(pid_particle_pair1[0])
                 self.world.remove_particle(pid_particle_pair2[0])
-                newparticle = self.world.new_particle(product_species.id, product_pos)
+                newparticle = self.world.new_particle(product_species.id, product_structure_id, product_pos)
                 products = [newparticle]
 
                 # 5. update counters
