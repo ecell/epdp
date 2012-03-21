@@ -939,7 +939,52 @@ class CylindricalSurfaceSink(InteractionSingle):
         return 'CylindricalSurfaceSink ' + Single.__str__(self)
 
 
-class PlanarSurfaceEdgeSingle(NonInteractionSingle, hasSphericalShell, EdgeTools, Others): # HACK
+class TransitionSingle(Single, EdgeTools, Others):
+    """TransitionSingles are used when a particle changes from
+       one surface to another. The difference to an InteractionSingle
+       is that the transition process is instantaneous, i.e. the 
+       transition propensity is infinitely high.    
+
+       TransitionSingles feature:
+        * a function process_new_position_vector which checks whether a newly
+          drawn position is still on the original structure of the particle.
+          If this is the case it will not be changed.
+          If it is on the new structure then the new position will be transformed
+          accordingly and the structure_id of the particle will be updated.
+        * several properties that are needed for the above transform.
+    """
+    def __init__(self, domain_id, shell_id, testShell, reactionrules):
+
+        Single.__init__(self, domain_id, shell_id, reactionrules)
+        EdgeTools.__init__(self, testShell, self.pid_particle_pair[1].position)
+        # Note: for the Others superclass nothing is to be initialized.
+
+        self.pid_particle_pair = testShell.single.pid_particle_pair # is that necessary??
+
+        # That was part of the HACK, so we keep it now and remove it later when everything works
+        # origin_surface and target_surface are inherited from testShell via EdgeTools
+        self.structure = self.origin_surface
+        self.surface = self.target_surface
+
+    def initialize(self, t):    
+        # initialize the domain object with the appropriate time to allow reuse of
+        # the Domain at different times
+        self.dt = 0
+        self.last_time = t
+        self.event_type = None
+
+    def determine_next_event(self):
+        """Return an (event time, event type)-tuple.
+
+        """
+        return min(self.draw_escape_time_tuple(),
+                   self.draw_reaction_time_tuple())     # above two events also occur in NonInteractingSingle
+
+    def __str__(self):
+        pass
+
+
+class PlanarSurfaceTransitionSingle(TransitionSingle, hasSphericalShell):
     """1 Particle inside a (spherical) shell at the edge of two planar surfaces
 
         * Particle coordinates on surface: x, y.
@@ -952,18 +997,9 @@ class PlanarSurfaceEdgeSingle(NonInteractionSingle, hasSphericalShell, EdgeTools
 
         assert isinstance(testShell, PlanarSurfaceEdgeSingletestShell)
         hasSphericalShell.__init__(self, testShell, domain_id)
-        NonInteractionSingle.__init__(self, domain_id, shell_id, reactionrules)
-        EdgeTools.__init__(self, testShell, self.pid_particle_pair[1].position)
-        # Note: for the Others superclass nothing is to be initialized.
-
-        self.pid_particle_pair = testShell.single.pid_particle_pair
-        # The following is copied from InteractionSingle
-        self.interactionrules = interactionrules        # the surface interaction 'reactions'
-        self.intrule = None
-        self.interaction_ktot = self.calc_ktot(interactionrules)
+        TransitionSingle.__init__(self, domain_id, shell_id, reactionrules)
 
         # This has to be set because external functions will use it
-        # origin_surface and target_surface etc. are inherited from EdgeTools
         self.structure = self.origin_surface
         self.surface = self.target_surface
 
@@ -1011,12 +1047,6 @@ class PlanarSurfaceEdgeSingle(NonInteractionSingle, hasSphericalShell, EdgeTools
         x, y = random_vector2D(r)
         return x * self.structure.shape.unit_x + y * self.structure.shape.unit_y
 
-    def get_interaction_rule(self): # HACK
-        if self.intrule == None:
-            self.intrule = self.draw_reaction_rule(self.interactionrules)
-        return self.intrule
-    interactionrule = property(get_interaction_rule)
-
     # copied from SphericalSingle
     # these return potentially corrected dimensions
     # For explanation see NonInteractionSingles and Others in shells.py
@@ -1043,7 +1073,7 @@ class PlanarSurfaceEdgeSingle(NonInteractionSingle, hasSphericalShell, EdgeTools
 
 
     def __str__(self):
-        return 'PlanarSurfaceEdge' + Single.__str__(self)
+        return 'PlanarSurfaceTransition' + Single.__str__(self)
 
 
 class DummySingle(object):
