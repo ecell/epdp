@@ -1190,8 +1190,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
         # Note that the reactant_structure_id is the id of the structure on which the particle was located at the time of the reaction.
 
         if __debug__:
-            #assert isinstance(single, InteractionSingle)
-            assert isinstance(single, Single) # HACK
+            assert isinstance(single, InteractionSingle)
 
         # 0. get reactant info
         reactant              = single.pid_particle_pair
@@ -1745,8 +1744,6 @@ class EGFRDSimulator(ParticleSimulatorBase):
                     self.interaction_steps[single.event_type] += 1  # TODO similarly here
                     particles, zero_singles_b, ignore = self.fire_interaction(single, newpos, struct_id, ignore)
 
-            elif isinstance(single, PlanarSurfaceTransitionSingle) and single.changes_structures : # HACK
-                    particles, zero_singles_b, ignore = self.fire_interaction(single, newpos, ignore)
             else:
                 particles = self.fire_move(single, newpos, struct_id)
                 zero_singles_b = []     # no bursting takes place
