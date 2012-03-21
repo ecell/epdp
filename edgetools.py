@@ -27,6 +27,8 @@ class EdgeTools :
 
     def __init__(self, testShell, start_position):
 
+        assert isinstance(testShell, testTransitionSingle);
+
         # Might be used internally by classes inheriting from here
         self.origin_structure  = testShell.origin_structure
         self.target_structure  = testShell.target_structure
