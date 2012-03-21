@@ -24,6 +24,7 @@ __all__ = [
     'testSingle',
     'testNonInteractionSingle',
     'testInteractionSingle',
+    'testTransitionSingle',
     'testPair',
     'testSimplePair',
     'testMixedPair2D3D',
