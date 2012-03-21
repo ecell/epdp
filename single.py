@@ -23,7 +23,7 @@ from shells import *
 __all__ = [
     'CylindricalSurfaceSingle',
     'PlanarSurfaceSingle',
-    'PlanarSurfaceEdgeSingle',
+    'PlanarSurfaceTransitionSingle',
     'SphericalSingle',
     'Single',
     'NonInteractionSingle',

@@ -33,7 +33,7 @@ __all__ = [
     'SphericalPairtestShell',
     'PlanarSurfaceSingletestShell',
     'PlanarSurfacePairtestShell',
-    'PlanarSurfaceEdgeSingletestShell',
+    'PlanarSurfaceTransitionSingletestShell',
     'CylindricalSurfaceSingletestShell',
     'CylindricalSurfacePairtestShell',
     'PlanarSurfaceInteractiontestShell',
