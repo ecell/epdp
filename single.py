@@ -1053,9 +1053,9 @@ class PlanarSurfaceTransitionSingle(TransitionSingle, hasSphericalShell):
 
             # Now check whether the new position is in the surface of origin;
             # if not, transform it to the target surface (function inherited from EdgeTools)
-            newpos = self.process_new_position_vector(oldpos, displacement)
+            newpos, new_structure_id = self.process_new_position_vector(oldpos, displacement)
 
-        return newpos
+        return newpos, new_structure_id
 
     def create_position_vector(self, r):
         # project the vector onto the surface unit vectors to make sure

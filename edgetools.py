@@ -39,11 +39,9 @@ class EdgeTools :
         self.start_position  = start_position
         self.target_distance = testShell.get_distance_to_target_structure()
 
-        self.changes_structures = 0
-
         self.edge_point = self.get_edge_point()
         self.origin_unit_perp, self.origin_unit_par, self.origin_half_extent_perp = self.get_origin_unit_vectors()
-        self.target_unit_perp, self.target_unit_par, self.target_half_extent_perp = self.get_target_unit_vectors()
+        self.target_unit_perp, self.target_unit_par, self.target_half_extent_perp = self.get_target_unit_vectors()        
         
 
     def process_new_position_vector(self, oldpos, displacement):
@@ -60,7 +58,8 @@ class EdgeTools :
         if d_out <= 0.0 :
             # The new position is still in the old surface;
             # no transform required
-            newpos = oldpos + displacement
+            newpos = oldpos + displacement  
+            new_structure_id = self.origin_structure.id  # i.e. no change here
         else :
             # The new position is out of the old surface;
             # transform it to the target surface.
@@ -88,10 +87,9 @@ class EdgeTools :
             print(d_target_par)
             # Construct the new position using the predefined unit vectors of the target surface
             newpos = self.target_center + d_target_perp*self.target_unit_perp + d_target_par*self.target_unit_par
-            self.change_particle_structure(self.pid_particle_pair, self.target_structure)
-            self.changes_structures = 1
+            new_structure_id = self.target_structure.id
 
-        return newpos
+        return newpos, new_structure_id
 
     def get_origin_unit_vectors(self):
         # calculate the unit vector perpendicular and parallel to the edge
@@ -156,9 +154,4 @@ class EdgeTools :
         ep = self.start_position + (self.target_distance * self.origin_unit_perp)
         return ep
 
-    def change_particle_structure(self, pid_particle_pair, new_structure):
-        #pid_particle_pair[1].structure_id = new_structure.id
-        # TODO !!! This will only work once particles can remember their structure !!!
-        # => for now just...
-        pass
 
