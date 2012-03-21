@@ -1013,7 +1013,7 @@ class PlanarSurfaceTransitionSingle(TransitionSingle, hasSphericalShell):
 
         assert isinstance(testShell, PlanarSurfaceTransitionSingletestShell)
         hasSphericalShell.__init__(self, testShell, domain_id)
-        TransitionSingle.__init__(self, domain_id, shell_id, reactionrules)
+        TransitionSingle.__init__(self, domain_id, shell_id, testShell, reactionrules)
 
         # This has to be set because external functions will use it
         # FIXME: Check whether this is still needed!

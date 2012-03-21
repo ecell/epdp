@@ -35,8 +35,8 @@ print "(Seed " + str(currenttime) + ")"
 
 # Constants
 # ===============================
-#logging = True
-logging = False
+logging = True
+#logging = False
 sigma = 1e-8        # Diameter particle
 DC = 1e-13           # Diffusion constant
 N = 1000           # Number of steps simulation will last
