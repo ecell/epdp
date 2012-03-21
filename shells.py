@@ -175,6 +175,20 @@ class testInteractionSingle(testSingle, Others):
         # The reference_vector is the normalized vector from the reference_point to the particle
         self.reference_vector = normalize(pos_transposed - self.reference_point)
 
+class testTransitionSingle(testSingle, Others):
+
+    def __init__(self, single, target_structure):
+        self.single = single
+        self.structure = single.structure
+
+        self.origin_structure = single.structure
+        self.target_structure = target_structure
+
+        self.pid_particle_pair = single.pid_particle_pair
+        self.particle = single.pid_particle_pair[1]
+        self.single_radius = self.particle.radius
+        self.center = self.particle.position
+
 ##############
 class testPair(Others):
 
@@ -1146,31 +1160,22 @@ class PlanarSurfacePairtestShell(CylindricaltestShell, testSimplePair):
         return r/SAFETY, z_right, z_left
 
 #####
-class PlanarSurfaceEdgeSingletestShell(SphericaltestShell, testNonInteractionSingle):
+class PlanarSurfaceTransitionSingletestShell(SphericaltestShell, testTransitionSingle):
 
-    def __init__(self, single, surface, geometrycontainer, domains):
+    def __init__(self, single, target_structure, geometrycontainer, domains):
         SphericaltestShell.__init__(self, geometrycontainer, domains)  # this must be first because of world definition
-        self.single = single
-        self.structure = single.structure
-        self.surface = surface
+        testTransitionSingle.__init__(self, single, target_structure)
 
-        self.origin_surface = single.structure
-        self.target_surface = surface
-        assert isinstance(self.origin_surface, PlanarSurface)
-        assert isinstance(self.target_surface, PlanarSurface)
-
-        self.pid_particle_pair = single.pid_particle_pair
-        self.particle = single.pid_particle_pair[1]
-        self.single_radius = self.particle.radius
-        self.center = self.particle.position
+        assert isinstance(self.origin_structure, PlanarSurface)
+        assert isinstance(self.target_structure, PlanarSurface)
 
         try:
-            self.radius = self.determine_possible_shell(self.origin_surface.id, 
+            self.radius = self.determine_possible_shell(self.origin_structure.id, 
                                                         [self.single.domain_id],
-                                                        [self.origin_surface.id, self.target_surface.id]
+                                                        [self.origin_structure.id, self.target_structure.id]
                                                        )
         except ShellmakingError as e:
-            raise testShellError('(PlanarSurfaceEdgeSingle). %s' %
+            raise testShellError('(PlanarSurfaceTransitionSingle). %s' %
                                  (str(e)))
 
     def get_min_radius(self):
@@ -1180,10 +1185,10 @@ class PlanarSurfaceEdgeSingletestShell(SphericaltestShell, testNonInteractionSin
         # the target surface. Make sure that min_offset > 0.0, because only then it is
         # guaranteed that there is always a certain probability to cross the edge even
         # if the shell with minimal radius is constructed
-        return self.get_distance_to_target_surface() + min_offset
+        return self.get_distance_to_target_structure() + min_offset
 
-    def get_distance_to_target_surface(self):
-        distance = self.world.distance(self.target_surface.shape, self.center)
+    def get_distance_to_target_structure(self):
+        distance = self.world.distance(self.target_structure.shape, self.center)
         return distance
 
 #####

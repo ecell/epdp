@@ -995,7 +995,7 @@ class PlanarSurfaceTransitionSingle(TransitionSingle, hasSphericalShell):
     """
     def __init__(self, domain_id, shell_id, testShell, reactionrules):
 
-        assert isinstance(testShell, PlanarSurfaceEdgeSingletestShell)
+        assert isinstance(testShell, PlanarSurfaceTransitionSingletestShell)
         hasSphericalShell.__init__(self, testShell, domain_id)
         TransitionSingle.__init__(self, domain_id, shell_id, reactionrules)
 
