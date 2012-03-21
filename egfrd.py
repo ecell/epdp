@@ -824,13 +824,15 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
 
 
-    def fire_single_reaction(self, single, reactant_pos, ignore):
+    def fire_single_reaction(self, single, reactant_pos, reactant_structure_id, ignore):
         # This takes care of the identity change when a single particle decays into
         # one or a number of other particles
         # It performs the reactions:
         # A(any structure) -> 0
         # A(any structure) -> B(same structure or 3D)
         # A(any structure) -> B(same structure) + C(same structure or 3D)
+
+        # Note that the reactant_structure_id is the id of the structure on which the particle was located at the time of the reaction.
         if __debug__:
             assert isinstance(single, Single)
 
@@ -839,8 +841,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
         reactant_radius             = reactant[1].radius
         species                     = self.world.get_species(reactant[1].sid)
         reactant_structure_type_id  = species.structure_type_id
-        reactant_structure          = single.structure          # TODO make argument to method
-        reactant_structure_id       = reactant_structure.id     # TODO should be the structure_id at the time of the reaction.
+        reactant_structure          = self.world.get_structure(reactant_structure_id)
         rr = single.reactionrule
 
         # The zero_singles are the NonInteractionSingles that are the total result of the recursive
@@ -1126,18 +1127,20 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
         return products, zero_singles, ignore
 
-    def fire_interaction(self, single, reactant_pos, ignore):
+    def fire_interaction(self, single, reactant_pos, reactant_structure_id, ignore):
         # This takes care of the identity change when a particle associates with a surface.
         # It performs the reactions:
         # A(structure) + surface -> 0
         # A(structure) + surface -> B(surface)
+
+        # Note that the reactant_structure_id is the id of the structure on which the particle was located at the time of the reaction.
+
         if __debug__:
             assert isinstance(single, InteractionSingle)
 
         # 0. get reactant info
         reactant              = single.pid_particle_pair
         reactant_radius       = reactant[1].radius
-        reactant_structure_id = reactant[1].structure_id        # TODO make argument of method
         rr = single.interactionrule
 
         # The zero_singles are the NonInteractionSingles that are the total result of the recursive
@@ -1223,20 +1226,20 @@ class EGFRDSimulator(ParticleSimulatorBase):
         return products, zero_singles, ignore
 
 
-    def fire_pair_reaction(self, pair, reactant1_pos, reactant2_pos, ignore):
+    def fire_pair_reaction(self, pair, reactant1_pos, reactant2_pos, reactant1_structure_id, reactant2_structure_id, ignore):
         # This takes care of the identity change when two particles react with each other
         # It performs the reactions:
         # A(any structure) + B(same structure) -> 0
         # A(any structure) + B(same structure or 3D) -> C(same structure)
+
+        # Note that the reactant_structure_ids are the ids of the structures on which the particles were located at the time of the reaction.
+
         if __debug__:
             assert isinstance(pair, Pair)
 
         # 0. get reactant info
         pid_particle_pair1     = pair.pid_particle_pair1
         pid_particle_pair2     = pair.pid_particle_pair2
-        reactant1_structure_id = pid_particle_pair1[1].structure_id # TODO these are the structures at the time of the reaction
-        reactant2_structure_id = pid_particle_pair2[1].structure_id # and are set these according to transition/crossing event.
-
         rr = pair.draw_reaction_rule(pair.interparticle_rrs)
 
         # The zero_singles are the NonInteractionSingles that are the Total result of the recursive
@@ -1325,15 +1328,17 @@ class EGFRDSimulator(ParticleSimulatorBase):
         return products, zero_singles, ignore
 
 
-    def fire_move(self, single, reactant_pos, ignore_p=None):
+    def fire_move(self, single, reactant_pos, reactant_structure_id, ignore_p=None):
         # No reactions/Interactions have taken place -> no identity change of the particle
         # Just only move the particles and process putative structure change
+
+        # Note that the reactant_structure_id is the id of the structure on which the particle was located at the time of the move.
+
         if __debug__:
             assert isinstance(single, Single)
 
         # 0. get reactant info
         reactant = single.pid_particle_pair
-        reactant_structure_id = reactant[1].structure_id #TODO make argument of method
         # 1. No product->no info
         # 1.5 No additional positional/structure change is needed
         # 2. Position is in protective shell
@@ -1642,14 +1647,15 @@ class EGFRDSimulator(ParticleSimulatorBase):
                 single.event_type = single.draw_iv_event_type()
 
 
-            # get the (new) position
+            # get the (new) position and structure on which the particle is located.
             if single.getD() != 0 and single.dt > 0.0:
                 # If the particle had the possibility to diffuse
-                newpos = single.draw_new_position(single.dt, single.event_type)
+                newpos, struct_id = single.draw_new_position(single.dt, single.event_type)
                 newpos = self.world.apply_boundary(newpos)
             else:
                 # no change in position has taken place
-                newpos = pid_particle_pair[1].position
+                newpos    = pid_particle_pair[1].position
+                struct_id = pid_particle_pair[1].structure_id
             # TODO? Check if the new positions are within domain
 
             # newpos now hold the new position of the particle (not yet committed to the world)
@@ -1666,16 +1672,16 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
                 if single.event_type == EventType.SINGLE_REACTION:
                     self.single_steps[single.event_type] += 1       # TODO counters should also be updated for escape events
-                    particles, zero_singles_b, ignore = self.fire_single_reaction(single, newpos, ignore)
+                    particles, zero_singles_b, ignore = self.fire_single_reaction(single, newpos, struct_id, ignore)
                     # The 'zero_singles_b' list now contains the resulting singles of a putative burst
                     # that occured in fire_single_reaction
 
                 else:
                     self.interaction_steps[single.event_type] += 1  # TODO similarly here
-                    particles, zero_singles_b, ignore = self.fire_interaction(single, newpos, ignore)
+                    particles, zero_singles_b, ignore = self.fire_interaction(single, newpos, struct_id, ignore)
 
             else:
-                particles = self.fire_move(single, newpos)
+                particles = self.fire_move(single, newpos, struct_id)
                 zero_singles_b = []     # no bursting takes place
                 # ignore is unchanged
             domains = zero_singles_b
@@ -1773,9 +1779,9 @@ class EGFRDSimulator(ParticleSimulatorBase):
         ### 3. Process the event produced by the pair
         self.pair_steps[pair.event_type] += 1
 
-        ### 3.1 Get new position of particles
+        ### 3.1 Get new position and current structures of particles
         if pair.dt > 0.0:
-            newpos1, newpos2 = pair.draw_new_positions(pair.dt, pair.r0, pair.iv, pair.event_type)
+            newpos1, newpos2, struct1_id, struct2_id = pair.draw_new_positions(pair.dt, pair.r0, pair.iv, pair.event_type)
             newpos1 = self.world.apply_boundary(newpos1)
             newpos2 = self.world.apply_boundary(newpos2)
 
@@ -1788,6 +1794,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
         else:
             newpos1 = pid_particle_pair1[1].position
             newpos2 = pid_particle_pair2[1].position
+            struct1_id = pid_particle_pair1[1].structure_id
+            struct2_id = pid_particle_pair2[1].structure_id
         # TODO? Check if the new positions are within domain
         # TODO? some more consistency checking of the positions
 ##            assert self.check_pair_pos(pair, newpos1, newpos2, old_com,
@@ -1808,14 +1816,14 @@ class EGFRDSimulator(ParticleSimulatorBase):
             if reactingsingle == single1:
                 theothersingle = single2
                 # first move the non-reacting particle
-                particles = self.fire_move(single2, newpos2, pid_particle_pair1)
+                particles = self.fire_move(single2, newpos2, struct2_id, pid_particle_pair1)
                 # don't ignore the (moved) non-reacting particle
-                particles2, zero_singles_b, ignore = self.fire_single_reaction(single1, newpos1, ignore)
+                particles2, zero_singles_b, ignore = self.fire_single_reaction(single1, newpos1, struct1_id, ignore)
                 particles.extend(particles2)
             else:
                 theothersingle = single1
-                particles = self.fire_move(single1, newpos1, pid_particle_pair2)
-                particles2, zero_singles_b, ignore = self.fire_single_reaction(single2, newpos2, ignore)
+                particles = self.fire_move(single1, newpos1, struct1_id, pid_particle_pair2)
+                particles2, zero_singles_b, ignore = self.fire_single_reaction(single2, newpos2, struct2_id, ignore)
                 particles.extend(particles2)
 
             if __debug__:
@@ -1834,7 +1842,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
         #
         elif pair.event_type == EventType.IV_REACTION:
 
-            particles, zero_singles_b, ignore = self.fire_pair_reaction (pair, newpos1, newpos2, ignore)
+            particles, zero_singles_b, ignore = self.fire_pair_reaction (pair, newpos1, newpos2, struct1_id, struct2_id, ignore)
 
             # Make new NonInteractionSingle domains for every particle after the reaction.
             zero_singles = []
@@ -1851,8 +1859,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
              pair.event_type == EventType.COM_ESCAPE or
              pair.event_type == EventType.BURST):
 
-            particles      = self.fire_move (single1, newpos1, pid_particle_pair2)
-            particles.extend(self.fire_move (single2, newpos2, pid_particle_pair1))
+            particles      = self.fire_move (single1, newpos1, struct1_id, pid_particle_pair2)
+            particles.extend(self.fire_move (single2, newpos2, struct2_id, pid_particle_pair1))
             zero_singles_b = []
             # ignore is unchanged
 

@@ -77,9 +77,12 @@ class Single(ProtectiveDomain):
         '''Draw a new position of the particle in the coordinate system given that an
         event of event_type has occured. No periodic boundary conditions are applied yet
         to the coordinates, as the Domains do not understand this.
+        The method also returns the structure_id of the structure on which the particle
+        is located at the time of the event.
 
         Note also that it calculates the positional information PRIOR to any identity or
-        structure change.
+        structure change. In case of a structure change the structure_id therefor is a
+        reference to the original structure.
 
         When for example a particles dissociates from the membrane (a structure change),
         it is placed next to the membrane. 'draw_new_position' will only determine the
@@ -217,8 +220,11 @@ class NonInteractionSingle(Single, NonInteractionSingles):
             # note that we need to make sure that the shell.shape.position and displacement vector
             # are in the structure to prevent the particle leaving the structure due to numerical errors
             newpos = self.shell.shape.position + displacement
+    
+        # The structure on which the particle ended is always the same as on which it began.
+        structure_id = self.structure.id
 
-        return newpos
+        return newpos, structure_id
 
 ### TODO move this in some way to the shell making stuff in shells.py
     def calculate_shell_size_to_single(self, closest, distance_to_shell, geometrycontainer):
@@ -736,7 +742,10 @@ class PlanarSurfaceInteraction(InteractionSingle):
             # are correct (in the structure) to prevent the particle leaving the structure due to numerical errors
             newpos = self.shell.shape.position + vector_r + vector_z
 
-        return newpos
+        # The structure on which the particle ended is always the same as on which it began.
+        structure_id = self.structure.id
+
+        return newpos, structure_id
 
     def __str__(self):
         return ('PlanarSurfaceInteraction' + Single.__str__(self) + \
@@ -836,7 +845,10 @@ class CylindricalSurfaceInteraction(InteractionSingle):
             # Add displacement to shell.shape.position, not to particle.position.  
             newpos = self.shell.shape.position + z_vector + r_vector
 
-        return newpos
+        # The structure on which the particle ended is always the same as on which it began.
+        structure_id = self.structure.id
+
+        return newpos, structure_id
 
     def __str__(self):
         return ('CylindricalSurfaceInteraction' + Single.__str__(self) + \
@@ -928,7 +940,10 @@ class CylindricalSurfaceSink(InteractionSingle):
         z_vector = self.shell.shape.unit_z * z
         newpos = self.shell.shape.position + z_vector
 
-        return newpos
+        # The structure on which the particle ended is always the same as on which it began.
+        structure_id = self.structure.id
+
+        return newpos, structure_id
 
     def __str__(self):
         return 'CylindricalSurfaceSink ' + Single.__str__(self)
