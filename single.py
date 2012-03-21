@@ -349,7 +349,7 @@ class PlanarSurfaceSingle(NonInteractionSingle, hasCylindricalShell):
         * Selected randomly when drawing displacement vector: theta.
 
     """
-    def __init__(self, domain_id, shell_id, testShell, reactionrules):surface
+    def __init__(self, domain_id, shell_id, testShell, reactionrules):
 
         assert isinstance(testShell, PlanarSurfaceSingletestShell)
         hasCylindricalShell.__init__(self, testShell, domain_id)

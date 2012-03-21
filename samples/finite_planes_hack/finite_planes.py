@@ -62,7 +62,7 @@ m = model.ParticleModel(2.01*world_size)
 membrane_type = _gfrd.StructureType()
 membrane_type['name'] = 'membrane_type'
 
-m.add_structure_type(membrane1_type)
+m.add_structure_type(membrane_type)
 
 # Species
 A = model.Species('A', DC, sigma, membrane_type)
