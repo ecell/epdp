@@ -993,7 +993,7 @@ class PlanarSurfaceTransitionSingle(TransitionSingle, hasSphericalShell):
         * Selected randomly when drawing displacement vector: theta.
 
     """
-    def __init__(self, domain_id, shell_id, testShell, reactionrules, interactionrules): # HACK
+    def __init__(self, domain_id, shell_id, testShell, reactionrules):
 
         assert isinstance(testShell, PlanarSurfaceEdgeSingletestShell)
         hasSphericalShell.__init__(self, testShell, domain_id)
