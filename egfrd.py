@@ -831,6 +831,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
         # A(any structure) -> 0
         # A(any structure) -> B(same structure or 3D)
         # A(any structure) -> B(same structure) + C(same structure or 3D)
+        if __debug__:
+            assert isinstance(single, Single)
 
         # Note that the reactant_structure_id is the id of the structure on which the particle was located at the time of the reaction.
         if __debug__:
@@ -1231,6 +1233,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
         # It performs the reactions:
         # A(any structure) + B(same structure) -> 0
         # A(any structure) + B(same structure or 3D) -> C(same structure)
+        if __debug__:
+            assert isinstance(pair, Pair)
 
         # Note that the reactant_structure_ids are the ids of the structures on which the particles were located at the time of the reaction.
 
