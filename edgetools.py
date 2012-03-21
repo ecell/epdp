@@ -28,16 +28,16 @@ class EdgeTools :
     def __init__(self, testShell, start_position):
 
         # Might be used internally by classes inheriting from here
-        self.origin_surface  = testShell.origin_surface
-        self.target_surface  = testShell.target_surface
+        self.origin_structure  = testShell.origin_structure
+        self.target_structure  = testShell.target_structure
 
-        self.origin_center = self.origin_surface.shape.position
-        self.target_center = self.target_surface.shape.position
-        self.origin_half_extent = self.origin_surface.shape.half_extent
-        self.target_half_extent = self.target_surface.shape.half_extent
+        self.origin_center = self.origin_structure.shape.position
+        self.target_center = self.target_structure.shape.position
+        self.origin_half_extent = self.origin_structure.shape.half_extent
+        self.target_half_extent = self.target_structure.shape.half_extent
 
         self.start_position  = start_position
-        self.target_distance = testShell.get_distance_to_target_surface()
+        self.target_distance = testShell.get_distance_to_target_structure()
 
         self.changes_structures = 0
 
@@ -74,21 +74,21 @@ class EdgeTools :
             d_target_par = d_origin_par * numpy.dot(self.origin_unit_par, self.target_unit_par)
             # TODO: Remove this temporary debug stuff
             print("process_new_position_vector")
-            print(self.origin_surface.id)
+            print(self.origin_structure.id)
             print(self.origin_unit_par)
             print(self.origin_unit_perp)
-            print(self.target_surface.id)
+            print(self.target_structure.id)
             print(self.target_unit_par)
             print(self.target_unit_perp)
-            print(self.target_surface.shape.unit_x)
-            print(self.target_surface.shape.unit_y)
-            print(self.target_surface.shape.unit_z)
+            print(self.target_structure.shape.unit_x)
+            print(self.target_structure.shape.unit_y)
+            print(self.target_structure.shape.unit_z)
             print(d_origin_perp)
             print(d_origin_par)
             print(d_target_par)
             # Construct the new position using the predefined unit vectors of the target surface
             newpos = self.target_center + d_target_perp*self.target_unit_perp + d_target_par*self.target_unit_par
-            self.change_particle_structure(self.pid_particle_pair, self.target_surface)
+            self.change_particle_structure(self.pid_particle_pair, self.target_structure)
             self.changes_structures = 1
 
         return newpos
@@ -98,7 +98,7 @@ class EdgeTools :
         # in the surface of origin and the half_extent of this surface in the
         # perpendicular vector direction
         # ATTENTION! THIS DOES NOT YET WORK WITH PERIODIC BC!
-        w_z = self.target_surface.shape.unit_z
+        w_z = self.target_structure.shape.unit_z
         u_perp = (1.0/self.target_distance * numpy.dot(self.target_center-self.start_position, w_z )) * w_z
         # TODO: DEBUG output, to be removed
         if not feq(numpy.sqrt(numpy.dot(u_perp, u_perp)), 1.0):
@@ -113,8 +113,8 @@ class EdgeTools :
             
         assert feq(numpy.sqrt(numpy.dot(u_perp, u_perp)), 1.0)
 
-        u_x = self.origin_surface.shape.unit_x
-        u_y = self.origin_surface.shape.unit_y
+        u_x = self.origin_structure.shape.unit_x
+        u_y = self.origin_structure.shape.unit_y
         if feq(abs(numpy.dot(u_x, u_perp)), 1.0):
              u_par  = u_y
              h_perp = self.origin_half_extent[0] # half_extent in u_x direction
@@ -133,8 +133,8 @@ class EdgeTools :
         w_perp = ( 1.0/numpy.sqrt(numpy.dot(w_perp_unnorm,w_perp_unnorm)) ) * w_perp_unnorm
         assert feq(numpy.sqrt(numpy.dot(w_perp, w_perp)), 1.0)
 
-        w_x = self.target_surface.shape.unit_x
-        w_y = self.target_surface.shape.unit_y
+        w_x = self.target_structure.shape.unit_x
+        w_y = self.target_structure.shape.unit_y
         if feq(abs(numpy.dot(w_x, w_perp)), 1.0):
              w_par = w_y
              h_perp = self.origin_half_extent[0] # half_extent in w_x direction

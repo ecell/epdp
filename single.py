@@ -342,7 +342,7 @@ class PlanarSurfaceSingle(NonInteractionSingle, hasCylindricalShell):
         * Selected randomly when drawing displacement vector: theta.
 
     """
-    def __init__(self, domain_id, shell_id, testShell, reactionrules):
+    def __init__(self, domain_id, shell_id, testShell, reactionrules):surface
 
         assert isinstance(testShell, PlanarSurfaceSingletestShell)
         hasCylindricalShell.__init__(self, testShell, domain_id)
@@ -941,7 +941,7 @@ class CylindricalSurfaceSink(InteractionSingle):
 
 class TransitionSingle(Single, EdgeTools, Others):
     """TransitionSingles are used when a particle changes from
-       one surface to another. The difference to an InteractionSingle
+       one structure to another. The difference to an InteractionSingle
        is that the transition process is instantaneous, i.e. the 
        transition propensity is infinitely high.    
 
@@ -962,9 +962,9 @@ class TransitionSingle(Single, EdgeTools, Others):
         self.pid_particle_pair = testShell.single.pid_particle_pair # is that necessary??
 
         # That was part of the HACK, so we keep it now and remove it later when everything works
-        # origin_surface and target_surface are inherited from testShell via EdgeTools
-        self.structure = self.origin_surface
-        self.surface = self.target_surface
+        # origin_structure and target_structure are inherited from testShell via EdgeTools
+        self.structure = self.origin_structure
+        self.surface = self.target_structure
 
     def initialize(self, t):    
         # initialize the domain object with the appropriate time to allow reuse of
@@ -1000,8 +1000,9 @@ class PlanarSurfaceTransitionSingle(TransitionSingle, hasSphericalShell):
         TransitionSingle.__init__(self, domain_id, shell_id, reactionrules)
 
         # This has to be set because external functions will use it
-        self.structure = self.origin_surface
-        self.surface = self.target_surface
+        # FIXME: Check whether this is still needed!
+        self.structure = self.origin_structure
+        self.surface = self.target_structure
 
     # The same Greens function is used as for the normal PlanarSurfaceSingle;
     # If the position is off the surface of origin, it will be transformed towards the target surface
