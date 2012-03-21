@@ -35,8 +35,8 @@ print "(Seed " + str(currenttime) + ")"
 
 # Constants
 # ===============================
-logging = True
 #logging = True
+logging = False
 sigma = 1e-8        # Diameter particle
 DC = 1e-13           # Diffusion constant
 N = 1000           # Number of steps simulation will last
@@ -59,125 +59,43 @@ if (logging == True):
 m = model.ParticleModel(2.01*world_size)
 
 # Planes ("membranes")
-membrane1_type = _gfrd.StructureType()
-membrane1_type['name'] = 'membrane1_type'
-membrane2_type = _gfrd.StructureType()
-membrane2_type['name'] = 'membrane2_type'
-membrane3_type = _gfrd.StructureType()
-membrane3_type['name'] = 'membrane3_type'
-membrane4_type = _gfrd.StructureType()
-membrane4_type['name'] = 'membrane4_type'
-membrane5_type = _gfrd.StructureType()
-membrane5_type['name'] = 'membrane5_type'
-membrane6_type = _gfrd.StructureType()
-membrane6_type['name'] = 'membrane6_type'
+membrane_type = _gfrd.StructureType()
+membrane_type['name'] = 'membrane_type'
 
 m.add_structure_type(membrane1_type)
-m.add_structure_type(membrane2_type)
-m.add_structure_type(membrane3_type)
-m.add_structure_type(membrane4_type)
-m.add_structure_type(membrane5_type)
-m.add_structure_type(membrane6_type)
 
 # Species
-A = model.Species('A', DC, sigma, membrane1_type)
+A = model.Species('A', DC, sigma, membrane_type)
 m.add_species_type(A)
-B = model.Species('B', DC, sigma, membrane2_type)
+B = model.Species('B', DC, sigma, membrane_type)
 m.add_species_type(B)
-C = model.Species('C', DC, sigma, membrane3_type)
+C = model.Species('C', DC, sigma, membrane_type)
 m.add_species_type(C)
-D = model.Species('D', DC, sigma, membrane4_type)
+D = model.Species('D', DC, sigma, membrane_type)
 m.add_species_type(D)
-E = model.Species('E', DC, sigma, membrane5_type)
+E = model.Species('E', DC, sigma, membrane_type)
 m.add_species_type(E)
-F = model.Species('F', DC, sigma, membrane6_type)
+F = model.Species('F', DC, sigma, membrane_type)
 m.add_species_type(F)
 
 Statist = model.Species('Statist', 0.0, 10.0*sigma)
 m.add_species_type(Statist)
 
-# Reaction rules
-rAB = model.create_binding_reaction_rule(A, membrane2_type, B, k)
-m.network_rules.add_reaction_rule(rAB)
-rBA = model.create_binding_reaction_rule(B, membrane1_type, A, k)
-m.network_rules.add_reaction_rule(rBA)
-
-rBC = model.create_binding_reaction_rule(B, membrane3_type, C, k)
-m.network_rules.add_reaction_rule(rBC)
-rCB = model.create_binding_reaction_rule(C, membrane2_type, B, k)
-m.network_rules.add_reaction_rule(rCB)
-
-rCD = model.create_binding_reaction_rule(C, membrane4_type, D, k)
-m.network_rules.add_reaction_rule(rCD)
-rDC = model.create_binding_reaction_rule(D, membrane3_type, C, k)
-m.network_rules.add_reaction_rule(rDC)
-
-rAD = model.create_binding_reaction_rule(A, membrane4_type, D, k)
-m.network_rules.add_reaction_rule(rAD)
-rDA = model.create_binding_reaction_rule(D, membrane1_type, A, k)
-m.network_rules.add_reaction_rule(rDA)
-
-rAE = model.create_binding_reaction_rule(A, membrane5_type, E, k)
-m.network_rules.add_reaction_rule(rAE)
-rEA = model.create_binding_reaction_rule(E, membrane1_type, A, k)
-m.network_rules.add_reaction_rule(rEA)
-
-rBE = model.create_binding_reaction_rule(B, membrane5_type, E, k)
-m.network_rules.add_reaction_rule(rBE)
-rEB = model.create_binding_reaction_rule(E, membrane2_type, B, k)
-m.network_rules.add_reaction_rule(rEB)
-
-rCE = model.create_binding_reaction_rule(C, membrane5_type, E, k)
-m.network_rules.add_reaction_rule(rCE)
-rEC = model.create_binding_reaction_rule(E, membrane3_type, C, k)
-m.network_rules.add_reaction_rule(rEC)
-
-rDE = model.create_binding_reaction_rule(D, membrane5_type, E, k)
-m.network_rules.add_reaction_rule(rDE)
-rED = model.create_binding_reaction_rule(E, membrane4_type, D, k)
-m.network_rules.add_reaction_rule(rED)
-
-rAF = model.create_binding_reaction_rule(A, membrane6_type, F, k)
-m.network_rules.add_reaction_rule(rAF)
-rFA = model.create_binding_reaction_rule(F, membrane1_type, A, k)
-m.network_rules.add_reaction_rule(rFA)
-
-rBF = model.create_binding_reaction_rule(B, membrane6_type, F, k)
-m.network_rules.add_reaction_rule(rBF)
-rFB = model.create_binding_reaction_rule(F, membrane2_type, B, k)
-m.network_rules.add_reaction_rule(rFB)
-
-rCF = model.create_binding_reaction_rule(C, membrane6_type, F, k)
-m.network_rules.add_reaction_rule(rCF)
-rFC = model.create_binding_reaction_rule(F, membrane3_type, C, k)
-m.network_rules.add_reaction_rule(rFC)
-
-rDF = model.create_binding_reaction_rule(D, membrane6_type, F, k)
-m.network_rules.add_reaction_rule(rDF)
-rFD = model.create_binding_reaction_rule(F, membrane4_type, D, k)
-m.network_rules.add_reaction_rule(rFD)
-
-rEF = model.create_binding_reaction_rule(E, membrane6_type, F, k)
-m.network_rules.add_reaction_rule(rEF)
-rFE = model.create_binding_reaction_rule(F, membrane5_type, E, k)
-m.network_rules.add_reaction_rule(rFE)
-
-
 # World
 w = gfrdbase.create_world(m, 3)
 
 # Create instances of membrane types
-membraneA = model.create_planar_surface(membrane1_type.id, 'name1', [0,0,0], [1,0,0], [0,1,0], world_size, world_size)
+membraneA = model.create_planar_surface(membrane_type.id, 'name1', [0,0,0], [1,0,0], [0,1,0], world_size, world_size)
 w.add_structure(membraneA)
-membraneB = model.create_planar_surface(membrane2_type.id, 'name2', [0,0,0], [0,0,1], [0,1,0], world_size, world_size)
+membraneB = model.create_planar_surface(membrane_type.id, 'name2', [0,0,0], [0,0,1], [0,1,0], world_size, world_size)
 w.add_structure(membraneB)
-membraneC = model.create_planar_surface(membrane3_type.id, 'name3', [0,0,world_size], [1,0,0], [0,1,0], world_size, world_size)
+membraneC = model.create_planar_surface(membrane_type.id, 'name3', [0,0,world_size], [1,0,0], [0,1,0], world_size, world_size)
 w.add_structure(membraneC)
-membraneD = model.create_planar_surface(membrane4_type.id, 'name4', [world_size,0,0], [0,0,1], [0,1,0], world_size, world_size)
+membraneD = model.create_planar_surface(membrane_type.id, 'name4', [world_size,0,0], [0,0,1], [0,1,0], world_size, world_size)
 w.add_structure(membraneD)
-membraneE = model.create_planar_surface(membrane5_type.id, 'name5', [0,0,0], [1,0,0], [0,0,1], world_size, world_size)
+membraneE = model.create_planar_surface(membrane_type.id, 'name5', [0,0,0], [1,0,0], [0,0,1], world_size, world_size)
 w.add_structure(membraneE)
-membraneF = model.create_planar_surface(membrane6_type.id, 'name6', [0,world_size,0], [1,0,0], [0,0,1], world_size, world_size)
+membraneF = model.create_planar_surface(membrane_type.id, 'name6', [0,world_size,0], [1,0,0], [0,0,1], world_size, world_size)
 w.add_structure(membraneF)
 
 print("Membrane A : unit_z = " + str(membraneA.shape.unit_z))
