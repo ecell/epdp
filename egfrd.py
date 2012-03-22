@@ -2421,7 +2421,7 @@ rejected moves = %d
             ### check that shells do not overlap with non associated surfaces
             surfaces = get_surfaces(self.world, shell.shape.position, ignores + associated)
             for surface, _ in surfaces:
-                assert self.check_surface_overlap(shell, surface), \
+                assert self.check_shape_overlap(shell.shape, surface.shape) >= 0.0, \
                     '%s (%s) overlaps with %s.' % \
                     (str(domain), str(shell), str(surface))
 
@@ -2429,7 +2429,7 @@ rejected moves = %d
             surfaces = get_surfaces(self.world, shell.shape.position, ignores)
             for surface, _ in surfaces:
                 if surface.id in associated:
-                    assert not self.check_surface_overlap(shell, surface), \
+                    assert self.check_shape_overlap(shell.shape, surface.shape) < 0.0, \
                     '%s (%s) should overlap with associated surface %s.' % \
                     (str(domain), str(shell), str(surface))
 
@@ -2446,7 +2446,7 @@ rejected moves = %d
                          (isinstance(neighbor, hasCylindricalShell) and isinstance(neighbor, NonInteractionSingle) and domain.is_reset()) )):
 
                     for _, neighbor_shell in neighbor.shell_list:
-                        overlap = self.check_shell_overlap(shell, neighbor_shell)
+                        overlap = self.check_shape_overlap(shell.shape, neighbor_shell.shape)
                         assert overlap >= 0.0, \
                             '%s (%s) overlaps with %s (%s) by %s.' % \
                             (domain, str(shell), str(neighbor), str(neighbor_shell), FORMAT_DOUBLE % overlap)
@@ -2471,71 +2471,95 @@ rejected moves = %d
 
         return True
 
-    def check_shell_overlap(self, shell1, shell2):
-    # Return the amount of overlap between two shells (positive number means no overlap, negative means overlap)
+    def check_shape_overlap(self, shape1, shape2):
+    # Return the distance between two shapes (positive number means no overlap, negative means overlap)
 
-        # overlap criterium when both shells are spherical
-        if (type(shell1.shape) is Sphere) and (type(shell2.shape) is Sphere):
-            distance = self.world.distance(shell1.shape.position, shell2.shape.position)
-            return distance - (shell1.shape.radius + shell2.shape.radius)
+        # overlap criterium when one of the shapes is a sphere
+        if (type(shape1) is Sphere):
+            distance = self.world.distance(shape2, shape1.position)
+            return distance - shape1.radius
+        elif (type(shape2) is Sphere):
+            distance = self.world.distance(shape1, shape2.position)
+            return distance - shape2.radius
+
+        elif ((type(shape1) is Cylinder) and (type(shape2) is Plane)) or \
+             ((type(shape2) is Cylinder) and (type(shape1) is Plane)):
+
+            # putatively swap to make sure that shape1 is Cylinder and shape2 is Plane
+            if (type(shape2) is Cylinder) and (type(shape1) is Plane):
+                temp = shape2
+                shape2 = shape1
+                shape1 = temp
+
+            if math.sqrt(shape1.half_length**2 + shape1.radius**2) < self.world.distance(shape2, shape1.position):
+                # if the plane is outside the sphere surrounding the cylinder.
+                return 1
+            else: 
+                shape1_pos = shape1.position
+                shape2_pos = shape2.position
+                shape1_post = self.world.cyclic_transpose(shape1_pos, shape2_pos)
+                inter_pos = shape1_post - shape2_pos
+                relative_orientation = numpy.dot(shape1.unit_z, shape2.unit_z)
+                # if the unit_z of the plane is perpendicular to the axis of the cylinder.
+                if feq(relative_orientation, 0):
+                    if abs(numpy.dot(inter_pos, shape2.unit_x)) - shape1.half_length > shape2.half_extent[0] or \
+                       abs(numpy.dot(inter_pos, shape2.unit_y)) - shape1.half_length > shape2.half_extent[1] or \
+                       abs(numpy.dot(inter_pos, shape2.unit_z)) > shape1.radius:
+                        return 1
+                    else:
+                        # NOTE this is still incorrect. By the above if statement the cylinder is made into a cuboid
+                        return -1
+
+                elif feq(abs(relative_orientation), 1):
+                    if abs(numpy.dot(inter_pos, shape2.unit_x)) - shape1.radius > shape2.half_extent[0] or \
+                       abs(numpy.dot(inter_pos, shape2.unit_y)) - shape1.radius > shape2.half_extent[1] or \
+                       abs(numpy.dot(inter_pos, shape2.unit_z)) > shape1.half_length:
+                        return 1
+                    else:
+                        # NOTE this is still incorrect. By the above if statement the cylinder is made into a cuboid
+                        return -1
+                else:
+                    raise RuntimeError('check_shape_overlap: planes and cylinders should be either parallel or perpendicular.')
 
         # overlap criterium when both shells are cylindrical 
-        elif (type(shell1.shape) is Cylinder) and (type(shell2.shape) is Cylinder):
-            # assuming that the cylinders are always parallel
-            assert feq(abs(numpy.dot (shell1.shape.unit_z, shell2.shape.unit_z)), 1.0), \
-                'shells are not oriented parallel, dot(unit_z1, unit_z2) = %s' % \
-                (abs(numpy.dot (shell1.shape.unit_z, shell2.shape.unit_z)))
+        elif (type(shape1) is Cylinder) and (type(shape2) is Cylinder):
 
-            shell1_pos = shell1.shape.position
-            shell2_pos = shell2.shape.position
-            shell2_post = self.world.cyclic_transpose(shell1_pos, shell2_pos)
-            inter_pos = shell1_pos - shell2_pos
-            inter_pos_z = shell1.shape.unit_z * numpy.dot(inter_pos, shell1.shape.unit_z)
-            inter_pos_r = inter_pos - inter_pos_z
-            overlap_r = length(inter_pos_r) - (shell1.shape.radius + shell2.shape.radius)
-            overlap_z = length(inter_pos_z) - (shell1.shape.half_length + shell2.shape.half_length)
-            if (overlap_r < 0.0) and (overlap_z < 0.0):
-                return -(overlap_r * overlap_z)           # TODO: find better number for overlap measure
-            else:
+            if math.sqrt(shape1.half_length**2 + shape1.radius**2) < self.world.distance(shape2, shape1.position) or \
+               math.sqrt(shape2.half_length**2 + shape2.radius**2) < self.world.distance(shape1, shape2.position):
+                # if cylinder2 is outside the sphere surrounding the cylinder.
                 return 1
+            else: 
+                shape1_pos = shape1.position
+                shape2_pos = shape2.position
+                shape1_post = self.world.cyclic_transpose(shape1_pos, shape2_pos)
+                inter_pos = shape1_post - shape2_pos
+
+                relative_orientation = numpy.dot(shape1.unit_z, shape2.unit_z)
+                # if the unit_z of the plane is perpendicular to the axis of the cylinder.
+                if feq(relative_orientation, 0.0):
+                    return 1
 
 
-        # overlap criterium when one shell is spherical and the other is cylindrical
-        elif (type(shell1.shape) is Sphere) and (type(shell2.shape) is Cylinder):
-            distance = self.world.distance(shell2.shape, shell1.shape.position)
-            return distance - shell1.shape.radius
+                elif feq(abs(relative_orientation), 1.0):
+                    inter_pos_z = shape2.unit_z * numpy.dot(inter_pos, shape2.unit_z)
+                    inter_pos_r = inter_pos - inter_pos_z
+                    overlap_r = length(inter_pos_r) - (shape1.radius + shape2.radius)
+                    overlap_z = length(inter_pos_z) - (shape1.half_length + shape2.half_length)
+                    if (overlap_r < 0.0) and (overlap_z < 0.0):
+                        return -(overlap_r * overlap_z)           # TODO: find better number for overlap measure
+                    else:
+                        return 1
+                else:
+                    raise RuntimeError('check_shape_overlap: cylinders are not oriented parallel or perpendicular.')
 
-        # the other way around
-        elif (type(shell1.shape) is Cylinder) and (type(shell2.shape) is Sphere):
-            distance = self.world.distance(shell1.shape, shell2.shape.position)
-            return distance - shell2.shape.radius
+        # If both shapes are planes.
+        elif (type(shape1) is Plane) and (type(shape2) is Plane):
+            # TODO
+            return 1
 
-        # something was wrong (wrong type of shell provided)
+        # something was wrong (wrong type of shape provided)
         else:
-            raise RuntimeError('check_shell_overlap: wrong shell type(s) provided.')
-
-
-    def check_surface_overlap(self, shell, surface):
-    # Returns True if the shell and surface do not overlap, and False if they do overlap.
-
-        if (type(shell.shape) is Sphere):
-            distance = self.world.distance(surface.shape, shell.shape.position)
-            return shell.shape.radius < distance
-
-        elif (type(shell.shape) is Cylinder):
-            distance = self.world.distance(surface.shape, shell.shape.position)
-
-            # Only take shells into account that have unit_z perpendicular to unit_z of surface
-            if (type(surface.shape) is Plane):
-                return shell.shape.radius < distance
-            elif (type(surface.shape) is Cylinder):
-                return shell.shape.half_length < distance
-            else:
-                raise RuntimeError('check_surface_overlap: Surface was not Plane of Cylinder.')
-
-        # something was wrong (wrong type of shell provided)
-        else:
-            raise RuntimeError('check_surface_overlap: wrong shell type provided.')
+            raise RuntimeError('check_shape_overlap: wrong shape type(s) provided.')
 
 
     def check_domain_for_all(self):
