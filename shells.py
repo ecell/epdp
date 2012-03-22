@@ -8,6 +8,7 @@ from _gfrd import (
     Cylinder,
     CylindricalShell,
     CylindricalSurface,
+    Plane,
     PlanarSurface,
     CuboidalRegion,
     )
@@ -695,7 +696,49 @@ def get_radius_to_CylindricalShape(shape, testShell, r):
     return min(r, r_new)
 
 def get_dr_dzright_dzleft_to_PlanarShape(shape, testShell, r, z_right, z_left):
+    # This function returns the dr, dz_right, dz_left for the cylindrical 'testShell' using the planar 'shape' as its closest
+    # neighbor. Note that it returns the minimum of the newly calculated parameters and the old parameters. The 'testShell' can
+    # therefore only become smaller.
+
+    assert (type(shape) is Plane)
+
+    plane_position = shape.position
+
+    # get the reference point and orientation of the domain to scale
+    reference_point = testShell.get_referencepoint()
+    orientation_vector = testShell.get_orientation_vector()
+
+    # determine what parameter of the cylinder (dr of dz) to scale.
+    relative_orientation = numpy.dot(orientation_vector, shape.unit_z)
+    if feq(relative_orientation, 0):
+        # The unit_z of the plane is perpendicular to the cylinder -> scale r
+        r = min(r, testShell.world.distance(shape, reference_point))
+        z_right = min(z_right, testShell.z_right(r))
+        z_left  = min(z_left,  testShell.z_left (r))
+
+    elif feq(abs(relative_orientation), 1):
+        # The unit_z of the plane is parallel to the axis of the cylinder -> scale z_right/z_left
+
+        # determine on what side the midpoint of the plane is relative to the reference_point
+        plane_position_t = testShell.world.cyclic_transpose (plane_position, reference_point)
+        ref_to_plane_vec = plane_position_t - reference_point
+        ref_to_plane_z = numpy.dot(ref_to_plane_vec, orientation_vector)
+
+        # if the shell is on the side of orientation_vector -> use z_right
+        if ref_to_plane_z >= 0:
+            z_right = min(z_right, testShell.world.distance(shape, reference_point))
+            r       = min(r, testShell.r_right(z_right))
+            z_left  = min(z_left, testShell.z_left(r))
+        else:
+            z_left  = min(z_left, testShell.world.distance(shape, reference_point))
+            r       = min(r, testShell.r_left(z_left))
+            z_right = min(z_right, testShell.z_right(r))
+            
+    else:
+        raise NotImplementedError('Only perpendicular planes are supported.')
+
     return r, z_right, z_left
+
 
 def get_radius_to_PlanarShape(shape, testShell, r):
     # This function returns the radius for the spherical 'testShell' using the planar 'shape' as its closest
