@@ -1,5 +1,4 @@
 #!/usr/env python
-# -*- coding: utf-8 -*-
 
 from weakref import ref
 import math
@@ -73,7 +72,7 @@ def create_default_single(domain_id, shell_id, pid_particle_pair, structure, rea
         testSingle = CylindricalSurfaceSingletestShell(pid_particle_pair, structure, geometrycontainer, domains)
         return CylindricalSurfaceSingle (domain_id, shell_id, testSingle, reaction_rules)
 
-### Interactions (including changes from one surface to another / crossing edges)
+### Interactions
 def try_default_testinteraction(single, surface, geometrycontainer, domains):
     if isinstance(single.structure, CuboidalRegion):
         if isinstance(surface, PlanarSurface):
@@ -83,7 +82,7 @@ def try_default_testinteraction(single, surface, geometrycontainer, domains):
         else:
             raise testShellError('(Interaction). Combination of (3D particle, surface) is not supported')
     elif isinstance(single.structure, PlanarSurface):
-            raise testShellError('(Interaction). Combination of (2D particle, surface) is not supported')
+        raise testShellError('(Interaction). Combination of (2D particle, surface) is not supported')
     elif isinstance(single.structure, CylindricalSurface):
         if isinstance(surface, CylindricalSurface):     # TODO differentiate between a sink and a cap
             return CylindricalSurfaceSinktestShell (single, surface, geometrycontainer, domains)
@@ -1637,8 +1636,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
         self.add_domain_event(single)
         # check everything is ok
         if __debug__:
-            #assert self.check_domain(single) # HACK
-            pass
+            assert self.check_domain(single)
 
         return single
 
@@ -1694,8 +1692,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
             if __debug__:
                 if single.event_type != EventType.BURST:
                     # The burst of the domain may be caused by an overlapping domain
-                    #assert self.check_domain(single) # HACK
-                    pass
+                    assert self.check_domain(single)
 
                 # check that the event time of the single (last_time + dt) is equal to the
                 # simulator time

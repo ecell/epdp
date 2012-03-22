@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from _gfrd import (
     SphericalShell,
     CylindricalShell,
@@ -26,7 +25,7 @@ __all__ = [
     'SphericalSingle',
     'Single',
     'NonInteractionSingle',
-    'InteractionSingle',    
+    'InteractionSingle',
     'CylindricalSurfaceInteraction',
     'CylindricalSurfaceSink',
     'PlanarSurfaceInteraction',
@@ -305,7 +304,7 @@ class SphericalSingle(NonInteractionSingle, hasSphericalShell):
         else:
             return self.shell_list
 
-    #def create_updated_shell(self, position):
+    def create_updated_shell(self, position):
         # TODO what should we do with the position now?
         try:
             radius = self.testShell.determine_possible_shell(self.structure.id, [self.domain_id], [])
