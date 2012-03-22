@@ -1,4 +1,5 @@
 #!/usr/bin/python
+# -*- coding: utf-8 -*-
 
 import math
 
@@ -23,6 +24,7 @@ __all__ = [
     'testSingle',
     'testNonInteractionSingle',
     'testInteractionSingle',
+    'testTransitionSingle',
     'testPair',
     'testSimplePair',
     'testMixedPair2D3D',
@@ -32,6 +34,7 @@ __all__ = [
     'SphericalPairtestShell',
     'PlanarSurfaceSingletestShell',
     'PlanarSurfacePairtestShell',
+    'PlanarSurfaceTransitionSingletestShell',
     'CylindricalSurfaceSingletestShell',
     'CylindricalSurfacePairtestShell',
     'PlanarSurfaceInteractiontestShell',
@@ -66,7 +69,7 @@ class testShellError(Exception):
 # dimensions dependent on the one who asks. The asker and the askee are now both a NonInteractionSingle
 # or an Other.
 # The main difference between the NonInteractionSingles and Others is that the NonInteractionSingle
-# keep the Other domains at a distance such that the probably that the Other domain get bursted is
+# keep the Other domains at a distance such that the probability that the Other domain get bursted is
 # minimized.
 class Others(object):
 # Subclasses of Others are: all Pair, Interaction and Multi domains.
@@ -172,6 +175,20 @@ class testInteractionSingle(testSingle, Others):
 
         # The reference_vector is the normalized vector from the reference_point to the particle
         self.reference_vector = normalize(pos_transposed - self.reference_point)
+
+class testTransitionSingle(testSingle, Others):
+
+    def __init__(self, single, target_structure):
+        self.single = single
+        self.structure = single.structure
+
+        self.origin_structure = single.structure
+        self.target_structure = target_structure
+
+        self.pid_particle_pair = single.pid_particle_pair
+        self.particle = single.pid_particle_pair[1]
+        self.single_radius = self.particle.radius
+        self.center = self.particle.position
 
 ##############
 class testPair(Others):
@@ -356,7 +373,7 @@ class hasSphericalShell(hasShell):
         # Make the appropriate shell.
         self.shell_center = sphericaltestShell.center
         self.shell_radius = sphericaltestShell.radius
-        self.shell = self.create_new_shell(self.shell_center,
+        self.shell = self.create_new_shell(self.shell_center,     # HACK! Why did it work without first arg. before?!
                                            self.shell_radius,
                                            domain_id)
 
@@ -922,6 +939,7 @@ class CylindricaltestShell(testShell):
  
         # first check the maximum dr, dz_right, dz_left against the surfaces
         # NOTE: we assume that all relevant surfaces are cylindrical and parallel to the testCylinder
+        # or planar surfaces and parallel to the testCylinder axis
         for surface, distance in neighbor_surfaces:
             # TODO
             if isinstance(surface, CylindricalSurface):
@@ -935,9 +953,8 @@ class CylindricaltestShell(testShell):
 
             if (dr < min_dr) or (dz_right < min_dz_right) or (dz_left < min_dz_left):
                 raise ShellmakingError('Surface too close to make cylindrical testshell, '
-                                       'surface = %s, dr = %s, dz_right = %s, dz_left = %s, testShell = %s' %
-                                       (surface, dr, dz_right, dz_left, self))
-
+                                       'surface = %s, dr = %s, dz_right = %s, dz_left = %s, testShell = %s, min_dr = %s' %
+                                       (surface, dr, dz_right, dz_left, self, min_dr))
         # TODO first sort the neighbors to distance -> faster to find if we fail
 
         # then check against all the shells of the neighboring domains (remember that domains can have
@@ -945,6 +962,9 @@ class CylindricaltestShell(testShell):
         for neighbor, distance in neighbor_domains:
 
             shell_list = self.get_neighbor_shell_list(neighbor)
+            # FIXME: This gives an error 'NoneType' object is not iterable if neighbours are present
+            # This is because get_neighbor_shell_list_for_single is not implemented in PlanarSurfaceEdgeSingle yet! TODO!
+            print shell_list # HACK
             for _, shell_appearance in shell_list:
                 if isinstance(shell_appearance.shape, Sphere):
                     dr, dz_right, dz_left = get_dr_dzright_dzleft_to_SphericalShape(shell_appearance.shape, self,
@@ -966,7 +986,7 @@ class CylindricaltestShell(testShell):
                 dr = %s, dz_right = %s, dz_left = %s, min_dr = %s, min_dz_right = %s, min_dz_left = %s.' % \
                (dr, dz_right, dz_left, min_dr, min_dz_right, min_dz_left)
 
-        # Note that dr, dz_right, dz_left can now actually be smaller than the minimum
+        # Note that dr, dz_right, dz_left can now actually be smaller than the minimum        
         dr, dz_right, dz_left = self.apply_safety(dr, dz_right, dz_left)
 
         return dr, dz_right, dz_left
@@ -1081,7 +1101,7 @@ class PlanarSurfaceSingletestShell(CylindricaltestShell, testNonInteractionSingl
         self.dz_left  = self.pid_particle_pair[1].radius
         self.dr       = self.pid_particle_pair[1].radius
         # Here determine_possible_shell is not called since the making of a NonInteractionSingle
-        # should never fail
+        # should never fail        
 
     def get_orientation_vector(self):
         return self.structure.shape.unit_z   # just copy from structure
@@ -1161,6 +1181,39 @@ class PlanarSurfacePairtestShell(CylindricaltestShell, testSimplePair):
 
     def apply_safety(self, r, z_right, z_left):
         return r/SAFETY, z_right, z_left
+
+#####
+class PlanarSurfaceTransitionSingletestShell(SphericaltestShell, testTransitionSingle):
+
+    def __init__(self, single, target_structure, geometrycontainer, domains):
+        SphericaltestShell.__init__(self, geometrycontainer, domains)  # this must be first because of world definition
+        testTransitionSingle.__init__(self, single, target_structure)
+
+        assert isinstance(self.origin_structure, PlanarSurface)
+        assert isinstance(self.target_structure, PlanarSurface)
+
+        try:
+            self.radius = self.determine_possible_shell(self.origin_structure.id, 
+                                                        [self.single.domain_id],
+                                                        [self.origin_structure.id, self.target_structure.id]
+                                                       )
+        except ShellmakingError as e:
+            raise testShellError('(PlanarSurfaceTransitionSingle). %s' %
+                                 (str(e)))
+
+    def get_min_radius(self):
+        min_offset = self.single_radius#*(SINGLE_SHELL_FACTOR - 1.0)
+        # The minimal shell size also deterimines the minimal radius of the later 2D domain.
+        # min_offset here is the minimal length that the circular 2D domain protrudes into
+        # the target surface. Make sure that min_offset > 0.0, because only then it is
+        # guaranteed that there is always a certain probability to cross the edge even
+        # if the shell with minimal radius is constructed
+        return self.get_distance_to_target_structure() + min_offset
+
+    def get_distance_to_target_structure(self):
+        distance = self.world.distance(self.target_structure.shape, self.center)
+        return distance
+
 #####
 class CylindricalSurfaceSingletestShell(CylindricaltestShell, testNonInteractionSingle):
 
