@@ -209,18 +209,19 @@ def throw_in_particles(world, sid, n):
     """
     species = world.get_species(sid)
     structure_type = world.get_structure_type(species.structure_type_id)
-    structure = world.get_structure(random.choice(list(world.get_structure_ids(structure_type))))
+    structure_list = list(world.get_structure_ids(structure_type))
 
     if __debug__:
         name = world.model.get_species_type_by_id(sid)["name"]
         if name[0] != '(':
             name = '(' + name + ')'
         log.info('\n\tthrowing in %s particles of type %s to %s' %
-                 (n, name, structure.id))
+                 (n, name, structure_type.id))
 
     # This is a bit messy, but it works.
     i = 0
     while i < int(n):
+        structure = world.get_structure(random.choice(structure_list))
         position = structure.random_position(myrandom.rng)
         position = apply_boundary(position, world.world_size)
 
