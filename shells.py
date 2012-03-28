@@ -654,35 +654,175 @@ def get_dr_dzright_dzleft_to_CylindricalShape(shape, testShell, r, z_right, z_le
         z1 = z_left
         z2 = z_right
 
-    # calculate ref_to_shell_r/z in the cylindrical coordinate system on the right/left side
-    ref_to_shell_z_vec = ref_to_shell_z * orientation_vector
-    ref_to_shell_r_vec = ref_to_shell_vec - ref_to_shell_z_vec
-    ref_to_shell_r = length(ref_to_shell_r_vec)         # the radius is always positive
-    ref_to_shell_z = ref_to_shell_z * direction         # ref_to_shell_z is positive on the scaling side (right/left)
+    relative_orientation = abs(numpy.dot(orientation_vector, shape.unit_z))
+    if feq(relative_orientation, 1.0):
+    ### If the cylinders are oriented parallelly
+
+        # calculate ref_to_shell_r/z in the cylindrical coordinate system on the right/left side
+        ref_to_shell_z_vec = ref_to_shell_z * orientation_vector
+        ref_to_shell_r_vec = ref_to_shell_vec - ref_to_shell_z_vec
+        ref_to_shell_r = length(ref_to_shell_r_vec)         # the radius is always positive
+        ref_to_shell_z = ref_to_shell_z * direction         # ref_to_shell_z is positive on the scaling side (right/left)
 
 
-    # calculate the distances in r/z from the scaling center to the shell
-    scale_center_to_shell_r = ref_to_shell_r - scale_center_r
-    scale_center_to_shell_z = ref_to_shell_z - scale_center_z
+        # calculate the distances in r/z from the scaling center to the shell
+        scale_center_to_shell_r = ref_to_shell_r - scale_center_r
+        scale_center_to_shell_z = ref_to_shell_z - scale_center_z
 
-    # get angles
-    to_edge_angle = math.atan( (scale_center_to_shell_r - shell_radius) / (scale_center_to_shell_z - shell_half_length) )
+        # get angles
+        to_edge_angle = math.atan( (scale_center_to_shell_r - shell_radius) / (scale_center_to_shell_z - shell_half_length) )
 
-    if (scale_center_to_shell_z - shell_half_length) < 0.0:
-        to_edge_angle += Pi           # if the shell was too much to the side we correct the angle to be positive
-    # elif: a negative angle was caused by a negative scale_center_to_shell we want a negative angle -> do nothing
-    # otherwise: shell_angle is ok -> do nothing
+        if (scale_center_to_shell_z - shell_half_length) < 0.0:
+            to_edge_angle += Pi           # if the shell was too much to the side we correct the angle to be positive
+        # elif: a negative angle was caused by a negative scale_center_to_shell we want a negative angle -> do nothing
+        # otherwise: shell_angle is ok -> do nothing
 
-    if to_edge_angle <= scale_angle:
-        # shell hits the scaling cylinder on top
-        z1_new = min(z1, (ref_to_shell_z - shell_half_length))
-        r_new  = min(r,  r1_function(z1_new))           # TODO if z1 hasn't changed we also don't have to recalculate this
+        if to_edge_angle <= scale_angle:
+            # shell hits the scaling cylinder on top
+            z1_new = min(z1, (ref_to_shell_z - shell_half_length))
+            r_new  = min(r,  r1_function(z1_new))           # TODO if z1 hasn't changed we also don't have to recalculate this
+        else:
+            # shell hits the scaling cylinder on the radial side
+            r_new = min(r, (ref_to_shell_r - shell_radius))
+            z1_new = min(z1, z1_function(r_new))
+
+    elif feq(relative_orientation, 0):
+    ### If the cylinders are oriented perpendicularly
+
+        # The local x-axis is defined as the vector parallel to the axis of the shell in the direction from the
+        # reference_point of the scaling cylinder to the cylindrical shell
+        # The local y-axis is defined as the vector parallel to the flat side of the shell, perpendicular to the
+        # axis of the scaling cylinder. It also point from the reference_point of the scaling cylinder to the shell.
+        # The local z-axis is defined as the vector parallel to the axis of the scaling cylinder in the direction
+        # from the reference point to the shell.
+        if numpy.dot(ref_to_shell_vec, shape.unit_z) >= 0:
+            local_x = shape.unit_z
+        else:
+            local_x = -shape.unit_z
+        local_z = orientation_vector * direction
+        cross = numpy.cross(local_x, local_z)
+        if numpy.dot(ref_to_shell_vec, cross) >= 0:
+            local_y = cross
+        else:
+            local_y = -cross
+
+        ref_to_shell_x = numpy.dot(ref_to_shell_vec, local_x)
+        ref_to_shell_y = numpy.dot(ref_to_shell_vec, local_y)
+        ref_to_shell_z = numpy.dot(ref_to_shell_vec, local_z)
+        assert (ref_to_shell_x >= 0.0) and (ref_to_shell_y >= 0.0) and (ref_to_shell_z >= 0.0)  # By the definition of the local coordinate system
+
+        scale_center_to_shell_x = ref_to_shell_x    # TODO smt with scale_center_r
+        scale_center_to_shell_y = ref_to_shell_y
+        scale_center_to_shell_z = ref_to_shell_z - scale_center_z
+        assert scale_center_to_shell_z > 0.0, 'something horribly wrong'
+        
+        ref_to_shell_x2 = ref_to_shell_x - shell_half_length
+        ref_to_shell_y2 = ref_to_shell_y - shell_radius
+
+        if (ref_to_shell_x2 < 0) and (ref_to_shell_y2 < 0):
+            situation = 4
+
+        elif (ref_to_shell_x2 >= 0) and (ref_to_shell_y2 < 0):
+            scale_center_to_shell_crit_angle_y = math.atan((scale_center_to_shell_x - shell_half_length)/ \
+                                                           (scale_center_to_shell_z - math.sqrt(shell_radius**2 - scale_center_to_shell_y**2)) )
+            scale_center_to_shell_low_angle_y  = math.atan((scale_center_to_shell_x - shell_half_length)/(scale_center_to_shell_y - shell_radius))
+            # TODO fix angles such that they are between 0-Pi
+            if scale_angle <= scale_center_to_shell_crit_angle_y:
+                situation = 1
+            elif scale_center_to_shell_low_angle_y <= scale_angle:
+                situation = 4
+            else:
+                assert scale_center_to_shell_crit_angle_y < scale_angle and \
+                       scale_angle < scale_center_to_shell_low_angle_y
+                situation = 2
+
+        elif (ref_to_shell_x2 < 0) and (ref_to_shell_y2 >= 0):
+            scale_center_to_shell_crit_angle_x = math.atan((scale_center_to_shell_y - shell_radius)/scale_center_to_shell_z)
+            scale_center_to_shell_low_angle_x  = math.atan(scale_center_to_shell_y/(scale_center_to_shell_z - shell_radius))
+            # TODO fix angles such that they are between 0-Pi
+            if scale_angle <= scale_center_to_shell_crit_angle_x:
+                situation = 6
+            elif scale_center_to_shell_low_angle_x <= scale_angle:
+                situation = 4
+            else:
+                assert scale_center_to_shell_crit_angle_x < scale_angle and \
+                       scale_angle < scale_center_to_shell_low_angle_x
+                situation = 5
+
+        else:
+            assert (ref_to_shell_x2 >= 0) and (ref_to_shell_y2 >= 0)
+            scale_center_to_shell_crit_angle_xy = math.atan(math.sqrt((scale_center_to_shell_y - shell_radius)**2 + (scale_center_to_shell_x - shell_half_length)**2) / \
+                                                            scale_center_to_shell_z)
+            scale_center_to_shell_low_angle_xy  = math.atan(math.sqrt(scale_center_to_shell_y**2 + (scale_center_to_shell_x - shell_half_length)**2) / \
+                                                            (scale_center_to_shell_z - shell_radius) )
+            # TODO fix angles such that they are between 0-Pi
+            if scale_angle <= scale_center_to_shell_crit_angle_xy:
+                situation = 3
+            elif scale_center_to_shell_low_angle_xy <= scale_angle:
+                situation = 4
+            else:
+                assert scale_center_to_shell_crit_angle_xy < scale_angle and \
+                       scale_angle < scale_center_to_shell_low_angle_xy
+                situation = 2
+
+        #################
+        if situation == 1:
+            # shell hits the scaling cylinder with its flat surface on the radial side
+            r_new = min(r, (ref_to_shell_x - shell_half_length))
+            z1_new = min(z1, z1_function(r_new))
+
+        elif situation == 2:
+            # shell hits the scaling cylinder with its edge on the edge
+            # TODO we have a solution but it can only be found with a root finder -> slow
+            # TODO Now we just use the lower bound of the solution.
+            z1_new = min(z1, (ref_to_shell_z - shell_radius))
+            r_new  = min(r,  r1_function(z1_new))
+
+        elif situation == 3:
+            # shell hits the scaling cylinder with its edge on the radial side
+            r_new = min(r, math.sqrt( (ref_to_shell_x-shell_half_length)**2 + (ref_to_shell_y - shell_radius)**2))
+            z1_new = min(z1, z1_function(r_new))
+
+        elif situation == 4:
+            # shell hits the scaling cylinder with its round side on the top flat side
+            z1_new = min(z1, (ref_to_shell_z - shell_radius))
+            r_new  = min(r,  r1_function(z1_new))
+
+        elif situation == 5:
+            shell_radius_sq = shell_radius*shell_radius
+
+            ss_sq = (scale_center_to_shell_z**2 + scale_center_to_shell_y**2)
+            scale_center_to_shell = math.sqrt(ss_sq)
+
+            shell_angle_x = math.atan(scale_center_to_shell_y/scale_center_to_shell_z)
+            angle_diff = shell_angle_x - scale_angle
+            sin_angle_diff = math.sin(angle_diff)
+            cos_angle_diff = math.cos(angle_diff)
+
+            scale_center_shell_dist = (scale_center_to_shell * cos_angle_diff -
+                                       math.sqrt(shell_radius_sq - (ss_sq * sin_angle_diff * sin_angle_diff) ))
+
+            if scale_angle <= Pi/4.0:
+                cos_scale_angle = math.cos(scale_angle)
+                z1_new = min(z1, (scale_center_z + cos_scale_angle * scale_center_shell_dist))
+                r_new  = min(r, r1_function(z1_new))
+            else:
+                sin_scale_angle = math.sin(scale_angle)
+                r_new  = min(r,  (scale_center_r + sin_scale_angle * scale_center_shell_dist))
+                z1_new = min(z1, z1_function(r_new))
+
+        elif situation == 6:
+            # shell hits the scaling cylinder with its round side on the radial side
+            r_new = min(r, (ref_to_shell_y - shell_radius))
+            z1_new = min(z1, z1_function(r_new))
+
+        else:
+            raise RuntimeError('get_dr_dzright_dzleft_to_CylindricalShape: Bad situation for making cylinders against cylinders.')
+
     else:
-        # shell hits the scaling cylinder on the radial side
-        r_new = min(r, (ref_to_shell_r - shell_radius))
-        z1_new = min(z1, z1_function(r_new))
-    z2_new = min(z2, z2_function(r_new))
+        raise NotImplementedError('get_dr_dzright_dzleft_to_CylindricalShape: Cylinders should be oriented parallel or perpendicular.')
 
+    z2_new = min(z2, z2_function(r_new))
 
     # switch the z values in case it's necessary. r doesn't have to be switched.
     r = r_new
