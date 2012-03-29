@@ -716,10 +716,9 @@ def get_dr_dzright_dzleft_to_CylindricalShape(shape, testShell, r, z_right, z_le
         ref_to_shell_z = numpy.dot(ref_to_shell_vec, local_z)
         assert (ref_to_shell_x >= 0.0) and (ref_to_shell_y >= 0.0) and (ref_to_shell_z >= 0.0)  # By the definition of the local coordinate system
 
-        scale_center_to_shell_x = ref_to_shell_x    # TODO smt with scale_center_r
+        scale_center_to_shell_x = ref_to_shell_x
         scale_center_to_shell_y = ref_to_shell_y
         scale_center_to_shell_z = ref_to_shell_z - scale_center_z
-        assert scale_center_to_shell_z > 0.0, 'something horribly wrong'
         
         ref_to_shell_x2 = ref_to_shell_x - shell_half_length
         ref_to_shell_y2 = ref_to_shell_y - shell_radius
@@ -728,10 +727,27 @@ def get_dr_dzright_dzleft_to_CylindricalShape(shape, testShell, r, z_right, z_le
             situation = 4
 
         elif (ref_to_shell_x2 >= 0) and (ref_to_shell_y2 < 0):
-            scale_center_to_shell_crit_angle_y = math.atan((scale_center_to_shell_x - shell_half_length)/ \
-                                                           (scale_center_to_shell_z - math.sqrt(shell_radius**2 - scale_center_to_shell_y**2)) )
-            scale_center_to_shell_low_angle_y  = math.atan((scale_center_to_shell_x - shell_half_length)/(scale_center_to_shell_y - shell_radius))
-            # TODO fix angles such that they are between 0-Pi
+            scale_center_to_shell_x -= scale_center_r
+            scale_center_to_flatend_x = scale_center_to_shell_x - shell_half_length
+            scale_center_to_critpoint_z = scale_center_to_shell_z - math.sqrt(shell_radius**2 - scale_center_to_shell_y**2) 
+            scale_center_to_lowpoint_z = scale_center_to_shell_z - shell_radius
+
+            # angle1
+            if scale_center_to_critpoint_z == 0:
+                scale_center_to_shell_crit_angle_y = Pi/2
+            else:
+                scale_center_to_shell_crit_angle_y = math.atan(scale_center_to_flatend_x/ scale_center_to_critpoint_z)
+                if scale_center_to_critpoint_z < 0.0:
+                    scale_center_to_shell_crit_angle_y += Pi
+            # angle2
+            if scale_center_to_lowpoint_z == 0:
+                scale_center_to_shell_low_angle_y = Pi/2
+            else:
+                scale_center_to_shell_low_angle_y  = math.atan(scale_center_to_flatend_x/ scale_center_to_lowpoint_z )
+                if scale_center_to_lowpoint_z < 0.0:
+                    scale_center_to_shell_low_angle_y += Pi
+
+
             if scale_angle <= scale_center_to_shell_crit_angle_y:
                 situation = 1
             elif scale_center_to_shell_low_angle_y <= scale_angle:
@@ -742,9 +758,26 @@ def get_dr_dzright_dzleft_to_CylindricalShape(shape, testShell, r, z_right, z_le
                 situation = 2
 
         elif (ref_to_shell_x2 < 0) and (ref_to_shell_y2 >= 0):
-            scale_center_to_shell_crit_angle_x = math.atan((scale_center_to_shell_y - shell_radius)/scale_center_to_shell_z)
-            scale_center_to_shell_low_angle_x  = math.atan(scale_center_to_shell_y/(scale_center_to_shell_z - shell_radius))
-            # TODO fix angles such that they are between 0-Pi
+            scale_center_to_shell_y -= scale_center_r
+            scale_center_to_critpoint_y = scale_center_to_shell_y - shell_radius
+            scale_center_to_lowpoint_z = scale_center_to_shell_z - shell_radius
+
+            # angle1
+            if scale_center_to_shell_z == 0.0:
+                scale_center_to_shell_crit_angle_x = Pi/2.0
+            else:
+                scale_center_to_shell_crit_angle_x = math.atan(scale_center_to_critpoint_y / scale_center_to_shell_z)
+                if scale_center_to_shell_z < 0.0:
+                    scale_center_to_shell_crit_angle_x += Pi
+            # angle2
+            if scale_center_to_lowpoint_z == 0.0:
+                scale_center_to_shell_low_angle_x = Pi/2.0
+            else:
+                scale_center_to_shell_low_angle_x  = math.atan(scale_center_to_shell_y/scale_center_to_lowpoint_z)
+                if scale_center_to_lowpoint_z < 0.0:
+                    scale_center_to_shell_low_angle_x += Pi
+
+
             if scale_angle <= scale_center_to_shell_crit_angle_x:
                 situation = 6
             elif scale_center_to_shell_low_angle_x <= scale_angle:
@@ -756,11 +789,27 @@ def get_dr_dzright_dzleft_to_CylindricalShape(shape, testShell, r, z_right, z_le
 
         else:
             assert (ref_to_shell_x2 >= 0) and (ref_to_shell_y2 >= 0)
-            scale_center_to_shell_crit_angle_xy = math.atan(math.sqrt((scale_center_to_shell_y - shell_radius)**2 + (scale_center_to_shell_x - shell_half_length)**2) / \
-                                                            scale_center_to_shell_z)
-            scale_center_to_shell_low_angle_xy  = math.atan(math.sqrt(scale_center_to_shell_y**2 + (scale_center_to_shell_x - shell_half_length)**2) / \
-                                                            (scale_center_to_shell_z - shell_radius) )
-            # TODO fix angles such that they are between 0-Pi
+
+            scale_center_to_critpoint_r = math.sqrt((scale_center_to_shell_y - shell_radius)**2 + (scale_center_to_shell_x - shell_half_length)**2) - scale_center_r
+            scale_center_to_lowpoint_r = math.sqrt(scale_center_to_shell_y**2 + (scale_center_to_shell_x - shell_half_length)**2) - scale_center_r
+            scale_center_to_lowpoint_z = scale_center_to_shell_z - shell_radius
+
+            # angle1
+            if scale_center_to_shell_z == 0.0:
+                scale_center_to_shell_crit_angle_xy = Pi/2.0
+            else:
+                scale_center_to_shell_crit_angle_xy = math.atan(scale_center_to_critpoint_r / scale_center_to_shell_z)
+                if scale_center_to_shell_z < 0.0:
+                    scale_center_to_shell_crit_angle_xy += Pi
+            # angle2
+            if scale_center_to_lowpoint_z == 0.0:
+                scale_center_to_shell_low_angle_xy = Pi/2.0
+            else:
+                scale_center_to_shell_low_angle_xy  = math.atan(scale_center_to_lowpoint_r / scale_center_to_lowpoint_z )
+                if scale_center_to_lowpoint_z < 0.0:
+                    scale_center_to_shell_low_angle_xy += Pi
+
+
             if scale_angle <= scale_center_to_shell_crit_angle_xy:
                 situation = 3
             elif scale_center_to_shell_low_angle_xy <= scale_angle:
@@ -780,8 +829,12 @@ def get_dr_dzright_dzleft_to_CylindricalShape(shape, testShell, r, z_right, z_le
             # shell hits the scaling cylinder with its edge on the edge
             # TODO we have a solution but it can only be found with a root finder -> slow
             # TODO Now we just use the lower bound of the solution.
-            z1_new = min(z1, (ref_to_shell_z - shell_radius))
-            r_new  = min(r,  r1_function(z1_new))
+            if scale_angle <= Pi/4.0:
+                z1_new = min(z1, (ref_to_shell_z - shell_radius))
+                r_new  = min(r,  r1_function(z1_new))
+            else:
+                r_new  = min(r,  (max(ref_to_shell_x - shell_half_length, ref_to_shell_y - shell_radius)))
+                z1_new = min(z1, z1_function(r_new))
 
         elif situation == 3:
             # shell hits the scaling cylinder with its edge on the radial side
@@ -794,6 +847,7 @@ def get_dr_dzright_dzleft_to_CylindricalShape(shape, testShell, r, z_right, z_le
             r_new  = min(r,  r1_function(z1_new))
 
         elif situation == 5:
+            # shell hist the scaling cylinder with its round side on the edge of the scaling cylinder.
             shell_radius_sq = shell_radius*shell_radius
 
             ss_sq = (scale_center_to_shell_z**2 + scale_center_to_shell_y**2)
