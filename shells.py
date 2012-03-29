@@ -178,16 +178,21 @@ class testInteractionSingle(testSingle, Others):
 class testTransitionSingle(testSingle, Others):
 
     def __init__(self, single, target_structure):
-        self.single = single
-        self.structure = single.structure
 
-        self.origin_structure = single.structure
+        testSingle.__init__(self, single.pid_particle_pair, single.structure)
+
+        assert (self.structure.sid == target_structure.sid)     # Both structures are of same structure_type
+        self.single = single
+#        self.structure = single.structure
+
+        self.origin_structure = self.structure
         self.target_structure = target_structure
 
-        self.pid_particle_pair = single.pid_particle_pair
-        self.particle = single.pid_particle_pair[1]
-        self.single_radius = self.particle.radius
-        self.center = self.particle.position
+        # Note that we assume the structures are exactly connecting
+        self.distance_to_target_structure = self.world.distance(self.target_structure.shape, self.pid_particle_pair[1].position)
+#        self.pid_particle_pair = single.pid_particle_pair
+#        self.particle = single.pid_particle_pair[1]
+#        self.single_radius = self.particle.radius
 
 ##############
 class testPair(Others):
@@ -1044,6 +1049,37 @@ class SphericalPairtestShell(SphericaltestShell, testSimplePair):
     def get_min_radius(self):
         return self.get_min_pair_size()
 
+#####
+class PlanarSurfaceTransitionSingletestShell(SphericaltestShell, testTransitionSingle):
+
+    def __init__(self, single, target_structure, geometrycontainer, domains):
+        SphericaltestShell.__init__(self, geometrycontainer, domains)  # this must be first because of world definition
+        testTransitionSingle.__init__(self, single, target_structure)
+
+        assert isinstance(self.origin_structure, PlanarSurface)
+        assert isinstance(self.target_structure, PlanarSurface)
+
+        self.center = self.pid_particle_pair[1].position
+        try:
+            self.radius = self.determine_possible_shell(self.structure.id, [self.single.domain_id],
+                                                        [self.target_structure.id])
+        except ShellmakingError as e:
+            raise testShellError('(PlanarSurfaceTransitionSingle). %s' %
+                                 (str(e)))
+
+    def get_min_radius(self):
+#        min_offset = self.single_radius#*(SINGLE_SHELL_FACTOR - 1.0)
+        # The minimal shell size also deterimines the minimal radius of the later 2D domain.
+        # min_offset here is the minimal length that the circular 2D domain protrudes into
+        # the target surface. Make sure that min_offset > 0.0, because only then it is
+        # guaranteed that there is always a certain probability to cross the edge even
+        # if the shell with minimal radius is constructed
+        return self.distance_to_target_structure + self.pid_particle_pair[1].radius
+
+#    def get_distance_to_target_structure(self):
+#        distance = self.world.distance(self.target_structure.shape, self.center)
+#        return distance
+
 ##########################
 class CylindricaltestShell(testShell):
     # The CylindricaltestShell is the geometric aspect of testDomains with a cylindrical shell.
@@ -1317,38 +1353,6 @@ class PlanarSurfacePairtestShell(CylindricaltestShell, testSimplePair):
 
     def apply_safety(self, r, z_right, z_left):
         return r/SAFETY, z_right, z_left
-
-#####
-class PlanarSurfaceTransitionSingletestShell(SphericaltestShell, testTransitionSingle):
-
-    def __init__(self, single, target_structure, geometrycontainer, domains):
-        SphericaltestShell.__init__(self, geometrycontainer, domains)  # this must be first because of world definition
-        testTransitionSingle.__init__(self, single, target_structure)
-
-        assert isinstance(self.origin_structure, PlanarSurface)
-        assert isinstance(self.target_structure, PlanarSurface)
-
-        try:
-            self.radius = self.determine_possible_shell(self.origin_structure.id, 
-                                                        [self.single.domain_id],
-                                                        [self.origin_structure.id, self.target_structure.id]
-                                                       )
-        except ShellmakingError as e:
-            raise testShellError('(PlanarSurfaceTransitionSingle). %s' %
-                                 (str(e)))
-
-    def get_min_radius(self):
-        min_offset = self.single_radius#*(SINGLE_SHELL_FACTOR - 1.0)
-        # The minimal shell size also deterimines the minimal radius of the later 2D domain.
-        # min_offset here is the minimal length that the circular 2D domain protrudes into
-        # the target surface. Make sure that min_offset > 0.0, because only then it is
-        # guaranteed that there is always a certain probability to cross the edge even
-        # if the shell with minimal radius is constructed
-        return self.get_distance_to_target_structure() + min_offset
-
-    def get_distance_to_target_structure(self):
-        distance = self.world.distance(self.target_structure.shape, self.center)
-        return distance
 
 #####
 class CylindricalSurfaceSingletestShell(CylindricaltestShell, testNonInteractionSingle):

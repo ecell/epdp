@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from _gfrd import (
     SphericalShell,
     CylindricalShell,
@@ -39,7 +37,7 @@ class EdgeTools :
         self.target_half_extent = self.target_structure.shape.half_extent
 
         self.start_position  = start_position
-        self.target_distance = testShell.get_distance_to_target_structure()
+        self.target_distance = testShell.distance_to_target_structure
 
         self.edge_point = self.get_edge_point()
         self.origin_unit_perp, self.origin_unit_par, self.origin_half_extent_perp = self.get_origin_unit_vectors()

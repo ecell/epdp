@@ -537,7 +537,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
         shell_id = self.shell_id_generator()
 
         # get unimolecular reaction rules
-        species_id = testShell.single.pid_particle_pair[1].sid    
+        species_id = testShell.pid_particle_pair[1].sid    
         reaction_rules = self.network_rules.query_reaction_rule(species_id)
 
         # 2. Create and register the transition domain.
@@ -1468,14 +1468,14 @@ class EGFRDSimulator(ParticleSimulatorBase):
                 pair_interaction_partners.append((domain, pair_distance - pair_horizon))
         
         for surface, surface_distance in surface_distances:
-            if isinstance(surface, PlanarSurface) and (single.structure, PlanarSurface):
-                surface_horizon = single_radius * SINGLE_SHELL_FACTOR
-            elif isinstance(surface, PlanarSurface):
+            if isinstance(surface, PlanarSurface):
                 # with a planar surface it is the center of mass that 'looks around'
                 surface_horizon = single_radius * (SINGLE_SHELL_FACTOR - 1.0) #* 2.0  # HACK!!! The * 2 factor is added manually! REMOVE THIS!
             else:
                 # with a cylindrical surface it is the surface of the particle
                 surface_horizon = single_radius * SINGLE_SHELL_FACTOR
+            if isinstance(surface, PlanarSurface) and isinstance(single.structure, PlanarSurface):        # HACK
+                surface_horizon = single_radius * SINGLE_SHELL_FACTOR * 2
             pair_interaction_partners.append((surface, surface_distance - surface_horizon))
 #            pair_interaction_partners_ids.append((surface.id, surface_distance)) # HACK
 
@@ -1498,12 +1498,15 @@ class EGFRDSimulator(ParticleSimulatorBase):
                 domain = self.try_pair (single, obj)
                 # TODO: Include formation of "PlanarSurfaceTransitionPair"
 
+            elif isinstance(obj, PlanarSurface) and isinstance(single.structure, PlanarSurface):
+                domain = self.try_transition(single, obj)
+
             elif isinstance(obj, CylindricalSurface) or isinstance(obj, PlanarSurface):
                 # try making an Interaction
                 domain = self.try_interaction (single, obj)
-                # if this fails try a Transition between two surfaces
-                if not domain:
-                    domain = self.try_transition (single, obj)
+#                # if this fails try a Transition between two surfaces
+#                if not domain:
+#                    domain = self.try_transition (single, obj)
 
 
         if not domain:
