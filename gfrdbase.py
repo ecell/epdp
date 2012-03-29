@@ -14,7 +14,6 @@ import os
 import logging
 import logging.handlers
 
-import random
 import myrandom
 
 import model
@@ -221,9 +220,10 @@ def throw_in_particles(world, sid, n):
     # This is a bit messy, but it works.
     i = 0
     while i < int(n):
-        structure = world.get_structure(random.choice(structure_list))
+        myrandom.shuffle(structure_list)
+        structure = world.get_structure(structure_list[0])
         position = structure.random_position(myrandom.rng)
-        position = apply_boundary(position, world.world_size)
+        position = world.apply_boundary(position)
 
         # Check overlap.
         if not world.check_overlap((position, species.radius)):
