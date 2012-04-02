@@ -260,6 +260,20 @@ distance(Plane<T_> const& obj, typename Plane<T_>::position_type const& pos)
     }
 }
 
+template<typename T_>
+inline typename Plane<T_>::position_type
+deflect(Plane<T_> const& obj, typename Plane<T_>::position_type const& r0, typename Plane<T_>::position_type const& r1)
+// Calculates the distance from 'pos' to plane 'obj' Note that when the plane is finite,
+// and also calculates the distance to the edge of the plane if necessary
+{
+   typedef typename Plane<T_>::length_type length_type;
+   boost::array<length_type, 3> const x_y_z_0(to_internal(obj, r0));
+   boost::array<length_type, 3> const x_y_z_1(to_internal(obj, r1));
+   
+   // for now this returns the new position without changes
+   return x_y_z_1;
+}
+
 template<typename T, typename Trng>
 inline typename Plane<T>::position_type
 random_position(Plane<T> const& shape, Trng& rng)
