@@ -2505,7 +2505,7 @@ rejected moves = %d
             # surfaces.
             ignores = [s.id for s in self.world.structures]
             associated = []
-        elif isinstance(domain, SphericalSingle) or isinstance(domain, SphericalPair):
+        elif isinstance(domain, SphericalSingle) or isinstance(domain, SphericalPair) or isinstance(domain, PlanarSurfaceSingle):
             # 3D NonInteractionSingles can overlap with planar surfaces but not with rods
             ignores = [s.id for s in self.world.structures if isinstance(s, PlanarSurface)]
             associated = []

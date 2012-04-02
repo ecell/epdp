@@ -724,9 +724,13 @@ def get_dr_dzright_dzleft_to_CylindricalShape(shape, testShell, r, z_right, z_le
         ref_to_shell_y2 = ref_to_shell_y - shell_radius
 
         if (ref_to_shell_x2 < 0) and (ref_to_shell_y2 < 0):
+            # quadrant 1
+#            print "quadrant 1"
             situation = 4
 
         elif (ref_to_shell_x2 >= 0) and (ref_to_shell_y2 < 0):
+            # quadrant 2
+#            print "quadrant 2"
             scale_center_to_shell_x -= scale_center_r
             scale_center_to_flatend_x = scale_center_to_shell_x - shell_half_length
             scale_center_to_critpoint_z = scale_center_to_shell_z - math.sqrt(shell_radius**2 - scale_center_to_shell_y**2) 
@@ -756,8 +760,12 @@ def get_dr_dzright_dzleft_to_CylindricalShape(shape, testShell, r, z_right, z_le
                 assert scale_center_to_shell_crit_angle_y < scale_angle and \
                        scale_angle < scale_center_to_shell_low_angle_y
                 situation = 2
+                r1_min = (scale_center_to_shell_x - shell_half_length)*(1.0+TOLERANCE)
+                h1_min = r1_min/math.tan(scale_angle)
 
         elif (ref_to_shell_x2 < 0) and (ref_to_shell_y2 >= 0):
+            # quadrant 3
+#            print "quadrant 3"
             scale_center_to_shell_y -= scale_center_r
             scale_center_to_critpoint_y = scale_center_to_shell_y - shell_radius
             scale_center_to_lowpoint_z = scale_center_to_shell_z - shell_radius
@@ -788,6 +796,8 @@ def get_dr_dzright_dzleft_to_CylindricalShape(shape, testShell, r, z_right, z_le
                 situation = 5
 
         else:
+            # quadrant 4
+#            print "quadrant 4"
             assert (ref_to_shell_x2 >= 0) and (ref_to_shell_y2 >= 0)
 
             scale_center_to_critpoint_r = math.sqrt((scale_center_to_shell_y - shell_radius)**2 + (scale_center_to_shell_x - shell_half_length)**2) - scale_center_r
@@ -818,7 +828,10 @@ def get_dr_dzright_dzleft_to_CylindricalShape(shape, testShell, r, z_right, z_le
                 assert scale_center_to_shell_crit_angle_xy < scale_angle and \
                        scale_angle < scale_center_to_shell_low_angle_xy
                 situation = 2
+                r1_min = math.sqrt((scale_center_to_shell_x-shell_half_length)**2 + (scale_center_to_shell_y-shell_radius)**2)*(1.0+TOLERANCE)
+                h1_min = r1_min/math.tan(scale_angle)
 
+#        print "situation= ", situation
         #################
         if situation == 1:
             # shell hits the scaling cylinder with its flat surface on the radial side
@@ -828,12 +841,33 @@ def get_dr_dzright_dzleft_to_CylindricalShape(shape, testShell, r, z_right, z_le
         elif situation == 2:
             # shell hits the scaling cylinder with its edge on the edge
             # TODO we have a solution but it can only be found with a root finder -> slow
-            # TODO Now we just use the lower bound of the solution.
+            tan_scale_angle = math.tan(scale_angle)
+
             if scale_angle <= Pi/4.0:
-                z1_new = min(z1, (ref_to_shell_z - shell_radius))
+                def h1(x):
+#                    print "tan_psi= ", tan_scale_angle
+#                    print "x= ", x
+#                    print "ds= ", scale_center_to_shell_x - shell_half_length
+#                    print "bla= ", (x*tan_scale_angle)**2 - (scale_center_to_shell_x - shell_half_length)**2
+#                    print "bla1= ", shell_radius**2 - (scale_center_to_shell_y - math.sqrt((x*tan_scale_angle)**2 - (scale_center_to_shell_x - shell_half_length)**2) )**2
+                    return x - scale_center_to_shell_z + \
+                           math.sqrt(shell_radius**2 - (scale_center_to_shell_y - math.sqrt((x*tan_scale_angle)**2 - (scale_center_to_shell_x - shell_half_length)**2) )**2 )
+
+#                print "h1_min= ", h1_min
+#                print "h1_max= ", scale_center_to_shell_z*(1.0-TOLERANCE)
+                h_touch = scale_center_z + findroot(h1, h1_min, scale_center_to_shell_z*(1.0-TOLERANCE))
+#                print "h_touch+ ", h_touch
+                z1_new = min(z1, h_touch)
                 r_new  = min(r,  r1_function(z1_new))
             else:
-                r_new  = min(r,  (max(ref_to_shell_x - shell_half_length, ref_to_shell_y - shell_radius)))
+                def r1(x):
+                    shell_radius_sq = shell_radius**2
+                    return x/tan_scale_angle - scale_center_to_shell_z + \
+                           math.sqrt(shell_radius_sq - (scale_center_to_shell_y - math.sqrt(x**2 - (scale_center_to_shell_x - shell_half_length)**2))**2)
+
+                r_touch = findroot(r1, r1_min, math.sqrt((scale_center_to_shell_x-shell_half_length)**2 + (scale_center_to_shell_y)**2)*(1.0-TOLERANCE))
+#                print "r_touch= ", r_touch
+                r_new  = min(r, r_touch)
                 z1_new = min(z1, z1_function(r_new))
 
         elif situation == 3:
@@ -926,8 +960,14 @@ def get_dr_dzright_dzleft_to_PlanarShape(shape, testShell, r, z_right, z_left):
     # determine what parameter of the cylinder (dr of dz) to scale.
     relative_orientation = numpy.dot(orientation_vector, shape.unit_z)
     if feq(relative_orientation, 0):
+
+        distance = testShell.world.distance(shape, reference_point)
+        # FIXME ugly hack to make planar surface singles overlap with membranes
+        if isinstance(testShell, PlanarSurfaceSingletestShell):
+            distance += testShell.pid_particle_pair[1].radius
+
         # The unit_z of the plane is perpendicular to the cylinder -> scale r
-        r = min(r, testShell.world.distance(shape, reference_point))
+        r = min(r, distance)
         z_right = min(z_right, testShell.z_right(r))
         z_left  = min(z_left,  testShell.z_left (r))
 
