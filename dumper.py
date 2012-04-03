@@ -116,7 +116,9 @@ def get_particles(sim, identifier=None):
             all (particle identifier, particle)-pairs will be returned.
 
     """
-# TODO: Gillespie simulator should be legacy; remove
+# TODO: Code below leads to crash in some situations, currently
+#       Gillespie simulator is not implemented, so code can be
+#       left out.
 #    if isinstance(sim, GillespieSimulator):
 #        raise RuntimeError('GillespieSimulator does not keep track '
 #                           'of individual particles.')
