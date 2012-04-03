@@ -183,16 +183,12 @@ class testTransitionSingle(testSingle, Others):
 
         assert (self.structure.sid == target_structure.sid)     # Both structures are of same structure_type
         self.single = single
-#        self.structure = single.structure
 
         self.origin_structure = self.structure
         self.target_structure = target_structure
 
         # Note that we assume the structures are exactly connecting
         self.distance_to_target_structure = self.world.distance(self.target_structure.shape, self.pid_particle_pair[1].position)
-#        self.pid_particle_pair = single.pid_particle_pair
-#        self.particle = single.pid_particle_pair[1]
-#        self.single_radius = self.particle.radius
 
 ##############
 class testPair(Others):
@@ -845,18 +841,10 @@ def get_dr_dzright_dzleft_to_CylindricalShape(shape, testShell, r, z_right, z_le
 
             if scale_angle <= Pi/4.0:
                 def h1(x):
-#                    print "tan_psi= ", tan_scale_angle
-#                    print "x= ", x
-#                    print "ds= ", scale_center_to_shell_x - shell_half_length
-#                    print "bla= ", (x*tan_scale_angle)**2 - (scale_center_to_shell_x - shell_half_length)**2
-#                    print "bla1= ", shell_radius**2 - (scale_center_to_shell_y - math.sqrt((x*tan_scale_angle)**2 - (scale_center_to_shell_x - shell_half_length)**2) )**2
                     return x - scale_center_to_shell_z + \
                            math.sqrt(shell_radius**2 - (scale_center_to_shell_y - math.sqrt((x*tan_scale_angle)**2 - (scale_center_to_shell_x - shell_half_length)**2) )**2 )
 
-#                print "h1_min= ", h1_min
-#                print "h1_max= ", scale_center_to_shell_z*(1.0-TOLERANCE)
                 h_touch = scale_center_z + findroot(h1, h1_min, scale_center_to_shell_z*(1.0-TOLERANCE))
-#                print "h_touch+ ", h_touch
                 z1_new = min(z1, h_touch)
                 r_new  = min(r,  r1_function(z1_new))
             else:
@@ -866,7 +854,6 @@ def get_dr_dzright_dzleft_to_CylindricalShape(shape, testShell, r, z_right, z_le
                            math.sqrt(shell_radius_sq - (scale_center_to_shell_y - math.sqrt(x**2 - (scale_center_to_shell_x - shell_half_length)**2))**2)
 
                 r_touch = findroot(r1, r1_min, math.sqrt((scale_center_to_shell_x-shell_half_length)**2 + (scale_center_to_shell_y)**2)*(1.0-TOLERANCE))
-#                print "r_touch= ", r_touch
                 r_new  = min(r, r_touch)
                 z1_new = min(z1, z1_function(r_new))
 
@@ -1162,7 +1149,6 @@ class PlanarSurfaceTransitionSingletestShell(SphericaltestShell, testTransitionS
                                  (str(e)))
 
     def get_min_radius(self):
-#        min_offset = self.single_radius#*(SINGLE_SHELL_FACTOR - 1.0)
         # The minimal shell size also deterimines the minimal radius of the later 2D domain.
         # min_offset here is the minimal length that the circular 2D domain protrudes into
         # the target surface. Make sure that min_offset > 0.0, because only then it is
@@ -1170,9 +1156,6 @@ class PlanarSurfaceTransitionSingletestShell(SphericaltestShell, testTransitionS
         # if the shell with minimal radius is constructed
         return self.distance_to_target_structure + self.pid_particle_pair[1].radius
 
-#    def get_distance_to_target_structure(self):
-#        distance = self.world.distance(self.target_structure.shape, self.center)
-#        return distance
 
 ##########################
 class CylindricaltestShell(testShell):
