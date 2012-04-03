@@ -59,6 +59,7 @@ public:
     typedef std::pair<position_type, length_type>                   projected_type;
 
 public:
+    // The constructor
     template<typename Trange_>
     newBDPropagator(
         particle_container_type& tx, network_rules_type const& rules,
@@ -81,6 +82,9 @@ public:
         shuffle(rng, queue_);
     }
 
+    // This method is called to process the change of position and putative reaction of every particle.
+    // The method only treats one particle at a time and returns 'True' as long as there are still particles
+    //    in the container that need to be processed.
     bool operator()()
     {
         if (queue_.empty())
@@ -120,11 +124,12 @@ public:
            to it's original position. For a particle with D = 0, new_pos = old_pos */        
         if (pp_species.D() != 0.)
         {
-            // Make a step, dependent on the surface the particle lives on.
+            // get a new position, dependent on the structure the particle lives on.
             position_type const displacement( pp_structure->
-                                            bd_displacement(pp_species.v() * dt_, std::sqrt(2.0 * pp_species.D() * dt_), rng_) );
+                                              bd_displacement(pp_species.v() * dt_, std::sqrt(2.0 * pp_species.D() * dt_), rng_) );
 
             new_pos = tx_.apply_boundary( add( pp.second.position(), displacement ) );
+            // TODO check if the new position is actually still in the structure
         }
         else
         {
@@ -132,7 +137,7 @@ public:
         }
         
         /* Use a spherical shape with radius = particle_radius + reaction_length.
-	       We use it to check for overlaps with other particels. */
+	       We use it to check for overlaps with other particles. */
         boost::scoped_ptr<particle_id_pair_and_distance_list> overlapped(
                 tx_.check_overlap(particle_shape_type( new_pos, r0 + reaction_length_ ), pp.first));
         int particles_in_overlap(overlapped ? overlapped->size(): 0);
@@ -145,6 +150,7 @@ public:
         
         /* If the particle has not bounced with another particle and lives in the bulk: 
            check for core overlap with a surface. */
+        // TODO maybe always check for overlaps with surface ignoring its own surface? (regardless of in bulk)
         if(!bounced && pp.second.structure_id() == tx_.get_def_structure_id())
         {
             struct_id_distance_pair = tx_.get_closest_surface( new_pos, pp.second.structure_id());
@@ -182,21 +188,20 @@ public:
         Real accumulated_prob = 0;
         Real const rnd( rng_() );
         
-        /* First, if a surface is inside the reaction volume, attempt an interaction. */
+        /* First, if a surface is inside the reaction volume, and the particle is in the 3D attempt an interaction. */
+        // TODO also interaction should be allowed when a particle is on a cylinder.
         if( pp.second.structure_id() == tx_.get_def_structure_id())
         {
-            if( tx_.get_structure( struct_id_distance_pair.first )->
-                in_reaction_volume( particle_surface_distance, r0, reaction_length_ ) )
+            boost::shared_ptr<structure_type> const closest_surf( tx_.get_structure( struct_id_distance_pair.first) );
+
+            if( closest_surf->in_reaction_volume( particle_surface_distance, r0, reaction_length_ ) )
             {        
-                boost::shared_ptr<structure_type> const closest_surf( tx_.get_structure( struct_id_distance_pair.first) );
-                
                 accumulated_prob += k_total( pp.second.sid(), closest_surf->sid() ) * dt_ / 
-                    closest_surf->surface_reaction_volume( r0, reaction_length_ );
+                                    closest_surf->surface_reaction_volume( r0, reaction_length_ );
         
                 if(accumulated_prob >= 1.)
                 {
-                    LOG_WARNING((
-                                 "the acceptance probability of an interaction exeeded one; %f.",
+                    LOG_WARNING(("the acceptance probability of an interaction exeeded one; %f.",
                                  accumulated_prob));
                 } 
                 
@@ -285,7 +290,11 @@ public:
         if(!bounced)
         {   
             particle_id_pair particle_to_update( pp.first, 
-                        particle_type(pp_species.id(), particle_shape_type(new_pos, r0), pp.second.structure_id(), pp_species.D()) );
+                                                 particle_type(pp_species.id(),
+                                                               particle_shape_type(new_pos, r0),
+                                                               pp.second.structure_id(),
+                                                               pp_species.D(),
+                                                               pp_species.v()) );
                 
             if (vc_)
             {
@@ -310,6 +319,7 @@ public:
 private:
 
     bool attempt_reaction(particle_id_pair const& pp)
+    // Handles only monomolecular reactions?
     {
         reaction_rules const& rules(rules_.query_reaction_rule(pp.second.sid()));
         if (::size(rules) == 0)
@@ -536,6 +546,7 @@ private:
     
     
     bool fire_reaction(particle_id_pair const& pp0, particle_id_pair const& pp1, species_type const& s0, species_type const& s1)
+    // This handles the reaction between a pair of particles.
     // unclear what the convention for pp0, pp1 and s0,s1 is with regard to being in 3D/2D.
     {
         reaction_rules const& rules(rules_.query_reaction_rule(pp0.second.sid(), pp1.second.sid()));
@@ -657,6 +668,7 @@ private:
 
         
     bool fire_interaction(particle_id_pair const& pp, boost::shared_ptr<structure_type> const& surface)
+    // This handles the 'reaction' (interaction) between a particle and a surface.
     {
         reaction_rules const& rules(rules_.query_reaction_rule(pp.second.sid(), surface->sid() ));
         if (::size(rules) == 0)
@@ -735,7 +747,7 @@ private:
     
     
     /* Given a position pair and two species, the function generates two new 
-       positions based on two moves drawn from the free propegator. */
+       positions based on two moves drawn from the free propagator. */
     position_pair_type const make_pair_move(species_type const& s0, species_type const& s1, position_pair_type const& pp01, 
                                             particle_id_type const& ignore)
     {
@@ -822,7 +834,7 @@ private:
 
 ////// Member variables
 private:
-    particle_container_type&    tx_;
+    particle_container_type&    tx_;            // The 'ParticleContainer' object that contains the particles.
     network_rules_type const&   rules_;
     rng_type&                   rng_;
     Real const                  dt_;
