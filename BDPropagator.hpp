@@ -98,7 +98,9 @@ public:
             return true;
 
         position_type const displacement(drawR_free(species));
-        position_type const pos(add(pp.second.position(), displacement));
+        position_type const drift(multiply(pp.second.velocity(), dt_));
+        position_type const pos(
+            add(add(pp.second.position(), displacement), drift));
         position_type const new_pos(tx_.apply_boundary(pos));
         position_type const stride(
             add(pp.second.stride(), subtract(pos, new_pos)));
@@ -106,7 +108,8 @@ public:
         particle_id_pair particle_to_update(
             pp.first, particle_type(
                 species.id(),
-                particle_shape_type(new_pos, species.radius(), stride),
+                particle_shape_type(new_pos, species.radius(), 
+                                    stride, pp.second.velocity()),
                 species.D()));
         boost::scoped_ptr<particle_id_pair_and_distance_list> overlapped(
             tx_.check_overlap(particle_to_update.second.shape(),

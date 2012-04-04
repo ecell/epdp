@@ -183,6 +183,23 @@ public:
         return retval;
     }
 
+    static PyObject* get_velocity(ParticleWrapper* self)
+    {
+        typename Timpl_::position_type const& pos(self->impl_.velocity());
+        const npy_intp dims[1] = { boost::size(pos) };
+        PyObject* retval = PyArray_New(&PyArray_Type, 1,
+                const_cast<npy_intp*>(dims),
+                peer::util::get_numpy_typecode<typename Timpl_::length_type>::value,
+                NULL,
+                NULL,
+                0, NPY_CARRAY, NULL);
+        if (retval == NULL)
+            return NULL;
+        std::memmove(PyArray_DATA(retval), &pos[0],
+                sizeof(typename Timpl_::length_type) * boost::size(pos));
+        return retval;
+    }
+
     static PyObject* get_absolute_position(ParticleWrapper* self)
     {
         typename Timpl_::position_type const& pos(
@@ -262,6 +279,38 @@ public:
         if (PyErr_Occurred())
             return -1;
         self->impl_.stride() = tmp;
+        return 0;
+    }
+
+    static int set_velocity(ParticleWrapper* self, PyObject* val, void *)
+    {
+        if (!PySequence_Check(val))
+        {
+            PyErr_SetString(PyExc_TypeError, "argument must be a sequence");
+            return -1;
+        }
+        
+        if (PySequence_Size(val) != 3)
+        {
+            PyErr_SetString(PyExc_ValueError, "argument must be a sequence of 3 elements");
+            return -1;
+        }
+
+        PyObject* items[3] = {
+            PySequence_GetItem(val, 0),
+            PySequence_GetItem(val, 1),
+            PySequence_GetItem(val, 2)
+        };
+        const typename Timpl_::position_type tmp(
+            PyFloat_AsDouble(items[0]),
+            PyFloat_AsDouble(items[1]),
+            PyFloat_AsDouble(items[2]));
+        Py_XDECREF(items[0]);
+        Py_XDECREF(items[1]);
+        Py_XDECREF(items[2]);
+        if (PyErr_Occurred())
+            return -1;
+        self->impl_.velocity() = tmp;
         return 0;
     }
 
@@ -506,6 +555,12 @@ PyGetSetDef ParticleWrapper<Timpl_>::__getsets__[] = {
         const_cast<char*>("stride"),
         (getter)ParticleWrapper::get_stride,
         (setter)ParticleWrapper::set_stride,
+        const_cast<char*>("")
+    },
+    {
+        const_cast<char*>("velocity"),
+        (getter)ParticleWrapper::get_velocity,
+        (setter)ParticleWrapper::set_velocity,
         const_cast<char*>("")
     },
     {

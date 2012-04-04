@@ -27,7 +27,7 @@ struct Particle
 
     Particle(species_id_type const& species_id, shape_type const& shape,
              D_type const& D)
-        : shape_(shape), species_id_(species_id), D_(D), v_(0.){}
+        : shape_(shape), species_id_(species_id), D_(D), v_(0.) {}
 
     Particle(species_id_type const& species_id, shape_type const& shape,
              D_type const& D, v_type const& v)
@@ -51,6 +51,16 @@ struct Particle
     position_type const& stride() const
     {
         return shape_.stride();
+    }
+
+    position_type& velocity()
+    {
+        return shape_.velocity();
+    }
+
+    position_type const& velocity() const
+    {
+        return shape_.velocity();
     }
 
     position_type const& absolute_position() const

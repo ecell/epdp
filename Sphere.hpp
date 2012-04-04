@@ -15,14 +15,19 @@ public:
 
 public:
     Sphere()
-        : position_(), stride_(), radius_(0) {}
+        : position_(), stride_(), velocity_(), radius_(0) {}
 
     Sphere(const position_type& position, const length_type& radius)
-        : position_(position), stride_(), radius_(radius) {}
+        : position_(position), stride_(), velocity_(), radius_(radius) {}
 
     Sphere(const position_type& position, const length_type& radius,
            const position_type& stride)
-        : position_(position), stride_(stride), radius_(radius) {}
+        : position_(position), stride_(stride), velocity_(), radius_(radius) {}
+
+    Sphere(const position_type& position, const length_type& radius,
+           const position_type& stride, const position_type& velocity)
+        : position_(position), stride_(stride), radius_(radius),
+          velocity_(velocity) {}
 
     bool operator==(const Sphere& rhs) const
     {
@@ -54,6 +59,16 @@ public:
         return stride_;
     }
 
+    position_type const& velocity() const
+    {
+        return velocity_;
+    }
+
+    position_type& velocity()
+    {
+        return velocity_;
+    }
+
     length_type const& radius() const
     {
         return radius_;
@@ -75,6 +90,7 @@ public:
 private:
     position_type position_;
     position_type stride_;
+    position_type velocity_;
     length_type radius_;
 };
 
