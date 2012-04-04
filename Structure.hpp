@@ -114,6 +114,8 @@ public:
     
     virtual length_type distance(position_type const& pos) const = 0;
     
+//    virtual position_type deflect(position_type const& pos1, position_type const& pos2) const = 0;      // FIXME TOMEK
+    
     virtual position_type const& structure_position() const = 0;
 
     virtual std::size_t hash() const

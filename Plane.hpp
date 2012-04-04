@@ -168,12 +168,90 @@ public:
         strm << *this;
         return strm.str();
     }
+    
+    position_type deflect(position_type const& r0, position_type const& displacement);
+    //position_type deflect(const Plane&, position_type const& pos0, position_type const& pos1);
 
 protected:
     position_type position_;
     boost::array<position_type, 3> units_;
     boost::array<length_type, 2> half_extent_;
 };
+
+template<typename T_>
+inline typename Plane<T_>::position_type
+deflect(Plane<T_> const& obj, typename Plane<T_>::position_type const& r0, typename Plane<T_>::position_type const& d)
+// This routine deflects a displacement on a plane.
+// If the displacement vector intersects with the plane (starting from r0) the part
+// ranging out of the plane will be deflected into the plane, always into the direction
+// towards the plane center.
+{
+  
+   // Type abbreviations
+   typedef typename Plane<T_>::length_type length_type;
+   typedef typename Plane<T_>::position_type position_type;
+      
+   // Plane properties to make use of
+   position_type corner_pt = obj.position();
+   position_type u_x = obj.unit_x();
+   position_type u_y = obj.unit_y();
+   position_type u_z = obj.unit_z();
+   
+   length_type half_extent_x = multiply(0.5, obj.Lx());
+   length_type half_extent_y = multiply(0.5, obj.Ly());
+   
+   // Variables used for calculation
+   position_type center_pt, center_edge, center_perp;
+   position_type intersect_pt, d_out, d_edge, d_perp;      
+   position_type new_pos;
+   
+   length_type intersect_parameter;
+   length_type l_edge, l_perp;
+   
+   // First calculate the center point of the plane
+   center_pt = add( corner_pt, add(multiply(u_x, half_extent_x), multiply(u_y, half_extent_y)) );
+   
+   // Calculate the intersection parameter and intersection point
+   // r0 is the origin position, d is a displacement vector
+   // If intersect_parameter is <= 1 we have an intersection
+   intersect_parameter = divide( dot_product( subtract( center_pt, r0), u_z), dot_product( d, u_z) );
+   
+   // Check whether the displacement actually crosses the plane;
+   // If not, just return original position plus displacement;
+   // if yes, calculate the deflection.
+   if(intersect_parameter > 1.0){
+     
+        new_pos = add(r0, d);
+   }
+   else{
+    
+        // Calculate the intersection point and the part of the displacement
+        // that ranges out of the target plane
+        intersect_pt = add(r0, multiply(d, intersect_parameter));
+        d_out = multiply(d, subtract(1.0, intersect_parameter));
+        
+        // Calculate the length of the component of d_out perpendicular to the edge
+        // and the component parallel to the edge
+        l_perp = dot_product(d_out, u_z);
+        d_edge = subtract(r0, multiply(u_z, l_perp));
+        //l_edge = abs(d_edge); // FIXME Make this work or just throw it out...
+        
+        // Find the vector pointing from the edge towards the center of the plane, which is
+        // the component of (center_pt - intersect_pt) perpendicular to the edge.
+        // First we calculate the component parallel to the edge
+        center_edge = multiply(d_edge, dot_product(subtract(center_pt, intersect_pt), d_edge));
+        center_perp = subtract( subtract(center_pt, intersect_pt), center_edge );
+        
+        d_perp = multiply( normalize(center_perp), l_perp );
+        
+        new_pos = add(r0, add(d_edge, d_perp));
+   }
+   
+   
+   // for now this returns the new position without changes
+   return new_pos;
+   //return center_pt;  // FIXME DEBUG 
+}
 
 template<typename T_>
 inline boost::array<typename Plane<T_>::length_type, 3>
@@ -258,20 +336,6 @@ distance(Plane<T_> const& obj, typename Plane<T_>::position_type const& pos)
             return abs(x_y_z[2]);
         }
     }
-}
-
-template<typename T_>
-inline typename Plane<T_>::position_type
-deflect(Plane<T_> const& obj, typename Plane<T_>::position_type const& r0, typename Plane<T_>::position_type const& r1)
-// Calculates the distance from 'pos' to plane 'obj' Note that when the plane is finite,
-// and also calculates the distance to the edge of the plane if necessary
-{
-   typedef typename Plane<T_>::length_type length_type;
-   boost::array<length_type, 3> const x_y_z_0(to_internal(obj, r0));
-   boost::array<length_type, 3> const x_y_z_1(to_internal(obj, r1));
-   
-   // for now this returns the new position without changes
-   return x_y_z_1;
 }
 
 template<typename T, typename Trng>
