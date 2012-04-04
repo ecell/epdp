@@ -50,7 +50,7 @@ class BDSimulatorCore(object):
         self.dissociation_retry_moves = dissociation_retry_moves
 
         self.t = 0.0
-        self.dt = 0.0
+        self.dt = None
 
         self.dt_factor = DEFAULT_DT_FACTOR
 
@@ -58,14 +58,22 @@ class BDSimulatorCore(object):
         self.reaction_events = 0
 
     def initialize(self):
-        self.determine_dt()
+        if self.dt is None:
+            self.determine_dt()
 
     def get_next_time(self):
         return self.t + self.dt
 
     def stop(self, t):
-        # dummy
-        self.t = t
+        if t > self.t + self.dt:
+            self.step()
+            return
+        elif t <= self.t:
+            return
+
+        dt, self.dt = self.dt, t - self.t
+        self.step()
+        self.dt = dt
 
     def determine_dt(self):
         self.dt = self.dt_factor * \
@@ -82,9 +90,10 @@ class BDSimulatorCore(object):
         def dummy(shape, ignore0, ignore1=None):
             return True
 
-        ppg = _gfrd.BDPropagator(self.world, self.network_rules,
-                     self.rng, self.dt, self.dissociation_retry_moves,
-                     increment_reaction_events, dummy, self.world.particle_ids)
+        ppg = _gfrd.BDPropagator(
+            self.world, self.network_rules,
+            self.rng, self.dt, self.dissociation_retry_moves,
+            increment_reaction_events, dummy, self.world.particle_ids)
         ppg.propagate_all()
 
         self.t += self.dt
@@ -111,10 +120,13 @@ class BDSimulator(ParticleSimulatorBase):
     def get_dt(self):
         return self.core.dt
 
+    def set_dt(self, value):
+        self.core.dt = value
+
     def get_step_counter(self):
         return self.core.step_counter
 
-    dt = property(get_dt)
+    dt = property(get_dt, set_dt)
     step_counter = property(get_step_counter)
 
     def set_dt_factor(self, dt_factor):
@@ -125,7 +137,6 @@ class BDSimulator(ParticleSimulatorBase):
 
     dt_factor = property(get_dt_factor, set_dt_factor)
 
-
     def initialize(self):
         self.core.initialize()
         self.is_dirty = False
@@ -135,10 +146,15 @@ class BDSimulator(ParticleSimulatorBase):
 
     def reset(self):
         # DUMMY
-        self.core.t=0
+        self.core.t = 0
+        self.core.step_counter = 0
 
     def stop(self, t):
-        # dummy
+        self.reaction_type = None
+
+        if self.is_dirty:
+            self.initialize()
+
         self.core.stop(t)
 
     def step(self):
@@ -151,8 +167,8 @@ class BDSimulator(ParticleSimulatorBase):
 
         if __debug__:
             log.info('%d: t=%.16g dt=%.16g, reactions=%d, rejected_moves=%d' %
-                 (self.step_counter, self.t, self.dt, self.reaction_events,
-                  self.rejected_moves))
+                     (self.step_counter, self.t, self.dt, self.reaction_events,
+                      self.rejected_moves))
 
     def check(self):
         pass
