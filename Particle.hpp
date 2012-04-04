@@ -43,6 +43,21 @@ struct Particle
         return shape_.position();
     }
 
+    position_type& stride()
+    {
+        return shape_.stride();
+    }
+
+    position_type const& stride() const
+    {
+        return shape_.stride();
+    }
+
+    position_type const& absolute_position() const
+    {
+        return add(position(), stride());
+    }
+
     length_type& radius()
     {
         return shape_.radius();
