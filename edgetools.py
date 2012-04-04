@@ -98,7 +98,7 @@ class EdgeTools :
             print("Result:")
             print(newpos)
             print("Deflection test:")
-            deflected = self.target_structure.shape.deflect(newpos, newpos)
+            deflected = self.target_structure.deflect(newpos, newpos)
             print(deflected)
 
         return newpos, new_structure_id
