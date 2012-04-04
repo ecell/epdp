@@ -109,7 +109,7 @@ public:
         return ::distance(shape(), pos);
     }
     
-    virtual position_type const& structure_position() const
+    virtual position_type const& position() const
     {
         return shape_.position();
     }

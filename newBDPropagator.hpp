@@ -73,12 +73,15 @@ public:
         call_with_size_if_randomly_accessible(
             boost::bind(&particle_id_vector_type::reserve, &queue_, _1),
             particle_ids);
+
+        // initialize the queue with the particle_ids of the particles to propagate.
         for (typename boost::range_const_iterator<Trange_>::type
                 i(boost::begin(particle_ids)),
                 e(boost::end(particle_ids)); i != e; ++i)
         {
             queue_.push_back(*i);
         }
+        // randomize the queue
         shuffle(rng, queue_);
     }
 
@@ -87,15 +90,20 @@ public:
     //    in the container that need to be processed.
     bool operator()()
     {
+        // if there are no more particle to treat -> end
         if (queue_.empty())
             return false;        
 
+        //// 0.
+        // Get the next particle from the queue
         particle_id_type pid(queue_.back());
         queue_.pop_back();
         particle_id_pair pp(tx_.get_particle(pid));
-
+        // Log
         LOG_DEBUG(("propagating particle %s", boost::lexical_cast<std::string>(pp.first).c_str()));
         
+
+
         /* Consider decay reactions first. Particles can move after decay, but this is done
            inside the 'attempt_reaction' function. */
         try
@@ -110,30 +118,38 @@ public:
             return true;
         }
         
-        species_type const pp_species(tx_.get_species(pp.second.sid()));
-        length_type const r0( pp_species.radius() );
-        position_type const old_pos( pp.second.position() );
+
+        //// 1.?
+        // Get info of the particle
+        species_type const                      pp_species(tx_.get_species(pp.second.sid()));
+        length_type const                       r0( pp_species.radius() );
+        position_type const                     old_pos( pp.second.position() );
         boost::shared_ptr<structure_type> const pp_structure( tx_.get_structure( pp.second.structure_id() ) );
-        
-        structure_id_and_distance_pair struct_id_distance_pair;
-        length_type particle_surface_distance = 0;
-        position_type new_pos;
-        
+        // declare variables to use
+        structure_id_and_distance_pair  struct_id_distance_pair;
+        length_type                     particle_surface_distance = 0;
+        position_type                   new_pos;
+//        structure_id_type               new_structure;
+
+        //// 2. New position
         /* Sample a potential move, and check if the particle _core_ has overlapped with another 
-           particle or surface. If this is the case the particlem bounces, and is returned
+           particle or surface. If this is the case the particle bounces, and is returned
            to it's original position. For a particle with D = 0, new_pos = old_pos */        
         if (pp_species.D() != 0.)
         {
             // get a new position, dependent on the structure the particle lives on.
-            position_type const displacement( pp_structure->
-                                              bd_displacement(pp_species.v() * dt_, std::sqrt(2.0 * pp_species.D() * dt_), rng_) );
+            position_type const displacement( pp_structure->bd_displacement(pp_species.v() * dt_,
+                                                                            std::sqrt(2.0 * pp_species.D() * dt_),
+                                                                            rng_) );
 
             new_pos = tx_.apply_boundary( add( pp.second.position(), displacement ) );
             // TODO check if the new position is actually still in the structure
+//            new_structure_id = pp_structure->deflect();
         }
         else
         {
             new_pos = old_pos;
+//            new_structure_id = pp.second.structure_id();
         }
         
         /* Use a spherical shape with radius = particle_radius + reaction_length.
@@ -158,8 +174,8 @@ public:
 
             /* Check for overlap with nearest surface. */
             boost::shared_ptr<structure_type> closest_struct( tx_.get_structure( struct_id_distance_pair.first ) );
-            bounced = closest_struct->bounced( tx_.cyclic_transpose( old_pos, closest_struct->structure_position() ), 
-                                               tx_.cyclic_transpose( new_pos, closest_struct->structure_position() ), 
+            bounced = closest_struct->bounced( tx_.cyclic_transpose( old_pos, closest_struct->position() ), 
+                                               tx_.cyclic_transpose( new_pos, closest_struct->position() ), 
                                                particle_surface_distance, r0);
         }
          
@@ -389,8 +405,8 @@ private:
                             
                             boost::shared_ptr<structure_type> closest_struct( tx_.get_structure( struct_id_distance_pair.first ) );
 
-                            if( closest_struct->bounced( tx_.cyclic_transpose( new_pos, closest_struct->structure_position() ), 
-                                                         tx_.cyclic_transpose( new_pos, closest_struct->structure_position() ), 
+                            if( closest_struct->bounced( tx_.cyclic_transpose( new_pos, closest_struct->position() ), 
+                                                         tx_.cyclic_transpose( new_pos, closest_struct->position() ), 
                                                          struct_id_distance_pair.second, s0.radius() ) )
                                 throw propagation_error("no space due to near surface");
                         }
@@ -473,15 +489,15 @@ private:
                                 structure_id_and_distance_pair struct_id_distance_pair( tx_.get_closest_surface( pp01.first, tx_.get_def_structure_id() ) );
                                 boost::shared_ptr<structure_type> closest_struct( tx_.get_structure( struct_id_distance_pair.first ) );
 
-                                surface_bounce0 = closest_struct->bounced( tx_.cyclic_transpose( pp.second.position(), closest_struct->structure_position() ), 
-                                                                           tx_.cyclic_transpose( pp01.first, closest_struct->structure_position() ), 
+                                surface_bounce0 = closest_struct->bounced( tx_.cyclic_transpose( pp.second.position(), closest_struct->position() ), 
+                                                                           tx_.cyclic_transpose( pp01.first, closest_struct->position() ), 
                                                                            struct_id_distance_pair.second, s0.radius() );
 
                                 struct_id_distance_pair = tx_.get_closest_surface( pp01.second, tx_.get_def_structure_id() );
                                 closest_struct = tx_.get_structure( struct_id_distance_pair.first );
 
-                                surface_bounce1 = closest_struct->bounced( tx_.cyclic_transpose( pp.second.position(), closest_struct->structure_position() ), 
-                                                                           tx_.cyclic_transpose( pp01.second, closest_struct->structure_position() ), 
+                                surface_bounce1 = closest_struct->bounced( tx_.cyclic_transpose( pp.second.position(), closest_struct->position() ), 
+                                                                           tx_.cyclic_transpose( pp01.second, closest_struct->position() ), 
                                                                            struct_id_distance_pair.second, s1.radius() );
                             }
                                     
@@ -602,7 +618,7 @@ private:
                             sp_struct = tx_.get_structure( new_structure_id );
                             projected_type const position_on_surface( sp_struct->
                                                                       projected_point( tx_.cyclic_transpose( new_pos, 
-                                                                                                             sp_struct->structure_position() ) ) );
+                                                                                                             sp_struct->position() ) ) );
                             
                             new_pos = tx_.apply_boundary( position_on_surface.first );
                         }
@@ -631,8 +647,8 @@ private:
                             structure_id_and_distance_pair const struct_id_distance_pair( tx_.get_closest_surface( new_pos, tx_.get_def_structure_id() ) );
                             boost::shared_ptr<structure_type> closest_struct( tx_.get_structure( struct_id_distance_pair.first ) );
 
-                            if( closest_struct->bounced( tx_.cyclic_transpose( pp0.second.position(), closest_struct->structure_position() ), 
-                                                         tx_.cyclic_transpose( pp1.second.position(), closest_struct->structure_position() ), 
+                            if( closest_struct->bounced( tx_.cyclic_transpose( pp0.second.position(), closest_struct->position() ), 
+                                                         tx_.cyclic_transpose( pp1.second.position(), closest_struct->position() ), 
                                                          struct_id_distance_pair.second, sp.radius() ) )
                                 throw propagation_error("no space due to near surface");
                         }
@@ -806,8 +822,8 @@ private:
             structure_id_and_distance_pair const struct_id_distance_pair( tx_.get_closest_surface( new_pos, tx_.get_particle(ignore).second.structure_id() ) );
             boost::shared_ptr<structure_type> closest_struct( tx_.get_structure( struct_id_distance_pair.first ) );
 
-            if( closest_struct->bounced( tx_.cyclic_transpose( old_pos, closest_struct->structure_position() ), 
-                                         tx_.cyclic_transpose( new_pos, closest_struct->structure_position() ), 
+            if( closest_struct->bounced( tx_.cyclic_transpose( old_pos, closest_struct->position() ), 
+                                         tx_.cyclic_transpose( new_pos, closest_struct->position() ), 
                                          struct_id_distance_pair.second, s0.radius() ) )    
                 return old_pos;        
         }
