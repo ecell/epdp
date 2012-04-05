@@ -453,6 +453,7 @@ public:
         default_structure_id_ = id;
     }
     // Get the closest surface(surface is a subclass of structures)
+    // TODO change this to get all the surfaces within a certain distance of the particle.
     virtual structure_id_and_distance_pair get_closest_surface(position_type const& pos, structure_id_type const& ignore) const
     {       
         length_type const world_size( base_type::world_size() );

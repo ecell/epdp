@@ -105,10 +105,10 @@ public:
 
 
         /* Consider decay reactions first. Particles can move after decay, but this is done
-           inside the 'attempt_reaction' function. */
+           inside the 'attempt_single_reaction' function. */
         try
         {
-            if (attempt_reaction(pp))
+            if (attempt_single_reaction(pp))
                 return true;
         }
         catch (propagation_error const& reason)
@@ -129,7 +129,7 @@ public:
         structure_id_and_distance_pair  struct_id_distance_pair;
         length_type                     particle_surface_distance = 0;
         position_type                   new_pos;
-//        structure_id_type               new_structure;
+        structure_id_type               new_structure_id;
 
         //// 2. New position
         /* Sample a potential move, and check if the particle _core_ has overlapped with another 
@@ -142,63 +142,79 @@ public:
                                                                             std::sqrt(2.0 * pp_species.D() * dt_),
                                                                             rng_) );
 
-            new_pos = tx_.apply_boundary( add( pp.second.position(), displacement ) );
             // TODO check if the new position is actually still in the structure
-//            new_structure_id = pp_structure->deflect();
+            // else
+            // get 'connecting' structure and apply deflection. Should we do this recursively until the coordinate stays in the currents structure?
+            // This actually kinda similar to the boundary condition application.
+            new_pos = tx_.apply_boundary( add( pp.second.position(), displacement ) );
+            new_structure_id = pp.second.structure_id(); //pp_structure->deflect();
         }
         else
         {
             new_pos = old_pos;
-//            new_structure_id = pp.second.structure_id();
+            new_structure_id = pp.second.structure_id();
         }
         
+        // Get all the particles that are in the reaction volume at the new position (and that may consequently also be in the core)
         /* Use a spherical shape with radius = particle_radius + reaction_length.
 	       We use it to check for overlaps with other particles. */
         boost::scoped_ptr<particle_id_pair_and_distance_list> overlapped(
                 tx_.check_overlap(particle_shape_type( new_pos, r0 + reaction_length_ ), pp.first));
         int particles_in_overlap(overlapped ? overlapped->size(): 0);
-
-        /* Check if the particle at new_pos overlaps with any particle cores. */        
         bool bounced( false );
+
+
+        //// 3.1 Check for core overlaps with particles
+        /* Check if the particle at new_pos overlaps with any particle cores. */        
         int j( 0 );
         while(!bounced && j < particles_in_overlap)
             bounced = overlapped->at(j++).second < r0;
         
+        //// 3.2 Check for core overlaps structures
         /* If the particle has not bounced with another particle and lives in the bulk: 
            check for core overlap with a surface. */
-        // TODO maybe always check for overlaps with surface ignoring its own surface? (regardless of in bulk)
+        // TODO always check for overlaps with surface ignoring its own surface (regardless of in bulk)
         if(!bounced && pp.second.structure_id() == tx_.get_def_structure_id())
         {
-            struct_id_distance_pair = tx_.get_closest_surface( new_pos, pp.second.structure_id());
-            particle_surface_distance = struct_id_distance_pair.second;
+            // TODO Get all the structures within the reaction volume (and that may consequently also be in the core)
+            struct_id_distance_pair = tx_.get_closest_surface( new_pos, new_structure_id);
 
             /* Check for overlap with nearest surface. */
+            // TODO check all the surfaces while bounced != true.
+            particle_surface_distance = struct_id_distance_pair.second;
             boost::shared_ptr<structure_type> closest_struct( tx_.get_structure( struct_id_distance_pair.first ) );
             bounced = closest_struct->bounced( tx_.cyclic_transpose( old_pos, closest_struct->position() ), 
                                                tx_.cyclic_transpose( new_pos, closest_struct->position() ), 
                                                particle_surface_distance, r0);
         }
          
-        /* If particle is bounced, check reaction_volume for reaction partners at old_pos. */
+        //// 4. Finalize the position
+        /* If particle is bounced, restore old position and check reaction_volume for reaction partners at old_pos. */
         if(bounced)
         {
+            // restore old position and structure_id
             new_pos = old_pos;
+            new_structure_id = pp.second.structure_id();
             
+            // re-get the reaction partners (particles), now on old position.
             boost::scoped_ptr<particle_id_pair_and_distance_list> overlapped_after_bounce( 
-                    tx_.check_overlap( particle_shape_type( new_pos, r0 + reaction_length_ ), 
-                            pp.first) );
-                            
-            overlapped.swap( overlapped_after_bounce );
+                    tx_.check_overlap( particle_shape_type( new_pos, r0 + reaction_length_ ), pp.first) );
+            overlapped.swap( overlapped_after_bounce );     // FIXME is there no better way?
                                             
             particles_in_overlap = overlapped ? overlapped->size(): 0; 
             
+            // re-get the reaction partners (structures), at old position. TODO don't just do this when in the bulk.
             if(pp.second.structure_id() == tx_.get_def_structure_id())
             {
+                // TODO get all near surfaces instead of just the closest.
                 struct_id_distance_pair = tx_.get_closest_surface( new_pos, pp.second.structure_id() );
+                // TODO get the number of surfaces.
                 particle_surface_distance = struct_id_distance_pair.second;  
             }
         }
         
+
+        //// 5.
         /* Attempt a reaction (and/or interaction) with all the particles (and/or a surface) that 
            are/is inside the reaction volume. */
         Real accumulated_prob = 0;
@@ -206,10 +222,14 @@ public:
         
         /* First, if a surface is inside the reaction volume, and the particle is in the 3D attempt an interaction. */
         // TODO also interaction should be allowed when a particle is on a cylinder.
+        // TODO don't check only the closest but check all overlapping surfaces.
         if( pp.second.structure_id() == tx_.get_def_structure_id())
         {
+            // TODO get all the surfaces that overlap with the reaction volume (depends on current structure)
             boost::shared_ptr<structure_type> const closest_surf( tx_.get_structure( struct_id_distance_pair.first) );
 
+            // TODO check that the projected point of the position of the particle is in the surface. If not, than no
+            // reaction is possible.
             if( closest_surf->in_reaction_volume( particle_surface_distance, r0, reaction_length_ ) )
             {        
                 accumulated_prob += k_total( pp.second.sid(), closest_surf->sid() ) * dt_ / 
@@ -238,13 +258,14 @@ public:
                 else                
                 {
                     LOG_DEBUG(("Particle attempted an interaction with the non-interactive surface %s.", 
-                               boost::lexical_cast<std::string>(closest_surf->real_id()).c_str()));
+                               boost::lexical_cast<std::string>(closest_surf->real_id()).c_str()));     // TODO is this the correct interpretation?
                     ++rejected_move_count_;
                 }
             }
 
         }
         
+        ////
         /* Now attempt a reaction with all particles inside the reaction volume. */
         j = 0;
         while(j < particles_in_overlap)
@@ -295,7 +316,7 @@ public:
             else                
             {
                 LOG_DEBUG(("Particle attempted a reaction with a non-reactive particle %s.", 
-                    boost::lexical_cast<std::string>(closest.first.first).c_str()));
+                    boost::lexical_cast<std::string>(closest.first.first).c_str()));    // TODO is this really a rejected move?
                 ++rejected_move_count_;
             }
             
@@ -308,7 +329,7 @@ public:
             particle_id_pair particle_to_update( pp.first, 
                                                  particle_type(pp_species.id(),
                                                                particle_shape_type(new_pos, r0),
-                                                               pp.second.structure_id(),
+                                                               new_structure_id,
                                                                pp_species.D(),
                                                                pp_species.v()) );
                 
@@ -334,7 +355,26 @@ public:
 
 private:
 
-    bool attempt_reaction(particle_id_pair const& pp)
+    /* Function returns the accumulated intrinsic reaction rate between to species. */
+    Real k_total(species_id_type const& s0_id, species_id_type const& s1_id)
+    {   
+        reaction_rules const& rules(rules_.query_reaction_rule(s0_id, s1_id));
+        if(::size(rules) == 0)
+        {
+            return 0;
+        }
+
+        Real k_tot = 0;
+        for (typename boost::range_const_iterator<reaction_rules>::type
+                i(boost::begin(rules)), e(boost::end(rules)); i != e; ++i)
+        {
+            k_tot += (*i).k();
+        }
+        
+        return k_tot;
+    }
+
+    bool attempt_single_reaction(particle_id_pair const& pp)
     // Handles only monomolecular reactions?
     {
         reaction_rules const& rules(rules_.query_reaction_rule(pp.second.sid()));
@@ -353,12 +393,11 @@ private:
             prob += r.k();
             if (prob > rnd)
             {
-                typename reaction_rule_type::species_id_range products(
-                        r.get_products());
+                typename reaction_rule_type::species_id_range products(r.get_products());
                 switch (::size(products))
                 {
                 case 0:
-                    tx_.remove_particle(pp.first);
+                    tx_.remove_particle(pp.first);          // FIXME how come the local method 'remove_particle' is not called?
                     break;
 
                 case 1:
@@ -541,26 +580,6 @@ private:
         return false;
     }
         
-    /* Function returns the accumulated intrinsic reaction rate between to species. */
-    Real k_total(species_id_type const& s0_id, species_id_type const& s1_id)
-    {   
-        reaction_rules const& rules(rules_.query_reaction_rule(s0_id, s1_id));
-        if(::size(rules) == 0)
-        {
-            return 0;
-        }
-
-        Real k_tot = 0;
-        for (typename boost::range_const_iterator<reaction_rules>::type
-                i(boost::begin(rules)), e(boost::end(rules)); i != e; ++i)
-        {
-            k_tot += (*i).k();
-        }
-        
-        return k_tot;
-    }
-    
-    
     bool fire_reaction(particle_id_pair const& pp0, particle_id_pair const& pp1, species_type const& s0, species_type const& s1)
     // This handles the reaction between a pair of particles.
     // unclear what the convention for pp0, pp1 and s0,s1 is with regard to being in 3D/2D.
@@ -799,24 +818,27 @@ private:
     position_type const make_move(species_type const& s0, position_type const& old_pos, particle_id_type const& ignore)
     // generates a move for a particle.
     {
+
+        // FIXME this is just redoing what we are doing above when moving a particle.
+
         if(s0.D() == 0)
             return old_pos;
     
         boost::shared_ptr<structure_type> s0_struct( tx_.get_structure( tx_.get_particle(ignore).second.structure_id() ) );
 
-        position_type displacement( s0_struct->
-                                    bd_displacement(s0.v() * dt_, std::sqrt(2.0 * s0.D() * dt_), rng_) );
-
+        position_type displacement( s0_struct->bd_displacement(s0.v() * dt_, std::sqrt(2.0 * s0.D() * dt_), rng_) );
         position_type new_pos(tx_.apply_boundary( add( old_pos, displacement ) ));
+        // TODO apply deflection
                         
         boost::scoped_ptr<particle_id_pair_and_distance_list> overlapped( 
                                     tx_.check_overlap(
                                     particle_shape_type(new_pos, s0.radius()),
                                     ignore));
                                                                 
+        // See if it overlaps with any particles
         if ( (overlapped && overlapped->size() > 0) )
             return old_pos;
-        
+        // See if it overlaps with any surfaces.
         if(s0.structure_type_id() == tx_.get_def_structure_type_id())
         {
             structure_id_and_distance_pair const struct_id_distance_pair( tx_.get_closest_surface( new_pos, tx_.get_particle(ignore).second.structure_id() ) );
