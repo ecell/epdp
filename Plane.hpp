@@ -167,10 +167,7 @@ public:
         strm.precision(precision);
         strm << *this;
         return strm.str();
-    }
-    
-    position_type deflect(position_type const& r0, position_type const& displacement);
-    //position_type deflect(const Plane&, position_type const& pos0, position_type const& pos1);
+    }   
 
 protected:
     position_type position_;
@@ -192,65 +189,74 @@ deflect(Plane<T_> const& obj, typename Plane<T_>::position_type const& r0, typen
    typedef typename Plane<T_>::position_type position_type;
       
    // Plane properties to make use of
-   position_type corner_pt = obj.position();
+   position_type center_pt = obj.position();
    position_type u_x = obj.unit_x();
    position_type u_y = obj.unit_y();
-   position_type u_z = obj.unit_z();
-   
-   length_type half_extent_x = multiply(0.5, obj.Lx());
-   length_type half_extent_y = multiply(0.5, obj.Ly());
+   position_type u_z = obj.unit_z();   
    
    // Variables used for calculation
-   position_type center_pt, center_edge, center_perp;
-   position_type intersect_pt, d_out, d_edge, d_perp;      
+   position_type intersect_pt;          // the point at which the displacement vector intersects the edge
+   position_type d_out, d_edge, d_perp; // the part of the displacement ranging out of the plane and
+                                        // the components parallel and perpendicular to the edge
+   position_type d_edge_n;              // normalized d_edge                                        
+   position_type icv;                   // = intersect_to_center_vector
+   position_type icv_edge, icv_perp;    // the components of icv parallel and perpendicular to the edge
+   
    position_type new_pos;
    
    length_type intersect_parameter;
-   length_type l_edge, l_perp;
+   length_type l_edge, l_perp;   
    
-   // First calculate the center point of the plane
-   center_pt = add( corner_pt, add(multiply(u_x, half_extent_x), multiply(u_y, half_extent_y)) );
-   
-   // Calculate the intersection parameter and intersection point
-   // r0 is the origin position, d is a displacement vector
-   // If intersect_parameter is <= 1 we have an intersection
-   intersect_parameter = divide( dot_product( subtract( center_pt, r0), u_z), dot_product( d, u_z) );
+   // Calculate the intersection parameter and intersection point.
+   // r0 is the origin position, d is a displacement vector.
+   // If intersect_parameter <= 1 we have an intersection.
+   if(dot_product(d, u_z) != 0.0)
+      intersect_parameter = divide( dot_product(subtract(center_pt, r0), u_z), dot_product(d, u_z) );
+   else
+      intersect_parameter = (length_type)INT_MAX;       // infinity, displacement is parallel to edge
+      
    
    // Check whether the displacement actually crosses the plane;
    // If not, just return original position plus displacement;
    // if yes, calculate the deflection.
    if(intersect_parameter > 1.0){
      
+        // No intersection; the new position is just r0+displacement
         new_pos = add(r0, d);
    }
    else{
     
         // Calculate the intersection point and the part of the displacement
         // that ranges out of the target plane
-        intersect_pt = add(r0, multiply(d, intersect_parameter));
+        intersect_pt = add(r0, multiply(d, intersect_parameter));        
         d_out = multiply(d, subtract(1.0, intersect_parameter));
         
         // Calculate the length of the component of d_out perpendicular to the edge
-        // and the component parallel to the edge
-        l_perp = dot_product(d_out, u_z);
-        d_edge = subtract(r0, multiply(u_z, l_perp));
-        //l_edge = abs(d_edge); // FIXME Make this work or just throw it out...
+        // and the vector of the component parallel to the edge
+        l_perp = dot_product(d_out, u_z);       // note that this can be positive or negative,
+                                                // depending on whether u_z points in or out!
+        d_edge = subtract(d_out, multiply(u_z, l_perp));
+        d_edge_n = normalize(d_edge);
         
         // Find the vector pointing from the edge towards the center of the plane, which is
         // the component of (center_pt - intersect_pt) perpendicular to the edge.
         // First we calculate the component parallel to the edge
-        center_edge = multiply(d_edge, dot_product(subtract(center_pt, intersect_pt), d_edge));
-        center_perp = subtract( subtract(center_pt, intersect_pt), center_edge );
+        icv = subtract(center_pt, intersect_pt);
+        icv_edge = multiply(d_edge_n, dot_product(icv, d_edge_n));
+        icv_perp = subtract(icv, icv_edge);
         
-        d_perp = multiply( normalize(center_perp), l_perp );
+        // Calculate the component perpendicular to the edge in the plane.
+        // Note that l_perp can be pos. or neg. while icv_perp always points towards
+        // the center of the plane; therefore use abs(l_perp).
+        d_perp = multiply( normalize(icv_perp), abs(l_perp) );
         
-        new_pos = add(r0, add(d_edge, d_perp));
+        // Construct the new position vector
+        new_pos = add(intersect_pt, add(d_edge, d_perp));
    }
    
    
    // for now this returns the new position without changes
    return new_pos;
-   //return center_pt;  // FIXME DEBUG 
 }
 
 template<typename T_>
