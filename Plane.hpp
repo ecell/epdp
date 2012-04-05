@@ -175,6 +175,7 @@ protected:
     boost::array<length_type, 2> half_extent_;
 };
 
+
 template<typename T_>
 inline typename Plane<T_>::position_type
 deflect(Plane<T_> const& obj, typename Plane<T_>::position_type const& r0, typename Plane<T_>::position_type const& d)
@@ -182,6 +183,7 @@ deflect(Plane<T_> const& obj, typename Plane<T_>::position_type const& r0, typen
 // If the displacement vector intersects with the plane (starting from r0) the part
 // ranging out of the plane will be deflected into the plane, always into the direction
 // towards the plane center.
+// ATTENTION! As for now, this only works for displacement vectors perpendicular to the plane
 {
   
    // Type abbreviations
@@ -227,8 +229,10 @@ deflect(Plane<T_> const& obj, typename Plane<T_>::position_type const& r0, typen
    else{
     
         // Calculate the intersection point and the part of the displacement
-        // that ranges out of the target plane
-        intersect_pt = add(r0, multiply(d, intersect_parameter));        
+        // that ranges out of the target plane.
+        // Project all points that are supposed to be in the plane into it,
+        // just to be sure.
+        intersect_pt = projected_point( obj, add(r0, multiply(d, intersect_parameter)) ).first;
         d_out = multiply(d, subtract(1.0, intersect_parameter));
         
         // Calculate the length of the component of d_out perpendicular to the edge
@@ -250,8 +254,9 @@ deflect(Plane<T_> const& obj, typename Plane<T_>::position_type const& r0, typen
         // the center of the plane; therefore use abs(l_perp).
         d_perp = multiply( normalize(icv_perp), abs(l_perp) );
         
-        // Construct the new position vector
-        new_pos = add(intersect_pt, add(d_edge, d_perp));
+        // Construct the new position vector, make sure it's in the plane to
+        // avoid trouble with periodic boundary conditions
+        new_pos = projected_point(obj, add(intersect_pt, add(d_edge, d_perp)) ).first;
    }
    
    
