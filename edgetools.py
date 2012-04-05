@@ -75,32 +75,6 @@ class EdgeTools :
             newpos = self.target_center + d_target_perp*self.target_unit_perp + d_target_par*self.target_unit_par
             new_structure_id = self.target_structure.id
 
-            # FIXME: Remove this temporary debug stuff
-            print("FUNCTION process_new_position_vector")
-            print("Input:")
-            print(self.origin_structure.id)
-            print(self.origin_structure.shape.unit_x)
-            print(self.origin_structure.shape.unit_y)
-            print(self.origin_structure.shape.unit_z)
-            print(self.origin_unit_perp)
-            print(self.origin_unit_par)
-            print(self.target_structure.id)
-            print(self.target_structure.shape.unit_x)
-            print(self.target_structure.shape.unit_y)
-            print(self.target_structure.shape.unit_z)
-            print(self.target_unit_perp)
-            print(self.target_unit_par)
-            print("Calculations:")
-            print(d_origin_perp)
-            print(d_target_perp)
-            print(d_origin_par)
-            print(d_target_par)
-            print("Result:")
-            print(newpos)
-            print("Deflection test:")
-            deflected = self.target_structure.deflect(newpos, newpos)
-            print(deflected)
-
         return newpos, new_structure_id
 
     def get_origin_unit_vectors(self):
@@ -110,11 +84,7 @@ class EdgeTools :
         # ATTENTION! THIS DOES NOT YET WORK WITH PERIODIC BC!
         w_z = self.target_structure.shape.unit_z
         u_perp = (1.0/self.target_distance * numpy.dot(self.target_center-self.start_position, w_z )) * w_z
-        # FIXME: DEBUG output, to be removed
-        if not feq(numpy.sqrt(numpy.dot(u_perp, u_perp)), 1.0):
-            print("WARNING! u_perp not normalized properly!")            
-            
-        assert feq(numpy.sqrt(numpy.dot(u_perp, u_perp)), 1.0)
+        assert feq( length(u_perp), 1.0) 
 
         u_x = self.origin_structure.shape.unit_x
         u_y = self.origin_structure.shape.unit_y
@@ -124,20 +94,6 @@ class EdgeTools :
         else:
              u_par  = u_x
              h_perp = self.origin_half_extent[1] # half_extent in u_y direction
-
-        # FIXME: DEBUG output, to be removed
-        print("FUNCTION get_origin_unit_vectors")
-        print("Calculations:")
-        print(w_z)
-        print(self.target_distance)
-        print(self.target_center)
-        print(self.start_position)
-        print(self.target_center - self.start_position)
-        print(numpy.dot(self.target_center-self.start_position, w_z ))
-        print("Results:")
-        print(u_perp)
-        print(u_par)
-        print(h_perp)
 
         return u_perp, u_par, h_perp
 
@@ -159,21 +115,10 @@ class EdgeTools :
              w_par = w_x
              h_perp = self.target_half_extent[1] # half_extent in w_y direction
 
-        # FIXME: DEBUG output, to be removed
-        print("FUNCTION get_target_unit_vectors")
-        print("Calculations:")
-        print(self.target_center)
-        print(w_perp_unnorm)
-        print("Results:")
-        print(w_perp)
-        print(w_par)
-        print(h_perp)
-
         return w_perp, w_par, h_perp
 
     def get_edge_point(self):
         self.origin_unit_perp, _, _ = self.get_origin_unit_vectors()
         ep = self.start_position + (self.target_distance * self.origin_unit_perp)
         return ep
-
 

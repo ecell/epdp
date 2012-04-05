@@ -174,8 +174,6 @@ class NonInteractionSingle(Single, NonInteractionSingles):
         # Note: for the NonInteractionSingles superclass nothing is to be initialized.
 
     def initialize(self, t):
-#        self.dt = 0.0
-#        self.last_time = t
         Single.initialize(self, t)
         self.event_type = EventType.SINGLE_ESCAPE
 
@@ -388,9 +386,7 @@ class PlanarSurfaceSingle(NonInteractionSingle, hasCylindricalShell):
         if self.shell.shape.radius < min_radius:
             position = self.shell.shape.position
             radius = self.pid_particle_pair[1].radius * SINGLE_SHELL_FACTOR     # The burst radius
-#            half_length = self.shell.shape.half_length
             # keep everything at a burstradius distance
-#            fake_shell = self.create_new_shell(position, min_radius, half_length, self.domain_id)
             fake_shell = SphericalShell(self.domain_id, Sphere(position, radius))
             return [(self.shell_id, fake_shell), ]
         else:
@@ -496,7 +492,6 @@ class CylindricalSurfaceSingle(NonInteractionSingle, hasCylindricalShell):
         if self.shell.shape.half_length < min_half_length:
             position = self.shell.shape.position
             radius = self.pid_particle_pair[1].radius * SINGLE_SHELL_FACTOR
-#            fake_shell = self.create_new_shell(position, radius, min_half_length, self.domain_id)
             # Keep all the other shells outside the burst radius (which is spherical!)
             # Note that this makes the cylindrical shell have a slightly smaller radius than the burst radius.
             fake_shell = SphericalShell(self.domain_id, Sphere(position, radius))
@@ -613,13 +608,6 @@ class InteractionSingle(Single, hasCylindricalShell, Others):
 
     def get_inner_dz_right(self):
         pass
-
-#    def initialize(self, t):    
-#        # initialize the domain object with the appropriate time to allow reuse of
-#        # the Domain at different times
-#        self.dt = 0
-#        self.last_time = t
-#        self.event_type = None
 
     def determine_next_event(self):
         """Return an (event time, event type)-tuple.
@@ -946,10 +934,10 @@ class CylindricalSurfaceSink(InteractionSingle):
                 # Some other event took place and the particle didn't escape
                 z = draw_r_wrapper(gf, dt, self.get_inner_a(), -self.get_inner_a())
 
-        # Add displacement to shell.shape.position, not to particle.position.
-        # The direction of the shell is leading (not direction of the structure)
-        z_vector = self.shell.shape.unit_z * z
-        newpos = self.shell.shape.position + z_vector
+            # Add displacement to shell.shape.position, not to particle.position.
+            # The direction of the shell is leading (not direction of the structure)
+            z_vector = self.shell.shape.unit_z * z
+            newpos = self.shell.shape.position + z_vector
 
         # The structure on which the particle ended is always the same as on which it began.
         structure_id = self.structure.id
@@ -980,20 +968,6 @@ class TransitionSingle(Single, EdgeTools, Others):
         EdgeTools.__init__(self, testShell, self.pid_particle_pair[1].position)
         # Note: for the Others superclass nothing is to be initialized.
 
-#        self.pid_particle_pair = testShell.single.pid_particle_pair # is that necessary??
-
-        # That was part of the HACK, so we keep it now and remove it later when everything works
-        # origin_structure and target_structure are inherited from testShell via EdgeTools
-#        self.structure = self.origin_structure
-#        self.surface = self.target_structure
-
-#    def initialize(self, t):    
-#        # initialize the domain object with the appropriate time to allow reuse of
-#        # the Domain at different times
-#        self.dt = 0
-#        self.last_time = t
-#        self.event_type = None
-
     def determine_next_event(self):
         """Return an (event time, event type)-tuple.
 
@@ -1020,10 +994,6 @@ class PlanarSurfaceTransitionSingle(TransitionSingle, hasSphericalShell):
         hasSphericalShell.__init__(self, testShell, domain_id)
         TransitionSingle.__init__(self, domain_id, shell_id, testShell, reactionrules)
 
-        # This has to be set because external functions will use it
-        # FIXME: Check whether this is still needed!
-#        self.structure = self.origin_structure
-#        self.surface = self.target_structure
 
     # The same Greens function is used as for the normal PlanarSurfaceSingle;
     # If the position is off the surface of origin, it will be transformed towards the target surface
@@ -1031,7 +1001,6 @@ class PlanarSurfaceTransitionSingle(TransitionSingle, hasSphericalShell):
         return GreensFunction2DAbsSym(self.D, self.get_inner_a())
 
     def draw_new_position(self, dt, event_type):
-#        oldpos = self.start_position
         oldpos = self.pid_particle_pair[1].position
 
         if self.D == 0:
@@ -1068,31 +1037,6 @@ class PlanarSurfaceTransitionSingle(TransitionSingle, hasSphericalShell):
         # that the coordinates are in the surface
         x, y = random_vector2D(r)
         return x * self.structure.shape.unit_x + y * self.structure.shape.unit_y
-
-#    # copied from SphericalSingle
-#    # these return potentially corrected dimensions
-#    # For explanation see NonInteractionSingles and Others in shells.py
-#    def shell_list_for_single(self):
-#        # make sure that there is at least space for the multi shell
-#        min_radius = self.pid_particle_pair[1].radius * MULTI_SHELL_FACTOR
-#        if  self.shell.shape.radius < min_radius:
-#            position = self.shell.shape.position
-#            fake_shell = self.create_new_shell(position, min_radius, self.domain_id)
-#            # TODO maybe just returning the dimension instead of actually making the shell is cheaper.
-#            return [(self.shell_id, fake_shell), ]
-#        else:
-#            return self.shell_list
-#
-#    def shell_list_for_other(self):
-#        # keeps all the other domains at a distance of the burst radius
-#        min_radius = self.pid_particle_pair[1].radius * SINGLE_SHELL_FACTOR
-#        if self.shell.shape.radius < min_radius:
-#            position = self.shell.shape.position
-#            fake_shell = self.create_new_shell(position, min_radius, self.domain_id)
-#            return [(self.shell_id, fake_shell), ]
-#        else:
-#            return self.shell_list
-
 
     def __str__(self):
         return 'PlanarSurfaceTransition' + Single.__str__(self)
