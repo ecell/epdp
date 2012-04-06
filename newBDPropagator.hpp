@@ -356,21 +356,24 @@ public:
 private:
 
     /* Function returns the accumulated intrinsic reaction rate between to species. */
-    Real k_total(species_id_type const& s0_id, species_id_type const& s1_id)
+    /* Note that the species_id_type is equal to the structure_type_id_type for structure_types */
+    const Real k_total(species_id_type const& s0_id, species_id_type const& s1_id) const
     {   
+        Real k_tot (0);
         reaction_rules const& rules(rules_.query_reaction_rule(s0_id, s1_id));
-        if(::size(rules) == 0)
-        {
-            return 0;
-        }
 
-        Real k_tot = 0;
-        for (typename boost::range_const_iterator<reaction_rules>::type
-                i(boost::begin(rules)), e(boost::end(rules)); i != e; ++i)
-        {
-            k_tot += (*i).k();
-        }
-        
+//        if(::size(rules) != 0)
+//        {
+//            return 0;
+//        }
+//        else
+//        {
+            for (typename boost::range_const_iterator<reaction_rules>::type
+                    i(boost::begin(rules)), e(boost::end(rules)); i != e; ++i)
+            {
+                k_tot += (*i).k();
+            }
+//        }
         return k_tot;
     }
 
@@ -702,14 +705,15 @@ private:
     }
 
         
-    bool attempt_interaction(particle_id_pair const& pp, boost::shared_ptr<structure_type> const& surface)
+    const bool attempt_interaction(particle_id_pair const& pp, boost::shared_ptr<structure_type> const& surface)
     // This handles the 'reaction' (interaction) between a particle and a surface.
+    // Returns True if the interaction was succesfull
     {
+        // Get the reaction rules for the interaction with this surface.
         reaction_rules const& rules(rules_.query_reaction_rule(pp.second.sid(), surface->sid() ));
         if (::size(rules) == 0)
             throw propagation_error("trying to fire an interaction with a non-interactive surface");
         
-        const species_type s0(tx_.get_species(pp.second.sid()));
                 
         const Real k_tot( k_total(pp.second.sid(), surface->sid()) );
         const Real rnd( k_tot * rng_() );
@@ -718,66 +722,74 @@ private:
         for (typename boost::range_const_iterator<reaction_rules>::type
                 i(boost::begin(rules)), e(boost::end(rules)); i != e; ++i)
         {
-            reaction_rule_type const& r(*i); 
-            prob += r.k();
+            reaction_rule_type const& reaction_rule(*i); 
+            prob += reaction_rule.k();
 
-            if (prob > rnd)
+            if (prob >= rnd)
+            // We have found the reaction rule that is in effect
             {
-                const typename reaction_rule_type::species_id_range products(
-                    r.get_products());
+                // get the products
+                const typename reaction_rule_type::species_id_range products(reaction_rule.get_products());
 
                 switch (::size(products))
                 {
-                case 1:
+                    // When no products
+                    case 0:
                     {
-                        const species_id_type product(products[0]);
-                        const species_type sp(tx_.get_species(product));
+                        remove_particle(pp.first);
+                        break;
+                    }
+                    // When one product particle
+                    case 1:
+                    {
+                        const species_type product_species(tx_.get_species(products[0]));
 
+                        // Get the new position of the particle on the surface
                         const position_type new_pos( tx_.apply_boundary( surface->projected_point( pp.second.position() ).first ) );
                             
-                        boost::scoped_ptr<particle_id_pair_and_distance_list> overlapped(
-                            tx_.check_overlap(particle_shape_type(new_pos, sp.radius()),
-                                              pp.first));
+                        // check for overlap with particles that are in the propagator
+                        const boost::scoped_ptr<const particle_id_pair_and_distance_list> overlapped(
+                            tx_.check_overlap(particle_shape_type(new_pos, product_species.radius()), pp.first));
                         if (overlapped && overlapped->size() > 0)
                         {
                             throw propagation_error("no space");
                         }
-
+                        // check for overlap with particles outside of the progator (e.g. the eGFRD simulator)
                         if (vc_)
                         {
                             if (!(*vc_)(
-                                    particle_shape_type(new_pos, sp.radius()), 
+                                    particle_shape_type(new_pos, product_species.radius()), 
                                     pp.first))
                             {
                                 throw propagation_error("no space (vc)");
                             }
                         }
+                        // TODO check overlap with surfaces.
 
+                        // Process changes
                         remove_particle(pp.first);
-                        const particle_id_pair product_particle( tx_.new_particle(sp.id(), surface->real_id(), new_pos) );
+                        // Make new particle in interaction surface 
+                        const particle_id_pair product_particle( tx_.new_particle(product_species.id(), surface->real_id(), new_pos) );
+                        // Record changes
                         if (rrec_)
                         {
                             (*rrec_)(
                                 reaction_record_type(
-                                    r.id(), array_gen(product_particle.first), pp.first));
+                                    reaction_rule.id(), array_gen(product_particle.first), pp.first));
                         }
                         break;
                     }
-                case 0:
-                    {
-                        remove_particle(pp.first);
-                        break;
-                    }
-                
-                default:
-                    throw not_implemented("surface interactions that produce more than one product are not supported");
+                    // When number of products was not '0' or '1'
+                    default:
+                        throw not_implemented("surface interactions that produce more than one product are not supported");
                 }
-
+                // After we processed the reaction, we return.
                 return true;
             }
         }
         //should not reach here.
-        return false;
+        throw illegal_state("Surface interaction failed, no interaction selected.");
+//        return false;
     }
     
     
@@ -823,7 +835,8 @@ private:
     {
 
         // FIXME this is just redoing what we are doing above when moving a particle.
-        position_type new_pos;
+        position_type     new_pos(old_pos);
+        structure_id_type new_structure_id();
 
         if(species.D() == 0)
         {
@@ -862,21 +875,30 @@ private:
     }
     
     void remove_particle(particle_id_type const& pid)
+    // Removes a particle from the propagator and particle container.
     {
         LOG_DEBUG(("remove particle %s", boost::lexical_cast<std::string>(pid).c_str()));
+
         tx_.remove_particle(pid);
         typename particle_id_vector_type::iterator i(
             std::find(queue_.begin(), queue_.end(), pid));
         if (queue_.end() != i)
+        {
             queue_.erase(i);
+        }
+        else
+        {
+            throw not_found(std::string("Unknown particle (id=") + boost::lexical_cast<std::string>(pid) + ")");
+        }
     }
 
-private:
-    position_type random_unit_vector()
-    {
-        position_type v(rng_() - .5, rng_() - .5, rng_() - .5);
-        return v / length(v);
-    }
+
+//private:
+//    position_type random_unit_vector()
+//    {
+//        position_type v(rng_() - .5, rng_() - .5, rng_() - .5);
+//        return v / length(v);
+//    }
 
 ////// Member variables
 private:
