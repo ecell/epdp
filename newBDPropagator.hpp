@@ -378,7 +378,7 @@ private:
     }
 
     bool attempt_single_reaction(particle_id_pair const& pp)
-    // Handles only monomolecular reactions?
+    // Handles all monomolecular reactions
     {
         reaction_rules const& rules(rules_.query_reaction_rule(pp.second.sid()));
         if (::size(rules) == 0)
@@ -583,36 +583,46 @@ private:
         return false;
     }
         
-    bool attempt_pair_reaction(particle_id_pair const& pp0, particle_id_pair const& pp1, species_type const& s0, species_type const& s1)
+    const bool attempt_pair_reaction(particle_id_pair const& pp0, particle_id_pair const& pp1,
+                                     species_type const& s0, species_type const& s1)
     // This handles the reaction between a pair of particles.
     // unclear what the convention for pp0, pp1 and s0,s1 is with regard to being in 3D/2D.
     {
         reaction_rules const& rules(rules_.query_reaction_rule(pp0.second.sid(), pp1.second.sid()));
         if(::size(rules) == 0)
-            throw propagation_error("trying to fire a reaction between non-reactive particles");
-        
-//        boost::shared_ptr<structure_type> s1_struct( tx_.get_structure( pp1.structure_id() ) );
+            throw propagation_error("trying to fire a reaction between particles without a reaction rule.");
         
         const Real k_tot( k_total(pp0.second.sid(), pp1.second.sid()) );
         const Real rnd( k_tot * rng_() );
-        Real prob = 0;    
+        Real k_cumm = 0;    
         
+        // select one of the available reaction rules that led to the pair reaction
         for (typename boost::range_const_iterator<reaction_rules>::type
                 i(boost::begin(rules)), e(boost::end(rules)); i != e; ++i)
         {
-            reaction_rule_type const& r(*i);  
-            prob += r.k();
-            if (prob > rnd)
+            reaction_rule_type const& reaction_rule(*i);  
+            k_cumm += reaction_rule.k();
+
+            if (k_cumm >= rnd)
+            // We have found the reaction rule that is in effect
             {
-                const typename reaction_rule_type::species_id_range products(
-                    r.get_products());
+                // get the products
+                const typename reaction_rule_type::species_id_range products(reaction_rule.get_products());
 
                 switch (::size(products))
                 {
-                case 1:
+                    // When no products
+                    case 0:
                     {
-                        const species_id_type product(products[0]);
-                        const species_type sp(tx_.get_species(product));
+                        remove_particle(pp0.first);
+                        remove_particle(pp1.first);
+                        break;
+                    }
+                    // When one product particle
+                    case 1:
+                    {
+//                        const species_id_type product(products[0]);
+                        const species_type product_species(tx_.get_species(products[0]));
                         
                         position_type new_pos( tx_.apply_boundary(
                                         divide(
@@ -621,10 +631,12 @@ private:
                                                 pp1.second.position(),
                                                 pp0.second.position()), s0.D())),
                                         (s0.D() + s1.D()))) );
+
+//                        position_type new_pos (tx_.calculate_pair_CoM(pp0.second.position(), pp1.second.position()), s0.D(), s1.D());
                         structure_id_type new_structure_id;
 
                         //For unequal structures, project new_pos on surface.
-                        if(sp.structure_type_id() != s1.structure_type_id())
+                        if(product_species.structure_type_id() != s1.structure_type_id())
                         {
                             // make sure that pp1 is the particle that is in 3D.
                             // FIXME Ugly!!
@@ -641,67 +653,69 @@ private:
                             projected_type const position_on_surface( sp_struct->
                                                                       projected_point( tx_.cyclic_transpose( new_pos, 
                                                                                                              sp_struct->position() ) ) );
-                            
+                            // check that the projected point is not outside of the product surface.
+                            if (sp_struct->distance( position_on_surface.first) < 0)
+                                throw propagation_error("position product particle was not in surface.");
                             new_pos = tx_.apply_boundary( position_on_surface.first );
                         }
 
-                        boost::scoped_ptr<particle_id_pair_and_distance_list> overlapped(
-                            tx_.check_overlap(particle_shape_type(new_pos, sp.radius()),
+
+                        // check for overlap with particles that are inside the propagator
+                        const boost::scoped_ptr<const particle_id_pair_and_distance_list> overlapped(
+                            tx_.check_overlap(particle_shape_type(new_pos, product_species.radius()),
                                               pp0.first, pp1.first));
                         if( overlapped && overlapped->size() > 0 )
                         {
                             throw propagation_error("no space due to particle");
                         }
-
+                        // check for overlap with particles outside of the propagator (for example the eGFRD simulator)
                         if( vc_ )
                         {
                             if (!(*vc_)(
-                                    particle_shape_type(new_pos, sp.radius()), 
+                                    particle_shape_type(new_pos, product_species.radius()), 
                                     pp0.first, pp1.first))
                             {
                                 throw propagation_error("no space due to particle (vc)");
                             }
                         }
                         
-                        // If the product lives in the bulk
-                        if( sp.structure_type_id() == tx_.get_def_structure_type_id() )
+                        // Check overlap with surfaces
+                        if( product_species.structure_type_id() == tx_.get_def_structure_type_id() )
                         {
-                            structure_id_and_distance_pair const struct_id_distance_pair( tx_.get_closest_surface( new_pos, tx_.get_def_structure_id() ) );
-                            boost::shared_ptr<structure_type> closest_struct( tx_.get_structure( struct_id_distance_pair.first ) );
+                            const structure_id_and_distance_pair struct_id_distance_pair( tx_.get_closest_surface( new_pos, tx_.get_def_structure_id() ) );
+                            const boost::shared_ptr<const structure_type> closest_struct( tx_.get_structure( struct_id_distance_pair.first ) );
 
                             if( closest_struct->bounced( tx_.cyclic_transpose( pp0.second.position(), closest_struct->position() ), 
                                                          tx_.cyclic_transpose( pp1.second.position(), closest_struct->position() ), 
-                                                         struct_id_distance_pair.second, sp.radius() ) )
+                                                         struct_id_distance_pair.second, product_species.radius() ) )
                                 throw propagation_error("no space due to near surface");
                         }
 
+
+                        // Process changes
                         remove_particle(pp0.first);
                         remove_particle(pp1.first);
-                        particle_id_pair npp(tx_.new_particle(product, new_structure_id, new_pos));
+                        // Make new particle on right structure
+                        particle_id_pair product_particle(tx_.new_particle(product_species.id(), new_structure_id, new_pos));
+                        // Record changes
                         if (rrec_)
                         {
                             (*rrec_)(
                                 reaction_record_type(
-                                    r.id(), array_gen(npp.first), pp0.first, pp1.first));
+                                    reaction_rule.id(), array_gen(product_particle.first), pp0.first, pp1.first));
                         }
                         break;
                     }
-                case 0:
-                    {
-                        remove_particle(pp0.first);
-                        remove_particle(pp1.first);
-                        break;
-                    }
-                
-                default:
-                    throw not_implemented("bimolecular reactions that produce more than one product are not supported");
+                    // When number of products was not '0' or '1'
+                    default:
+                        throw not_implemented("bimolecular reactions that produce more than one product are not supported");
                 }
-                
+                // After we processed the reaction, we return -> no other reaction should be done.
                 return true;
             }
         }
         //Should not reach here.
-        return false;
+        throw illegal_state("Pair reaction failed, no reaction selected when reaction was supposed to happen.");
     }
 
         
@@ -712,20 +726,20 @@ private:
         // Get the reaction rules for the interaction with this surface.
         reaction_rules const& rules(rules_.query_reaction_rule(pp.second.sid(), surface->sid() ));
         if (::size(rules) == 0)
-            throw propagation_error("trying to fire an interaction with a non-interactive surface");
+            throw propagation_error("trying to fire an interaction with a surface without a reaction rule.");
         
                 
         const Real k_tot( k_total(pp.second.sid(), surface->sid()) );
         const Real rnd( k_tot * rng_() );
-        Real prob = 0;  
+        Real k_cumm = 0;  
 
         for (typename boost::range_const_iterator<reaction_rules>::type
                 i(boost::begin(rules)), e(boost::end(rules)); i != e; ++i)
         {
             reaction_rule_type const& reaction_rule(*i); 
-            prob += reaction_rule.k();
+            k_cumm += reaction_rule.k();
 
-            if (prob >= rnd)
+            if (k_cumm >= rnd)
             // We have found the reaction rule that is in effect
             {
                 // get the products
@@ -783,16 +797,17 @@ private:
                     default:
                         throw not_implemented("surface interactions that produce more than one product are not supported");
                 }
-                // After we processed the reaction, we return.
+                // After we processed the reaction, we return -> no other reaction should be done.
                 return true;
             }
         }
         //should not reach here.
-        throw illegal_state("Surface interaction failed, no interaction selected.");
-//        return false;
+        throw illegal_state("Surface interaction failed, no interaction selected when interaction was supposed to happen.");
     }
     
     
+
+
     /* Given a position pair and two species, the function generates two new 
        positions based on two moves drawn from the free propagator. */
     const position_pair_type make_pair_move(species_type const& s0, species_type const& s1,
@@ -874,6 +889,9 @@ private:
         return new_pos;
     }
     
+
+
+
     void remove_particle(particle_id_type const& pid)
     // Removes a particle from the propagator and particle container.
     {
@@ -892,13 +910,6 @@ private:
         }
     }
 
-
-//private:
-//    position_type random_unit_vector()
-//    {
-//        position_type v(rng_() - .5, rng_() - .5, rng_() - .5);
-//        return v / length(v);
-//    }
 
 ////// Member variables
 private:
