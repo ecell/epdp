@@ -246,7 +246,7 @@ public:
                     try
                     {
                         LOG_DEBUG(("fire surface interaction"));
-                        if(fire_interaction(pp, closest_surf ))
+                        if(attempt_interaction(pp, closest_surf ))
                             return true;
                     }   
                     catch (propagation_error const& reason)
@@ -259,7 +259,7 @@ public:
                 {
                     LOG_DEBUG(("Particle attempted an interaction with the non-interactive surface %s.", 
                                boost::lexical_cast<std::string>(closest_surf->real_id()).c_str()));     // TODO is this the correct interpretation?
-                    ++rejected_move_count_;
+//                    ++rejected_move_count_;
                 }
             }
 
@@ -304,7 +304,7 @@ public:
                 LOG_DEBUG(("fire reaction"));
     		    try
                 {
-                    if( fire_reaction(pp, closest.first, s0, s1) )
+                    if( attempt_pair_reaction(pp, closest.first, s0, s1) )
                         return true;
                 }
                 catch (propagation_error const& reason)
@@ -315,9 +315,9 @@ public:
             }
             else                
             {
-                LOG_DEBUG(("Particle attempted a reaction with a non-reactive particle %s.", 
+                LOG_DEBUG(("Particle attempted a reaction with particle %s and failed.", 
                     boost::lexical_cast<std::string>(closest.first.first).c_str()));    // TODO is this really a rejected move?
-                ++rejected_move_count_;
+//                ++rejected_move_count_;
             }
             
             j++;
@@ -580,7 +580,7 @@ private:
         return false;
     }
         
-    bool fire_reaction(particle_id_pair const& pp0, particle_id_pair const& pp1, species_type const& s0, species_type const& s1)
+    bool attempt_pair_reaction(particle_id_pair const& pp0, particle_id_pair const& pp1, species_type const& s0, species_type const& s1)
     // This handles the reaction between a pair of particles.
     // unclear what the convention for pp0, pp1 and s0,s1 is with regard to being in 3D/2D.
     {
@@ -702,7 +702,7 @@ private:
     }
 
         
-    bool fire_interaction(particle_id_pair const& pp, boost::shared_ptr<structure_type> const& surface)
+    bool attempt_interaction(particle_id_pair const& pp, boost::shared_ptr<structure_type> const& surface)
     // This handles the 'reaction' (interaction) between a particle and a surface.
     {
         reaction_rules const& rules(rules_.query_reaction_rule(pp.second.sid(), surface->sid() ));
@@ -783,73 +783,81 @@ private:
     
     /* Given a position pair and two species, the function generates two new 
        positions based on two moves drawn from the free propagator. */
-    position_pair_type const make_pair_move(species_type const& s0, species_type const& s1, position_pair_type const& pp01, 
-                                            particle_id_type const& ignore)
+    const position_pair_type make_pair_move(species_type const& s0, species_type const& s1,
+                                            position_pair_type const& pos0_pos1, particle_id_type const& ignore) const
     {
-//        boost::shared_ptr<structure_type> s0_struct( tx_.get_structure( s0.structure_id() ) );
-//        boost::shared_ptr<structure_type> s1_struct( tx_.get_structure( s1.structure_id() ) );
-
-        length_type const r01( s0.radius() + s1.radius() );
+        const length_type min_distance_01( s0.radius() + s1.radius() );
         
-        position_type temp_pos0, temp_pos1;
-        position_pair_type new_pp01( pp01 );
+        position_type temp_pos0(pos0_pos1.first),
+                      temp_pos1(pos0_pos1.second);
         
         //Randomize which species moves first, and if there will be one or two moves. (50% of the cases)
-        bool move_prt0_first( rng_.uniform_int(0, 1) );
-        int move_count( 1 + rng_.uniform_int(0, 1) );
+        int  move_count( 1 + rng_.uniform_int(0, 1) );  // determine number of particles to move (1 or 2)
+        bool move_first( rng_.uniform_int(0, 1) );      // Set to true if the first particle is moved, false means second particle.
         while( move_count-- )
         {
-            if( move_prt0_first )
+            if( move_first )
+            // Move the first particle
             {
-                temp_pos0 = make_move(s0, pp01.first, ignore);
-                new_pp01.first = tx_.distance(temp_pos0, new_pp01.second) - r01 < 0 ? pp01.first : temp_pos0;
+                temp_pos0 = make_move(s0, pos0_pos1.first, ignore);
+                // check for overlap with the second particle (and potentially revert move)
+                temp_pos0 = tx_.distance(temp_pos0, temp_pos1) - min_distance_01 < 0 ? pos0_pos1.first : temp_pos0;
             }                       
             else
+            // Move the second particle
             {
-                temp_pos1 = make_move(s1, pp01.second, ignore);
-                new_pp01.second = tx_.distance(temp_pos1, new_pp01.first) - r01 < 0 ? pp01.second : temp_pos1;
+                temp_pos1 = make_move(s1, pos0_pos1.second, ignore);
+                // check for overlap with the first particle (and potentially revert move)
+                temp_pos1 = tx_.distance(temp_pos1, temp_pos0) - min_distance_01 < 0 ? pos0_pos1.second : temp_pos1;
             }
-            move_prt0_first = !move_prt0_first;
+
+            // Swap what particle to move
+            move_first = !move_first;
         }  
             
-        return new_pp01;
+        return std::make_pair(temp_pos0, temp_pos1);
     }
 
-    position_type const make_move(species_type const& s0, position_type const& old_pos, particle_id_type const& ignore)
-    // generates a move for a particle.
+    const position_type make_move(species_type const& species, position_type const& old_pos, particle_id_type const& ignore) const
+    // generates a move for a particle and checks if the move was allowed.
     {
 
         // FIXME this is just redoing what we are doing above when moving a particle.
+        position_type new_pos;
 
-        if(s0.D() == 0)
-            return old_pos;
-    
-        boost::shared_ptr<structure_type> s0_struct( tx_.get_structure( tx_.get_particle(ignore).second.structure_id() ) );
-
-        position_type displacement( s0_struct->bd_displacement(s0.v() * dt_, std::sqrt(2.0 * s0.D() * dt_), rng_) );
-        position_type new_pos(tx_.apply_boundary( add( old_pos, displacement ) ));
-        // TODO apply deflection
-                        
-        boost::scoped_ptr<particle_id_pair_and_distance_list> overlapped( 
-                                    tx_.check_overlap(
-                                    particle_shape_type(new_pos, s0.radius()),
-                                    ignore));
-                                                                
-        // See if it overlaps with any particles
-        if ( (overlapped && overlapped->size() > 0) )
-            return old_pos;
-        // See if it overlaps with any surfaces.
-        if(s0.structure_type_id() == tx_.get_def_structure_type_id())
+        if(species.D() == 0)
         {
-            structure_id_and_distance_pair const struct_id_distance_pair( tx_.get_closest_surface( new_pos, tx_.get_particle(ignore).second.structure_id() ) );
-            boost::shared_ptr<structure_type> closest_struct( tx_.get_structure( struct_id_distance_pair.first ) );
-
-            if( closest_struct->bounced( tx_.cyclic_transpose( old_pos, closest_struct->position() ), 
-                                         tx_.cyclic_transpose( new_pos, closest_struct->position() ), 
-                                         struct_id_distance_pair.second, s0.radius() ) )    
-                return old_pos;        
+            new_pos = old_pos;
+//            new_structure_id = old_structure_id;
         }
-            
+        else
+        {
+            const boost::shared_ptr<const structure_type> s0_struct( tx_.get_structure( tx_.get_particle(ignore).second.structure_id() ) );
+
+            const position_type displacement( s0_struct->bd_displacement(species.v() * dt_, std::sqrt(2.0 * species.D() * dt_), rng_) );
+            new_pos = tx_.apply_boundary( add( old_pos, displacement ) );
+            // TODO apply deflection
+                        
+            const boost::scoped_ptr<const particle_id_pair_and_distance_list> overlapped( 
+                                        tx_.check_overlap(
+                                        particle_shape_type(new_pos, species.radius()),
+                                        ignore));
+                                                                
+            // See if it overlaps with any particles
+            if ( (overlapped && overlapped->size() > 0) )
+                return old_pos;
+            // See if it overlaps with any surfaces.
+            if(species.structure_type_id() == tx_.get_def_structure_type_id())
+            {
+                const structure_id_and_distance_pair struct_id_distance_pair( tx_.get_closest_surface( new_pos, tx_.get_particle(ignore).second.structure_id() ) );
+                const boost::shared_ptr<const structure_type> closest_struct( tx_.get_structure( struct_id_distance_pair.first ) );
+
+                if( closest_struct->bounced( tx_.cyclic_transpose( old_pos, closest_struct->position() ), 
+                                             tx_.cyclic_transpose( new_pos, closest_struct->position() ), 
+                                             struct_id_distance_pair.second, species.radius() ) )    
+                    return old_pos;        
+            }
+        }    
         return new_pos;
     }
     
@@ -875,13 +883,13 @@ private:
     particle_container_type&    tx_;            // The 'ParticleContainer' object that contains the particles.
     network_rules_type const&   rules_;
     rng_type&                   rng_;
-    Real const                  dt_;
-    int const                   max_retry_count_;
+    const Real                  dt_;
+    const int                   max_retry_count_;
     reaction_recorder_type* const rrec_;
     volume_clearer_type* const  vc_;
     particle_id_vector_type     queue_;
     int                         rejected_move_count_;
-    Real const                  reaction_length_;
+    const Real                  reaction_length_;
     static Logger&              log_;
 };
 
