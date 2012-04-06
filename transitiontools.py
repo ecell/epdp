@@ -43,9 +43,9 @@ class TransitionTools :
     def process_new_position_vector(self, old_pos, displacement):
                 
         # Construct the new position using the deflection function of the target surface            
-        new_pos = self.target_structure.deflect(old_pos, displacement)        
+        new_pos, changeflag = self.target_structure.deflect(old_pos, displacement)        
                 
-        if numpy.alltrue(new_pos == (old_pos + displacement) ) :    # FIXME will this not fail at some point?
+        if changeflag==0 :
             # The new position is still in the old surface;
             new_structure_id = self.origin_structure.id  # i.e. no change here
         else :

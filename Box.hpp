@@ -278,15 +278,15 @@ distance(Box<T_> const& obj, typename Box<T_>::position_type const& pos)
 }
 
 template<typename T_>
-inline typename Box<T_>::position_type
+inline std::pair<typename Box<T_>::position_type, bool>
 deflect(Box<T_> const& obj,
         typename Box<T_>::position_type const& r0,
         typename Box<T_>::position_type const& d  )
 {
     // Displacements are not deflected on cuboidal regions,
     // but this function has to be defined for every shape to be used in structure.
-    // For now it just returns the new position.
-    return add(r0, d);
+    // For now it just returns the new position. The changeflag = 0.
+    return std::make_pair( add(r0, d), false );
 }
 
 template<typename T, typename Trng>

@@ -177,7 +177,7 @@ protected:
 
 
 template<typename T_>
-inline typename Plane<T_>::position_type
+inline std::pair<typename Plane<T_>::position_type, bool>
 deflect(Plane<T_> const& obj, typename Plane<T_>::position_type const& r0, typename Plane<T_>::position_type const& d)
 // This routine deflects a displacement on a plane.
 // If the displacement vector intersects with the plane (starting from r0) the part
@@ -207,7 +207,9 @@ deflect(Plane<T_> const& obj, typename Plane<T_>::position_type const& r0, typen
    position_type new_pos;
    
    length_type intersect_parameter;
-   length_type l_edge, l_perp;   
+   length_type l_edge, l_perp;
+   
+   bool changeflag = false;
    
    // Calculate the intersection parameter and intersection point.
    // r0 is the origin position, d is a displacement vector.
@@ -225,6 +227,7 @@ deflect(Plane<T_> const& obj, typename Plane<T_>::position_type const& r0, typen
      
         // No intersection; the new position is just r0+displacement
         new_pos = add(r0, d);
+        changeflag = false;
    }
    else{
     
@@ -256,12 +259,13 @@ deflect(Plane<T_> const& obj, typename Plane<T_>::position_type const& r0, typen
         
         // Construct the new position vector, make sure it's in the plane to
         // avoid trouble with periodic boundary conditions
-        new_pos = projected_point(obj, add(intersect_pt, add(d_edge, d_perp)) ).first;
+        new_pos = projected_point(obj, add(intersect_pt, add(d_edge, d_perp)) ).first;        
+        changeflag = true;
    }
    
    
    // for now this returns the new position without changes
-   return new_pos;
+   return std::make_pair( new_pos, changeflag );
 }
 
 template<typename T_>

@@ -50,6 +50,7 @@ public:
     typedef typename base_type::length_type             length_type;
     typedef typename base_type::position_type           position_type;
     typedef std::pair<position_type, length_type>       projected_type;
+    typedef std::pair<position_type, bool>              position_flag_pair_type;
 
 public:
     virtual ~BasicSurfaceImpl() {}
@@ -109,7 +110,7 @@ public:
         return ::distance(shape(), pos);
     }
     
-    virtual position_type deflect(position_type const& pos0, position_type const& displacement) const
+    virtual position_flag_pair_type deflect(position_type const& pos0, position_type const& displacement) const
     {
         return ::deflect(shape(), pos0, displacement);
     }

@@ -201,15 +201,15 @@ distance(Cylinder<T_> const& obj,
 }
 
 template<typename T_>
-inline typename Cylinder<T_>::position_type
+inline std::pair<typename Cylinder<T_>::position_type, bool>
 deflect(Cylinder<T_> const& obj,
         typename Cylinder<T_>::position_type const& r0,
         typename Cylinder<T_>::position_type const& d  )
 {
     // Displacements are not deflected on cylinders (yet),
     // but this function has to be defined for every shape to be used in structure.
-    // For now it just returns the new position.
-    return add(r0, d);
+    // For now it just returns the new position. The changeflage = false.
+    return std::make_pair( add(r0, d), false );
 }
 
 template<typename T, typename Trng>

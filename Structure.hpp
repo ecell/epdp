@@ -30,6 +30,7 @@ public:
     typedef typename traits_type::structure_type_id_type    structure_type_id_type;
     typedef std::pair<position_type, length_type>           projected_type;
     typedef std::pair<position_type, position_type>         position_pair_type;
+    typedef std::pair<position_type, bool>                  position_flag_pair_type;
 
 public:
     virtual ~Structure() {}
@@ -114,7 +115,7 @@ public:
     
     virtual length_type distance(position_type const& pos) const = 0;
     
-    virtual position_type deflect(position_type const& pos0, position_type const& displacement) const = 0;
+    virtual position_flag_pair_type deflect(position_type const& pos0, position_type const& displacement) const = 0;
     
     virtual position_type const& structure_position() const = 0;
 
