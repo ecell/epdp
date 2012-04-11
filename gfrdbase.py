@@ -157,13 +157,14 @@ def create_world(m, matrix_size=10):
     # The model (a ParticleModel) now only holds SpeciesTypes
     # The SpeciesTYpes hold the information that is required for spatial simulations
     # in auxiliairy string fields. This information is here converted to the right
-    # SpeciesInfo object and added to the world. Not sure this works -> TODO
+    # SpeciesInfo object and added to the world.
     for st in m.species_types:
         if st["structure_type"] == "world":
             # The default structure_type
             structure_type_id = world_structure_type_id
         else:
             # Find the corresponding structure_type between all the structure_types known
+            # FIXME: ugly hack
             for stt in m.structure_types:
                 if st["structure_type"] == stt['name']:
                     structure_type_id = stt.id
@@ -173,7 +174,7 @@ def create_world(m, matrix_size=10):
 
         world.add_species(
             _gfrd.SpeciesInfo(st.id, 
-                              structure_type_id,    # FIXME not sure this works
+                              structure_type_id,
                               float(st["D"]), 
                               float(st["radius"]), 
                               float(st["v"])))
@@ -183,8 +184,7 @@ def create_world(m, matrix_size=10):
     # find the proper structure_type.
     x = numpy.repeat(m.world_size / 2, 3)
     region = _gfrd.CuboidalRegion("world", world_structure_type_id, _gfrd.Box(x, x))
-    world_structure_id = world.add_structure(region)
-    world.set_def_structure_id(world_structure_id)
+    world.set_def_structure(region)
 
     world.model = m
     return world

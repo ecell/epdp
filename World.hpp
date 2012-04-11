@@ -256,7 +256,7 @@ public:
 public:
     // The constructor
     World(length_type world_size = 1., size_type size = 1)
-        : base_type(world_size, size) {}
+        : base_type(world_size, size), default_structure_id_(structidgen_()) {}
 
     // To create new particles
     virtual particle_id_pair new_particle(species_id_type const& sid, structure_id_type const& structure_id,
@@ -442,15 +442,20 @@ public:
     // Get and set the default structure of the World
     virtual structure_id_type get_def_structure_id() const
     {
-        if (!default_structure_id_)
-        {
-            throw not_found("Default structure is not defined.");
-        }
         return default_structure_id_;
     }
-    void set_def_structure_id(structure_id_type const& id)
+    void set_def_structure(const boost::shared_ptr<structure_type> structure)
     {
-        default_structure_id_ = id;
+        // check that the structure_type is the default structure_type
+        if (!default_structure_type_id_ || (structure->sid() != default_structure_type_id_) )
+        {
+            throw illegal_state("StructureType of default structure not default StructureType");
+        }
+        // check that the structure_type that is defined in the structure exists!
+        structure_type_type const& structure_type(get_structure_type(structure->sid()));
+
+        structure->set_id(default_structure_id_);
+        update_structure(std::make_pair(default_structure_id_, structure));
     }
     // Get the closest surface(surface is a subclass of structures)
     // TODO change this to get all the surfaces within a certain distance of the particle.

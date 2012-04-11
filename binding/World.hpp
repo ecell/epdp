@@ -298,7 +298,7 @@ inline boost::python::objects::class_base register_world_class(char const* name)
         .def("add_structure", &impl_type::add_structure)
         .def("update_structure", &impl_type::update_structure)      // Not sure if this should be here or in ParticleContainer.hpp
 //        .def("remove_structure", &impl_type::remove_structure)
-        .def("set_def_structure_id", &impl_type::set_def_structure_id)
+        .def("set_def_structure", &impl_type::set_def_structure)
         // StructureType stuff
         .def("add_structure_type", &impl_type::add_structure_type)
         .def("set_def_structure_type_id", &impl_type::set_def_structure_type_id)
