@@ -17,6 +17,7 @@ struct ParticleSimulationStructure: public Structure<typename Ttraits_::world_ty
 
     typedef typename base_type::structure_name_type     structure_name_type;
     typedef typename base_type::structure_type_id_type  structure_type_id_type;
+    typedef typename base_type::structure_id_type       structure_id_type;
 
     virtual ~ParticleSimulationStructure() {}
 
@@ -25,7 +26,8 @@ struct ParticleSimulationStructure: public Structure<typename Ttraits_::world_ty
     virtual void accept(MutativeStructureVisitor<traits_type> const&) = 0;
 
     // Constructor
-    ParticleSimulationStructure(structure_name_type const& name, structure_type_id_type const& sid): base_type(name, sid) {}
+    ParticleSimulationStructure(structure_name_type const& name, structure_type_id_type const& sid, structure_id_type const& parent_struct_id):
+        base_type(name, sid, parent_struct_id) {}
 };
 
 #endif /* PARTICLE_SIMULATION_STRUCTURE_HPP */

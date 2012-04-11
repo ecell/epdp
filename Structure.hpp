@@ -137,14 +137,16 @@ public:
     }
 
     // Constructor
-    Structure(structure_name_type const& name, structure_type_id_type const& sid)
-        : name_(name), sid_(sid) {}
+    Structure(structure_name_type const& name, structure_type_id_type const& sid, structure_id_type const& parent_struct_id)
+        : name_(name), sid_(sid), parent_struct_id_(parent_struct_id) {}
 
 ////// Member variables
 protected:
-    structure_id_type       id_;        // id of the structure
-    structure_name_type     name_;      // just the name
-    structure_type_id_type  sid_;       // id of the structure_type of the structure
+    structure_name_type     name_;                  // just the name
+    structure_type_id_type  sid_;                   // id of the structure_type of the structure
+    structure_id_type       parent_struct_id_;
+
+    structure_id_type       id_;        // id of the structure (filled in later)
 };
 
 

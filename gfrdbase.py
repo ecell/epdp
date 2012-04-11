@@ -183,7 +183,7 @@ def create_world(m, matrix_size=10):
     # This needs to be done after making the structure_types or add_structure can't
     # find the proper structure_type.
     x = numpy.repeat(m.world_size / 2, 3)
-    region = _gfrd.CuboidalRegion("world", world_structure_type_id, _gfrd.Box(x, x))
+    region = _gfrd.CuboidalRegion("world", world_structure_type_id, world.get_def_structure_id(), _gfrd.Box(x, x))
     world.set_def_structure(region)
 
     world.model = m

@@ -22,6 +22,7 @@ class Surface: public ParticleSimulationStructure<Ttraits_>
 public:
     typedef ParticleSimulationStructure<Ttraits_>       base_type;
     typedef typename base_type::structure_name_type     structure_name_type;    // This is just a string
+    typedef typename base_type::structure_id_type       structure_id_type;
     typedef typename base_type::structure_type_id_type  structure_type_id_type;
     typedef typename base_type::length_type             length_type;
 
@@ -29,7 +30,8 @@ public:
     virtual ~Surface() {}
 
     // Constructor
-    Surface(structure_name_type const& name, structure_type_id_type const& sid): base_type(name, sid) {}
+    Surface(structure_name_type const& name, structure_type_id_type const& sid, structure_id_type const& parent_struct_id):
+         base_type(name, sid, parent_struct_id) {}
 
     virtual length_type minimal_distance(length_type const& radius) const = 0;
 };
@@ -46,6 +48,7 @@ public:
     typedef Tshape_ shape_type;
 
     typedef typename base_type::structure_name_type     structure_name_type;
+    typedef typename base_type::structure_id_type       structure_id_type;
     typedef typename base_type::structure_type_id_type  structure_type_id_type;
     typedef typename base_type::length_type             length_type;
     typedef typename base_type::position_type           position_type;
@@ -121,8 +124,8 @@ public:
     }
     
     // Constructor
-    BasicSurfaceImpl(structure_name_type const& name, structure_type_id_type const& sid, shape_type const& shape)
-        : base_type(name, sid), shape_(shape) {}
+    BasicSurfaceImpl(structure_name_type const& name, structure_type_id_type const& sid, structure_id_type const& parent_struct_id, shape_type const& shape)
+        : base_type(name, sid, parent_struct_id), shape_(shape) {}
 
 protected:
     shape_type shape_;

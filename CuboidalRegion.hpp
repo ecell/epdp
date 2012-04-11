@@ -16,6 +16,7 @@ public:
 
     // name shorthands of types that we use.
     typedef typename base_type::structure_name_type     structure_name_type;
+    typedef typename base_type::structure_id_type       structure_id_type;
     typedef typename base_type::structure_type_id_type  structure_type_id_type;
     typedef typename base_type::shape_type              shape_type;
     typedef typename base_type::rng_type                rng_type;
@@ -143,8 +144,8 @@ public:
     }
 
     // Constructor
-    CuboidalRegion(structure_name_type const& name, structure_type_id_type const& sid, shape_type const& shape)
-        : base_type(name, sid, shape) {}
+    CuboidalRegion(structure_name_type const& name, structure_type_id_type const& sid, structure_id_type const& parent_struct_id, shape_type const& shape)
+        : base_type(name, sid, parent_struct_id, shape) {}
 };
 
 #endif /* CUBOIDAL_REGION_HPP */
