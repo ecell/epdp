@@ -477,6 +477,10 @@ public:
         
         return structure_id_and_distance_pair( ret_id , ret_dist );
     }
+    virtual structures_range get_close_structures(position_type const& pos, structure_id_type const& current_struct_id)const
+    {
+    }
+
     // Get all the particle ids of the particles on a structure
     particle_id_set get_particle_ids_on_struct(structure_id_type const& struct_id) const
     {
