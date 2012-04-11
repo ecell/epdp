@@ -21,7 +21,6 @@ private:
     typedef get_mapper_mf<std::string, std::string>::type string_map_type;
 
 public:
-    // typedef std::string identifier_type;
     typedef SpeciesTypeID                               identifier_type;    // NOTE: we use the same identifier as for the species!
     typedef string_map_type::const_iterator             string_map_iterator;
     typedef boost::iterator_range<string_map_iterator>  attributes_range;

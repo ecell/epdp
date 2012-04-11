@@ -462,7 +462,7 @@ public:
 
         BOOST_FOREACH(boost::shared_ptr<structure_type> const structure, get_structures())
         {
-            if( structure->real_id() == ignore)
+            if( structure->id() == ignore)
                 continue;
             
             position_type const cyc_pos(cyclic_transpose(pos, structure->position(), world_size));
@@ -471,7 +471,7 @@ public:
             if( dist < ret_dist )
             {
                 ret_dist = dist;
-                ret_id = structure->real_id();
+                ret_id = structure->id();
             }  
         }
         

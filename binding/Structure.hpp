@@ -20,11 +20,10 @@ inline boost::python::objects::class_base register_structure_class(char const *n
     peer::converters::register_tuple_converter<typename impl_type::position_flag_pair_type>();
 
     // defining the python class
-    // TODO add name and change id->real_id
     return class_<impl_type, boost::shared_ptr<impl_type>,
                   boost::noncopyable>(name, no_init)
         .add_property("id", 
-            make_function(&impl_type::real_id,
+            make_function(&impl_type::id,
                           return_value_policy<return_by_value>()))
         .add_property("sid",
             make_function(
