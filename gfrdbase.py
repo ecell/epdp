@@ -26,6 +26,7 @@ __all__ = [
     'place_particle',
     'NoSpace',
     'create_world',
+    'create_box',
     'ParticleSimulatorBase',
     'get_surfaces',
     'get_closest_surface',
@@ -188,6 +189,35 @@ def create_world(m, matrix_size=10):
 
     world.model = m
     return world
+
+def create_box(world, structure_type, center, size):
+    # Creates a box of PlanarSurface sections and adds it to the world.
+    # size is a vector in x, y, z
+
+    # assert that the center and size is ok
+    center = numpy.array(center)
+    size   = numpy.array(size)
+    assert all(0 < center) and all(center < world.world_size)
+    assert all(0 < size)   and all(size < world.world_size)
+    assert all(0 < center - size/2.0) and all(center + size/2.0 < world.world_size)
+
+    sid = structure_type.id
+    name = 'box'
+    def_struct_id = world.get_def_structure_id()
+    
+    front  = model.create_planar_surface(sid, name+'_front', [center[0] + size[0]/2, center[1] - size[1]/2, center[2] - size[2]/2], [0, 1, 0], [0, 0, 1], size[1], size[2], def_struct_id)
+    back   = model.create_planar_surface(sid, name+'_back',  [center[0] - size[0]/2, center[1] - size[1]/2, center[2] - size[2]/2], [0, 0, 1], [0, 1, 0], size[2], size[1], def_struct_id)
+    right  = model.create_planar_surface(sid, name+'_right', [center[0] - size[0]/2, center[1] - size[1]/2, center[2] - size[2]/2], [1, 0, 0], [0, 0, 1], size[0], size[2], def_struct_id)
+    left   = model.create_planar_surface(sid, name+'_left',  [center[0] - size[0]/2, center[1] + size[1]/2, center[2] - size[2]/2], [0, 0, 1], [1, 0, 0], size[2], size[0], def_struct_id)
+    top    = model.create_planar_surface(sid, name+'_top',   [center[0] - size[0]/2, center[1] - size[1]/2, center[2] + size[2]/2], [1, 0, 0], [0, 1, 0], size[0], size[1], def_struct_id)
+    bottom = model.create_planar_surface(sid, name+'_bottom',[center[0] - size[0]/2, center[1] - size[1]/2, center[2] - size[2]/2], [0, 1, 0], [1, 0, 0], size[1], size[0], def_struct_id)
+    world.add_structure(front)
+    world.add_structure(back)
+    world.add_structure(right)
+    world.add_structure(left)
+    world.add_structure(top)
+    world.add_structure(bottom)
+
 
 def create_network_rules_wrapper(model):
     return _gfrd.NetworkRulesWrapper(model.network_rules)
