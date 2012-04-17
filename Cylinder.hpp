@@ -214,12 +214,13 @@ deflect(Cylinder<T_> const& obj,
 
 template<typename T_>
 inline typename Cylinder<T_>::position_type
-deflect_back(Cylinder<T_> const& obj,
+deflect_back(Cylinder<T_> const& obj0,
         typename Cylinder<T_>::position_type const& r0,
-        typename Cylinder<T_>::position_type const& r1  )
+        typename Cylinder<T_>::position_type const& r1,
+        typename Cylinder<T_>::position_type const& n1  )
 {
-    // Return the difference vector without any changes
-    return subtract(r1, r0);
+    // Return the vector r1 without any changes
+    return r1;
 }
 
 template<typename T, typename Trng>

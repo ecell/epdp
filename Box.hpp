@@ -291,12 +291,13 @@ deflect(Box<T_> const& obj,
 
 template<typename T_>
 inline typename Box<T_>::position_type
-deflect_back(Box<T_> const& obj,
+deflect_back(Box<T_> const& obj0,
         typename Box<T_>::position_type const& r0,
-        typename Box<T_>::position_type const& r1  )
+        typename Box<T_>::position_type const& r1,
+        typename Box<T_>::position_type const& n1  )
 {
-    // Return the difference vector without any changes
-    return subtract(r1, r0);
+    // Return the vector r1 without any changes
+    return r1;
 }
 
 template<typename T, typename Trng>

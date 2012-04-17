@@ -270,26 +270,36 @@ deflect(Plane<T_> const& obj, typename Plane<T_>::position_type const& r0, typen
 
 template<typename T_>
 inline typename Plane<T_>::position_type
-deflect_back(Plane<T_> const& obj, typename Plane<T_>::position_type const& r0, typename Plane<T_>::position_type const& r1)
-// This function projects a vector onto a plane and prolongates the projection by the part of it orthogonal to the plane,
-// returning a (vector) position type 
+deflect_back(Plane<T_> const& obj0, typename Plane<T_>::position_type const& r0,
+                                    typename Plane<T_>::position_type const& r1,
+                                    typename Plane<T_>::position_type const& n1)
+// This function projects a vector onto plane obj 0 and prolongates the projection by adding the part of it orthogonal
+// to the plane rotated by 90 degrees towards the outward of plane obj 0; it thus performs the deflection transition backward.
+// The function is meant to be used to calculate the shortest distance between two particles on different orthogonal planes;
+// note that the latter in general is not simply the sum of the projections of the interparticle vector on the two planes.
+// ATTENTION: r0 is assumed to be in plane obj0 while n1 is the normal vector of the plane that r1 lives on!
+// The function will only yield meaningful results if the input information is provided correctly!
 {
      // Type abbreviations
     typedef typename Plane<T_>::length_type length_type;
     typedef typename Plane<T_>::position_type position_type;
     typedef std::pair<position_type, length_type> projected_type;
-            
-    position_type  dr(subtract(r1, r0));            // difference vector r1 - r0
-    projected_type dr_proj(projected_point(obj, dr));
-    length_type    dr_proj_len(length(dr_proj.first)); // length of dr projected onto plane obj        
+        
+    position_type  dr(subtract(r1, r0)); // difference vector r1 - r0    
+    projected_type r1_proj(projected_point(obj0, r1));
+    position_type  dc(subtract(r1_proj.first, obj0.position()));  
+                   // vector pointing towards the projection of r1 on obj0
+                   // from the center of the latter
     
-    position_type u_dr_proj; // the normalized projection of dr on the plane (given in the global coord. system)
-    position_type r1_new;
-    length_type   dr_len_new;
-            
-    u_dr_proj  = normalize(dr_proj.first);    
-    dr_len_new = add(dr_proj_len, dr_proj.second);    
-    r1_new     = add(r0, multiply(u_dr_proj, dr_len_new));
+    position_type u_perp;    // unit vector pointing away from the edge between the two planes
+    position_type r1_new;    // r1 projected into plane 0 + rotated orthogonal part of it
+
+    
+    // Find the unit vector perpendicular to the edge by comparing with n1
+    if(dot_product(dc, n1) > 0.0)       u_perp = n1;
+    else                                u_perp = multiply(n1, -1.0);        
+    
+    r1_new = add(r1_proj.first, multiply(u_perp, abs(r1_proj.second)) );
     
     return r1_new;  
 }
