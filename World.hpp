@@ -239,6 +239,7 @@ protected:
     typedef std::map<species_id_type, particle_id_set>                      per_species_particle_id_set;
     typedef std::map<structure_type_id_type, structure_id_set>              per_structure_type_structure_id_set;
     typedef std::map<structure_id_type, particle_id_set>                    per_structure_particle_id_set;
+    typedef std::map<structure_id_type, structure_id_set>                   per_structure_substructure_id_set;
     typedef select_second<typename species_map::value_type>                 species_second_selector_type;   // not sure what this does.
     typedef select_second<typename structure_map::value_type>               structures_second_selector_type;
     typedef select_second<typename structure_type_map::value_type>          structure_types_second_selector_type;
@@ -256,7 +257,11 @@ public:
 public:
     // The constructor
     World(length_type world_size = 1., size_type size = 1)
-        : base_type(world_size, size), default_structure_id_(structidgen_()) {}
+        : base_type(world_size, size), default_structure_id_(structidgen_())
+    {
+        // Make sure that the mapping for the default structure already exists.
+        structure_substructures_map_[default_structure_id_] = structure_id_set();
+    }
 
     // To create new particles
     virtual particle_id_pair new_particle(species_id_type const& sid, structure_id_type const& structure_id,
@@ -379,15 +384,22 @@ public:
         // The item was already found in the map
         {
             // FIXME what to do when the structure has particles and moves or changes structure_type?!?!
+            // FIXME Or what to do when the structure has substructures?!
             //  get all particles on the structure
             //  assert that no particles if structure type changes.
-
 
             if ((*i).second->sid() != structid_pair.second->sid())
             // If the structuretype changed we need to update the 'structure_type_id->structure ids' mapping
             {
                 structure_pool_[(*i).second->sid()].erase((*i).first);
                 structure_pool_[structid_pair.second->sid()].insert(structid_pair.first);
+            }
+            if ((*i).second->structure_id() != structid_pair.second->structure_id())
+            // If the structure had a different parent structure
+            // Note that all the substructures of the structures are kept (they are aldo moved moved through the hyarchie)
+            {
+                structure_substructures_map_[(*i).second->structure_id()].erase((*i).first);
+                structure_substructures_map_[structid_pair.second->structure_id()].insert(structid_pair.first);
             }
             structure_map_[(*i).first] = structid_pair.second;
             return false;
@@ -400,6 +412,10 @@ public:
         structure_pool_[structid_pair.second->sid()].insert(structid_pair.first);
         // create a new mapping from structure id -> set of particles
         particleonstruct_pool_[structid_pair.first] = particle_id_set();
+        // add the id the mapping 'super_structure_id -> set of substructures'
+        structure_substructures_map_[structid_pair.second->structure_id()].insert(structid_pair.first);
+        // create a new mapping from structure id -> set of substructures
+        structure_substructures_map_[structid_pair.first] = structure_id_set();
         return true;
     }
     // remove structure
@@ -407,7 +423,8 @@ public:
     {
         // TODO
         //  -get all particles on structure
-        //  -only remove if no particles
+        //  -get all the substructures of structure
+        //  -only remove if no particles and no substructures
         return false;
     }
     // Get a structure by id
@@ -439,6 +456,17 @@ public:
         }
         return (*i).second;
     }
+    // Get all the structure ids of the substructures
+    structure_id_set get_substructure_ids(structure_id_type const& id) const
+    {
+        typename per_structure_substructure_id_set::const_iterator i(
+            structure_substructures_map_.find(id));
+        if (i == structure_substructures_map_.end())
+        {
+            throw not_found(std::string("Unknown structure (id=") + boost::lexical_cast<std::string>(id) + ")");
+        }
+        return (*i).second;
+    }
     // Get and set the default structure of the World
     virtual structure_id_type get_def_structure_id() const
     {
@@ -447,9 +475,11 @@ public:
     void set_def_structure(const boost::shared_ptr<structure_type> structure)
     {
         // check that the structure_type is the default structure_type
-        if (!default_structure_type_id_ || (structure->sid() != default_structure_type_id_) )
+        if (!default_structure_type_id_ ||
+            (structure->sid() != default_structure_type_id_) || 
+            (structure->structure_id() != default_structure_id_) )
         {
-            throw illegal_state("StructureType of default structure not default StructureType");
+            throw illegal_state("Default structure doesn't have right properties");
         }
         // check that the structure_type that is defined in the structure exists!
         structure_type_type const& structure_type(get_structure_type(structure->sid()));
@@ -549,6 +579,7 @@ private:
     per_structure_type_structure_id_set structure_pool_;    // mapping: structure_type_id -> set of structure ids of that structure type
     per_species_particle_id_set         particle_pool_;     // mapping: species_id -> set of particle ids of that species
     per_structure_particle_id_set       particleonstruct_pool_;
+    per_structure_substructure_id_set   structure_substructures_map_;
 
     structure_id_type                   default_structure_id_;      // The default structure of the World (is a CuboidalRegion of the size of the world)
     structure_type_id_type              default_structure_type_id_; // The default structure_type of the World (every structure must have a StructureType)
