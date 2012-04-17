@@ -26,6 +26,7 @@ __all__ = [
     'testTransitionSingle',
     'testPair',
     'testSimplePair',
+    'testMixedPair2D2D',
     'testMixedPair2D3D',
     'hasSphericalShell',
     'hasCylindricalShell',   
@@ -34,6 +35,7 @@ __all__ = [
     'PlanarSurfaceSingletestShell',
     'PlanarSurfacePairtestShell',
     'PlanarSurfaceTransitionSingletestShell',
+    'PlanarSurfaceTransitionPairtestShell',
     'CylindricalSurfaceSingletestShell',
     'CylindricalSurfacePairtestShell',
     'PlanarSurfaceInteractiontestShell',
@@ -346,6 +348,45 @@ class testMixedPair2D3D(testPair):
         D_2 = self.pid_particle_pair2[1].D      # particle 2 is in 3D and is the only contributor to diffusion
                                                 # normal to the plane
         return math.sqrt(self.D_r/D_2)
+
+class testMixedPair2D2D(testPair):
+
+    def __init__(self, single1, single2):
+
+        if __debug__: 
+                assert isinstance(single1.structure, PlanarSurface) 
+                assert isinstance(single2.structure, PlanarSurface) 
+        self.surface1 = single1.structure         # note that these need to be initialized before calling testPair.__init__
+        self.surface2 = single2.structure         # since then these are needed for calculating the transform
+
+        testPair.__init__(self, single1, single2) # note: this makes self.single1/self.pid_particle_pair1 and the same for particle2
+
+    def get_sigma(self):
+        # Nothing changed as compared to the simple pair here
+        radius1 = self.pid_particle_pair1[1].radius
+        radius2 = self.pid_particle_pair2[1].radius
+        return radius1 + radius2
+    sigma = property(get_sigma)
+
+    def do_transform(self):
+        # Transform the pos1 and pos2 of particles1 and 2 to the CoM and IV vectors
+        # As an indermediate step project position of single2 into plane of single1 and prolongate
+        # it by the orthogonal component to transform the whole problem into a single 2D plane
+        pos1 = self.pid_particle_pair1[1].position
+        pos2 = self.surface1.deflect_back(self.pid_particle_pair2[1].position)
+        D_1 = self.pid_particle_pair1[1].D
+        D_2 = self.pid_particle_pair2[1].D
+
+        com = self.world.calculate_pair_CoM(pos1, pos2, D_1, D_2)
+        com = self.world.apply_boundary(com)
+        # make sure that the com is in the structure of the particle (assume that this is done correctly in
+        # calculate_pair_CoM)
+
+        pos2t = self.world.cyclic_transpose(pos2, pos1)
+        iv = pos2t - pos1
+
+        return com, iv
+
 
 
 ##################################
