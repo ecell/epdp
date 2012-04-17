@@ -36,6 +36,9 @@ inline boost::python::objects::class_base register_structure_class(char const *n
                 impl_type, typename impl_type::structure_type_id_type,
                 &impl_type::sid,
                 &impl_type::sid>::set)
+        .add_property("structure_id", 
+            make_function(&impl_type::structure_id,
+                          return_value_policy<return_by_value>()))
         .add_property("name", 
             make_function(&impl_type::name,
                           return_value_policy<return_by_value>()))

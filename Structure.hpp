@@ -69,6 +69,11 @@ public:
         return sid_;
     }
 
+    structure_id_type const& structure_id() const
+    {
+        return parent_struct_id_;
+    }
+
     virtual bool operator==(Structure const& rhs) const
     {
         return id_ == rhs.id() && sid_ == rhs.sid();
