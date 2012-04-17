@@ -289,6 +289,16 @@ deflect(Box<T_> const& obj,
     return std::make_pair( add(r0, d), false );
 }
 
+template<typename T_>
+inline typename Box<T_>::position_type
+deflect_back(Box<T_> const& obj,
+        typename Box<T_>::position_type const& r0,
+        typename Box<T_>::position_type const& r1  )
+{
+    // Return the difference vector without any changes
+    return subtract(r1, r0);
+}
+
 template<typename T, typename Trng>
 inline typename Box<T>::position_type
 random_position(Box<T> const& shape, Trng& rng)

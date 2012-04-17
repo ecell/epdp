@@ -212,6 +212,16 @@ deflect(Cylinder<T_> const& obj,
     return std::make_pair( add(r0, d), false );
 }
 
+template<typename T_>
+inline typename Cylinder<T_>::position_type
+deflect_back(Cylinder<T_> const& obj,
+        typename Cylinder<T_>::position_type const& r0,
+        typename Cylinder<T_>::position_type const& r1  )
+{
+    // Return the difference vector without any changes
+    return subtract(r1, r0);
+}
+
 template<typename T, typename Trng>
 inline typename Cylinder<T>::position_type
 random_position(Cylinder<T> const& shape, Trng& rng)

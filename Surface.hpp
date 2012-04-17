@@ -115,6 +115,11 @@ public:
         return ::deflect(shape(), pos0, displacement);
     }
     
+    virtual position_type deflect_back(position_type const& pos0, position_type const& pos1) const
+    {
+        return ::deflect_back(shape(), pos0, pos1);
+    }
+    
     virtual position_type const& structure_position() const
     {
         return shape_.position();

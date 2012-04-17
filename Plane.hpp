@@ -269,6 +269,32 @@ deflect(Plane<T_> const& obj, typename Plane<T_>::position_type const& r0, typen
 }
 
 template<typename T_>
+inline typename Plane<T_>::position_type
+deflect_back(Plane<T_> const& obj, typename Plane<T_>::position_type const& r0, typename Plane<T_>::position_type const& r1)
+// This function projects a vector onto a plane and prolongates the projection by the part of it orthogonal to the plane,
+// returning a (vector) position type 
+{
+     // Type abbreviations
+    typedef typename Plane<T_>::length_type length_type;
+    typedef typename Plane<T_>::position_type position_type;
+    typedef std::pair<position_type, length_type> projected_type;
+            
+    position_type  dr(subtract(r1, r0));            // difference vector r1 - r0
+    projected_type dr_proj(projected_point(obj, dr));
+    length_type    dr_proj_len(length(dr_proj.first)); // length of dr projected onto plane obj        
+    
+    position_type u_dr_proj; // the normalized projection of dr on the plane (given in the global coord. system)
+    position_type r1_new;
+    length_type   dr_len_new;
+            
+    u_dr_proj  = normalize(dr_proj.first);    
+    dr_len_new = add(dr_proj_len, dr_proj.second);    
+    r1_new     = add(r0, multiply(u_dr_proj, dr_len_new));
+    
+    return r1_new;  
+}
+
+template<typename T_>
 inline boost::array<typename Plane<T_>::length_type, 3>
 to_internal(Plane<T_> const& obj, typename Plane<T_>::position_type const& pos)
 // The function calculates the coefficients to express 'pos' into the base of the plane 'obj'

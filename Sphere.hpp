@@ -113,6 +113,16 @@ deflect(Sphere<T_> const& obj, typename Sphere<T_>::position_type const& r0, typ
 }
 
 template<typename T_>
+inline typename Sphere<T_>::position_type
+deflect_back(Sphere<T_> const& obj,
+        typename Sphere<T_>::position_type const& r0,
+        typename Sphere<T_>::position_type const& r1  )
+{
+    // Return the difference vector without any changes
+    return subtract(r1, r0);
+}
+
+template<typename T_>
 inline Sphere<T_> const& shape(Sphere<T_> const& shape)
 {
     return shape;
