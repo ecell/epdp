@@ -227,6 +227,8 @@ public:
     typedef typename base_type::structure_id_pair                           structure_id_pair;
     typedef std::pair<position_type, length_type>                           projected_type;
     typedef typename particle_container_type::structure_id_and_distance_pair structure_id_and_distance_pair;
+    typedef typename base_type::structure_id_pair_and_distance_list         structure_id_pair_and_distance_list;
+    typedef typename base_type::structure_id_pair_and_distance              structure_id_pair_and_distance;
 
     typedef typename base_type::particle_id_set                             particle_id_set;
     typedef typename base_type::structure_id_set                            structure_id_set;
@@ -268,7 +270,7 @@ public:
             position_type const& pos)
     {
         species_type const& species(get_species(sid));
-        boost::shared_ptr<structure_type> structure(get_structure(structure_id));
+        const boost::shared_ptr<const structure_type> structure(get_structure(structure_id));
         // assert that the structure is of the type denoted by the species of the particle.
         BOOST_ASSERT(structure->sid() == species.structure_type_id());
 
@@ -456,17 +458,6 @@ public:
         }
         return (*i).second;
     }
-    // Get all the structure ids of the substructures
-    structure_id_set get_substructure_ids(structure_id_type const& id) const
-    {
-        typename per_structure_substructure_id_set::const_iterator i(
-            structure_substructures_map_.find(id));
-        if (i == structure_substructures_map_.end())
-        {
-            throw not_found(std::string("Unknown structure (id=") + boost::lexical_cast<std::string>(id) + ")");
-        }
-        return (*i).second;
-    }
     // Get and set the default structure of the World
     virtual structure_id_type get_def_structure_id() const
     {
@@ -512,8 +503,36 @@ public:
         
         return structure_id_and_distance_pair( ret_id , ret_dist );
     }
-    virtual structures_range get_close_structures(position_type const& pos, structure_id_type const& current_struct_id)const
+    virtual structure_id_pair_and_distance_list get_close_structures(position_type const& pos, structure_id_type const& current_struct_id,
+                                                                     structure_id_type const& ignore) const
     {
+        const length_type world_size( base_type::world_size() );
+        structure_id_pair_and_distance_list result;
+
+        const structure_id_set visible_structures (get_visible_structures(current_struct_id));
+        BOOST_FOREACH(const structure_id_type id, visible_structures)
+        {
+            if( id == ignore)
+                continue;
+            
+            boost::shared_ptr<structure_type> structure(get_structure(id));
+            const position_type cyc_pos(cyclic_transpose(pos, structure->position(), world_size));
+            const length_type dist(structure->distance(cyc_pos));
+
+            result.push_back(std::make_pair(std::make_pair(id, structure), dist));
+        }
+
+        struct dist_comparer
+        {
+            bool operator()(structure_id_pair_and_distance const& struct_id_pair_dist_1,
+                            structure_id_pair_and_distance const& struct_id_pair_dist_2) const
+            {
+                return (struct_id_pair_dist_1.second < struct_id_pair_dist_2.second);
+            }
+        } comparer;
+
+//        std::sort(result.begin(), result.end(), comparer);
+        return result;
     }
 
     // Get all the particle ids of the particles on a structure
@@ -568,6 +587,36 @@ public:
         default_structure_type_id_ = sid;
     }
 
+private:
+    // Get all the structure ids of the substructures
+    structure_id_set get_substructure_ids(structure_id_type const& id) const
+    {
+        typename per_structure_substructure_id_set::const_iterator i(
+            structure_substructures_map_.find(id));
+        if (i == structure_substructures_map_.end())
+        {
+            throw not_found(std::string("Unknown structure (id=") + boost::lexical_cast<std::string>(id) + ")");
+        }
+        return (*i).second;
+    }
+    structure_id_set get_visible_structures(structure_id_type const& id) const
+    {
+        structure_id_set visible_structures;
+
+        const boost::shared_ptr<const structure_type> structure(get_structure(id));
+        if (structure->structure_id() == id)
+        {
+            visible_structures = structure_id_set();
+        }
+        else
+        {
+            visible_structures = get_visible_structures(structure->structure_id());
+            visible_structures.erase(id);
+        }
+        const structure_id_set substructures (get_substructure_ids(id));
+        visible_structures.insert(substructures.begin(), substructures.end());
+        return visible_structures;
+    }
 
 ///////////// Member variables
 private:
