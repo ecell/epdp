@@ -23,15 +23,16 @@ struct ParticleContainerUtils
     typedef std::pair<particle_id_pair, length_type>            particle_id_pair_and_distance;
     typedef unassignable_adapter<particle_id_pair_and_distance, get_default_impl::std::vector> particle_id_pair_and_distance_list;
 
+    template<typename Tobject_and_distance_list_>
     struct distance_comparator:
             public std::binary_function<
-                typename particle_id_pair_and_distance_list::placeholder,
-                typename particle_id_pair_and_distance_list::placeholder,
+                typename Tobject_and_distance_list_::placeholder,
+                typename Tobject_and_distance_list_::placeholder,
                 bool>
     {
-        typedef typename particle_id_pair_and_distance_list::placeholder
-                first_argument_type;
-        typedef typename particle_id_pair_and_distance_list::const_caster const_caster;
+        typedef Tobject_and_distance_list_              list_type;
+        typedef typename list_type::placeholder         first_argument_type;
+        typedef typename list_type::const_caster        const_caster;
         bool operator()(first_argument_type const& lhs,
                         first_argument_type const& rhs) const
         {
@@ -72,9 +73,9 @@ struct ParticleContainerUtils
         }
 
     private:
-        Tset_ const& ignore_;
+        Tset_ const&                        ignore_;
         particle_id_pair_and_distance_list* result_;
-        distance_comparator compare_;
+        distance_comparator<particle_id_pair_and_distance_list>                 compare_;
     };
 };
 
@@ -115,7 +116,9 @@ public:
     typedef std::pair<particle_id_pair, length_type>                    particle_id_pair_and_distance;
     typedef sized_iterator_range<typename particle_matrix_type::const_iterator> particle_id_pair_range;
 
-    typedef unassignable_adapter<particle_id_pair_and_distance, get_default_impl::std::vector> particle_id_pair_and_distance_list;
+    typedef unassignable_adapter<particle_id_pair_and_distance, get_default_impl::std::vector>  particle_id_pair_and_distance_list;
+    typedef typename base_type::structure_id_pair_and_distance_list                             structure_id_pair_and_distance_list;
+    typedef typename base_type::structure_id_pair_and_distance                                  structure_id_pair_and_distance;
 
 protected:
 // Implementation of the methods.
