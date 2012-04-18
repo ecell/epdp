@@ -114,13 +114,12 @@ deflect(Sphere<T_> const& obj, typename Sphere<T_>::position_type const& r0, typ
 
 template<typename T_>
 inline typename Sphere<T_>::position_type
-deflect_back(Sphere<T_> const& obj0,
-        typename Sphere<T_>::position_type const& r0,
-        typename Sphere<T_>::position_type const& r1,
-        typename Sphere<T_>::position_type const& n1  )
+deflect_back(Sphere<T_> const& obj,
+        typename Sphere<T_>::position_type const& r,
+        typename Sphere<T_>::position_type const& u_z  )
 {
-    // Return the vector r1 without any changes
-    return r1;
+    // Return the vector r without any changes
+    return r;
 }
 
 template<typename T_>

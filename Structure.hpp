@@ -117,7 +117,7 @@ public:
     
     virtual position_flag_pair_type deflect(position_type const& pos0, position_type const& displacement) const = 0;
     
-    virtual position_type deflect_back(position_type const& pos0, position_type const& pos1, position_type const& n1) const = 0;
+    virtual position_type deflect_back(position_type const& pos, position_type const& u_z) const = 0;
     
     virtual position_type const& structure_position() const = 0;
 

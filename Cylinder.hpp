@@ -214,13 +214,12 @@ deflect(Cylinder<T_> const& obj,
 
 template<typename T_>
 inline typename Cylinder<T_>::position_type
-deflect_back(Cylinder<T_> const& obj0,
-        typename Cylinder<T_>::position_type const& r0,
-        typename Cylinder<T_>::position_type const& r1,
-        typename Cylinder<T_>::position_type const& n1  )
+deflect_back(Cylinder<T_> const& obj,
+        typename Cylinder<T_>::position_type const& r,
+        typename Cylinder<T_>::position_type const& u_z  )
 {
-    // Return the vector r1 without any changes
-    return r1;
+    // Return the vector r without any changes
+    return r;
 }
 
 template<typename T, typename Trng>
