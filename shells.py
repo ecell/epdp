@@ -26,7 +26,7 @@ __all__ = [
     'testTransitionSingle',
     'testPair',
     'testSimplePair',
-    'testMixedPair2D2D',
+    'testPlanarSurfaceTransitionPair',
     'testMixedPair2D3D',
     'hasSphericalShell',
     'hasCylindricalShell',   
@@ -349,15 +349,22 @@ class testMixedPair2D3D(testPair):
                                                 # normal to the plane
         return math.sqrt(self.D_r/D_2)
 
-class testMixedPair2D2D(testPair):
+class testPlanarSurfaceTransitionPair(testPair):
+
+    # This is essentially a copy of testSimplePair; however, the latter does
+    # not allow for particles being on different structures. Ergo we have to
+    # define a new class for that purpose.
+    # The main difference is in do_transform and get_min_pair_size which use
+    # the CoM calculated after projection of single2 into the plane of single1
+    # via deflect_back.
 
     def __init__(self, single1, single2):
 
         if __debug__: 
                 assert isinstance(single1.structure, PlanarSurface) 
                 assert isinstance(single2.structure, PlanarSurface) 
-        self.surface1 = single1.structure         # note that these need to be initialized before calling testPair.__init__
-        self.surface2 = single2.structure         # since then these are needed for calculating the transform
+        self.structure1 = single1.structure         # note that these need to be initialized before calling testPair.__init__
+        self.structure2 = single2.structure         # since then these are needed for calculating the transform
 
         testPair.__init__(self, single1, single2) # note: this makes self.single1/self.pid_particle_pair1 and the same for particle2
 
@@ -370,10 +377,10 @@ class testMixedPair2D2D(testPair):
 
     def do_transform(self):
         # Transform the pos1 and pos2 of particles1 and 2 to the CoM and IV vectors
-        # As an indermediate step project position of single2 into plane of single1 and prolongate
-        # it by the orthogonal component to transform the whole problem into a single 2D plane
+        # As an indermediate step project position of single2 into plane of single1 and add its
+        # orthogonal component rotated by 90 deg. to transform the whole problem into a single 2D plane
         pos1 = self.pid_particle_pair1[1].position
-        pos2 = self.surface1.deflect_back(self.pid_particle_pair2[1].position)
+        pos2 = self.structure1.deflect_back(self.pid_particle_pair2[1].position, self.structure2.shape.unit_z)
         D_1 = self.pid_particle_pair1[1].D
         D_2 = self.pid_particle_pair2[1].D
 
@@ -387,6 +394,31 @@ class testMixedPair2D2D(testPair):
 
         return com, iv
 
+    def get_min_pair_size(self):
+        # This calculates the minimal 'size' of a simple pair.
+        # Note that the 'size' is interpreted differently dependent on the type of pair. When the pair is a
+        # SphericalPair          -> size = radius
+        # PlanarSurfacePair      -> size = radius
+        # CylindricalSurfacePair -> size = half_length
+
+        D_1 = self.pid_particle_pair1[1].D
+        D_2 = self.pid_particle_pair2[1].D
+        radius1 = self.pid_particle_pair1[1].radius
+        radius2 = self.pid_particle_pair2[1].radius
+
+        dist_from_com1 = self.r0 * D_1 / self.D_tot      # particle distance from CoM
+        dist_from_com2 = self.r0 * D_2 / self.D_tot
+        iv_shell_size1 = dist_from_com1 + radius1       # the shell should surround the particles
+        iv_shell_size2 = dist_from_com2 + radius2
+
+        # also fix the minimum shellsize for the CoM domain
+        com_shell_size = max(radius1, radius2)
+
+        # calculate total radii including the margin for the burst volume for the particles
+        shell_size = max(iv_shell_size1 + com_shell_size + radius1 * SINGLE_SHELL_FACTOR,
+                         iv_shell_size2 + com_shell_size + radius2 * SINGLE_SHELL_FACTOR)
+
+        return shell_size
 
 
 ##################################
@@ -1197,6 +1229,29 @@ class PlanarSurfaceTransitionSingletestShell(SphericaltestShell, testTransitionS
         # guaranteed that there is always a certain probability to cross the edge even
         # if the shell with minimal radius is constructed
         return self.distance_to_target_structure + self.pid_particle_pair[1].radius
+
+#####
+class PlanarSurfaceTransitionPairtestShell(SphericaltestShell, testPlanarSurfaceTransitionPair):
+
+    def __init__(self, single1, single2, geometrycontainer, domains):
+        SphericaltestShell.__init__(self, geometrycontainer, domains)  # this must be first because of world definition
+
+        try:
+            testPlanarSurfaceTransitionPair.__init__(self, single1, single2)
+        except protoDomainError as e:
+            raise testShellError('(PlanarSurfaceTransitionPair). %s' %
+                                 (str(e)))
+
+        self.center = self.com
+        try:
+            self.radius = self.determine_possible_shell(self.structure1.id, [self.single1.domain_id, self.single2.domain_id],
+                                                        [self.structure2.id])
+        except ShellmakingError as e:
+            raise testShellError('(PlanarSurfaceTransitionPair). %s' %
+                                 (str(e)))
+
+    def get_min_radius(self):
+        return self.get_min_pair_size()
 
 
 ##########################
