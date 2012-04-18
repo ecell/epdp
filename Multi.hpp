@@ -203,7 +203,7 @@ public:
     template<typename Tsph_, typename Tset_>
     particle_id_pair_and_distance_list* check_overlap(Tsph_ const& s, Tset_ const& ignore) const
     {
-        typename utils::template overlap_checker<Tset_> checker(ignore);
+        typename utils::template overlap_checker<particle_id_pair_and_distance_list, Tset_> checker(ignore);
         for (typename particle_map::const_iterator i(particles_.begin()),
                                                    e(particles_.end());
              i != e; ++i)

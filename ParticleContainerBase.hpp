@@ -44,9 +44,11 @@ struct ParticleContainerUtils
 
 
 
-    template<typename Tset_>
+    template<typename Tobject_and_distance_list_, typename Tset_>
     struct overlap_checker
     {
+        typedef Tobject_and_distance_list_  list_type;
+
         // The constructor
         overlap_checker(Tset_ const& ignore = Tset_()): ignore_(ignore), result_(0) {}
 
@@ -57,13 +59,13 @@ struct ParticleContainerUtils
             {
                 if (!result_)
                 {
-                    result_ = new particle_id_pair_and_distance_list();
+                    result_ = new list_type();
                 }
                 result_->push_back(std::make_pair(*i, dist));
             }
         }
 
-        particle_id_pair_and_distance_list* result() const
+        list_type* result() const
         {
             if (result_)
             {
@@ -73,9 +75,9 @@ struct ParticleContainerUtils
         }
 
     private:
-        Tset_ const&                        ignore_;
-        particle_id_pair_and_distance_list* result_;
-        distance_comparator<particle_id_pair_and_distance_list>                 compare_;
+        Tset_ const&                    ignore_;
+        list_type*                      result_;
+        distance_comparator<list_type>  compare_;
     };
 };
 
@@ -206,7 +208,7 @@ public:
 
     virtual particle_id_pair_and_distance_list* check_overlap(particle_shape_type const& s, particle_id_type const& ignore) const
     {
-        return check_overlap(s, array_gen(ignore));
+        return check_overlap(s, array_gen(ignore)); // Why no parameterization of the template here?
     }
 
     virtual particle_id_pair_and_distance_list* check_overlap(particle_shape_type const& s, particle_id_type const& ignore1, particle_id_type const& ignore2) const
@@ -218,16 +220,16 @@ public:
     particle_id_pair_and_distance_list* check_overlap(Tsph_ const& s, Tset_ const& ignore,
         typename boost::disable_if<boost::is_same<Tsph_, particle_id_pair> >::type* =0) const
     {
-        typename utils::template overlap_checker<Tset_> oc(ignore);
+        typename utils::template overlap_checker<particle_id_pair_and_distance_list, Tset_> oc(ignore);
         traits_type::take_neighbor(pmat_, oc, s);
         return oc.result();
     }
-
+    // This is the same method as the one above but now without the 'ignore' list
     template<typename Tsph_>
     particle_id_pair_and_distance_list* check_overlap(Tsph_ const& s,
         typename boost::disable_if<boost::is_same<Tsph_, particle_id_pair> >::type* =0) const
     {
-        typename utils::template overlap_checker<boost::array<particle_id_type, 0> > oc;
+        typename utils::template overlap_checker<particle_id_pair_and_distance_list, boost::array<particle_id_type, 0> > oc;
         traits_type::take_neighbor(pmat_, oc, s);
         return oc.result();
     }
