@@ -669,6 +669,27 @@ class PlanarSurfaceTransitionPair(SimplePair, hasSphericalShell):
 
         return new_pos1, new_pos2, new_sid1, new_sid2
 
+    def draw_new_com(self, dt, event_type):
+        # Draws a new coordinate for the CoM in world coordinates.
+        # Since fire_pair_reaction() will call this function we have to
+        # change the default draw_new_com() to ensure that the new CoM
+        # is deflected into the right plane
+        if event_type == EventType.COM_ESCAPE:
+            r = self.a_R
+        else:
+            gf = self.com_greens_function()
+            r = draw_r_wrapper(gf, dt, self.a_R)
+
+        new_com = self.com + self.create_com_vector(r)
+
+        if event_type == EventType.IV_REACTION:
+            # Express the new CoM in plane1 and deflect it to plane2 if necessary
+            s1_ctr = self.structure1.shape.position
+            new_com, changeflag = self.structure2.deflect(s1_ctr, new_com - s1_ctr)
+
+        # TODO: Check whether the new CoM is in the right structure
+        return new_com
+
     def get_shell_size(self):
         return self.shell.shape.radius
 
