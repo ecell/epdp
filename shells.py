@@ -365,6 +365,7 @@ class testPlanarSurfaceTransitionPair(testPair):
                 assert isinstance(single2.structure, PlanarSurface) 
         self.structure1 = single1.structure         # note that these need to be initialized before calling testPair.__init__
         self.structure2 = single2.structure         # since then these are needed for calculating the transform
+        self.structure  = self.structure1           # some pair methods might need this to be defined
 
         testPair.__init__(self, single1, single2) # note: this makes self.single1/self.pid_particle_pair1 and the same for particle2
 
