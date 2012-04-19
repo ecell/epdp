@@ -44,6 +44,7 @@ from shells import (
     PlanarSurfaceSingletestShell,
     PlanarSurfacePairtestShell,
     PlanarSurfaceTransitionSingletestShell,
+    PlanarSurfaceTransitionPairtestShell,
     CylindricalSurfaceSingletestShell,
     CylindricalSurfacePairtestShell,
     PlanarSurfaceInteractiontestShell,
@@ -127,7 +128,7 @@ def try_default_testpair(single1, single2, geometrycontainer, domains):
         elif isinstance(single1.structure, CylindricalSurface):
             return CylindricalSurfacePairtestShell(single1, single2, geometrycontainer, domains)
     elif (isinstance(single1.structure, PlanarSurface) and isinstance(single2.structure, PlanarSurface)):
-        return PlanarSurfaceTransitiontestShell(single1, single2, geometrycontainer, domains) 
+        return PlanarSurfaceTransitionPairtestShell(single1, single2, geometrycontainer, domains) 
     elif (isinstance(single1.structure, PlanarSurface) and isinstance(single2.structure, CuboidalRegion)):
         return MixedPair2D3DtestShell(single1, single2, geometrycontainer, domains) 
     elif (isinstance(single2.structure, PlanarSurface) and isinstance(single1.structure, CuboidalRegion)):
@@ -1461,7 +1462,6 @@ class EGFRDSimulator(ParticleSimulatorBase):
         # Note that we do not differentiate between directions. This means that we
         # look around in a sphere, the horizons are spherical.
         pair_interaction_partners = []
-#        pair_interaction_partners_ids = [] # HACK
         for domain, _ in neighbor_distances:
             if (isinstance (domain, NonInteractionSingle) and domain.is_reset()):
                 # distance from the center of the particles/domains
@@ -1479,11 +1479,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
             if isinstance(surface, PlanarSurface) and isinstance(single.structure, PlanarSurface):        # HACK
                 surface_horizon = single_radius * SINGLE_SHELL_FACTOR * 2
             pair_interaction_partners.append((surface, surface_distance - surface_horizon))
-#            pair_interaction_partners_ids.append((surface.id, surface_distance)) # HACK
 
         pair_interaction_partners = sorted(pair_interaction_partners, key=lambda domain_overlap: domain_overlap[1])
-
-#        log.debug('pair_interaction_partners: %s' % str(pair_interaction_partners_ids)) # HACK
 
         # For each particles/particle or particle/surface pair, check if a pair or interaction can be
         # made. Note that we check the closest one first and only check if the object are within the horizon
@@ -1498,7 +1495,6 @@ class EGFRDSimulator(ParticleSimulatorBase):
             if isinstance(obj, NonInteractionSingle):
                 # try making a Pair (can be Mixed Pair or Normal Pair)
                 domain = self.try_pair (single, obj)
-                # TODO: Include formation of "PlanarSurfaceTransitionPair"
 
             elif isinstance(obj, PlanarSurface) and isinstance(single.structure, PlanarSurface):
                 domain = self.try_transition(single, obj)
