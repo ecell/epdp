@@ -518,7 +518,17 @@ class PlanarSurfaceTransitionPair(SimplePair, hasSphericalShell):
         self.LD_MAX = numpy.inf # 20?
         SimplePair.__init__(self, domain_id, shell_id, rrs)     # Always initialize AFTER hasSphericalShell
         
-        assert(self.structure.id == self.structure1.id) # for safety, but self.structure shall not be used here
+        self.structure1 = self.testShell.structure1
+        self.structure2 = self.testShell.structure2
+        self.structure  = self.testShell.structure1 # just for safety
+
+    #@ property
+    #def structure1(self):
+        #return self.testShell.structure1
+
+    #@ property
+    #def structure2(self):
+        #return self.testShell.structure2
     
     def com_greens_function(self):
         return GreensFunction2DAbsSym(self.D_R, self.a_R)
@@ -596,8 +606,8 @@ class PlanarSurfaceTransitionPair(SimplePair, hasSphericalShell):
 
         return new_iv_x + new_iv_y
 
-    @ classmethod
-    def do_back_transform(cls, com, iv, D1, D2, radius1, radius2, structure, unit_z):
+    #@ classmethod # TODO Why do we actually need this???
+    def do_back_transform(self, com, iv, D1, D2, radius1, radius2, structure, unit_z):
 
         # structure should be = structure1, but for safety we use the structures
         # inherited from the test shell
@@ -613,8 +623,8 @@ class PlanarSurfaceTransitionPair(SimplePair, hasSphericalShell):
         # These components also are used to calculate the safety factor for
         # interparticle vector enlargement in case that the two particles
         # indeed are on two different planes.
-        _. pos1_orth = self.structure2.projected_point(pos1)
-        _. pos2_orth = self.structure2.projected_point(pos2)
+        _, pos1_orth = self.structure2.projected_point(pos1)
+        _, pos2_orth = self.structure2.projected_point(pos2)
 
         if( pos1_orth * pos2_orth < 0.0 ) :
             # The particles will end up on different planes, i.e.
@@ -872,7 +882,7 @@ class MixedPair2D3D(Pair, hasCylindricalShell):
 
         return pos1, pos2, self.surface.id, self.surface.id
 
-    @classmethod
+    @ classmethod
     def calc_z_scaling_factor(cls, D2d, D3d):
         # calculates the scaling factor to make the anisotropic diffusion problem into a isotropic one
         return math.sqrt( (D2d + D3d) / D3d)
@@ -950,7 +960,7 @@ class MixedPair2D3D(Pair, hasCylindricalShell):
 
 class MixedPair1D3D(Pair):
 
-    @classmethod
+    @ classmethod
     def do_back_transform(cls, com, iv, D1, D2, radius1, radius2, surface, unit_z):
     # here we assume that the com and iv are really in the structure and no adjustments have to be
     # made
@@ -984,7 +994,7 @@ class MixedPair1D3D(Pair):
 
         return pos1, pos2, self.surface.id, self.surface.id
 
-    @classmethod
+    @ classmethod
     def calc_r_scaling_factor(cls, D1, D2):
         return math.sqrt((D1 + D2)/D2)
 

@@ -140,14 +140,16 @@ def try_default_testpair(single1, single2, geometrycontainer, domains):
 def create_default_pair(domain_id, shell_id, testShell, reaction_rules):
     # Either SphericalPair, PlanarSurfacePair, or CylindricalSurfacePair.
     if   isinstance(testShell, SphericalPairtestShell):
-        return SphericalPair          (domain_id, shell_id, testShell, reaction_rules)
+        return SphericalPair               (domain_id, shell_id, testShell, reaction_rules)
     elif isinstance(testShell, PlanarSurfacePairtestShell):
-        return PlanarSurfacePair      (domain_id, shell_id, testShell, reaction_rules)
+        return PlanarSurfacePair           (domain_id, shell_id, testShell, reaction_rules)
+    elif isinstance(testShell, PlanarSurfaceTransitionPairtestShell):
+        return PlanarSurfaceTransitionPair (domain_id, shell_id, testShell, reaction_rules)
     elif isinstance(testShell, CylindricalSurfacePairtestShell):
-        return CylindricalSurfacePair (domain_id, shell_id, testShell, reaction_rules)
+        return CylindricalSurfacePair      (domain_id, shell_id, testShell, reaction_rules)
     # or MixedPair (3D/2D)
     elif isinstance(testShell, MixedPair2D3DtestShell):
-        return MixedPair2D3D          (domain_id, shell_id, testShell, reaction_rules)
+        return MixedPair2D3D               (domain_id, shell_id, testShell, reaction_rules)
 
 
 class DomainEvent(Event):
@@ -1466,13 +1468,13 @@ class EGFRDSimulator(ParticleSimulatorBase):
             if (isinstance (domain, NonInteractionSingle) and domain.is_reset()):
                 # distance from the center of the particles/domains
                 pair_distance = self.world.distance(single_pos, domain.shell.shape.position)
-                pair_horizon  = (single_radius + domain.pid_particle_pair[1].radius) * SINGLE_SHELL_FACTOR
+                pair_horizon  = (single_radius + domain.pid_particle_pair[1].radius) * SINGLE_SHELL_FACTOR * 5 # HACK
                 pair_interaction_partners.append((domain, pair_distance - pair_horizon))
         
         for surface, surface_distance in surface_distances:
             if isinstance(surface, PlanarSurface):
                 # with a planar surface it is the center of mass that 'looks around'
-                surface_horizon = single_radius * (SINGLE_SHELL_FACTOR - 1.0) #* 2.0  # HACK!!! The * 2 factor is added manually! REMOVE THIS!
+                surface_horizon = single_radius * (SINGLE_SHELL_FACTOR - 1.0)
             else:
                 # with a cylindrical surface it is the surface of the particle
                 surface_horizon = single_radius * SINGLE_SHELL_FACTOR
@@ -2511,10 +2513,10 @@ rejected moves = %d
             # Ignore surface of the particle and interaction surface
             ignores = []
             associated = [domain.structure.id, domain.surface.id]
-        elif isinstance(domain, PlanarSurfaceTransitionSingle):
+        elif isinstance(domain, PlanarSurfaceTransitionSingle) or isinstance(domain, PlanarSurfaceTransitionPair):
             # Ignore surface of the particle and interaction surface
             ignores = []
-            associated = [domain.origin_structure.id, domain.target_structure.id]
+            associated = [domain.structure1.id, domain.structure2.id]
         else:
             # Ignore the structure that the particles are associated with
             ignores = []

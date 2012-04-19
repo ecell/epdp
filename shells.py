@@ -188,6 +188,10 @@ class testTransitionSingle(testSingle, Others):
 
         self.origin_structure = self.structure
         self.target_structure = target_structure
+        # The following is needed by check_domain()
+        # TODO: Drop origin_structure and target_structure everywhere?
+        self.structure1 = self.structure
+        self.structure2 = target_structure
 
         # Note that we assume the structures are exactly connecting
         self.distance_to_target_structure = self.world.distance(self.target_structure.shape, self.pid_particle_pair[1].position)
@@ -401,6 +405,8 @@ class testPlanarSurfaceTransitionPair(testPair):
         # SphericalPair          -> size = radius
         # PlanarSurfacePair      -> size = radius
         # CylindricalSurfacePair -> size = half_length
+        # TODO: Make sure this also works correctly when IP-vectors are enlarged to remove overlaps
+        # at deflection.
 
         D_1 = self.pid_particle_pair1[1].D
         D_2 = self.pid_particle_pair2[1].D
