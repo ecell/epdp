@@ -65,6 +65,7 @@ struct ParticleContainerUtils
             }
         }
 
+        // The list of items is only sorted when the results are queried.
         list_type* result() const
         {
             if (result_)
@@ -109,7 +110,6 @@ public:
     typedef typename base_type::structure_id_set            structure_id_set;
     typedef typename base_type::structure_id_pair           structure_id_pair;
     typedef typename base_type::structure_types_range       structure_types_range;
-//    typedef std::pair<const particle_id_type, particle_type> particle_id_pair;
     typedef typename base_type::particle_id_pair            particle_id_pair;
     typedef Transaction<traits_type>                        transaction_type;
 
@@ -231,6 +231,13 @@ public:
     {
         typename utils::template overlap_checker<particle_id_pair_and_distance_list, boost::array<particle_id_type, 0> > oc;
         traits_type::take_neighbor(pmat_, oc, s);
+        return oc.result();
+    }
+
+    virtual structure_id_pair_and_distance_list* check_surface_overlap(particle_shape_type const& s, position_type const& old_pos, structure_id_type const& current) const
+    {
+        typename utils::template overlap_checker<structure_id_pair_and_distance_list, boost::array<structure_id_type, 0> > oc;
+        // TODO
         return oc.result();
     }
 

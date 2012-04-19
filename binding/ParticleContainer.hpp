@@ -246,6 +246,7 @@ public:
     typedef typename wrapped_type::particle_id_pair_generator           particle_id_pair_generator;
     typedef typename wrapped_type::structure_id_pair_generator          structure_id_pair_generator;
     typedef typename wrapped_type::particle_id_pair_and_distance_list   particle_id_pair_and_distance_list;
+    typedef typename wrapped_type::structure_id_pair_and_distance_list  structure_id_pair_and_distance_list;
     typedef typename wrapped_type::structure_id_and_distance_pair       structure_id_and_distance_pair;
     typedef typename wrapped_type::structure_id_set                     structure_id_set;
     typedef typename wrapped_type::structures_range                     structures_range;
@@ -378,6 +379,13 @@ public:
         return py_wrapper_type::get_override("check_overlap")(
                 s, boost::python::make_tuple(ignore1, ignore2))
                .template unchecked<particle_id_pair_and_distance_list*>();
+    }
+
+    virtual structure_id_pair_and_distance_list* check_surface_overlap(particle_shape_type const& s, position_type const& old_pos, structure_id_type const& current) const
+    {
+        return py_wrapper_type::get_override("check_surface_overlap")(
+                s, old_pos, boost::python::make_tuple(current))
+               .template unchecked<structure_id_pair_and_distance_list*>();
     }
 
     virtual particle_id_pair_generator* get_particles() const

@@ -73,6 +73,7 @@ public:
     typedef std::pair<particle_id_pair, length_type>            particle_id_pair_and_distance;
     typedef unassignable_adapter<particle_id_pair_and_distance,
                                  get_default_impl::std::vector> particle_id_pair_and_distance_list;
+    typedef typename particle_container_type::structure_id_pair_and_distance_list   structure_id_pair_and_distance_list;
     typedef std::pair<structure_id_type, length_type>           structure_id_and_distance_pair;
 
 private:
@@ -168,6 +169,11 @@ public:
     virtual particle_id_pair_and_distance_list* check_overlap(particle_shape_type const& s, particle_id_type const& ignore1, particle_id_type const& ignore2) const
     {
         return pc_.check_overlap(s, ignore1, ignore2);
+    }
+
+    virtual structure_id_pair_and_distance_list* check_surface_overlap(particle_shape_type const& s, position_type const& old_pos, structure_id_type const& current) const
+    {
+        return pc_.check_surface_overlap(s, old_pos, current);
     }
 
     virtual Transaction<traits_type>* create_transaction()

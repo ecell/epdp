@@ -52,6 +52,7 @@ public:
     typedef typename world_type::particle_container_type::structure_id_pair                 structure_id_pair;
     typedef typename world_type::particle_container_type::structure_id_and_distance_pair    structure_id_and_distance_pair;
     typedef typename world_type::particle_container_type::structure_id_set                  structure_id_set;
+    typedef typename world_type::particle_container_type::structure_id_pair_and_distance_list   structure_id_pair_and_distance_list;
 
     typedef typename Ttraits_::network_rules_type       network_rules_type;
     typedef typename Ttraits_::reaction_rule_type       reaction_rule_type;
@@ -215,6 +216,11 @@ public:
             }
         }
         return checker.result();
+    }
+
+    virtual structure_id_pair_and_distance_list* check_surface_overlap(particle_shape_type const& s, position_type const& old_pos, structure_id_type const& current) const
+    {
+        return world_.check_surface_overlap(s, old_pos, current);
     }
 
     virtual particle_id_pair_generator* get_particles() const
