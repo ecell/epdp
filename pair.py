@@ -607,6 +607,33 @@ class PlanarSurfaceTransitionPair(SimplePair, hasSphericalShell):
         pos1 = com - iv * (D1 / D_tot)
         pos2 = com + iv * (D2 / D_tot)
 
+        # Check whether the new positions will end up on the same structure
+        # by comparing their orthogonal components in the coordinate system of
+        # structure2 (which is orthogonal to structure1).
+        # These components also are used to calculate the safety factor for
+        # interparticle vector enlargement in case that the two particles
+        # indeed are on two different planes.
+        _. pos1_orth = self.structure2.projected_point(pos1)
+        _. pos2_orth = self.structure2.projected_point(pos2)
+
+        if( pos1_orth * pos2_orth < 0.0 ) :
+            # The particles will end up on different planes, i.e.
+            # that one of the points will be deflected.
+            # The interparticle vector therefore must be enlarged to
+            # ensure that there is no overlap after deflection.
+            particles_on_same_structure = 0
+            # Calculate the safety (= IPV enlargement) factor
+            l_iv = length(iv)
+            assert(2.0*abs(pos1_orth*pos2_orth) < (l_iv*l_iv))  # That should never fail!
+            iv_safety = 1.0/( 1.0 - 2.0*abs(pos1_orth*pos2_orth)/(l_iv*l_iv) )
+            # Recalculate the interparticle vector and new positions
+            iv_rescaled = iv_safety * iv            
+            pos1 = com - iv_rescaled * (D1 / D_tot)
+            pos2 = com + iv_rescaled * (D2 / D_tot)
+
+        else :
+            particles_on_same_structure = 1
+
         # Now we have to check (for both[!] new positions) whether they are still in plane1;
         # if not, they have to be deflected on structure2.
         # The structure.deflect() method requires a starting point and a displacement; we can construct
