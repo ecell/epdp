@@ -126,6 +126,8 @@ def try_default_testpair(single1, single2, geometrycontainer, domains):
             return PlanarSurfacePairtestShell(single1, single2, geometrycontainer, domains)
         elif isinstance(single1.structure, CylindricalSurface):
             return CylindricalSurfacePairtestShell(single1, single2, geometrycontainer, domains)
+    elif (isinstance(single1.structure, PlanarSurface) and isinstance(single2.structure, PlanarSurface)):
+        return PlanarSurfaceTransitiontestShell(single1, single2, geometrycontainer, domains) 
     elif (isinstance(single1.structure, PlanarSurface) and isinstance(single2.structure, CuboidalRegion)):
         return MixedPair2D3DtestShell(single1, single2, geometrycontainer, domains) 
     elif (isinstance(single2.structure, PlanarSurface) and isinstance(single1.structure, CuboidalRegion)):
