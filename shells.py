@@ -151,28 +151,29 @@ class testNonInteractionSingle(testSingle, NonInteractionSingles):
 
 class testInteractionSingle(testSingle, Others):
 
-    def __init__(self, single, structure, surface):
+    def __init__(self, single, origin_structure, target_structure):
 
         # assert that the single is reset
         assert single.is_reset()
 
-        testSingle.__init__(self, single.pid_particle_pair, structure)
+        testSingle.__init__(self, single.pid_particle_pair, origin_structure)
         # Note: for the Others superclass nothing is to be initialized.
 
-        self.single  = single
-        self.surface = surface
+        self.single           = single
+        self.origin_structure = origin_structure
+        self.target_structure = target_structure
 
         ### initialize some constants that are common for the testInteractionSingle domains.
 
-        # calculate the Projected_point and distance to the surface
-        # Cyclic transpose needed when calling surface.projected_point!
+        # calculate the Projected_point and distance to the target_structure
+        # Cyclic transpose needed when calling target_structure.projected_point!
         pos_transposed = self.world.cyclic_transpose(self.pid_particle_pair[1].position,
-                                                     self.surface.shape.position)
-        self.reference_point, projection_length = self.surface.projected_point(pos_transposed)
+                                                     self.target_structure.shape.position)
+        self.reference_point, projection_length = self.target_structure.projected_point(pos_transposed)
 
         # projection_distance can be negative in case of plane
         # note that the distance is to the center of the cylinder in case of cylinders
-        self.particle_surface_distance = self.world.distance(self.surface.shape, self.pid_particle_pair[1].position)
+        self.particle_surface_distance = self.world.distance(self.target_structure.shape, self.pid_particle_pair[1].position)
 
         # The reference_vector is the normalized vector from the reference_point to the particle
         self.reference_vector = normalize(pos_transposed - self.reference_point)
@@ -182,16 +183,14 @@ class testTransitionSingle(testSingle, Others):
     def __init__(self, single, target_structure):
 
         testSingle.__init__(self, single.pid_particle_pair, single.structure)
-
         assert (self.structure.sid == target_structure.sid)     # Both structures are of same structure_type
+
         self.single = single
 
         self.origin_structure = self.structure
         self.target_structure = target_structure
-        # The following is needed by check_domain()
-        # TODO: Drop origin_structure and target_structure everywhere?
-        self.structure1 = self.structure
-        self.structure2 = target_structure
+        self.structure1       = self.origin_structure
+        self.structure2       = self.target_structure
 
         # Note that we assume the structures are exactly connecting
         self.distance_to_target_structure = self.world.distance(self.target_structure.shape, self.pid_particle_pair[1].position)
@@ -210,12 +209,16 @@ class testPair(Others):
         self.single2 = single2
         self.pid_particle_pair1 = single1.pid_particle_pair
         self.pid_particle_pair2 = single2.pid_particle_pair
+
+        # In general we allow the two particles to be on different structures
+        self.structure1 = single1.structure
+        self.structure2 = single2.structure
+
         self.com, self.iv = self.do_transform()         # NOTE The IV always points from particle1 to particle2
         self.r0 = length(self.iv)
         if self.r0 < self.sigma:
             raise protoDomainError('distance_from_sigma (pair gap) between %s and %s = %s < 0' % \
                 (self.single1, self.single2, FORMAT_DOUBLE % (self.r0 - self.sigma)))
-
 
     def get_D_tot(self):
         return self.pid_particle_pair1[1].D + \
@@ -238,9 +241,9 @@ class testSimplePair(testPair):
 
         # Simple pairs are pairs of particles that are on the same structure
         assert single1.structure == single2.structure
-        self.structure = single1.structure
-
         testPair.__init__(self, single1, single2)
+        self.structure = single1.structure # equal to self.structure1 and self.structure2,
+                                           # needed by some class methods downstream
 
     def get_sigma(self):
         radius1 = self.pid_particle_pair1[1].radius
@@ -297,13 +300,15 @@ class testMixedPair2D3D(testPair):
     def __init__(self, single2D, single3D):
 
         if __debug__: 
-		assert isinstance(single2D.structure, PlanarSurface) 
-        	assert isinstance(single3D.structure, CuboidalRegion) 
-        self.surface   = single2D.structure         # note that these need to be initialized before calling testPair.__init__
-        self.structure = single3D.structure         # since then these are needed for calculating the transform
+                assert isinstance(single2D.structure, PlanarSurface) 
+                assert isinstance(single3D.structure, CuboidalRegion)
+        testPair.__init__(self, single2D, single3D)
+          # note: this makes self.single1/self.pid_particle_pair1/self.structure1 for the 2D particle
+          #              and self.single2/self.pid_particle_pair2/self.structure2 for the 3D particle
 
-        testPair.__init__(self, single2D, single3D) # note: this makes self.single1/self.pid_particle_pair1 the 2D particle
-                                                    #              and self.single2/self.pid_particle_pair2 the 3D particle
+        # for clarity:
+        self.structure2D = single2D.structure   # equal to self.structure1
+        self.structure3D = single3D.structure   # equal to self.structure2
 
     def get_sigma(self):
         # rescale sigma to correct for the rescaling of the coordinate system
@@ -328,8 +333,8 @@ class testMixedPair2D3D(testPair):
         com = self.world.calculate_pair_CoM(pos1, pos2, D_1, D_2)
 
         # and then projected onto the plane to make sure the CoM is in the surface
-        com = self.world.cyclic_transpose(com, self.surface.shape.position)
-        com, _ = self.surface.projected_point (com)
+        com = self.world.cyclic_transpose(com, self.structure2D.shape.position)
+        com, _ = self.structure2D.projected_point (com)
         com = self.world.apply_boundary(com)
 
 
@@ -338,9 +343,9 @@ class testMixedPair2D3D(testPair):
         iv = pos2t - pos1
 
         # rescale the iv in the axis normal to the plane
-        iv_z_component = numpy.dot (iv, self.surface.shape.unit_z)
-        iv_z     = self.surface.shape.unit_z * iv_z_component
-        new_iv_z = self.surface.shape.unit_z * (iv_z_component * self.get_scaling_factor())
+        iv_z_component = numpy.dot (iv, self.structure2D.shape.unit_z)
+        iv_z     = self.structure2D.shape.unit_z * iv_z_component
+        new_iv_z = self.structure2D.shape.unit_z * (iv_z_component * self.get_scaling_factor())
 
         iv = iv - iv_z + new_iv_z
 
@@ -367,9 +372,7 @@ class testPlanarSurfaceTransitionPair(testPair):
         if __debug__: 
                 assert isinstance(single1.structure, PlanarSurface) 
                 assert isinstance(single2.structure, PlanarSurface) 
-        self.structure1 = single1.structure         # note that these need to be initialized before calling testPair.__init__
-        self.structure2 = single2.structure         # since then these are needed for calculating the transform
-        self.structure  = self.structure1           # some pair methods might need this to be defined
+        self.structure  = self.structure1           # some pair methods might need this to be defined TODO Remove and test
 
         testPair.__init__(self, single1, single2) # note: this makes self.single1/self.pid_particle_pair1 and the same for particle2
 
@@ -1223,7 +1226,7 @@ class PlanarSurfaceTransitionSingletestShell(SphericaltestShell, testTransitionS
 
         self.center = self.pid_particle_pair[1].position
         try:
-            self.radius = self.determine_possible_shell(self.structure.id, [self.single.domain_id],
+            self.radius = self.determine_possible_shell(self.origin_structure.id, [self.single.domain_id],
                                                         [self.target_structure.id])
         except ShellmakingError as e:
             raise testShellError('(PlanarSurfaceTransitionSingle). %s' %
@@ -1644,9 +1647,9 @@ class CylindricalSurfacePairtestShell(CylindricaltestShell, testSimplePair):
 #####
 class PlanarSurfaceInteractiontestShell(CylindricaltestShell, testInteractionSingle):
 
-    def __init__(self, single, surface, geometrycontainer, domains):
+    def __init__(self, single, target_structure, geometrycontainer, domains):
         CylindricaltestShell.__init__(self, geometrycontainer, domains)  # this must be first because of world definition
-        testInteractionSingle.__init__(self, single, single.structure, surface)
+        testInteractionSingle.__init__(self, single, single.structure, target_structure)
 
         # initialize scaling parameters
         self.dzdr_right = 1.0
@@ -1663,7 +1666,7 @@ class PlanarSurfaceInteractiontestShell(CylindricaltestShell, testInteractionSin
         # If not possible, it throws an exception and the construction of the testShell IS ABORTED!
         try:
             self.dr, self.dz_right, self.dz_left = \
-                            self.determine_possible_shell(self.structure.id, [self.single.domain_id], [self.surface.id])
+                            self.determine_possible_shell(self.origin_structure.id, [self.single.domain_id], [self.target_structure.id])
         except ShellmakingError as e:
             raise testShellError('(PlanarSurfaceInteration). %s' %
                                  (str(e)))
@@ -1700,15 +1703,15 @@ class PlanarSurfaceInteractiontestShell(CylindricaltestShell, testInteractionSin
 #####
 class CylindricalSurfaceInteractiontestShell(CylindricaltestShell, testInteractionSingle):
 
-    def __init__(self, single, surface, geometrycontainer, domains):
+    def __init__(self, single, target_structure, geometrycontainer, domains):
         CylindricaltestShell.__init__(self, geometrycontainer, domains)  # this must be first because of world definition
-        testInteractionSingle.__init__(self, single, single.structure, surface)
+        testInteractionSingle.__init__(self, single, single.structure, target_structure)
 
         # initialize scaling parameters
         self.dzdr_right = 1.0
         self.drdz_right = 1.0
         self.r0_right   = 0.0
-        self.z0_right   = -(self.particle_surface_distance + self.surface.shape.radius)   # note that this is because dzdr_right = 1.0
+        self.z0_right   = -(self.particle_surface_distance + self.target_structure.shape.radius)   # note that this is because dzdr_right = 1.0
         self.dzdr_left  = self.dzdr_right
         self.drdz_left  = self.drdz_right
         self.r0_left    = self.r0_right
@@ -1719,14 +1722,14 @@ class CylindricalSurfaceInteractiontestShell(CylindricaltestShell, testInteracti
         # If not possible, it throws an exception and the construction of the testShell IS ABORTED!
         try:
             self.dr, self.dz_right, self.dz_left = \
-                            self.determine_possible_shell(self.structure.id, [self.single.domain_id], [self.surface.id])
+                            self.determine_possible_shell(self.origin_structure.id, [self.single.domain_id], [self.target_structure.id])
         except ShellmakingError as e:
             raise testShellError('(CylindricalSurfaceInteraction). %s' %
                                  (str(e)))
 
 
     def get_orientation_vector(self):
-        return self.surface.shape.unit_z
+        return self.target_structure.shape.unit_z
 
     def get_searchpoint(self):
         return self.reference_point         # calculated in the __init__ of testInteractionSingle
@@ -1735,17 +1738,17 @@ class CylindricalSurfaceInteractiontestShell(CylindricaltestShell, testInteracti
         return self.reference_point         # calculated in the __init__ of testInteractionSingle
 
     def get_min_dr_dzright_dzleft(self):
-        dr       = self.pid_particle_pair[1].radius * SINGLE_SHELL_FACTOR + (self.particle_surface_distance + self.surface.shape.radius)
+        dr       = self.pid_particle_pair[1].radius * SINGLE_SHELL_FACTOR + (self.particle_surface_distance + self.target_structure.shape.radius)
         dz_right = self.pid_particle_pair[1].radius * SINGLE_SHELL_FACTOR
         dz_left  = dz_right
         return dr, dz_right, dz_left
         
     def get_max_dr_dzright_dzleft(self):
         # TODO clarify
-        dz_right = ((-(self.particle_surface_distance + self.surface.shape.radius) + \
-                     math.sqrt(2*(self.get_searchradius()**2) - (self.particle_surface_distance + self.surface.shape.radius)**2)) / 2.0)
+        dz_right = ((-(self.particle_surface_distance + self.target_structure.shape.radius) + \
+                     math.sqrt(2*(self.get_searchradius()**2) - (self.particle_surface_distance + self.target_structure.shape.radius)**2)) / 2.0)
         dz_left  = dz_right
-        dr       = ((self.particle_surface_distance + self.surface.shape.radius) + dz_right)
+        dr       = ((self.particle_surface_distance + self.target_structure.shape.radius) + dz_right)
         return dr, dz_right, dz_left
 
     def apply_safety(self, r, z_right, z_left):
@@ -1753,9 +1756,9 @@ class CylindricalSurfaceInteractiontestShell(CylindricaltestShell, testInteracti
 
 class CylindricalSurfaceSinktestShell(CylindricaltestShell, testInteractionSingle):
 
-    def __init__(self, single, surface, geometrycontainer, domains):
+    def __init__(self, single, target_structure, geometrycontainer, domains):
         CylindricaltestShell.__init__(self, geometrycontainer, domains)  # this must be first because of world definition
-        testInteractionSingle.__init__(self, single, single.structure, surface)
+        testInteractionSingle.__init__(self, single, single.structure, target_structure)
 
         # initialize scaling parameters
         self.dzdr_right = numpy.inf
@@ -1772,7 +1775,7 @@ class CylindricalSurfaceSinktestShell(CylindricaltestShell, testInteractionSingl
         # If not possible, it throws an exception and the construction of the testShell IS ABORTED!
         try:
             self.dr, self.dz_right, self.dz_left = \
-                            self.determine_possible_shell(self.structure.id, [self.single.domain_id], [self.surface.id])
+                            self.determine_possible_shell(self.origin_structure.id, [self.single.domain_id], [self.target_structure.id])
         except ShellmakingError as e:
             raise testShellError('(CylindricalSurfaceSink). %s' %
                                  (str(e)))
@@ -1787,10 +1790,10 @@ class CylindricalSurfaceSinktestShell(CylindricaltestShell, testInteractionSingl
 
 
     def get_orientation_vector(self):
-        pos = self.world.cyclic_transpose(self.pid_particle_pair[1].position, self.surface.shape.position)
-        orientation_vector = pos - self.surface.shape.position
+        pos = self.world.cyclic_transpose(self.pid_particle_pair[1].position, self.target_structure.shape.position)
+        orientation_vector = pos - self.target_structure.shape.position
         # if the dot product is negative, then take the -unit_z, otherwise take unit_z
-        return self.surface.shape.unit_z * cmp(numpy.dot(orientation_vector, self.surface.shape.unit_z), 0)
+        return self.target_structure.shape.unit_z * cmp(numpy.dot(orientation_vector, self.target_structure.shape.unit_z), 0)
 
     def get_searchpoint(self):
         return self.pid_particle_pair[1].position
@@ -1855,8 +1858,8 @@ class MixedPair2D3DtestShell(CylindricaltestShell, testMixedPair2D3D):
         # If not possible, it throws an exception and the construction of the testShell IS ABORTED!
         try:
             self.dr, self.dz_right, self.dz_left = \
-                            self.determine_possible_shell(self.structure.id, [self.single1.domain_id, self.single2.domain_id],
-                                                          [self.surface.id])
+                            self.determine_possible_shell(self.structure3D.id, [self.single1.domain_id, self.single2.domain_id],
+                                                          [self.structure2D.id])
         except ShellmakingError as e:
             raise testShellError('(MixedPair2D3D). %s' %
                                  (str(e)))
@@ -1864,7 +1867,7 @@ class MixedPair2D3DtestShell(CylindricaltestShell, testMixedPair2D3D):
 
     def get_orientation_vector(self):
         # if the dot product is negative, then take the -unit_z, otherwise take unit_z
-        return self.surface.shape.unit_z * cmp(numpy.dot(self.iv, self.surface.shape.unit_z), 0)
+        return self.structure2D.shape.unit_z * cmp(numpy.dot(self.iv, self.structure2D.shape.unit_z), 0)
 
     def get_searchpoint(self):
         # TODO this can be improved, now same as PlanarSurfaceInteraction
