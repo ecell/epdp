@@ -74,21 +74,21 @@ def create_default_single(domain_id, shell_id, pid_particle_pair, structure, rea
         return CylindricalSurfaceSingle (domain_id, shell_id, testSingle, reaction_rules)
 
 ### Interactions
-def try_default_testinteraction(single, surface, geometrycontainer, domains):
+def try_default_testinteraction(single, target_structure, geometrycontainer, domains):
     if isinstance(single.structure, CuboidalRegion):
-        if isinstance(surface, PlanarSurface):
-            return PlanarSurfaceInteractiontestShell(single, surface, geometrycontainer, domains)
-        elif isinstance(surface, CylindricalSurface):
-            return CylindricalSurfaceInteractiontestShell(single, surface, geometrycontainer, domains)
+        if isinstance(target_structure, PlanarSurface):
+            return PlanarSurfaceInteractiontestShell(single, target_structure, geometrycontainer, domains)
+        elif isinstance(target_structure, CylindricalSurface):
+            return CylindricalSurfaceInteractiontestShell(single, target_structure, geometrycontainer, domains)
         else:
-            raise testShellError('(Interaction). Combination of (3D particle, surface) is not supported')
+            raise testShellError('(Interaction). Combination of (3D particle, target_structure) is not supported')
     elif isinstance(single.structure, PlanarSurface):
-        raise testShellError('(Interaction). Combination of (2D particle, surface) is not supported')
+        raise testShellError('(Interaction). Combination of (2D particle, target_structure) is not supported')
     elif isinstance(single.structure, CylindricalSurface):
-        if isinstance(surface, CylindricalSurface):     # TODO differentiate between a sink and a cap
-            return CylindricalSurfaceSinktestShell (single, surface, geometrycontainer, domains)
+        if isinstance(target_structure, CylindricalSurface):     # TODO differentiate between a sink and a cap
+            return CylindricalSurfaceSinktestShell (single, target_structure, geometrycontainer, domains)
         else:
-            raise testShellError('(Interaction). Combination of (1D particle, surface) is not supported')
+            raise testShellError('(Interaction). Combination of (1D particle, target_structure) is not supported')
     else:
         raise testShellError('(Interaction). structure of particle was of invalid type')
 
@@ -103,14 +103,14 @@ def create_default_interaction(domain_id, shell_id, testShell, reaction_rules, i
 ### Transitions
 def try_default_testtransition(single, target_structure, geometrycontainer, domains):
     if isinstance(single.structure, CuboidalRegion):        
-            raise testShellError('(Transition). Combination of (3D particle, surface) is not supported')
+            raise testShellError('(Transition). Combination of (3D particle, target_structure) is not supported')
     elif isinstance(single.structure, PlanarSurface):
         if isinstance(target_structure, PlanarSurface):
             return PlanarSurfaceTransitionSingletestShell(single, target_structure, geometrycontainer, domains)
         else:
-            raise testShellError('(Transition). Combination of (2D particle, surface other than plane) is not supported')
+            raise testShellError('(Transition). Combination of (2D particle, target_structure other than plane) is not supported')
     elif isinstance(single.structure, CylindricalSurface):        
-            raise testShellError('(Transition). Combination of (1D particle, surface) is not supported')
+            raise testShellError('(Transition). Combination of (1D particle, target_structure) is not supported')
     else:
         raise testShellError('(Transition). structure of particle was of invalid type')
 
@@ -504,8 +504,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
         species_id = testShell.pid_particle_pair[1].sid
         reaction_rules = self.network_rules.query_reaction_rule(species_id)
         # get reaction rules for interaction
-        surfacetype_id = testShell.surface.sid
-        interaction_rules = self.network_rules.query_reaction_rule(species_id, surfacetype_id)
+        structure_type_id = testShell.target_structure.sid
+        interaction_rules = self.network_rules.query_reaction_rule(species_id, structure_type_id)
 
         # 2. Create and register the interaction domain.
         # The type of the interaction that will be created 
@@ -1229,18 +1229,18 @@ class EGFRDSimulator(ParticleSimulatorBase):
             # 1. get product info
             product_species      = self.world.get_species(rr.products[0])
             product_radius       = product_species.radius
-            product_surface      = single.surface
+            product_structure    = single.target_structure
 
             # TODO make sure that the product species lives on the same type of the interaction surface
 #            product_structure_type = self.world.get_structure(product_species.structure_id)
-#            assert (single.surface.sid == self.world.get_structure(product_species.structure_id)), \
+#            assert (single.target_structure.sid == self.world.get_structure(product_species.structure_id)), \
 #                   'Product particle should live on the surface of interaction after the reaction.'
 
             # 1.5 get new position and structure_id of particle
-            transposed_pos       = self.world.cyclic_transpose(reactant_pos, product_surface.shape.position)
-            product_pos, _       = product_surface.projected_point(transposed_pos)
+            transposed_pos       = self.world.cyclic_transpose(reactant_pos, product_structure.shape.position)
+            product_pos, _       = product_structure.projected_point(transposed_pos)
             product_pos          = self.world.apply_boundary(product_pos)        # not sure this is still necessary
-            product_structure_id = product_surface.id
+            product_structure_id = product_structure.id
 
             # 2. burst the volume that will contain the products.
             #    Note that an interaction domain is already sized such that it includes the
@@ -2095,23 +2095,23 @@ class EGFRDSimulator(ParticleSimulatorBase):
         return zero_singles_fin, ignore
 
 
-    def try_interaction(self, single, surface):
-    # Try to form an interaction between the 'single' particle and the 'surface'. The interaction can be a:
+    def try_interaction(self, single, target_structure):
+    # Try to form an interaction between the 'single' particle and the 'target_structure'. The interaction can be a:
     # -CylindricalSurfaceInteraction
     # -PlanarSurfaceInteraction
 
         if __debug__:
-           log.debug('trying to form Interaction(%s, %s)' % (single.pid_particle_pair[1], surface))
+           log.debug('trying to form Interaction(%s, %s)' % (single.pid_particle_pair[1], target_structure))
 
 
         ### 1. Attempt to make a testShell. If it fails it will throw an exception.
         try:
-            testShell = try_default_testinteraction(single, surface, self.geometrycontainer, self.domains)
+            testShell = try_default_testinteraction(single, target_structure, self.geometrycontainer, self.domains)
         except testShellError as e:
             testShell = None
             if __debug__:
                 log.debug('%s not formed %s' % \
-                          ('Interaction(%s, %s)' % (single.pid_particle_pair[0], surface),
+                          ('Interaction(%s, %s)' % (single.pid_particle_pair[0], target_structure),
                           str(e) ))
 
 
@@ -2512,7 +2512,7 @@ rejected moves = %d
         elif isinstance(domain, InteractionSingle) or isinstance(domain, MixedPair2D3D):
             # Ignore surface of the particle and interaction surface
             ignores = []
-            associated = [domain.structure.id, domain.surface.id]
+            associated = [domain.origin_structure.id, domain.target_structure.id]
         elif isinstance(domain, PlanarSurfaceTransitionSingle) or isinstance(domain, PlanarSurfaceTransitionPair):
             # Ignore surface of the particle and interaction surface
             ignores = []
