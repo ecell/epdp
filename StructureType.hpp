@@ -38,6 +38,11 @@ public:
     // Get the id of the structure type the structure_type lives on/in
     structure_type_id_type const& structure_type_id() const;
 
+    // Check equality/inequality
+    bool operator==(StructureType const& rhs) const;
+
+    bool operator!=(StructureType const& rhs) const;
+
     std::string const& operator[](std::string const& name) const;
 
     std::string& operator[](std::string const& name);
