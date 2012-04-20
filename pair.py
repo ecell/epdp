@@ -52,6 +52,9 @@ class Pair(ProtectiveDomain, Others):
         self.pid_particle_pair1 = self.testShell.pid_particle_pair1
         self.pid_particle_pair2 = self.testShell.pid_particle_pair2
 
+        self.structure1 = self.testShell.structure1
+        self.structure2 = self.testShell.structure2
+
         self.interparticle_rrs = rrs
         self.interparticle_ktot = self.calc_ktot(rrs)
         # copy constants from the testShell so that we don't have to recalculate them.
@@ -143,7 +146,8 @@ class Pair(ProtectiveDomain, Others):
                                                   self.pid_particle_pair2[1].D,
                                                   self.pid_particle_pair1[1].radius,
                                                   self.pid_particle_pair2[1].radius,
-                                                  self.structure,
+                                                  self.structure1,
+                                                  self.structure2,
                                                   unit_z)
         # sid = structure_id
 
@@ -204,22 +208,24 @@ class SimplePair(Pair):
 
         Pair.__init__(self, domain_id, shell_id, rrs)
 
-        self.structure = self.testShell.structure              # structure on which both particles live
+        self.structure = self.testShell.structure # structure on which both particles live
 
         shell_size = self.get_shell_size()                  # FIXME
         self.a_R, self.a_r = self.determine_radii(self.r0, shell_size)
         # set the radii of the inner domains as a function of the outer protective domain
 
     @ classmethod
-    def do_back_transform(cls, com, iv, D1, D2, radius1, radius2, structure, unit_z):
+    def do_back_transform(cls, com, iv, D1, D2, radius1, radius2, structure1, structure2, unit_z):
     # here we assume that the com and iv are really in the structure and no adjustments have to be
     # made
 
+        # For simple pairs the particles live on the same structure
+        assert(self.structure1.id == self.structure2.id)
         D_tot = D1 + D2
         pos1 = com - iv * (D1 / D_tot)
         pos2 = com + iv * (D2 / D_tot)
 
-        return pos1, pos2, self.structure.id, self.structure.id
+        return pos1, pos2, self.structure1.id, self.structure2.id
 
     def get_shell_size(self):
         return self.shell.shape.radius
@@ -515,21 +521,13 @@ class PlanarSurfaceTransitionPair(SimplePair, hasSphericalShell):
 
         assert isinstance(testShell, PlanarSurfaceTransitionPairtestShell)
         hasSphericalShell.__init__(self, testShell, domain_id)
-        self.LD_MAX = numpy.inf # 20?
+        self.LD_MAX = numpy.inf # TODO was 20. Why?
         SimplePair.__init__(self, domain_id, shell_id, rrs)     # Always initialize AFTER hasSphericalShell
         
         self.structure1 = self.testShell.structure1
         self.structure2 = self.testShell.structure2
         self.structure  = self.testShell.structure1 # just for safety
 
-    #@ property
-    #def structure1(self):
-        #return self.testShell.structure1
-
-    #@ property
-    #def structure2(self):
-        #return self.testShell.structure2
-    
     def com_greens_function(self):
         return GreensFunction2DAbsSym(self.D_R, self.a_R)
 
@@ -606,8 +604,8 @@ class PlanarSurfaceTransitionPair(SimplePair, hasSphericalShell):
 
         return new_iv_x + new_iv_y
 
-    #@ classmethod # TODO Why do we actually need this???
-    def do_back_transform(self, com, iv, D1, D2, radius1, radius2, structure, unit_z):
+    @ classmethod
+    def do_back_transform(cls, com, iv, D1, D2, radius1, radius2, structure1, structure2, unit_z):
 
         # structure should be = structure1, but for safety we use the structures
         # inherited from the test shell
@@ -623,8 +621,8 @@ class PlanarSurfaceTransitionPair(SimplePair, hasSphericalShell):
         # These components also are used to calculate the safety factor for
         # interparticle vector enlargement in case that the two particles
         # indeed are on two different planes.
-        _, pos1_orth = self.structure2.projected_point(pos1)
-        _, pos2_orth = self.structure2.projected_point(pos2)
+        _, pos1_orth = cls.structure2.projected_point(pos1)
+        _, pos2_orth = cls.structure2.projected_point(pos2)
 
         if( pos1_orth * pos2_orth < 0.0 ) :
             # The particles will end up on different planes, i.e.
@@ -650,19 +648,19 @@ class PlanarSurfaceTransitionPair(SimplePair, hasSphericalShell):
         # bogus parameters for these by subtracting the center position of structure1 from pos1 and pos2.
         s1_ctr = self.structure1.shape.position
 
-        new_pos1, changeflag1 = self.structure2.deflect(s1_ctr, pos1 - s1_ctr)
-        new_pos2, changeflag2 = self.structure2.deflect(s1_ctr, pos2 - s1_ctr)
+        new_pos1, changeflag1 = cls.structure2.deflect(s1_ctr, pos1 - s1_ctr)
+        new_pos2, changeflag2 = cls.structure2.deflect(s1_ctr, pos2 - s1_ctr)
         
         # adjust the structure_ids of the particles
         if changeflag1 == 0 :
-            new_sid1 = self.structure1.id
+            new_sid1 = cls.structure1.id
         else :
-            new_sid1 = self.structure2.id
+            new_sid1 = cls.structure2.id
 
         if changeflag2 == 0 :
-            new_sid2 = self.structure1.id
+            new_sid2 = cls.structure1.id
         else :
-            new_sid2 = self.structure2.id
+            new_sid2 = cls.structure2.id
 
         # TODO: Check that the new positions are in their new planes and 
         # maybe also that pos1 and pos2 are in structure1 in the first place?
@@ -803,8 +801,8 @@ class MixedPair2D3D(Pair, hasCylindricalShell):
         Pair.__init__(self, domain_id, shell_id, rrs)
 
         assert isinstance(self.testShell, testMixedPair2D3D)
-        self.surface = self.testShell.surface       # the surface on which particle1 lives
-        self.structure = self.testShell.structure   # structure on which both particles live
+        self.structure2D = self.testShell.structure2D   # the surface on which particle1 lives
+        self.structure3D = self.testShell.structure3D   # structure on which both particles live
 
         # initialize some useful constants
         self.z_scaling_factor = self.testShell.get_scaling_factor()
@@ -867,9 +865,11 @@ class MixedPair2D3D(Pair, hasCylindricalShell):
         return a_R, a_r
 
     @ classmethod
-    def do_back_transform(cls, com, iv, D1, D2, radius1, radius2, surface, unit_z):
+    def do_back_transform(cls, com, iv, D1, D2, radius1, radius2, structure2D, structure3D, unit_z):
     # here we assume that the com and iv are really in the structure and no adjustments have to be
     # made
+    #
+    # structure3D is not used here but has to be passed because of the classmethod property
 
         D_tot = D1 + D2
         weight1 = D1 / D_tot
@@ -880,8 +880,8 @@ class MixedPair2D3D(Pair, hasCylindricalShell):
         min_iv_z_length = (radius1 + radius2) * 0.5 * (MINIMAL_SEPARATION_FACTOR - 1.0)
 
         # get the coordinates of the iv relative to the system of the surface (or actually the shell)
-        iv_x = surface.shape.unit_x * numpy.dot(iv, surface.shape.unit_x)
-        iv_y = surface.shape.unit_y * numpy.dot(iv, surface.shape.unit_y)
+        iv_x = structure2D.shape.unit_x * numpy.dot(iv, structure2D.shape.unit_x)
+        iv_y = structure2D.shape.unit_y * numpy.dot(iv, structure2D.shape.unit_y)
 
         # reflect the coordinates in the unit_z direction back to the side of the membrane
         # where the domain is. Note that it's implied that the origin of the coordinate system lies in the
@@ -901,7 +901,7 @@ class MixedPair2D3D(Pair, hasCylindricalShell):
         pos1 = com - weight1 * (iv_x + iv_y)
         pos2 = com + weight2 * (iv_x + iv_y) + iv_z 
 
-        return pos1, pos2, self.surface.id, self.surface.id
+        return pos1, pos2, self.structure2D.id, self.structure2D.id
 
     @ classmethod
     def calc_z_scaling_factor(cls, D2d, D3d):
@@ -924,7 +924,7 @@ class MixedPair2D3D(Pair, hasCylindricalShell):
     def create_com_vector(self, r):
         x, y = random_vector2D(r)
         # project the com onto the surface unit vectors to make sure that the coordinates are in the surface
-        return x * self.surface.shape.unit_x + y * self.surface.shape.unit_y
+        return x * self.structure2D.shape.unit_x + y * self.structure2D.shape.unit_y
 
     def create_interparticle_vector(self, gf, r, dt, r0, old_iv):
         # FIXME This is actually the same method as for SphericalPair
@@ -973,7 +973,7 @@ class MixedPair2D3D(Pair, hasCylindricalShell):
             'MixedPair2D3D: Domain did not obey scaling relationship. '
 
         # check that the CoM is in the surface
-        assert numpy.dot( (self.com-self.surface.shape.position), self.surface.shape.unit_z) == 0.0
+        assert numpy.dot( (self.com-self.structure2D.shape.position), self.structure2D.shape.unit_z) == 0.0
         # check that the IV is NOT in the surface
 
     def __str__(self):
@@ -982,19 +982,23 @@ class MixedPair2D3D(Pair, hasCylindricalShell):
 class MixedPair1D3D(Pair):
 
     @ classmethod
-    def do_back_transform(cls, com, iv, D1, D2, radius1, radius2, surface, unit_z):
+    def do_back_transform(cls, com, iv, D1, D2, radius1, radius2, structure1D, structure3D, unit_z):
     # here we assume that the com and iv are really in the structure and no adjustments have to be
     # made
     # unit_z is a putatively different unit_z than that available in the surface object
+    #
+    # note that structure1D is not a 1D object but the surface that the 1D particle is bound to
+    #
+    # structure3D is not used here but has to be passed because of the classmethod property
 
         D_tot = D1 + D2
         weight1 = D1 / D_tot
         weight2 = D2 / D_tot
 
-        min_iv_r_length = radius2 + surface.shape.radius
+        min_iv_r_length = radius2 + structure1D.shape.radius
 
         # get the coordinates of the iv relative to the system of the surface (or actually the shell)
-        iv_z = surface.shape.unit_z * numpy.dot(iv, surface.shape.unit_z)
+        iv_z = structure1D.shape.unit_z * numpy.dot(iv, structure1D.shape.unit_z)
         iv_r = iv - iv_z
 
         # reflect the coordinates in the unit_z direction back to the side of the membrane
@@ -1013,7 +1017,7 @@ class MixedPair1D3D(Pair):
         pos1 = com - weight1 * iv_z
         pos2 = com + weight2 * iv_z + iv_r
 
-        return pos1, pos2, self.surface.id, self.surface.id
+        return pos1, pos2, self.structure1D.id, self.structure1D.id
 
     @ classmethod
     def calc_r_scaling_factor(cls, D1, D2):
