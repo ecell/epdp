@@ -295,6 +295,16 @@ public:
         return py_wrapper_type::get_override("get_structures")();
     }
 
+    virtual bool update_structure(structure_id_pair const& structid_pair)
+    {
+        return py_wrapper_type::get_override("update_structure")(structid_pair);
+    }
+
+    virtual bool remove_structure(structure_id_type const& id)
+    {
+        return py_wrapper_type::get_override("remove_structure")(id);
+    }
+
     virtual structure_id_set get_structure_ids(structure_type_id_type const& sid) const
     {
         return py_wrapper_type::get_override("get_structure_ids")(sid);
@@ -309,6 +319,14 @@ public:
     {
         return py_wrapper_type::get_override("get_closest_surface")(pos, ignore);
     }
+    virtual structure_id_pair_and_distance_list* get_close_structures(position_type const& pos, structure_id_type const& current_struct_id,
+                                                                      structure_id_type const& ignore) const
+    {
+        return py_wrapper_type::get_override("get_close_structures")(
+                pos, current_struct_id, boost::python::make_tuple(ignore))
+               .template unchecked<structure_id_pair_and_distance_list*>();
+    }
+
     // end structure stuff
 
     // Begin StructureType stuff
@@ -384,7 +402,7 @@ public:
     virtual structure_id_pair_and_distance_list* check_surface_overlap(particle_shape_type const& s, position_type const& old_pos, structure_id_type const& current) const
     {
         return py_wrapper_type::get_override("check_surface_overlap")(
-                s, old_pos, boost::python::make_tuple(current))
+                s, old_pos, current)
                .template unchecked<structure_id_pair_and_distance_list*>();
     }
 

@@ -52,6 +52,7 @@ public:
     typedef typename world_type::particle_container_type::structure_id_pair                 structure_id_pair;
     typedef typename world_type::particle_container_type::structure_id_and_distance_pair    structure_id_and_distance_pair;
     typedef typename world_type::particle_container_type::structure_id_set                  structure_id_set;
+    typedef typename world_type::particle_container_type::particle_id_pair_and_distance_list    particle_id_pair_and_distance_list;
     typedef typename world_type::particle_container_type::structure_id_pair_and_distance_list   structure_id_pair_and_distance_list;
 
     typedef typename Ttraits_::network_rules_type       network_rules_type;
@@ -60,8 +61,8 @@ public:
 
     typedef abstract_limited_generator<particle_id_pair>                    particle_id_pair_generator;
     typedef std::pair<particle_id_pair, length_type>                        particle_id_pair_and_distance;
-    typedef unassignable_adapter<particle_id_pair_and_distance,
-                                 get_default_impl::std::vector>             particle_id_pair_and_distance_list;
+//    typedef unassignable_adapter<particle_id_pair_and_distance,
+//                                 get_default_impl::std::vector>             particle_id_pair_and_distance_list;
     typedef std::map<particle_id_type, particle_type>                       particle_map;
     typedef sized_iterator_range<typename particle_map::const_iterator>     particle_id_pair_range;
     typedef std::pair<const Real, const Real> real_pair;
@@ -105,11 +106,19 @@ public:
     {
         return world_.get_structures();     // TODO now gets all structures in world, -> make structure local to Multi
     }
+    // virtual structure_id_type add_structure(structure_type const& structure); // TODO add structure from the world to multi
+    virtual bool update_structure(structure_id_pair const& structid_pair)
+    {
+        return world_.update_structure(structid_pair);
+    }
+    virtual bool remove_structure(structure_id_type const& id)
+    {
+        return world_.remove_structure(id);
+    }
     virtual structure_id_set get_structure_ids(structure_type_id_type const& sid) const
     {
         return world_.get_structure_ids(sid);
     }
-    // virtual structure_id_type add_structure(structure_type const& structure); // TODO add structure from the world to multi
     virtual structure_id_type get_def_structure_id() const
     {
         return world_.get_def_structure_id();
@@ -117,6 +126,11 @@ public:
     virtual structure_id_and_distance_pair get_closest_surface(position_type const& pos, structure_id_type const& ignore) const
     {        
         return world_.get_closest_surface( pos, ignore );   // TODO loop only over 'local' surfaces
+    }
+    virtual structure_id_pair_and_distance_list* get_close_structures(position_type const& pos, structure_id_type const& current_struct_id,
+                                                                      structure_id_type const& ignore) const
+    {
+        return world_.get_close_structures(pos, current_struct_id, ignore);
     }
     // End structure stuff
 

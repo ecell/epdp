@@ -236,7 +236,7 @@ struct structures_range_converter: public boost::python::default_call_policies
     // Register the converter.
     static void __register()
     {
-        wrapper_type::__class_init__("SurfacesRange", boost::python::scope().ptr());
+        wrapper_type::__class_init__("StructuresRange", boost::python::scope().ptr());
     }
 };
 
