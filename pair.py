@@ -621,8 +621,8 @@ class PlanarSurfaceTransitionPair(SimplePair, hasSphericalShell):
         # These components also are used to calculate the safety factor for
         # interparticle vector enlargement in case that the two particles
         # indeed are on two different planes.
-        _, pos1_orth = cls.structure2.projected_point(pos1)
-        _, pos2_orth = cls.structure2.projected_point(pos2)
+        _, pos1_orth = structure2.projected_point(pos1)
+        _, pos2_orth = structure2.projected_point(pos2)
 
         if( pos1_orth * pos2_orth < 0.0 ) :
             # The particles will end up on different planes, i.e.
@@ -646,21 +646,21 @@ class PlanarSurfaceTransitionPair(SimplePair, hasSphericalShell):
         # if not, they have to be deflected on structure2.
         # The structure.deflect() method requires a starting point and a displacement; we can construct
         # bogus parameters for these by subtracting the center position of structure1 from pos1 and pos2.
-        s1_ctr = self.structure1.shape.position
+        s1_ctr = structure1.shape.position
 
-        new_pos1, changeflag1 = cls.structure2.deflect(s1_ctr, pos1 - s1_ctr)
-        new_pos2, changeflag2 = cls.structure2.deflect(s1_ctr, pos2 - s1_ctr)
+        new_pos1, changeflag1 = structure2.deflect(s1_ctr, pos1 - s1_ctr)
+        new_pos2, changeflag2 = structure2.deflect(s1_ctr, pos2 - s1_ctr)
         
         # adjust the structure_ids of the particles
         if changeflag1 == 0 :
-            new_sid1 = cls.structure1.id
+            new_sid1 = structure1.id
         else :
-            new_sid1 = cls.structure2.id
+            new_sid1 = structure2.id
 
         if changeflag2 == 0 :
-            new_sid2 = cls.structure1.id
+            new_sid2 = structure1.id
         else :
-            new_sid2 = cls.structure2.id
+            new_sid2 = structure2.id
 
         # TODO: Check that the new positions are in their new planes and 
         # maybe also that pos1 and pos2 are in structure1 in the first place?
