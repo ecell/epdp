@@ -933,7 +933,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
             product_structure_type_id = product_species.structure_type_id
 
             # 1.5 get new position and structure_id of particle
-            # If the particle falls of a surface (non CuboidalRegion)
+            # If the particle falls off a surface (non CuboidalRegion)
             if product_structure_type_id != reactant_structure_type_id:
                 assert (product_structure_type_id == self.world.get_def_structure_type_id())
 
@@ -1073,7 +1073,10 @@ class EGFRDSimulator(ParticleSimulatorBase):
                         unit_z = reactant_structure.shape.unit_z * myrandom.choice(-1, 1)
                         newposA, newposB = MixedPair2D3D.do_back_transform(reactant_pos, iv, DA, DB,
                                                                            productA_radius, productB_radius,
-                                                                           reactant_structure, unit_z)
+                                                                           reactant_structure, reactant_structure,
+                                                                           unit_z)
+                        # the second reactant_structure parameter passed is ignored here
+
                         if default:
                             newpos1, newpos2 = newposA, newposB
                         else:
@@ -1089,7 +1092,9 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
                         newposA, newposB = MixedPair1D3D.do_back_transform(reactant_pos, iv, DA, DB,
                                                                            productA_radius, productB_radius,
-                                                                           reactant_structure)
+                                                                           reactant_structure, reactant_structure)
+                        # the second reactant_structure parameter passed is ignored here
+                        # TODO: Why is there no unit_z passed here?
 
                         newposB = self.world.apply_boundary(newposB)
                         if __debug__:
@@ -1120,7 +1125,10 @@ class EGFRDSimulator(ParticleSimulatorBase):
                     unit_z = reactant_structure.shape.unit_z    # not used
                     newpos1, newpos2 = SimplePair.do_back_transform(reactant_pos, iv, D1, D2,
                                                                     product1_radius, product2_radius,
-                                                                    reactant_structure, unit_z)
+                                                                    reactant_structure, reactant_structure,
+                                                                    unit_z)
+                    # here do_back_transform requires that the two structures passed are the same because
+                    # it will checks for this!
 
                     product_pos_list.append((newpos1, newpos2))
 
