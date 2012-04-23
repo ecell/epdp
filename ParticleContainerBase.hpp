@@ -241,11 +241,29 @@ public:
         return oc.result();
     }
 
-    virtual structure_id_pair_and_distance_list* check_surface_overlap(particle_shape_type const& s, position_type const& old_pos, structure_id_type const& current) const
+    virtual structure_id_pair_and_distance_list* check_surface_overlap(particle_shape_type const& s, position_type const& old_pos, structure_id_type const& current,
+                                                                       length_type const& sigma) const
     {
-        typename utils::template overlap_checker<structure_id_pair_and_distance_list, boost::array<structure_id_type, 0> > oc;
-        // TODO
-        return oc.result();
+        typename utils::template overlap_checker<structure_id_pair_and_distance_list, boost::array<structure_id_type, 0> > checker;
+        const structure_id_set visible_structures (get_visible_structures(current));
+
+        structure_map temp_map;
+        for (typename structure_id_set::const_iterator i(visible_structures.begin()),
+                                                       e(visible_structures.end());
+             i != e; ++i)
+        {
+            temp_map[(*i)] = get_structure(*i);
+        }
+
+        for (typename structure_map::const_iterator i(temp_map.begin()),
+                                                    e(temp_map.end());
+             i != e; ++i)
+        {
+            const position_type cyc_pos(cyclic_transpose(s.position(), ((*i).second)->position())); //
+            const length_type dist((*i).second->newBD_distance(cyc_pos, s.radius(), old_pos, sigma));
+            checker(i, dist);
+        }
+        return checker.result();
     }
 
     particle_id_pair get_particle(particle_id_type const& id, bool& found) const

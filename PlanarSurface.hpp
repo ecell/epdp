@@ -200,6 +200,14 @@ public:
             return false;
     }
 
+    // This should replace above two methods.
+    virtual length_type newBD_distance(position_type const& new_pos, length_type const& radius, position_type const& old_pos, length_type const& sigma) const
+    {
+        const length_type sign(1.0);
+        // TODO
+        return sign * base_type::distance(new_pos) + sigma;
+    }
+
     virtual length_type minimal_distance(length_type const& radius) const
     {
         // PlanarSurface has thickness of 0.

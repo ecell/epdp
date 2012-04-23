@@ -210,6 +210,12 @@ public:
             return false;
     }
 
+    // This should replace above two methods.
+    virtual length_type newBD_distance(position_type const& new_pos, length_type const& radius, position_type const& old_pos, length_type const& sigma) const
+    {
+        return base_type::distance(new_pos);
+    }
+
     virtual length_type minimal_distance(length_type const& radius) const
     {
         length_type cylinder_radius = base_type::shape().radius();

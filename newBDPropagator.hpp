@@ -215,6 +215,8 @@ public:
                     tx_.check_overlap( particle_shape_type( new_pos, r0 + reaction_length_ ), pp.first) );
             overlapped.swap( overlapped_after_bounce );     // FIXME is there no better way?
                                             
+            // NOTE that it is asserted that the particle overlap criterium for the particle with other particles
+            // and surfaces is False!
             particles_in_overlap = overlapped ? overlapped->size(): 0; 
             
             // re-get the reaction partners (structures), at old position. TODO don't just do this when in the bulk.

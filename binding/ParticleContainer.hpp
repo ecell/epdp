@@ -504,10 +504,11 @@ public:
                .template unchecked<particle_id_pair_and_distance_list*>();
     }
 
-    virtual structure_id_pair_and_distance_list* check_surface_overlap(particle_shape_type const& s, position_type const& old_pos, structure_id_type const& current) const
+    virtual structure_id_pair_and_distance_list* check_surface_overlap(particle_shape_type const& s, position_type const& old_pos, structure_id_type const& current,
+                                                                       length_type const& sigma) const
     {
         return py_wrapper_type::get_override("check_surface_overlap")(
-                s, old_pos, current)
+                s, old_pos, current, sigma)
                .template unchecked<structure_id_pair_and_distance_list*>();
     }
 
@@ -601,7 +602,7 @@ inline boost::python::objects::class_base register_particle_container_class(
         .def("check_overlap", pure_virtual((typename impl_type::particle_id_pair_and_distance_list*(impl_type::*)(typename impl_type::particle_type::shape_type const&, typename impl_type::particle_id_type const&) const)&impl_type::check_overlap), return_value_policy<return_by_value>())
         .def("check_overlap", pure_virtual((typename impl_type::particle_id_pair_and_distance_list*(impl_type::*)(typename impl_type::particle_type::shape_type const&, typename impl_type::particle_id_type const&, typename impl_type::particle_id_type const&) const)&impl_type::check_overlap), return_value_policy<return_by_value>())
         .def("check_overlap", pure_virtual((typename impl_type::particle_id_pair_and_distance_list*(impl_type::*)(typename impl_type::particle_type::shape_type const&) const)&impl_type::check_overlap), return_value_policy<return_by_value>())
-        .def("check_surface_overlap", pure_virtual((typename impl_type::structure_id_pair_and_distance_list*(impl_type::*)(typename impl_type::particle_type::shape_type const&, typename impl_type::position_type const&, typename impl_type::structure_id_type const&) const)&impl_type::check_surface_overlap), return_value_policy<return_by_value>())
+        .def("check_surface_overlap", pure_virtual((typename impl_type::structure_id_pair_and_distance_list*(impl_type::*)(typename impl_type::particle_type::shape_type const&, typename impl_type::position_type const&, typename impl_type::structure_id_type const&, typename impl_type::length_type const&) const)&impl_type::check_surface_overlap), return_value_policy<return_by_value>())
         .def("create_transaction", pure_virtual(&impl_type::create_transaction),
                 return_value_policy<manage_new_object>())
         .def("distance", pure_virtual(&impl_type::distance))
