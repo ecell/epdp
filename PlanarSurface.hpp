@@ -203,9 +203,19 @@ public:
     // This should replace above two methods.
     virtual length_type newBD_distance(position_type const& new_pos, length_type const& radius, position_type const& old_pos, length_type const& sigma) const
     {
-        const length_type sign(1.0);
-        // TODO
-        return sign * base_type::distance(new_pos) + sigma;
+        const boost::array<length_type, 2> half_lengths(base_type::shape().half_extent());
+        const boost::array<length_type, 3> new_pos_xyz(::to_internal(base_type::shape(), new_pos));
+        const boost::array<length_type, 3> old_pos_xyz(::to_internal(base_type::shape(), old_pos));
+        if (new_pos_xyz[2] * old_pos_xyz[2] < 0 &&
+            ((abs(new_pos_xyz[0]) < half_lengths[0] && abs(new_pos_xyz[1]) < half_lengths[1]) ||
+             (abs(old_pos_xyz[0]) < half_lengths[0] && abs(old_pos_xyz[1]) < half_lengths[1])))
+        {
+            return -1.0 * base_type::distance(new_pos) + sigma;
+        }
+        else
+        {
+            return base_type::distance(new_pos) + sigma;
+        }
     }
 
     virtual length_type minimal_distance(length_type const& radius) const
