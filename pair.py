@@ -220,12 +220,12 @@ class SimplePair(Pair):
     # made
 
         # For simple pairs the particles live on the same structure
-        assert(self.structure1.id == self.structure2.id)
+        assert(structure1.id == structure2.id)
         D_tot = D1 + D2
         pos1 = com - iv * (D1 / D_tot)
         pos2 = com + iv * (D2 / D_tot)
 
-        return pos1, pos2, self.structure1.id, self.structure2.id
+        return pos1, pos2, structure1.id, structure2.id
 
     def get_shell_size(self):
         return self.shell.shape.radius

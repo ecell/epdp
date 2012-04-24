@@ -1144,20 +1144,17 @@ class EGFRDSimulator(ParticleSimulatorBase):
                     # (3) Calculate the new postions again using the correct back transform function.
                     if isinstance(reactant_structure, PlanarSurface):
 
-                        # Check whether one of the two positions is out of reactant_structure
-                        newpos1_in_rs = reactant_structure.to_internal(reactant_structure, newpos1)
-                        newpos2_in_rs = reactant_structure.to_internal(reactant_structure, newpos2)
-
-                        rs_hl = reactant_structure.shape.half_extent
+                        dist1 = self.world.distance(reactant_structure.shape, newpos1)
+                        dist2 = self.world.distance(reactant_structure.shape, newpos2)
 
                         newpos1_is_out = 0
                         newpos2_is_out = 0
-                        if(abs(newpos1_in_rs[0]) > rs_hl[0] || abs(newpos1_in_rs[1]) > rs_hl[1]):
+                        if(dist1 > 0.0):
                             newpos1_is_out = 1
                             out_pos = newpos1
                             in_pos  = newpos2
 
-                        if(abs(newpos2_in_rs[0]) > rs_hl[0] || abs(newpos2_in_rs[1]) > rs_hl[1]):
+                        if(dist2 > 0.0):
                             newpos2_is_out = 1
                             out_pos = newpos2
                             in_pos  = newpos1
@@ -1168,12 +1165,14 @@ class EGFRDSimulator(ParticleSimulatorBase):
                         if(newpos1_is_out or newpos2_is_out):
 
                             # Get the closest plane
+                            neighbors = []
                             neighbors = self.geometrycontainer.get_neighbor_surfaces(out_pos, reactant_structure.id, ignores=[])
-                            
+
+                            neighbor_planes = []
                             for structure, structure_distance in neighbors:
                                 if isinstance(structure, PlanarSurface):
-                                neighbor_planes.append((structure, structure_distance))
-
+                                    neighbor_planes.append((structure, structure_distance))
+                        
                             neighbor_planes = sorted(neighbor_planes, key=lambda plane_and_dist: plane_and_dist[1])
                             target_structure, _  = neighbor_planes[0]
 
@@ -1183,6 +1182,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
                                                                                                          product1_radius, product2_radius,
                                                                                                          reactant_structure, target_structure,
                                                                                                          unit_z)
+
+                        log.info('reactant_position = %s, iv = %s, rs_id = %s, sid1 = %s, sid2 = %s \n' % (reactant_pos, iv, reactant_structure.id, sid1, sid2 ) ) # TODO remove this DEBUG stuff
                         # If none of the new pos. is out the call to SimplePair.do_back_transform() should have
                         # produced the correct positions.
 
