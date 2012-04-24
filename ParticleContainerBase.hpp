@@ -261,7 +261,10 @@ public:
         {
             const position_type cyc_pos(cyclic_transpose(s.position(), ((*i).second)->position())); //
             const length_type dist((*i).second->newBD_distance(cyc_pos, s.radius(), old_pos, sigma));
-            checker(i, dist);
+            if (dist < s.radius())
+            {
+                checker(i, dist);
+            }
         }
         return checker.result();
     }
