@@ -1111,7 +1111,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
                     raise RuntimeError('fire_single_reaction: Can not decay from 3D to other structure')
 
             # 1.5 Get new positions and structure_ids of particles
-            #     If the two particles stay on the same structure as the reactant.
+            #     If the two particles stay on the same structure type as the reactant
+            #     (but not necessarily on the same structure!)
             else:
                 # generate new positions in the structure
                 # TODO Make this into a generator
@@ -1127,14 +1128,69 @@ class EGFRDSimulator(ParticleSimulatorBase):
                                                                                 product1_radius, product2_radius,
                                                                                 reactant_structure, reactant_structure,
                                                                                 unit_z)
-                    # here do_back_transform requires that the two structures passed are the same because
-                    # it will checks for this!
+                    # for the SimplePair do_back_transform() requires that the two structures passed are the same
+                    # because it will check for this!
 
-                    product_pos_list.append((newpos1, newpos2))
+                    # If reactant_structure is a finite PlanarSurface the new position potentially can
+                    # lie outside of the plane. The two product particles then will end up on different
+                    # planes of the same structure_type.
+                    #
+                    # In this case we have to:
+                    #
+                    # (1) Check whether one of the new positions are out of plane reactant_structure
+                    #     (note that this can be the case for at most one of the particles).
+                    # (2) If yes, find the plane that they should be deflected to, which is
+                    #     the closest one with respect to the new position.
+                    # (3) Calculate the new postions again using the correct back transform function.
+                    if isinstance(reactant_structure, PlanarSurface):
 
-                # structure_ids are the same as reactant. TODO this is not necessarily true in the corners.
-                product1_structure_id = reactant_structure_id
-                product2_structure_id = reactant_structure_id
+                        # Check whether one of the two positions is out of reactant_structure
+                        newpos1_in_rs = reactant_structure.to_internal(reactant_structure, newpos1)
+                        newpos2_in_rs = reactant_structure.to_internal(reactant_structure, newpos2)
+
+                        rs_hl = reactant_structure.shape.half_extent
+
+                        newpos1_is_out = 0
+                        newpos2_is_out = 0
+                        if(abs(newpos1_in_rs[0]) > rs_hl[0] || abs(newpos1_in_rs[1]) > rs_hl[1]):
+                            newpos1_is_out = 1
+                            out_pos = newpos1
+                            in_pos  = newpos2
+
+                        if(abs(newpos2_in_rs[0]) > rs_hl[0] || abs(newpos2_in_rs[1]) > rs_hl[1]):
+                            newpos2_is_out = 1
+                            out_pos = newpos2
+                            in_pos  = newpos1
+
+                        assert(newpos1_is_out * newpos2_is_out == 0)
+                            # at most one particle should be out if the CoM did not move out of the plane!
+
+                        if(newpos1_is_out or newpos2_is_out):
+
+                            # Get the closest plane
+                            neighbors = self.geometrycontainer.get_neighbor_surfaces(out_pos, reactant_structure.id, ignores=[])
+                            
+                            for structure, structure_distance in neighbors:
+                                if isinstance(structure, PlanarSurface):
+                                neighbor_planes.append((structure, structure_distance))
+
+                            neighbor_planes = sorted(neighbor_planes, key=lambda plane_and_dist: plane_and_dist[1])
+                            target_structure, _  = neighbor_planes[0]
+
+                            # Recalculate the back transform taking into account the deflection
+                            newpos1, newpos2, sid1, sid2 = PlanarSurfaceTransitionPair.do_back_transform(reactant_pos, iv,
+                                                                                                         D1, D2,
+                                                                                                         product1_radius, product2_radius,
+                                                                                                         reactant_structure, target_structure,
+                                                                                                         unit_z)
+                        # If none of the new pos. is out the call to SimplePair.do_back_transform() should have
+                        # produced the correct positions.
+
+                # End of special treatment for PlanarSurface particles
+                                        
+                product_pos_list.append((newpos1, newpos2))
+                product1_structure_id = sid1
+                product2_structure_id = sid2
 
 
             # 2. make space for the products. 
@@ -1512,9 +1568,6 @@ class EGFRDSimulator(ParticleSimulatorBase):
             elif isinstance(obj, CylindricalSurface) or isinstance(obj, PlanarSurface):
                 # try making an Interaction
                 domain = self.try_interaction (single, obj)
-#                # if this fails try a Transition between two surfaces
-#                if not domain:
-#                    domain = self.try_transition (single, obj)
 
 
         if not domain:
