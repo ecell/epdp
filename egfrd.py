@@ -1071,10 +1071,10 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
                         # determine the side of the membrane the dissociation takes place
                         unit_z = reactant_structure.shape.unit_z * myrandom.choice(-1, 1)
-                        newposA, newposB = MixedPair2D3D.do_back_transform(reactant_pos, iv, DA, DB,
-                                                                           productA_radius, productB_radius,
-                                                                           reactant_structure, reactant_structure,
-                                                                           unit_z)
+                        newposA, newposB, sidA, sidB = MixedPair2D3D.do_back_transform(reactant_pos, iv, DA, DB,
+                                                                                       productA_radius, productB_radius,
+                                                                                       reactant_structure, reactant_structure,
+                                                                                       unit_z)
                         # the second reactant_structure parameter passed is ignored here
 
                         if default:
@@ -1090,9 +1090,9 @@ class EGFRDSimulator(ParticleSimulatorBase):
                         iv = random_vector(particle_radius12 * MixedPair1D3D.calc_r_scaling_factor(DA, DB))
                         iv *= MINIMAL_SEPARATION_FACTOR
 
-                        newposA, newposB = MixedPair1D3D.do_back_transform(reactant_pos, iv, DA, DB,
-                                                                           productA_radius, productB_radius,
-                                                                           reactant_structure, reactant_structure)
+                        newposA, newposB, sidA, sidB = MixedPair1D3D.do_back_transform(reactant_pos, iv, DA, DB,
+                                                                                       productA_radius, productB_radius,
+                                                                                       reactant_structure, reactant_structure)
                         # the second reactant_structure parameter passed is ignored here
                         # TODO: Why is there no unit_z passed here?
 
@@ -1123,10 +1123,10 @@ class EGFRDSimulator(ParticleSimulatorBase):
                     iv *= MINIMAL_SEPARATION_FACTOR
 
                     unit_z = reactant_structure.shape.unit_z    # not used
-                    newpos1, newpos2 = SimplePair.do_back_transform(reactant_pos, iv, D1, D2,
-                                                                    product1_radius, product2_radius,
-                                                                    reactant_structure, reactant_structure,
-                                                                    unit_z)
+                    newpos1, newpos2, sid1, sid2 = SimplePair.do_back_transform(reactant_pos, iv, D1, D2,
+                                                                                product1_radius, product2_radius,
+                                                                                reactant_structure, reactant_structure,
+                                                                                unit_z)
                     # here do_back_transform requires that the two structures passed are the same because
                     # it will checks for this!
 
