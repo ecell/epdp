@@ -4,6 +4,7 @@
 #include <boost/bind.hpp>
 #include <boost/shared_ptr.hpp>
 #include "Sphere.hpp"
+#include "Disk.hpp"
 #include "Cylinder.hpp"
 #include "Box.hpp"
 #include "ParticleSimulationStructure.hpp"
@@ -97,6 +98,7 @@ public:
     // shorthand typedefs
     typedef Sphere<typename world_type::length_type>    sphere_type;
     typedef Cylinder<typename world_type::length_type>  cylinder_type;
+    typedef Disk<typename world_type::length_type>      disk_type;
     typedef Box<typename world_type::length_type>       box_type;
     typedef Plane<typename world_type::length_type>     plane_type;
     typedef ParticleSimulationStructure<traits_type>    particle_simulation_structure_type;

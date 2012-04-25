@@ -16,6 +16,7 @@
 #include "../Vector3.hpp"
 #include "../Sphere.hpp"
 #include "../Cylinder.hpp"
+#include "../Disk.hpp"
 #include "../Box.hpp"
 #include "../Plane.hpp"
 #include "../Point.hpp"
@@ -73,6 +74,7 @@ typedef ::MultiParticleContainer<EGFRDSimulatorTraits> MultiParticleContainer;
 typedef EGFRDSimulator::box_type        Box;
 typedef EGFRDSimulator::sphere_type     Sphere;
 typedef EGFRDSimulator::cylinder_type   Cylinder;
+typedef EGFRDSimulator::disk_type       Disk;
 typedef EGFRDSimulator::plane_type      Plane;
 
 typedef ::BDPropagator<EGFRDSimulatorTraits> BDPropagator;

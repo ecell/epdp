@@ -166,6 +166,7 @@ public:
     typedef ParticleSimulator<Ttraits_> base_type;
     typedef typename base_type::sphere_type sphere_type;
     typedef typename base_type::cylinder_type cylinder_type;
+    typedef typename base_type::disk_type disk_type;
     typedef typename base_type::particle_simulation_structure_type particle_simulation_structure_type;
     typedef typename base_type::spherical_surface_type spherical_surface_type;
     typedef typename base_type::cylindrical_surface_type cylindrical_surface_type;
