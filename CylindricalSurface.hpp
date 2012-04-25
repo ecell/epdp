@@ -191,8 +191,8 @@ public:
         
         return pp01;
     }
-
-    /* Determine if particle has crossed the 'surface' of the structure. */
+/*
+    // Determine if particle has crossed the 'surface' of the structure.
     virtual bool bounced(position_type const& old_pos, position_type const& new_pos, 
         length_type const& dist_to_surface, length_type const& particle_radius) const
     {       
@@ -209,7 +209,7 @@ public:
         else
             return false;
     }
-
+*/
     // This should replace above two methods.
     virtual length_type newBD_distance(position_type const& new_pos, length_type const& radius, position_type const& old_pos, length_type const& sigma) const
     {

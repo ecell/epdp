@@ -89,6 +89,7 @@ public:
         return position_pair_type(); //TODO
     }
     
+/*
     virtual bool bounced(position_type const& old_pos, position_type const& new_pos, 
         length_type const& dist_to_surface, length_type const& particle_radius) const
     {  
@@ -99,6 +100,7 @@ public:
     {
         return false; //TODO
     }
+*/
 
     // This should replace above two methods.
     virtual length_type newBD_distance(position_type const& new_pos, length_type const& radius, position_type const& old_pos, length_type const& sigma) const

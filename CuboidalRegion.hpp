@@ -121,7 +121,8 @@ public:
         return position_pair_type(); //No special geminate dissociation 'from' the bulk
     }
     
-    /* Determine if particle has bounced from the surface */
+/*
+    // Determine if particle has bounced from the surface 
     virtual bool bounced(position_type const& old_pos, position_type const& new_pos, 
         length_type const& dist_to_surface, length_type const& particle_radius) const
     {       
@@ -132,6 +133,7 @@ public:
     {
         return false; //Cube has no reaction volume.
     }
+*/
     // This should replace above two methods.
     virtual length_type newBD_distance(position_type const& new_pos, length_type const& radius, position_type const& old_pos, length_type const& sigma) const
     {
