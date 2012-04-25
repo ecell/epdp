@@ -266,6 +266,19 @@ deflect(Plane<T_> const& obj, typename Plane<T_>::position_type const& r0, typen
    // for now this returns the new position without changes
    return std::make_pair( new_pos, changeflag );
 }
+template<typename T_>
+inline bool
+is_alongside(Plane<T_> const& obj, typename Plane<T_>::position_type const& pos)
+// The function checks if the projection of the position 'pos' is 'inside' the object.
+{
+    typedef typename Plane<T_>::position_type position_type;
+
+    boost::array<typename Plane<T_>::length_type, 2> half_extends(obj.half_extend());
+    position_type pos_vector(subtract(pos, obj.position()));
+
+    return ((abs(dot_product(pos_vector, obj.unit_x())) < half_extends[0]) &&
+            (abs(dot_product(pos_vector, obj.unit_y())) < half_extends[1]));
+}
 
 template<typename T_>
 inline boost::array<typename Plane<T_>::length_type, 3>
