@@ -1183,7 +1183,6 @@ class EGFRDSimulator(ParticleSimulatorBase):
                                                                                                          reactant_structure, target_structure,
                                                                                                          unit_z)
 
-                        log.info('reactant_position = %s, iv = %s, rs_id = %s, sid1 = %s, sid2 = %s \n' % (reactant_pos, iv, reactant_structure.id, sid1, sid2 ) ) # TODO remove this DEBUG stuff
                         # If none of the new pos. is out the call to SimplePair.do_back_transform() should have
                         # produced the correct positions.
 
