@@ -175,33 +175,6 @@ public:
         
     }
     
-/*
-    // Determine if particle has moved through the surface 
-    virtual bool bounced(position_type const& old_pos, position_type const& new_pos, 
-        length_type const& dist_to_surface, length_type const& particle_radius) const
-    {       
-         if( dist_to_surface > particle_radius )
-            return false;
-            
-        projected_type const old_projection( base_type::projected_point_on_surface( old_pos ) );
-        projected_type const new_projection( base_type::projected_point_on_surface( new_pos ) );
-        
-        if( old_projection.second * new_projection.second <= 0 )
-            return true;
-        else
-            return false;
-    }
-    
-    // Determine wether particle lies inside reaction volume. 
-    virtual bool in_reaction_volume( length_type const& dist_to_surface, length_type const& particle_radius, length_type const& rl ) const
-    {
-        if( dist_to_surface <= rl )
-            return true;
-        else
-            return false;
-    }
-*/
-    // This should replace above two methods.
     virtual length_type newBD_distance(position_type const& new_pos, length_type const& radius, position_type const& old_pos, length_type const& sigma) const
     {
         const boost::array<length_type, 2> half_lengths(base_type::shape().half_extent());

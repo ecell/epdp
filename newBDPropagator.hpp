@@ -41,7 +41,6 @@ public:
     typedef typename particle_container_type::structure_type        structure_type;
     typedef typename particle_container_type::structure_id_type     structure_id_type;    
 
-//    typedef typename particle_container_type::structure_id_and_distance_pair     structure_id_and_distance_pair;
     typedef typename particle_container_type::particle_id_pair_generator         particle_id_pair_generator;
     typedef typename particle_container_type::particle_id_pair_and_distance      particle_id_pair_and_distance;
     typedef typename particle_container_type::particle_id_pair_and_distance_list particle_id_pair_and_distance_list;
@@ -56,11 +55,11 @@ public:
     typedef typename traits_type::reaction_recorder_type            reaction_recorder_type;
     typedef typename traits_type::volume_clearer_type               volume_clearer_type;
 
-    typedef std::vector<particle_id_type>                           particle_id_vector_type;
-    typedef std::pair<position_type, position_type>                 position_pair_type;
-    typedef std::pair<position_type, structure_id_type>             position_structid_pair_type;
+    typedef std::vector<particle_id_type>                                       particle_id_vector_type;
+    typedef std::pair<position_type, position_type>                             position_pair_type;
+    typedef std::pair<position_type, structure_id_type>                         position_structid_pair_type;
     typedef std::pair<position_structid_pair_type, position_structid_pair_type> posstructid_posstructid_pair_type;
-    typedef std::pair<position_type, length_type>                   projected_type;
+    typedef std::pair<position_type, length_type>                               projected_type;
 
 public:
     // The constructor
@@ -133,8 +132,6 @@ public:
         const structure_id_type                       old_struct_id(pp.second.structure_id());
         const boost::shared_ptr<const structure_type> pp_structure( tx_.get_structure( old_struct_id ) );
         // declare variables to use
-//        structure_id_and_distance_pair  struct_id_distance_pair;
-//        length_type                     particle_surface_distance (0);
         position_type                   new_pos(old_pos);
         structure_id_type               new_structure_id( old_struct_id );
 
@@ -168,11 +165,6 @@ public:
             // Else, just use the current information.
 */
         }
-/*        else
-        {
-            new_pos = old_pos;
-        }
-*/        
 
         bool bounced( false );
         // Get all the particles that are in the reaction volume at the new position (and that may consequently also be in the core)
@@ -191,20 +183,6 @@ public:
         //// 3.2 Check for core overlaps structures
         /* If the particle has not bounced with another particle and lives in the bulk: 
            check for core overlap with a surface. */
-        // TODO always check for overlaps with surface ignoring its own surface (regardless of in bulk)
-/*
-        if(!bounced && pp.second.structure_id() == tx_.get_def_structure_id())
-        {
-            struct_id_distance_pair = tx_.get_closest_surface( new_pos, new_structure_id);
-
-            // Check for overlap with nearest surface.
-            particle_surface_distance = struct_id_distance_pair.second;
-            boost::shared_ptr<structure_type> closest_struct( tx_.get_structure( struct_id_distance_pair.first ) );
-            bounced = closest_struct->bounced( tx_.cyclic_transpose( old_pos, closest_struct->position() ), 
-                                               tx_.cyclic_transpose( new_pos, closest_struct->position() ), 
-                                               particle_surface_distance, r0);
-        }
-*/
         boost::scoped_ptr<structure_id_pair_and_distance_list> overlap_structures;
         int structures_in_overlap(0);
 
@@ -245,16 +223,6 @@ public:
             // NOTE that it is asserted that the particle overlap criterium for the particle with other particles
             // and surfaces is False!
             structures_in_overlap = overlap_structures ? overlap_structures->size(): 0; 
-            
-/*            // re-get the reaction partners (structures), at old position. TODO don't just do this when in the bulk.
-            if(pp.second.structure_id() == tx_.get_def_structure_id())
-            {
-                // TODO get all near surfaces instead of just the closest.
-                struct_id_distance_pair = tx_.get_closest_surface( new_pos, pp.second.structure_id() );
-                // TODO get the number of surfaces.
-                particle_surface_distance = struct_id_distance_pair.second;  
-            }
-*/
         }
         
 
@@ -272,14 +240,11 @@ public:
         while(j < structures_in_overlap)
         {
             const structure_id_pair_and_distance & overlap_struct( overlap_structures->at(j) );
-//        if( pp.second.structure_id() == tx_.get_def_structure_id())
-//        {
 
             // For an interaction the structure must be:
             if( (overlap_struct.first.second->sid() != current_struct->sid()) &&    // - of a different structure_type
                 (overlap_struct.second < r0 + reaction_length_) &&                  // - within the reaction volume
                 (overlap_struct.first.second->is_alongside(new_pos)))               // - 'alongside' of the particle
-//                overlap_struct.second->in_reaction_volume( particle_surface_distance, r0, reaction_length_ ) )
             {
                 accumulated_prob += k_total( pp.second.sid(), overlap_struct.first.second->sid() ) * dt_ / 
                                     overlap_struct.first.second->surface_reaction_volume( r0, reaction_length_ );
@@ -316,8 +281,6 @@ public:
         
         ////
         /* Now attempt a reaction with all particles inside the reaction volume. */
-//        accumulated_prob = 0;
-//        rnd = rng_();
         j = 0;
         while(j < particles_in_overlap)
         {
@@ -340,7 +303,6 @@ public:
             }
             
             const boost::shared_ptr<const structure_type> s1_struct( tx_.get_structure( overlap_particle.first.second.structure_id()) );
-//            const Real reaction_volume( s1_struct->particle_reaction_volume( s0.radius() + s1.radius(), reaction_length_ ) );
             accumulated_prob += k_total(s0.id(), s1.id()) * dt_ /
                                 ( 2. * s1_struct->particle_reaction_volume( s0.radius() + s1.radius(), reaction_length_ ) ); 
             
@@ -940,19 +902,12 @@ private:
         Real k_tot (0);
         reaction_rules const& rules(rules_.query_reaction_rule(s0_id, s1_id));
 
-//        if(::size(rules) != 0)
-//        {
-//            return 0;
-//        }
-//        else
-//        {
         // This should also work when 'rules' is empty.
-            for (typename boost::range_const_iterator<reaction_rules>::type
-                    i(boost::begin(rules)), e(boost::end(rules)); i != e; ++i)
-            {
-                k_tot += (*i).k();
-            }
-//        }
+        for (typename boost::range_const_iterator<reaction_rules>::type
+                i(boost::begin(rules)), e(boost::end(rules)); i != e; ++i)
+        {
+            k_tot += (*i).k();
+        }
         return k_tot;
     }
 

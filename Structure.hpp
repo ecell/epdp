@@ -96,12 +96,6 @@ public:
 
     // Methods used in the 'new' BDPropagator
     virtual position_type bd_displacement(length_type const& mean, length_type const& r, rng_type& rng) const = 0;
-/*
-    // TODO rename bounced to smt else. It denotes whether a particle has crossed the 'surface' of the structure.
-    virtual bool bounced(position_type const& old_pos, position_type const& new_pos, length_type const& dist_to_surface, length_type const& particle_radius) const = 0;
-    virtual bool in_reaction_volume( length_type const& dist_to_surface, length_type const& particle_radius, length_type const& rl ) const = 0;
-*/
-    // This should replace above two methods.
     virtual length_type newBD_distance(position_type const& new_pos, length_type const& radius, position_type const& old_pos, length_type const& sigma) const = 0;
     virtual bool is_alongside(position_type const& pos) const = 0;
 
