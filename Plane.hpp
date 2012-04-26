@@ -308,8 +308,10 @@ deflect_back(Plane<T_> const& obj, typename Plane<T_>::position_type const& r, t
     
     // Find the unit vector perpendicular to the edge by comparing with u_z
     // (u_z might point outwards or inwards with respect to plane obj)
-    if(dot_product(dc, u_z) > 0.0)     u_perp = u_z;
-    else                               u_perp = multiply(u_z, -1.0);        
+    if(dot_product(dc, u_z) > 0.0)
+        u_perp = u_z;
+    else
+        u_perp = multiply(u_z, -1.0);
     
     r_new = add(r_proj.first, multiply(u_perp, abs(r_proj.second)) );
     
