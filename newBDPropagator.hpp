@@ -475,8 +475,8 @@ private:
                     // When two product particles
                     case 2:
                     {
-                        const position_type reactant_pos(pp.second.position());
-                        const boost::shared_ptr<const structure_type> reactant_structure( tx_.get_structure( pp.second.structure_id() ) );
+                        const position_type                             reactant_pos(pp.second.position());
+                        const boost::shared_ptr<const structure_type>   reactant_structure( tx_.get_structure( pp.second.structure_id() ) );
                         
                         species_type product0_species(tx_.get_species(products[0]));
                         species_type product1_species(tx_.get_species(products[1]));
@@ -629,61 +629,86 @@ private:
                     // When no products
                     case 0:
                     {
-                        tx_.remove_particle(pp0.first);
+                        remove_particle(pp0.first);
                         remove_particle(pp1.first);
                         break;
                     }
                     // When one product particle
                     case 1:
                     {
-                        const species_type product_species(tx_.get_species(products[0]));
-                        
-                        position_type new_pos( tx_.apply_boundary(
-                                        divide(
-                                        add(multiply(pp0.second.position(), s1.D()),
-                                            multiply(tx_.cyclic_transpose(
-                                                pp1.second.position(),
-                                                pp0.second.position()), s0.D())),
-                                        (s0.D() + s1.D()))) );
+                        const structure_id_type             reactant0_structure_id (pp0.second.structure_id());
+                        const structure_id_type             reactant1_structure_id (pp1.second.structure_id());
+                        boost::shared_ptr<structure_type>   reactant0_structure (tx_.get_structure( reactant0_structure_id ));
+                        boost::shared_ptr<structure_type>   reactant1_structure (tx_.get_structure( reactant1_structure_id ));
+                        position_type                       reactant0_pos (pp0.second.position());
+                        position_type                       reactant1_pos (pp1.second.position());
+                        const species_type                  product_species(tx_.get_species(products[0]));
 
-//                        position_type new_pos (tx_.calculate_pair_CoM(pp0.second.position(), pp1.second.position()), s0.D(), s1.D());
-                        structure_id_type new_structure_id(pp0.second.structure_id());
+                        structure_id_type                   product_structure_id(reactant0_structure_id);
 
-                        // For unequal structures, project new_pos on the 'lesser' structure.
+                        if ((s0.structure_type_id() == s1.structure_type_id()) &&
+                            (reactant0_structure_id != reactant1_structure_id))
+                        {
+                            // deflect_back one of the coordinates.
+                            reactant1_pos = reactant0_structure->deflect_back(reactant1_pos, reactant1_structure->shape().unit_z());
+                        }
+
+                        position_type product_pos( tx_.apply_boundary(
+                                                    divide(
+                                                    add(multiply(reactant0_pos, s1.D()),
+                                                        multiply(tx_.cyclic_transpose(
+                                                            reactant1_pos,
+                                                            reactant0_pos), s0.D())),
+                                                    (s0.D() + s1.D()))) );
+//                        position_type product_pos (tx_.calculate_pair_CoM(pp0.second.position(), pp1.second.position()), s0.D(), s1.D());
+
+                        // For unequal structure types, project product_pos on the 'lesser' structure.
                         // The 'lesser' structure is the structure that is the lowest in the hierarchy of the two.
                         if( s0.structure_type_id() != s1.structure_type_id() )
                         {
-                            const boost::shared_ptr<const structure_type> reactant0_structure (tx_.get_structure( pp0.second.structure_id() ));
-                            if ( reactant0_structure->structure_id() == pp1.second.structure_id() )     // if pp1 lives on the parent structure of pp0
+
+                            boost::shared_ptr<structure_type> product_structure;
+                            if ( reactant0_structure->structure_id() == reactant1_structure_id )        // if pp1 lives on the parent structure of pp0
                             {
-                                new_structure_id = pp0.second.structure_id();                           // -> lesser structure is structure0
+                                product_structure_id = reactant0_structure_id;                          // -> lesser structure is structure0
+                                product_structure = reactant0_structure;
                             }
                             else                                                                        // pp0 lives on the parent structure of pp1
                             {
-                                new_structure_id = pp1.second.structure_id();                           // -> lesser structure is structure1
+                                product_structure_id = reactant1_structure_id;                          // -> lesser structure is structure1
+                                product_structure = reactant1_structure;
                             }
 
-                            boost::shared_ptr<structure_type> product_structure = tx_.get_structure( new_structure_id );
-                            projected_type const position_on_surface( product_structure-> projected_point( tx_.cyclic_transpose( new_pos, product_structure->position() )));
-                            new_pos = tx_.apply_boundary( position_on_surface.first );
+                            projected_type const position_on_surface( product_structure-> projected_point(
+                                    tx_.cyclic_transpose( product_pos, product_structure->position() )));       // TODO check of cyclic transpose is still needed.
 
                             // check that the projected point is not outside of the product surface.
-                            if (product_structure->distance( position_on_surface.first) < 0)
+                            if (product_structure->distance( position_on_surface.first) > 0)
                                 throw propagation_error("position product particle was not in surface.");
+
+                            product_pos = tx_.apply_boundary( position_on_surface.first );
                         }
-                        // TODO check if the new position needs to be deflected.
+                        else if ((s0.structure_type_id() == s1.structure_type_id()) &&
+                                 (reactant0_structure_id != reactant1_structure_id))
+                        {
+                            // deflect the product coordinate and get right structure_id.
+                            std::pair<position_type, bool> bla = reactant1_structure->deflect(reactant0_pos, subtract(product_pos, reactant0_pos));
+                            product_pos = bla.first;
+                        }
 
 
+                        //// Check for overlaps
+                        const particle_shape_type new_shape(product_pos, product_species.radius());
                         // check for overlap with particles that are inside the propagator
                         const boost::scoped_ptr<const particle_id_pair_and_distance_list> overlap_particles(
-                            tx_.check_overlap(particle_shape_type(new_pos, product_species.radius()), pp0.first, pp1.first));
+                                tx_.check_overlap(new_shape, pp0.first, pp1.first));
                         if( overlap_particles && overlap_particles->size() > 0 )
                         {
                             throw propagation_error("no space due to particle");
                         }
                         // Check overlap with surfaces
                         const boost::scoped_ptr<const structure_id_pair_and_distance_list> overlap_structures(
-                                tx_.check_surface_overlap(particle_shape_type(new_pos, product_species.radius()), new_pos, new_structure_id, product_species.radius()));
+                                tx_.check_surface_overlap(new_shape, product_pos, product_structure_id, product_species.radius()));
                         if (overlap_structures && overlap_structures->size() > 0)
                         {
                             throw propagation_error("no space due to near surface");
@@ -691,19 +716,18 @@ private:
                         // check for overlap with particles outside of the propagator (for example the eGFRD simulator)
                         if( vc_ )
                         {
-                            if (!(*vc_)(
-                                    particle_shape_type(new_pos, product_species.radius()), 
-                                    pp0.first, pp1.first))
+                            if (!(*vc_)(new_shape, pp0.first, pp1.first))
                             {
                                 throw propagation_error("no space due to particle (vc)");
                             }
                         }
-                        
+
+
                         // Process changes
-                        tx_.remove_particle(pp0.first);
+                        remove_particle(pp0.first);
                         remove_particle(pp1.first);
                         // Make new particle on right structure
-                        particle_id_pair product_particle(tx_.new_particle(product_species.id(), new_structure_id, new_pos));
+                        particle_id_pair product_particle(tx_.new_particle(product_species.id(), product_structure_id, product_pos));
                         // Record changes
                         if (rrec_)
                         {
@@ -726,17 +750,17 @@ private:
     }
 
         
-    const bool attempt_interaction(particle_id_pair const& pp, boost::shared_ptr<structure_type> const& surface)
-    // This handles the 'reaction' (interaction) between a particle and a surface.
+    const bool attempt_interaction(particle_id_pair const& pp, boost::shared_ptr<structure_type> const& structure)
+    // This handles the 'reaction' (interaction) between a particle and a structure.
     // Returns True if the interaction was succesfull
     {
-        // Get the reaction rules for the interaction with this surface.
-        reaction_rules const& rules(rules_.query_reaction_rule(pp.second.sid(), surface->sid() ));
+        // Get the reaction rules for the interaction with this structure.
+        reaction_rules const& rules(rules_.query_reaction_rule(pp.second.sid(), structure->sid() ));
         if (::size(rules) == 0)
-            throw propagation_error("trying to fire an interaction with a surface without a reaction rule.");
+            throw propagation_error("trying to fire an interaction with a structure without a reaction rule.");
         
                 
-        const Real k_tot( k_total(pp.second.sid(), surface->sid()) );
+        const Real k_tot( k_total(pp.second.sid(), structure->sid()) );
         const Real rnd( k_tot * rng_() );
         Real k_cumm = 0;  
 
@@ -758,7 +782,7 @@ private:
                     case 0:
                     {
 
-                        tx_.remove_particle(pp.first);  // pp was just popped of the local queue so only has to be removed from the upstream particlecontainer.
+                        remove_particle(pp.first);  // pp was just popped of the local queue so only has to be removed from the upstream particlecontainer.
                         break;
                     }
                     // When one product particle
@@ -766,29 +790,30 @@ private:
                     {
                         const species_type product_species(tx_.get_species(products[0]));
 
-                        // Get the new position of the particle on the surface
-                        const position_type new_pos( tx_.apply_boundary( surface->projected_point( pp.second.position() ).first ) );
-                            
+                        // Get the new position of the particle on the structure
+                        const position_type product_pos( tx_.apply_boundary( structure->projected_point( pp.second.position() ).first ) );
+
+
+                        ///// Check for overlaps   
+                        const particle_shape_type new_shape(product_pos, product_species.radius());
                         // check for overlap with particles that are in the propagator
                         const boost::scoped_ptr<const particle_id_pair_and_distance_list> overlap_particles(
-                            tx_.check_overlap(particle_shape_type(new_pos, product_species.radius()), pp.first));
+                            tx_.check_overlap(new_shape, pp.first));
                         if (overlap_particles && overlap_particles->size() > 0)
                         {
                             throw propagation_error("no space");
                         }
-                        // check overlap with surfaces.
-                        const boost::scoped_ptr<const structure_id_pair_and_distance_list> overlap_surfaces(
-                                tx_.check_surface_overlap(particle_shape_type(new_pos, product_species.radius()), new_pos, surface->id(), product_species.radius()));
-                        if (overlap_surfaces && overlap_surfaces->size() > 0)
+                        // check overlap with structures.
+                        const boost::scoped_ptr<const structure_id_pair_and_distance_list> overlap_structures(
+                                tx_.check_surface_overlap(new_shape, product_pos, structure->id(), product_species.radius()));
+                        if (overlap_structures && overlap_structures->size() > 0)
                         {
                             throw propagation_error("no space due to near surface");
                         }
                         // check for overlap with particles outside of the progator (e.g. the eGFRD simulator)
                         if (vc_)
                         {
-                            if (!(*vc_)(
-                                    particle_shape_type(new_pos, product_species.radius()), 
-                                    pp.first))
+                            if (!(*vc_)(new_shape, pp.first))
                             {
                                 throw propagation_error("no space (vc)");
                             }
@@ -796,8 +821,8 @@ private:
 
                         // Process changes
                         tx_.remove_particle(pp.first);
-                        // Make new particle in interaction surface 
-                        const particle_id_pair product_particle( tx_.new_particle(product_species.id(), surface->id(), new_pos) );
+                        // Make new particle in interaction structure 
+                        const particle_id_pair product_particle( tx_.new_particle(product_species.id(), structure->id(), product_pos) );
                         // Record changes
                         if (rrec_)
                         {
@@ -809,7 +834,7 @@ private:
                     }
                     // When number of products was not '0' or '1'
                     default:
-                        throw not_implemented("surface interactions that produce more than one product are not supported");
+                        throw not_implemented("structure interactions that produce more than one product are not supported");
                 }
                 // After we processed the reaction, we return -> no other reaction should be done.
                 return true;
