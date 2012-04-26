@@ -103,6 +103,7 @@ public:
 */
     // This should replace above two methods.
     virtual length_type newBD_distance(position_type const& new_pos, length_type const& radius, position_type const& old_pos, length_type const& sigma) const = 0;
+    virtual bool is_alongside(position_type const& pos) const = 0;
 
 
     // TODO this are just functions->move somewhere else

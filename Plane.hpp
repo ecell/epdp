@@ -273,7 +273,7 @@ is_alongside(Plane<T_> const& obj, typename Plane<T_>::position_type const& pos)
 {
     typedef typename Plane<T_>::position_type position_type;
 
-    boost::array<typename Plane<T_>::length_type, 2> half_extends(obj.half_extend());
+    boost::array<typename Plane<T_>::length_type, 2> half_extends(obj.half_extent());
     position_type pos_vector(subtract(pos, obj.position()));
 
     return ((abs(dot_product(pos_vector, obj.unit_x())) < half_extends[0]) &&
