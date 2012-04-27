@@ -81,6 +81,7 @@ noinst_HEADERS = \
 	Sphere.hpp \
 	SphericalSurface.hpp \
 	structure_classes.hpp \
+	structure_id_class.hpp \
 	structure_type_class.hpp \
 	StructureType.hpp \
 	transaction_classes.hpp \
