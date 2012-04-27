@@ -108,7 +108,7 @@ public:
     
     virtual position_type const& position() const
     {
-        return shape_.position();
+        return ::shape_position(shape());
     }
 
     virtual position_flag_pair_type deflect(position_type const& pos0, position_type const& displacement) const
