@@ -27,7 +27,7 @@ void Model::add_species_type(boost::shared_ptr<species_type_type> const& species
     species_type_map_.insert(std::make_pair(species->id(), species));
 }
 
-boost::shared_ptr<Model::species_type_type> Model::get_species_type_by_id(species_id_type const& id) const
+boost::shared_ptr<Model::species_type_type> Model::get_species_type_by_id(species_type_id_type const& id) const
 {
     species_type_map_type::const_iterator i(species_type_map_.find(id));
     if (species_type_map_.end() == i)

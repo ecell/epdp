@@ -32,7 +32,7 @@ void ParticleModel::add_structure_type(boost::shared_ptr<structure_type_type> co
     structure->bind_to_model(this, structure->id());
 }
 
-boost::shared_ptr<ParticleModel::structure_type_type> ParticleModel::get_structure_type_by_id(structure_id_type const& id) const
+boost::shared_ptr<ParticleModel::structure_type_type> ParticleModel::get_structure_type_by_id(structure_type_id_type const& id) const
 {
     structure_type_map_type::const_iterator i(structure_type_map_.find(id));
     if (structure_type_map_.end() == i)

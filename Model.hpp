@@ -20,11 +20,11 @@ class Model: private boost::noncopyable
 {
 public:
     typedef SpeciesType species_type_type;
-    typedef species_type_type::identifier_type species_id_type;
+    typedef species_type_type::identifier_type species_type_id_type;
 
 private:
-    typedef SerialIDGenerator<species_id_type> species_type_id_generator_type;
-    typedef std::map<species_id_type, boost::shared_ptr<species_type_type> > species_type_map_type;
+    typedef SerialIDGenerator<species_type_id_type> species_type_id_generator_type;
+    typedef std::map<species_type_id_type, boost::shared_ptr<species_type_type> > species_type_map_type;
     typedef select_second<species_type_map_type::value_type> species_second_selector_type;
 
     typedef get_mapper_mf<std::string, std::string>::type string_map_type;
@@ -49,7 +49,7 @@ public:
 
     void add_species_type(boost::shared_ptr<species_type_type> const& species);
 
-    boost::shared_ptr<species_type_type> get_species_type_by_id(species_id_type const& id) const;
+    boost::shared_ptr<species_type_type> get_species_type_by_id(species_type_id_type const& id) const;
 
     species_type_range get_species_types() const;
 
