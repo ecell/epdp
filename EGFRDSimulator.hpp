@@ -1834,8 +1834,10 @@ protected:
         }
 
         particle_type const& old(domain.particle().second);
-        domain.particle().second = particle_type(old.sid(),
-                particle_shape_type(new_pos, old.radius()), old.D());
+        domain.particle().second = particle_type(
+            old.sid(),
+            particle_shape_type(new_pos, old.radius()), 
+            old.D(), old.structure_id(), old.v());
         (*base_type::world_).update_particle(domain.particle());
 
         domain.position() = new_pos;

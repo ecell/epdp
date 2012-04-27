@@ -249,6 +249,23 @@ public:
         return -1;
     }
 
+    static PyObject* get_structure_id(ParticleWrapper* self)
+    {
+        return boost::python::incref(
+            boost::python::object(self->impl_.structure_id()).ptr());
+    }
+
+    static int set_structure_id(ParticleWrapper* self, PyObject* val, void *)
+    try
+    {
+        self->impl_.structure_id() = boost::python::extract<typename Timpl_::structure_id_type>(val);
+        return 0;
+    }
+    catch (boost::python::error_already_set const&)
+    {
+        return -1;
+    }
+
     static PyObject* __getstate__(ParticleWrapper* self)
     try
     {
@@ -256,7 +273,8 @@ public:
             boost::python::make_tuple(
                 boost::python::borrowed(get_position(self)),
                 boost::python::borrowed(get_radius(self)),
-                boost::python::borrowed(get_sid(self))).ptr());
+                boost::python::borrowed(get_sid(self)),
+                boost::python::borrowed(get_structure_id(self))).ptr());
     }
     catch (boost::python::error_already_set const&)
     {
@@ -308,6 +326,8 @@ public:
             return get_D(reinterpret_cast<ParticleWrapper*>(self));
         case 3:
             return get_sid(reinterpret_cast<ParticleWrapper*>(self));
+        case 4:
+            return get_structure_id(reinterpret_cast<ParticleWrapper*>(self));
         }
         return NULL; // never get here
     }
@@ -330,6 +350,8 @@ public:
             return set_D(reinterpret_cast<ParticleWrapper*>(self), val, 0);
         case 3:
             return set_sid(reinterpret_cast<ParticleWrapper*>(self), val, 0);
+        case 4:
+            return set_structure_id(reinterpret_cast<ParticleWrapper*>(self), val, 0);
         }
 
         return -1; // never get here
@@ -433,6 +455,12 @@ PyGetSetDef ParticleWrapper<Timpl_>::__getsets__[] = {
         const_cast<char*>("sid"),
         (getter)ParticleWrapper::get_sid,
         (setter)ParticleWrapper::set_sid,
+        const_cast<char*>("")
+    },
+    {
+        const_cast<char*>("structure_id"),
+        (getter)ParticleWrapper::get_structure_id,
+        (setter)ParticleWrapper::set_structure_id,
         const_cast<char*>("")
     },
     { NULL }

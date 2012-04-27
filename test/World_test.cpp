@@ -336,7 +336,7 @@ BOOST_AUTO_TEST_CASE(particle_pool)
     BOOST_CHECK(!contains(i.get_particle_ids(s2.id()), p2.first));
     BOOST_CHECK(contains(i.get_particle_ids(s2.id()), p3.first));
 
-    i.update_particle(particle_id_pair(p1.first, particle_type(s2.id(), p1.second.shape(), p1.second.D())));
+    i.update_particle(particle_id_pair(p1.first, particle_type(s2.id(), p1.second.shape(), p1.second.D(), p1.second.structure_id())));
     BOOST_CHECK(!contains(i.get_particle_ids(s1.id()), p1.first));
     BOOST_CHECK(contains(i.get_particle_ids(s1.id()), p2.first));
     BOOST_CHECK(!contains(i.get_particle_ids(s1.id()), p3.first));

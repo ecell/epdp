@@ -103,9 +103,10 @@ public:
                 add(pp.second.position(), displacement)));
 
         particle_id_pair particle_to_update(
-                pp.first, particle_type(species.id(),
+                pp.first, particle_type(
+                    species.id(),
                     particle_shape_type(new_pos, species.radius()),
-                    species.D()));
+                    species.D(), species.structure_id(), species.v()));
         boost::scoped_ptr<particle_id_pair_and_distance_list> overlapped(
             tx_.check_overlap(particle_to_update.second.shape(),
                               particle_to_update.first));
@@ -193,10 +194,11 @@ private:
                     {
                         const species_type s0(tx_.get_species(products[0]));
                         const particle_id_pair new_p(
-                            pp.first, particle_type(products[0],
+                            pp.first, particle_type(
+                                products[0],
                                 particle_shape_type(pp.second.position(),
                                                     s0.radius()),
-                                                    s0.D()));
+                                s0.D(), s0.structure_id(), s0.v()));
                         boost::scoped_ptr<particle_id_pair_and_distance_list> overlapped(tx_.check_overlap(new_p.second.shape(), new_p.first));
                         if (overlapped && overlapped->size() > 0)
                         {
