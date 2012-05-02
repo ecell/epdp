@@ -65,6 +65,16 @@ private:
 template <typename Ttraits>
 class StructureContainer
 {
+public:
+    typedef typename structure_type;
+    typedef typename structure_id_type;
+    typedef typename structure_map;
+    typedef typename structures_range;
+    typedef typename structure_iterator;
+    typedef typename structures_second_selector_type;
+    typedef typename structure_id_pair;
+    typedef typename structure_id_set;
+    typedef typename per_structure_substructure_id_set;
 
 public:
     add_structure (CylindricalSurface)  // can I make this into a template function?
@@ -79,11 +89,11 @@ public:
     {
         // add to Connectivity container for planar surfaces
     }
-
     remove_structure (StructureID)
     {
         // find StructureID in all ConnectivityContainers -> remove references
     }
+
 
     virtual boost::shared_ptr<structure_type> get_structure(structure_id_type const& id) const
     {
@@ -93,6 +103,13 @@ public:
             throw not_found(std::string("Unknown structure (id=") + boost::lexical_cast<std::string>(id) + ")");
         }
         return (*i).second;
+    }
+    structures_range get_structures_range() const
+    {
+        return structures_range(
+        structure_iterator(structure_map_.begin(), structures_second_selector_type()),
+        structure_iterator(structure_map_.end(),   structures_second_selector_type()),
+        structure_map_.size());
     }
     virtual bool update_structure(structure_id_pair const& structid_pair)
     {
@@ -127,26 +144,6 @@ public:
         //  -only remove if no substructures
         return false;
     }
-
-private:
-    structures_range get_structures_range() const
-    {
-        return structures_range(
-        structure_iterator(structure_map_.begin(), structures_second_selector_type()),
-        structure_iterator(structure_map_.end(),   structures_second_selector_type()),
-        structure_map_.size());
-    }
-    // Get all the structure ids of the substructures
-    structure_id_set get_substructure_ids(structure_id_type const& id) const
-    {
-        typename per_structure_substructure_id_set::const_iterator i(
-            structure_substructures_map_.find(id));
-        if (i == structure_substructures_map_.end())
-        {
-            throw not_found(std::string("Unknown structure (id=") + boost::lexical_cast<std::string>(id) + ")");
-        }
-        return (*i).second;
-    }
     structure_id_set get_visible_structures(structure_id_type const& id) const
     {
         structure_id_set visible_structures;
@@ -166,13 +163,26 @@ private:
         return visible_structures;
     }
 
+private:
+    // Get all the structure ids of the substructures
+    structure_id_set get_substructure_ids(structure_id_type const& id) const
+    {
+        typename per_structure_substructure_id_set::const_iterator i(
+            structure_substructures_map_.find(id));
+        if (i == structure_substructures_map_.end())
+        {
+            throw not_found(std::string("Unknown structure (id=") + boost::lexical_cast<std::string>(id) + ")");
+        }
+        return (*i).second;
+    }
+
 protected:
     structure_map                       structure_map_;     // mapping: structure_id -> structure
     per_structure_substructure_id_set   structure_substructures_map_;
 
-    CylindricalSurfaceConnectivityContainer     // This contains a StructureID -> vector <(StructureID, index), 2> map
-    PlanarSurfaceConnectivityContainer          // This contains a StructureID -> vector <(StructureID, index), 4> map
-    CuboidalReginConnectivityContainer          // This contains a StructureID -> vector <(StructureID, index), 6> map
+//    CylindricalSurfaceConnectivityContainer     // This contains a StructureID -> vector <(StructureID, index), 2> map
+//    PlanarSurfaceConnectivityContainer          // This contains a StructureID -> vector <(StructureID, index), 4> map
+//    CuboidalReginConnectivityContainer          // This contains a StructureID -> vector <(StructureID, index), 6> map
 
 };
 

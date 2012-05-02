@@ -317,8 +317,8 @@ public:
         return pmat_.erase(id);
     }
 
-//////
-    virtual boost::shared_ptr<structure_type> get_structure(structure_id_type const& id) const
+////// Structure stuff
+/*    virtual boost::shared_ptr<structure_type> get_structure(structure_id_type const& id) const
     {
         typename structure_map::const_iterator i(structure_map_.find(id));
         if (structure_map_.end() == i)
@@ -327,10 +327,24 @@ public:
         }
         return (*i).second;
     }
+*/
+    virtual boost::shared_ptr<structure_type> get_structure(structure_id_type const& id) const
+    {
+        return structures_.get_structure(id);
+    }
     virtual structures_range get_structures() const
     {
-        return get_structures_range();
+        return structures_.get_structures_range();
     }
+    virtual bool update_structure(structure_id_pair const& structid_pair)
+    {
+        return structures_.update_structure(structid_pair);
+    }
+    virtual bool remove_structure(structure_id_type const& id)
+    {
+        return structures_.remove_structure(id);
+    }
+/*
     virtual bool update_structure(structure_id_pair const& structid_pair)
     {
         typename structure_map::const_iterator i(structure_map_.find(structid_pair.first));
@@ -364,11 +378,12 @@ public:
         //  -only remove if no substructures
         return false;
     }
+*/
     virtual structure_id_pair_and_distance_list* get_close_structures(position_type const& pos, structure_id_type const& current_struct_id,
                                                                       structure_id_type const& ignore) const
     {
         typename utils::template overlap_checker<structure_id_pair_and_distance_list, boost::array<structure_id_type, 1> > checker(array_gen(ignore));
-        const structure_id_set visible_structures (get_visible_structures(current_struct_id));
+        const structure_id_set visible_structures (structures_.get_visible_structures(current_struct_id));
 
         structure_map temp_map;
         for (typename structure_id_set::const_iterator i(visible_structures.begin()),
@@ -391,9 +406,10 @@ public:
 
 ///////// Member variables
 protected:
-    particle_matrix_type pmat_;         // just the structure (MatrixSpace) containing the particles.
+    particle_matrix_type        pmat_;         // just the structure (MatrixSpace) containing the particles.
+    structure_container_type    structures_;
 
-
+/*
 
 ///////// The following are public and private methods and variables of the class but should maybe be made into a separate class
 //        (and not a part of ParticleContainerBase).
@@ -439,6 +455,8 @@ protected:
     structure_map                       structure_map_;     // mapping: structure_id -> structure
     per_structure_substructure_id_set   structure_substructures_map_;
 };
+*/
+
 
 //////// Inline methods are defined separately
 template<typename Tderived_, typename Ttraits_>
