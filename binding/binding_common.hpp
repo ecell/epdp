@@ -104,6 +104,7 @@ typedef EGFRDSimulator::region_type                 Region;
 typedef EGFRDSimulator::planar_surface_type         PlanarSurface;
 typedef EGFRDSimulator::spherical_surface_type      SphericalSurface;
 typedef EGFRDSimulator::cylindrical_surface_type    CylindricalSurface;
+typedef EGFRDSimulator::disk_surface_type           DiskSurface;
 typedef EGFRDSimulator::cuboidal_region_type        CuboidalRegion;
 
 typedef EGFRDSimulatorTraits::reaction_record_type ReactionRecord;
