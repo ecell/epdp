@@ -8,6 +8,7 @@
 #include "generator.hpp"
 #include "exceptions.hpp"
 #include "ParticleContainer.hpp"
+#include "StructureContainer.hpp"
 #include "Transaction.hpp"
 
 template<typename Ttraits_>
@@ -120,16 +121,18 @@ public:
     typedef std::pair<particle_id_pair, length_type>                    particle_id_pair_and_distance;
     typedef sized_iterator_range<typename particle_matrix_type::const_iterator> particle_id_pair_range;
 
+    typedef StructureContainer<structure_type, structure_id_type>       structure_container_type;
+
     typedef typename base_type::particle_id_pair_and_distance_list                              particle_id_pair_and_distance_list;
     typedef typename base_type::structure_id_pair_and_distance_list                             structure_id_pair_and_distance_list;
     typedef typename base_type::structure_id_pair_and_distance                                  structure_id_pair_and_distance;
 
 protected:
 // Implementation of the methods.
-    typedef select_second<typename structure_map::value_type>               structures_second_selector_type;
-    typedef boost::transform_iterator<structures_second_selector_type,
-            typename structure_map::const_iterator>                         structure_iterator;
-    typedef std::map<structure_id_type, structure_id_set>                   per_structure_substructure_id_set;
+//    typedef select_second<typename structure_map::value_type>               structures_second_selector_type;
+//    typedef boost::transform_iterator<structures_second_selector_type,
+//            typename structure_map::const_iterator>                         structure_iterator;
+//    typedef std::map<structure_id_type, structure_id_set>                   per_structure_substructure_id_set;
 
 public:
     ParticleContainerBase(length_type world_size, size_type size)
@@ -245,7 +248,7 @@ public:
                                                                        length_type const& sigma) const
     {
         typename utils::template overlap_checker<structure_id_pair_and_distance_list, boost::array<structure_id_type, 0> > checker;
-        const structure_id_set visible_structures (get_visible_structures(current));
+        const structure_id_set visible_structures (structures_.get_visible_structures(current));
 
         structure_map temp_map;
         for (typename structure_id_set::const_iterator i(visible_structures.begin()),
@@ -328,6 +331,10 @@ public:
         return (*i).second;
     }
 */
+    virtual bool has_structure(structure_id_type const& id) const
+    {
+        return structures_.has_structure(id);
+    }
     virtual boost::shared_ptr<structure_type> get_structure(structure_id_type const& id) const
     {
         return structures_.get_structure(id);
@@ -454,8 +461,8 @@ private:
 protected:
     structure_map                       structure_map_;     // mapping: structure_id -> structure
     per_structure_substructure_id_set   structure_substructures_map_;
-};
 */
+};
 
 
 //////// Inline methods are defined separately

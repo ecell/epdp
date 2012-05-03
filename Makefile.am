@@ -118,6 +118,7 @@ noinst_HEADERS = \
 	SphericalBesselTable.hpp\
 	Structure.hpp\
     StructureID.hpp\
+    StructureContainer.hpp\
 	StructureUtils.hpp\
 	StructureType.hpp\
 	Surface.hpp\

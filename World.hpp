@@ -375,8 +375,10 @@ public:
     // update structure
     virtual bool update_structure(structure_id_pair const& structid_pair)
     {
-        typename base_type::structure_map::const_iterator i(base_type::structure_map_.find(structid_pair.first));
-        if (i != base_type::structure_map_.end())
+//        typename base_type::structure_map::const_iterator i(base_type::structure_container_type::structure_map_.find(structid_pair.first));
+//        if (i != base_type::structure_container_type::structure_map_.end())
+
+        if ( base_type::has_structure(structid_pair.first) )
         // The item was already found
         {
             // FIXME what to do when the structure has particles and moves or changes structure_type?!?!
@@ -384,10 +386,11 @@ public:
             //  get all particles on the structure
             //  assert that no particles if structure type changes.
 
-            if ((*i).second->sid() != structid_pair.second->sid())
+            const boost::shared_ptr<const structure_type> structure (base_type::get_structure(structid_pair.first));
+            if (structure->sid() != structid_pair.second->sid())
             // If the structuretype changed we need to update the 'structure_type_id->structure ids' mapping
             {
-                structure_pool_[(*i).second->sid()].erase((*i).first);
+                structure_pool_[structure->sid()].erase(structure->id());
                 structure_pool_[structid_pair.second->sid()].insert(structid_pair.first);
             }
             base_type::update_structure(structid_pair);
