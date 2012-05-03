@@ -63,6 +63,10 @@ private:
 };
 
 
+////// Inline functions related to ConnectivityContainer
+// TODO
+
+
 
 
 template <typename Tobj_, typename Tid_>
@@ -80,6 +84,7 @@ protected:
     typedef boost::transform_iterator<structures_second_selector_type,
             typename structure_map::const_iterator>                                 structure_iterator;
     typedef typename std::map<structure_id_type, structure_id_set>                  per_structure_substructure_id_set;
+
 
 public:
     typedef sized_iterator_range<structure_iterator>                                structures_range;
@@ -221,17 +226,18 @@ protected:
 //    CuboidalReginConnectivityContainer          // This contains a StructureID -> vector <(StructureID, index), 6> map
 
 };
-/*
+
 
 
 //////// Inline functions applicable to the StructureContainer
 
 
 //// functions for Planes
-
-template<typename ConnectivityContainer<> >
-inline typename ConnectivityContainer::traits_type::position_structid_pair_type
-apply_boundary (StructureContainer const& sc, position_structid_pair_type const& pos_structure_id) const
+template<typename T_, typename Ttraits_ >
+inline std::pair<typename Plane<T_>::position_type, typename Ttraits_::structure_id_type>
+apply_boundary (StructureContainer<typename Ttraits_::structure_type, typename Ttraits_::structure_id_type> const& sc,
+                ConnectivityContainer<typename Ttraits_::structure_id_type, typename Plane<T_>::position_type, 4> const& cc, // Plane<T_>::num_neighbors > const& cc,
+                std::pair<typename Plane<T_>::position_type, typename Ttraits_::structure_id_type> const& pos_structure_id)
 // The template needs to be parameterized with the appropriate shape (which then parameterizes the type
 // of the ConnectivityContainer that we use.
 // We supply the structure container as an argument so that we can get the structures that we need.
@@ -239,11 +245,14 @@ apply_boundary (StructureContainer const& sc, position_structid_pair_type const&
 // query the boundary conditions and connectivity.
 {
     // useful typedefs
-    typedef typename plane_type;
-    typedef typename plane_type::length_type    length_type;
-    typedef typename position_type;
-    typedef typename structure_id_type;
-    typedef typename position_structid_pair_type;
+    typedef Ttraits_    traits_type;
+    typedef Plane<T_>   plane_type;
+    typedef typename plane_type::length_type            length_type;
+    typedef typename plane_type::position_type          position_type;
+    typedef typename traits_type::structure_id_type     structure_id_type;
+    typedef typename traits_type::structure_type        structure_type;
+    typedef std::pair<position_type, structure_id_type> position_structid_pair_type;
+    typedef std::pair<structure_id_type, position_type> neighbor_id_vector_type;
 
     // Note that we assume that the new position is in the plane (dot(pos, unit_z)==0)
     const plane_type origin_plane (sc.get_structure(pos_structure_id.second)->shape());
@@ -257,7 +266,7 @@ apply_boundary (StructureContainer const& sc, position_structid_pair_type const&
     const length_type component_y ( dot_product(pos_vector, origin_plane.unit_y()) );
 
     // declare the variables that will be written
-    structure_id_type new_id;
+    structure_id_type new_id(pos_structure_id.second);
     position_type neighbor_plane_par;
     position_type neighbor_plane_inl;
 
@@ -273,61 +282,62 @@ apply_boundary (StructureContainer const& sc, position_structid_pair_type const&
     {
         // we are at the 'top' of the plane (side nr. 0)
         // get the unit vector pointing from the edge between the two planes to the center of the plane
-        const position_type neighbor_plane_unit_inline (sc.get_neighbor_info(pos_structure_id.second, 0).second);
+        const neighbor_id_vector_type neighbor_id_vector (cc.get_neighbor_info(pos_structure_id.second, 0));
 
-        new_id = neighbor_mapping_[pos_structure_id.second][0].first;
+        new_id = neighbor_id_vector.first;
         neighbor_plane_par = component_x * origin_plane.unit_x();
-        neighbor_plane_inl = (component_y - origin_length_y)* neighbor_plane_unit_inline;
+        neighbor_plane_inl = (component_y - origin_length_y)* neighbor_id_vector.second;
     }
     else if ( (-half_extends[0] < component_x) && ( component_x < half_extends[0]) &&
               (component_y < -half_extends[1] ) )
     {
         // we are at the 'bottom' of the plane (side nr. 1)
         // get the unit vector pointing from the edge between the two planes to the center of the plane
-        const position_type neighbor_plane_unit_inline (sc.get_neighbor_info(pos_structure_id.second, 1).second);
+        const neighbor_id_vector_type neighbor_id_vector (cc.get_neighbor_info(pos_structure_id.second, 1));
 
-        new_id = neighbor_mapping_[pos_structure_id.second][1].first;
+        new_id = neighbor_id_vector.first;
         neighbor_plane_par = component_x * origin_plane.unit_x();
-        neighbor_plane_inl = (-component_y - origin_length_y)* neighbor_plane_unit_inline;
+        neighbor_plane_inl = (-component_y - origin_length_y)* neighbor_id_vector.second;
     }
     else if ( (-half_extends[1] < component_y) && ( component_y < half_extends[1]) &&
               (component_x < -half_extends[0]) )
     {
         // we are at the 'left' of the plane (side nr. 2)
         // get the unit vector pointing from the edge between the two planes to the center of the plane
-        const position_type neighbor_plane_unit_inline (sc.get_neighbor_info(pos_structure_id.second, 2).second);
+        const neighbor_id_vector_type neighbor_id_vector (cc.get_neighbor_info(pos_structure_id.second, 2));
 
-        new_id = neighbor_mapping_[pos_structure_id.second][2].first;
+        new_id = neighbor_id_vector.first;
         neighbor_plane_par = component_y * origin_plane.unit_y();
-        neighbor_plane_inl = (-component_x - origin_length_x)* neighbor_plane_unit_inline;
+        neighbor_plane_inl = (-component_x - origin_length_x)* neighbor_id_vector.second;
     }
     else if ( (-half_extends[1] < component_y) && ( component_y < half_extends[1]) &&
               (half_extends[0] < component_x) )
     {
         // we are at the 'right' of the plane (side nr. 3)
         // this is a unit vector pointing from the edge between the two planes to the center of the plane
-        const position_type neighbor_plane_unit_inline (sc.get_neighbor_info(pos_structure_id.second, 3).second);
+        const position_type neighbor_plane_unit_inline (cc.get_neighbor_info(pos_structure_id.second, 3).second);
+        const neighbor_id_vector_type neighbor_id_vector (cc.get_neighbor_info(pos_structure_id.second, 3));
 
-        new_id = neighbor_mapping_[pos_structure_id.second][3].first;
+        new_id = neighbor_id_vector.first;
         neighbor_plane_par = component_y * origin_plane.unit_y();
-        neighbor_plane_inl = (component_x - origin_length_x)* neighbor_plane_unit_inline;
+        neighbor_plane_inl = (component_x - origin_length_x)* neighbor_id_vector.second;
     }
     else
     {
         // we are somewhere in the corners and don't know what to do
-        // throw exception?
+        // reject move?
+        return pos_structure_id;
     }
 
     const position_type new_pos ( add(sc.get_structure(new_id)->position(),
                                       add(neighbor_plane_par, neighbor_plane_inl)));
     // TODO do normal apply_boundary too?
-    return std::make_pair(new_id, new_pos);
+    return std::make_pair(new_pos, new_id);
 }
-
+/*
 template<>
 inline
 cyclic_transpose
-
 */
 
 ///// Functions for Cylinders
