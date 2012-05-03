@@ -85,7 +85,10 @@ public:
 public:
     virtual ~StructureContainer() {};
 
-    StructureContainer() {};
+    StructureContainer(structure_id_type default_structid) : default_structure_id_(default_structid)
+    {
+        structure_substructures_map_[default_structid] = structure_id_set();
+    }
 
 /*    add_structure (CylindricalSurface)  // can I make this into a template function?
     {
@@ -105,6 +108,20 @@ public:
     }
 
 */
+    virtual structure_id_type get_def_structure_id() const
+    {
+        return default_structure_id_;
+    }
+    void set_def_structure(const boost::shared_ptr<structure_type> structure)
+    {
+        // check that the structure_type is the default structure_type
+        if ( structure->structure_id() != default_structure_id_)
+        {
+            throw illegal_state("Default structure doesn't have right properties");
+        }
+        structure->set_id(default_structure_id_);
+        update_structure(std::make_pair(default_structure_id_, structure));
+    }
     virtual bool has_structure(structure_id_type const& id) const
     {
         typename structure_map::const_iterator i(structure_map_.find(id));
@@ -119,7 +136,7 @@ public:
         }
         return (*i).second;
     }
-    structures_range get_structures_range() const
+    virtual structures_range get_structures_range() const
     {
         return structures_range(
         structure_iterator(structure_map_.begin(), structures_second_selector_type()),
@@ -194,6 +211,7 @@ private:
 protected:
     structure_map                       structure_map_;     // mapping: structure_id -> structure
     per_structure_substructure_id_set   structure_substructures_map_;
+    structure_id_type                   default_structure_id_;
 
 //    CylindricalSurfaceConnectivityContainer     // This contains a StructureID -> vector <(StructureID, index), 2> map
 //    PlanarSurfaceConnectivityContainer          // This contains a StructureID -> vector <(StructureID, index), 4> map
