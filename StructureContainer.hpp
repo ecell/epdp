@@ -1,11 +1,11 @@
-template
-// overloaded typedef so as to fix the length of the vectors for different shape types
-// -Cylinder n=2
-// -Plane n=4
-// -Box n=6
+#ifndef STRUCTURE_CONTAINER_HPP
+#define STRUCTURE_CONTAINER_HPP
 
+#include <boost/lexical_cast.hpp>
+#include "exceptions.hpp"
+#include "linear_algebra.hpp"
 
-
+/*
 template<typename Ttraits, Tobj_, std::size_t max_neighbors>
 class ConnectivityContainer
 // implements the way structures are connected.
@@ -57,27 +57,37 @@ private:
     structid_neighbor_pair_map  neighbor_mapping_;
 };
 
+*/
 
 
 
 
-
-template <typename Ttraits>
+template <typename Tobj_, typename Tid_>
 class StructureContainer
 {
 public:
-    typedef typename structure_type;
-    typedef typename structure_id_type;
-    typedef typename structure_map;
-    typedef typename structures_range;
-    typedef typename structure_iterator;
-    typedef typename structures_second_selector_type;
-    typedef typename structure_id_pair;
-    typedef typename structure_id_set;
-    typedef typename per_structure_substructure_id_set;
+    typedef Tobj_              structure_type;
+    typedef Tid_               structure_id_type;
+    typedef std::set<structure_id_type>                                             structure_id_set;
+    typedef std::pair<const structure_id_type, boost::shared_ptr<structure_type> >  structure_id_pair;
+    typedef std::map<structure_id_type, boost::shared_ptr<structure_type> >         structure_map;
+
+protected:
+    typedef select_second<typename structure_map::value_type>                       structures_second_selector_type;
+    typedef boost::transform_iterator<structures_second_selector_type,
+            typename structure_map::const_iterator>                                 structure_iterator;
+    typedef typename std::map<structure_id_type, structure_id_set>                  per_structure_substructure_id_set;
 
 public:
-    add_structure (CylindricalSurface)  // can I make this into a template function?
+    typedef sized_iterator_range<structure_iterator>                                structures_range;
+
+
+public:
+    virtual ~StructureContainer() {};
+
+    StructureContainer() {};
+
+/*    add_structure (CylindricalSurface)  // can I make this into a template function?
     {
         // add to Connectivity container for cylindrical surfaces
     }
@@ -94,7 +104,12 @@ public:
         // find StructureID in all ConnectivityContainers -> remove references
     }
 
-
+*/
+    virtual bool has_structure(structure_id_type const& id) const
+    {
+        typename structure_map::const_iterator i(structure_map_.find(id));
+        return i != structure_map_.end();
+    }
     virtual boost::shared_ptr<structure_type> get_structure(structure_id_type const& id) const
     {
         typename structure_map::const_iterator i(structure_map_.find(id));
@@ -185,7 +200,7 @@ protected:
 //    CuboidalReginConnectivityContainer          // This contains a StructureID -> vector <(StructureID, index), 6> map
 
 };
-
+/*
 
 
 //////// Inline functions applicable to the StructureContainer
@@ -292,8 +307,12 @@ template<>
 inline
 cyclic_transpose
 
-
+*/
 
 ///// Functions for Cylinders
 
 //// Functions for Boxes
+
+
+#endif /* STRUCTURE_CONTAINER_HPP */
+
