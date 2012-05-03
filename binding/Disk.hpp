@@ -24,8 +24,7 @@ inline boost::python::objects::class_base register_disk_class(char const* name)
     return class_<impl_type>(name)
         .def(init<typename impl_type::position_type, 
                   typename impl_type::length_type,
-                  typename impl_type::position_type, 
-                  typename impl_type::length_type>())
+                  typename impl_type::position_type>())
         .add_property("position",
             make_function(
                 &peer::util::reference_accessor_wrapper<
