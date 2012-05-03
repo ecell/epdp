@@ -127,19 +127,13 @@ public:
     typedef typename base_type::structure_id_pair_and_distance_list                             structure_id_pair_and_distance_list;
     typedef typename base_type::structure_id_pair_and_distance                                  structure_id_pair_and_distance;
 
-protected:
-// Implementation of the methods.
-//    typedef select_second<typename structure_map::value_type>               structures_second_selector_type;
-//    typedef boost::transform_iterator<structures_second_selector_type,
-//            typename structure_map::const_iterator>                         structure_iterator;
-//    typedef std::map<structure_id_type, structure_id_set>                   per_structure_substructure_id_set;
 
 public:
-    ParticleContainerBase(length_type world_size, size_type size)
-        : pmat_(world_size, size) {}
+//    ParticleContainerBase(length_type world_size, size_type size)
+//        : pmat_(world_size, size) {}
     ParticleContainerBase(length_type world_size, size_type size, structure_id_type default_structid)
         : pmat_(world_size, size), structures_(default_structid) {}
-    // constructor
+    // constructors
 
     virtual size_type num_particles() const
     {
@@ -322,17 +316,7 @@ public:
         return pmat_.erase(id);
     }
 
-////// Structure stuff
-/*    virtual boost::shared_ptr<structure_type> get_structure(structure_id_type const& id) const
-    {
-        typename structure_map::const_iterator i(structure_map_.find(id));
-        if (structure_map_.end() == i)
-        {
-            throw not_found(std::string("Unknown structure (id=") + boost::lexical_cast<std::string>(id) + ")");
-        }
-        return (*i).second;
-    }
-*/
+    ///// Structure stuff
     virtual bool has_structure(structure_id_type const& id) const
     {
         return structures_.has_structure(id);
@@ -353,41 +337,6 @@ public:
     {
         return structures_.remove_structure(id);
     }
-/*
-    virtual bool update_structure(structure_id_pair const& structid_pair)
-    {
-        typename structure_map::const_iterator i(structure_map_.find(structid_pair.first));
-        if (i != structure_map_.end())
-        // The item was already found in the map
-        {
-            if ((*i).second->structure_id() != structid_pair.second->structure_id())
-            // If the structure had a different parent structure
-            // Note that all the substructures of the structures are kept (they are aldo moved moved through the hierarchy)
-            {
-                structure_substructures_map_[(*i).second->structure_id()].erase((*i).first);
-                structure_substructures_map_[structid_pair.second->structure_id()].insert(structid_pair.first);
-            }
-            structure_map_[(*i).first] = structid_pair.second;
-            return false;
-        }
-
-        // The structure was not yet in the world.
-        // create a new item in the structure mapping
-        structure_map_[structid_pair.first] = structid_pair.second;
-        // add the id the mapping 'super_structure_id -> set of substructures'
-        structure_substructures_map_[structid_pair.second->structure_id()].insert(structid_pair.first);
-        // create a new mapping from structure id -> set of substructures
-        structure_substructures_map_[structid_pair.first] = structure_id_set();
-        return true;
-    }
-    virtual bool remove_structure(structure_id_type const& id)
-    {
-        // TODO
-        //  -get all the substructures of structure
-        //  -only remove if no substructures
-        return false;
-    }
-*/
     virtual structure_id_pair_and_distance_list* get_close_structures(position_type const& pos, structure_id_type const& current_struct_id,
                                                                       structure_id_type const& ignore) const
     {
@@ -415,55 +364,8 @@ public:
 
 ///////// Member variables
 protected:
-    particle_matrix_type        pmat_;         // just the structure (MatrixSpace) containing the particles.
-    structure_container_type    structures_;
-
-/*
-
-///////// The following are public and private methods and variables of the class but should maybe be made into a separate class
-//        (and not a part of ParticleContainerBase).
-private:
-    structures_range get_structures_range() const
-    {
-        return structures_range(
-        structure_iterator(structure_map_.begin(), structures_second_selector_type()),
-        structure_iterator(structure_map_.end(),   structures_second_selector_type()),
-        structure_map_.size());
-    }
-    // Get all the structure ids of the substructures
-    structure_id_set get_substructure_ids(structure_id_type const& id) const
-    {
-        typename per_structure_substructure_id_set::const_iterator i(
-            structure_substructures_map_.find(id));
-        if (i == structure_substructures_map_.end())
-        {
-            throw not_found(std::string("Unknown structure (id=") + boost::lexical_cast<std::string>(id) + ")");
-        }
-        return (*i).second;
-    }
-    structure_id_set get_visible_structures(structure_id_type const& id) const
-    {
-        structure_id_set visible_structures;
-
-        const boost::shared_ptr<const structure_type> structure(get_structure(id));
-        if (structure->structure_id() == id)
-        {
-            visible_structures = structure_id_set();
-        }
-        else
-        {
-            visible_structures = get_visible_structures(structure->structure_id());
-            visible_structures.erase(id);
-        }
-        const structure_id_set substructures (get_substructure_ids(id));
-        visible_structures.insert(substructures.begin(), substructures.end());
-        return visible_structures;
-    }
-
-protected:
-    structure_map                       structure_map_;     // mapping: structure_id -> structure
-    per_structure_substructure_id_set   structure_substructures_map_;
-*/
+    particle_matrix_type        pmat_;          // the structure (MatrixSpace) containing the particles.
+    structure_container_type    structures_;    // an object containing the structures.
 };
 
 

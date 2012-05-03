@@ -370,14 +370,10 @@ public:
     // update structure
     virtual bool update_structure(structure_id_pair const& structid_pair)
     {
-//        typename base_type::structure_map::const_iterator i(base_type::structure_container_type::structure_map_.find(structid_pair.first));
-//        if (i != base_type::structure_container_type::structure_map_.end())
-
         if ( base_type::has_structure(structid_pair.first) )
         // The item was already found
         {
             // FIXME what to do when the structure has particles and moves or changes structure_type?!?!
-            // FIXME Or what to do when the structure has substructures?!
             //  get all particles on the structure
             //  assert that no particles if structure type changes.
 
