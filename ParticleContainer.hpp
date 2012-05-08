@@ -42,6 +42,9 @@ public:
     typedef CylindricalSurface<traits_type>                     cylindrical_surface_type;
     typedef SphericalSurface<traits_type>                       spherical_surface_type;
 
+    typedef std::pair<structure_id_type, boost::shared_ptr<cuboidal_region_type> >       cuboidalreg_id_pair_type;
+    typedef std::pair<structure_id_type, boost::shared_ptr<planar_surface_type> >        planarsurface_id_pair_type;
+    typedef std::pair<structure_id_type, boost::shared_ptr<cylindrical_surface_type> >   cylindrsurf_id_pair_type;
 
     typedef std::set<particle_id_type>                                              particle_id_set;
     typedef std::pair<const particle_id_type, particle_type>                        particle_id_pair;
