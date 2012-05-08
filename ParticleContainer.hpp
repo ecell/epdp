@@ -6,6 +6,10 @@
 #include "generator.hpp"
 #include "utils/get_default_impl.hpp"
 #include "utils/unassignable_adapter.hpp"
+#include "CuboidalRegion.hpp"
+#include "PlanarSurface.hpp"
+#include "CylindricalSurface.hpp"
+#include "SphericalSurface.hpp"
 
 template<typename Ttraits_>
 class Transaction;
@@ -33,6 +37,11 @@ public:
 
     typedef typename particle_type::shape_type                  particle_shape_type;
     typedef Transaction<traits_type>                            transaction_type;
+    typedef CuboidalRegion<traits_type>                         cuboidal_region_type;
+    typedef PlanarSurface<traits_type>                          planar_surface_type;
+    typedef CylindricalSurface<traits_type>                     cylindrical_surface_type;
+    typedef SphericalSurface<traits_type>                       spherical_surface_type;
+
 
     typedef std::set<particle_id_type>                                              particle_id_set;
     typedef std::pair<const particle_id_type, particle_type>                        particle_id_pair;
