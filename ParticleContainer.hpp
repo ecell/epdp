@@ -56,7 +56,7 @@ public:
     typedef std::pair<structure_id_pair, length_type>                               structure_id_pair_and_distance;
     typedef unassignable_adapter<structure_id_pair_and_distance,
                                  get_default_impl::std::vector>                     structure_id_pair_and_distance_list;
-    typedef std::map<structure_id_type, boost::shared_ptr<structure_type> >     structure_map;
+    typedef std::map<structure_id_type, boost::shared_ptr<structure_type> >         structure_map;
 
 private:
     typedef select_second<typename structure_map::value_type>                   structure_second_selector_type;
