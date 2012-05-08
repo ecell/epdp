@@ -214,7 +214,8 @@ public:
     {
         return pc_.get_structures();
     }    
-    virtual bool update_structure(structure_id_pair const& structid_pair)
+    template <typename Tstructid_pair_>
+    bool update_structure(Tstructid_pair_ const& structid_pair)
     {
         return pc_.update_structure(structid_pair);
     }

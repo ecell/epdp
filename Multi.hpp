@@ -107,7 +107,8 @@ public:
         return world_.get_structures();     // TODO now gets all structures in world, -> make structure local to Multi
     }
     // virtual structure_id_type add_structure(structure_type const& structure); // TODO add structure from the world to multi
-    virtual bool update_structure(structure_id_pair const& structid_pair)
+    template <typename Tstructid_pair_>
+    bool update_structure(Tstructid_pair_ const& structid_pair)
     {
         return world_.update_structure(structid_pair);
     }

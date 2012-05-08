@@ -361,7 +361,8 @@ public:
 
     ////// Structure stuff
     // Add a structure 
-    virtual structure_id_type add_structure(boost::shared_ptr<structure_type> structure)
+    template <typename Tstructure_>
+    structure_id_type add_structure(boost::shared_ptr<Tstructure_> structure)
     {
         // check that the structure_type that is defined in the structure exists!
         structure_type_type const& structure_type(get_structure_type(structure->sid()));
@@ -372,7 +373,8 @@ public:
         return structure_id;
     }
     // update structure
-    virtual bool update_structure(structure_id_pair const& structid_pair)
+    template <typename Tstructid_pair_>
+    bool update_structure(Tstructid_pair_ const& structid_pair)
     {
         if ( base_type::has_structure(structid_pair.first) )
         // The item was already found

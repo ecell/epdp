@@ -101,7 +101,7 @@ public:
     
     virtual structures_range get_structures() const = 0;
 
-    virtual bool update_structure(structure_id_pair const& structid_pair) = 0;
+//    virtual bool update_structure(structure_id_pair const& structid_pair) = 0;
 
     virtual bool remove_structure(structure_id_type const& id) = 0;
 

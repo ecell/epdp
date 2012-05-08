@@ -407,7 +407,7 @@ inline boost::python::objects::class_base register_world_class(char const* name)
         .def("get_particle_ids_on_struct", &impl_type::get_particle_ids_on_struct)
         .def("add_species", &impl_type::add_species)
         // Structure stuff
-        .def("add_structure", &impl_type::add_structure)
+//        .def("add_structure", &impl_type::add_structure)
         .def("set_def_structure", &impl_type::set_def_structure)
         // StructureType stuff
         .def("add_structure_type", &impl_type::add_structure_type)
