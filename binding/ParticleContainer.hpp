@@ -357,6 +357,11 @@ public:
     typedef typename wrapped_type::structures_range                     structures_range;
     typedef typename wrapped_type::structure_types_range                structure_types_range;
 
+    typedef typename wrapped_type::cuboidalreg_id_pair_type             cuboidalreg_id_pair_type;
+    typedef typename wrapped_type::planarsurface_id_pair_type           planarsurface_id_pair_type;
+    typedef typename wrapped_type::cylindrsurf_id_pair_type             cylindrsurf_id_pair_type;
+
+
     typedef typename wrapped_type::transaction_type                     transaction_type;
 
 public:    
@@ -400,11 +405,28 @@ public:
         return py_wrapper_type::get_override("get_structures")();
     }
 /*
-    virtual bool update_structure(structure_id_pair const& structid_pair)
+    virtual bool update_structure(cuboidalreg_id_pair_type const& structid_pair)
+    {
+        return py_wrapper_type::get_override("update_structure")(structid_pair);
+    }
+
+    virtual bool update_structure(planarsurface_id_pair_type const& structid_pair)
+    {
+        return py_wrapper_type::get_override("update_structure")(structid_pair);
+    }
+
+    virtual bool update_structure(cylindrsurf_id_pair_type const& structid_pair)
+    {
+        return py_wrapper_type::get_override("update_structure")(structid_pair);
+    }
+
+    template<typename Tstructid_pair_>
+    bool update_structure(Tstructid_pair_ const& structid_pair)
     {
         return py_wrapper_type::get_override("update_structure")(structid_pair);
     }
 */
+    
     virtual bool remove_structure(structure_id_type const& id)
     {
         return py_wrapper_type::get_override("remove_structure")(id);
@@ -589,6 +611,9 @@ inline boost::python::objects::class_base register_particle_container_class(
         .def("get_structure", pure_virtual(&impl_type::get_structure))
         .def("get_structures", pure_virtual(&impl_type::get_structures))
 //        .def("update_structure", pure_virtual(&impl_type::update_structure))
+//        .def("update_structure", &impl_type::template update_structure<typename impl_type::cuboidalreg_id_pair_type>)
+//        .def("update_structure", &impl_type::template update_structure<typename impl_type::planarsurface_id_pair_type>)
+//        .def("update_structure", &impl_type::template update_structure<typename impl_type::cylindrsurf_id_pair_type>)
         .def("remove_structure", pure_virtual(&impl_type::remove_structure))
         .def("get_structure_ids", pure_virtual(&impl_type::get_structure_ids))
         .def("get_def_structure_id", pure_virtual(&impl_type::get_def_structure_id))
