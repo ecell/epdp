@@ -119,7 +119,13 @@ public:
 
     virtual bool update_structure (cylindrsurf_id_pair_type const& structid_cylinder)  // can I make this into a template function?
     {
-        // add to Connectivity container for cylindrical surfaces
+        if ( update_structure_base(structid_cylinder))
+        {
+            // add to Connectivity container for cylindrical surfaces
+            cylindrical_structs_bc_.set_neighbor_info(structid_cylinder.first, 0, std::make_pair(structid_cylinder.first, multiply(structid_cylinder.second->shape().unit_z(), -1.0) ));
+            cylindrical_structs_bc_.set_neighbor_info(structid_cylinder.first, 1, std::make_pair(structid_cylinder.first,          structid_cylinder.second->shape().unit_z() ));
+            return true;
+        }
         return false;
     }
     virtual bool update_structure (planarsurf_id_pair_type const& structid_plane)
@@ -129,6 +135,10 @@ public:
         {
             // We now assume that the structure was not already in the boundary_conditions_thing
             // add to Connectivity container for planar surfaces and set reflective boundary conditions.
+            planar_structs_bc_.set_neighbor_info(structid_plane.first, 0, std::make_pair(structid_plane.first, multiply(structid_plane.second->shape().unit_y(), -1.0) ));
+            planar_structs_bc_.set_neighbor_info(structid_plane.first, 1, std::make_pair(structid_plane.first,          structid_plane.second->shape().unit_y() ));
+            planar_structs_bc_.set_neighbor_info(structid_plane.first, 2, std::make_pair(structid_plane.first,          structid_plane.second->shape().unit_x() ));
+            planar_structs_bc_.set_neighbor_info(structid_plane.first, 3, std::make_pair(structid_plane.first, multiply(structid_plane.second->shape().unit_x(), -1.0) ));
             return true;
         }
         // if the structure was already present, don't change anything
@@ -139,12 +149,12 @@ public:
         // add to Connectivity container for cuboidal regions
         if ( update_structure_base(structid_cube))
         {
-            cuboidal_structs_bc_.set_neighbor_info(structid_cube.first, 0, std::make_pair(structid_cube.first,  structid_cube.second->shape().unit_z()));
-            cuboidal_structs_bc_.set_neighbor_info(structid_cube.first, 1, std::make_pair(structid_cube.first, -structid_cube.second->shape().unit_z()));
-            cuboidal_structs_bc_.set_neighbor_info(structid_cube.first, 2, std::make_pair(structid_cube.first,  structid_cube.second->shape().unit_y()));
-            cuboidal_structs_bc_.set_neighbor_info(structid_cube.first, 3, std::make_pair(structid_cube.first, -structid_cube.second->shape().unit_y()));
-            cuboidal_structs_bc_.set_neighbor_info(structid_cube.first, 4, std::make_pair(structid_cube.first,  structid_cube.second->shape().unit_x()));
-            cuboidal_structs_bc_.set_neighbor_info(structid_cube.first, 5, std::make_pair(structid_cube.first, -structid_cube.second->shape().unit_x()));
+            cuboidal_structs_bc_.set_neighbor_info(structid_cube.first, 0, std::make_pair(structid_cube.first,          structid_cube.second->shape().unit_z()));
+            cuboidal_structs_bc_.set_neighbor_info(structid_cube.first, 1, std::make_pair(structid_cube.first, multiply(structid_cube.second->shape().unit_z(), -1.0) ));
+            cuboidal_structs_bc_.set_neighbor_info(structid_cube.first, 2, std::make_pair(structid_cube.first,          structid_cube.second->shape().unit_y()));
+            cuboidal_structs_bc_.set_neighbor_info(structid_cube.first, 3, std::make_pair(structid_cube.first, multiply(structid_cube.second->shape().unit_y(), -1.0) ));
+            cuboidal_structs_bc_.set_neighbor_info(structid_cube.first, 4, std::make_pair(structid_cube.first,          structid_cube.second->shape().unit_x()));
+            cuboidal_structs_bc_.set_neighbor_info(structid_cube.first, 5, std::make_pair(structid_cube.first, multiply(structid_cube.second->shape().unit_x(), -1.0) ));
             return true;
         }
         return false;
