@@ -26,7 +26,7 @@ public:
     typedef typename traits_type::structure_id_type         structure_id_type;
     typedef typename traits_type::length_type               length_type;
     typedef typename traits_type::position_type             position_type;
-    typedef typename traits_type::base_type::species_type   species_type;
+    typedef typename traits_type::species_type              species_type;
     typedef typename traits_type::structure_type_id_type    structure_type_id_type;
     typedef std::pair<position_type, length_type>           projected_type;
     typedef std::pair<position_type, position_type>         position_pair_type;

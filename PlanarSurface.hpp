@@ -8,13 +8,13 @@
 
 template<typename Ttraits_>
 class PlanarSurface
-    : public BasicSurfaceImpl<Ttraits_, Plane<typename Ttraits_::world_type::traits_type::length_type> >
+    : public BasicSurfaceImpl<Ttraits_, Plane<typename Ttraits_::length_type> >
 {
     // The planar surface is an implementation of a Basic surface parameterized with the plane
 
 public:
-    typedef BasicSurfaceImpl<Ttraits_, Plane<typename Ttraits_::world_type::traits_type::length_type> > base_type;
-    typedef typename base_type::traits_type traits_type;
+    typedef BasicSurfaceImpl<Ttraits_, Plane<typename Ttraits_::length_type> > base_type;
+    typedef Ttraits_ traits_type;
     typedef typename base_type::structure_name_type     structure_name_type;        // This is just the name of the structure
     typedef typename base_type::structure_id_type       structure_id_type;
     typedef typename base_type::structure_type_id_type  structure_type_id_type;
@@ -22,7 +22,7 @@ public:
     typedef typename base_type::rng_type                rng_type;
     typedef typename base_type::position_type           position_type;
     typedef typename base_type::length_type             length_type;
-    typedef typename Ttraits_::world_type::species_type species_type;
+    typedef typename traits_type::species_type          species_type;
     typedef std::pair<position_type, position_type>     position_pair_type;
     typedef std::pair<position_type, length_type>       projected_type;
 

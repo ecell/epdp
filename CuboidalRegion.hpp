@@ -8,11 +8,11 @@
 
 template<typename Ttraits_>
 class CuboidalRegion
-    : public BasicRegionImpl<Ttraits_, Box<typename Ttraits_::world_type::traits_type::length_type> >
+    : public BasicRegionImpl<Ttraits_, Box<typename Ttraits_::length_type> >
 {
 public:
-    typedef BasicRegionImpl<Ttraits_, Box<typename Ttraits_::world_type::traits_type::length_type> > base_type;
-    typedef typename base_type::traits_type traits_type;
+    typedef BasicRegionImpl<Ttraits_, Box<typename Ttraits_::length_type> > base_type;
+    typedef Ttraits_ traits_type;
 
     // name shorthands of types that we use.
     typedef typename base_type::structure_name_type     structure_name_type;
@@ -22,7 +22,7 @@ public:
     typedef typename base_type::rng_type                rng_type;
     typedef typename base_type::position_type           position_type;
     typedef typename base_type::length_type             length_type;
-    typedef typename Ttraits_::world_type::species_type species_type;
+    typedef typename traits_type::species_type          species_type;
     typedef std::pair<position_type, position_type>     position_pair_type;
 
     virtual position_type random_position(rng_type& rng) const
