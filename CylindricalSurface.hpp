@@ -195,14 +195,14 @@ public:
     {
         return base_type::distance(new_pos);
     }
-
+/*
     virtual length_type minimal_distance(length_type const& radius) const
     {
         length_type cylinder_radius = base_type::shape().radius();
         // Return minimal distance *to* surface.
         return (cylinder_radius + radius) * traits_type::MINIMAL_SEPARATION_FACTOR - cylinder_radius;
     }
-
+*/
     virtual void accept(ImmutativeStructureVisitor<traits_type> const& visitor) const
     {
         visitor(*this);

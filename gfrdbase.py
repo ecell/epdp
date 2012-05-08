@@ -250,26 +250,28 @@ def throw_in_particles(world, sid, n):
         position = structure.random_position(myrandom.rng)
         position = world.apply_boundary(position)
 
-        surfaces = get_neighbor_surfaces(world, position, structure.id, [])
-        if surfaces:
-            surface, distance = surfaces[0]
-        else:
-            surface, distance = None, 0
+#        surfaces = get_neighbor_surfaces(world, position, structure.id, [])
+#        if surfaces:
+#            surface, distance = surfaces[0]
+#        else:
+#            surface, distance = None, 0
 
         # Check overlap.
-        if not world.check_overlap((position, species.radius)):
+        if (not world.check_overlap((position, species.radius))) and \
+           (not world.check_surface_overlap((position, species.radius*MINIMAL_SEPARATION_FACTOR),
+                                           position, structure.id, species.radius)):
             create = True
-            # Check if not too close to a neighbouring structures for 
-            # particles added to the world, or added to a self-defined 
-            # box.
-            # FIXME replace by check_surface_overlap
-            if (isinstance(structure, _gfrd.CuboidalRegion) and \
-                surface and \
-                distance < surface.minimal_distance(species.radius)):
-                if __debug__:
-                    log.info('\t%d-th particle rejected. Too close to '
-                             'surface. I will keep trying.' % i)
-                create = False
+#            # Check if not too close to a neighbouring structures for 
+#            # particles added to the world, or added to a self-defined 
+#            # box.
+#            # FIXME replace by check_surface_overlap
+#            if (isinstance(structure, _gfrd.CuboidalRegion) and \
+#                surface and \
+#                distance < surface.minimal_distance(species.radius)):
+#                if __debug__:
+#                    log.info('\t%d-th particle rejected. Too close to '
+#                             'surface. I will keep trying.' % i)
+#                create = False
             if create:
                 # All checks passed. Create particle.
                 p = world.new_particle(sid, structure.id, position)

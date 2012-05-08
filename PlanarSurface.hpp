@@ -191,13 +191,13 @@ public:
             return base_type::distance(new_pos) + sigma;
         }
     }
-
+/*
     virtual length_type minimal_distance(length_type const& radius) const
     {
         // PlanarSurface has thickness of 0.
         return radius * traits_type::MINIMAL_SEPARATION_FACTOR;
     }
-
+*/
     virtual void accept(ImmutativeStructureVisitor<traits_type> const& visitor) const
     {
         visitor(*this);

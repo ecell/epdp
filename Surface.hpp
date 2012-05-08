@@ -33,7 +33,7 @@ public:
     Surface(structure_name_type const& name, structure_type_id_type const& sid, structure_id_type const& parent_struct_id):
          base_type(name, sid, parent_struct_id) {}
 
-    virtual length_type minimal_distance(length_type const& radius) const = 0;
+//    virtual length_type minimal_distance(length_type const& radius) const = 0;
 };
 
 

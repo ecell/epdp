@@ -93,12 +93,12 @@ public:
     {
         return base_type::distance(new_pos);
     }
-
+/*
     virtual length_type minimal_distance(length_type const& radius) const
     {
         return 0.; // TODO
     }
-
+*/
     virtual void accept(ImmutativeStructureVisitor<traits_type> const& visitor) const
     {
         visitor(*this);
