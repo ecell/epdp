@@ -4,6 +4,9 @@
 #include <boost/lexical_cast.hpp>
 #include "exceptions.hpp"
 #include "linear_algebra.hpp"
+#include "CuboidalRegion.hpp"
+#include "PlanarSurface.hpp"
+#include "CylindricalSurface.hpp"
 
 
 template<typename Tobj_, typename Tdata_, std::size_t num_neighbors>
@@ -37,6 +40,10 @@ public:
 public:
     void set_neighbor_info(obj_type const& obj, size_type const n, obj_data_pair_type const& obj_data_pair)
     {
+        // check that the index is not too large
+        if ( n >= max )
+            throw not_found(std::string("Index out of range for neighbor (n= ") + boost::lexical_cast<std::string>(n) + "), max= " + boost::lexical_cast<std::string>(max));
+
         neighbor_mapping_[obj][n] = obj_data_pair;
     }
 
@@ -69,12 +76,13 @@ private:
 
 
 
-template <typename Tobj_, typename Tid_>
+template <typename Tobj_, typename Tid_, typename Ttraits_>
 class StructureContainer
 {
 public:
-    typedef Tobj_              structure_type;
-    typedef Tid_               structure_id_type;
+    typedef Tobj_               structure_type;
+    typedef Tid_                structure_id_type;
+    typedef Ttraits_            traits_type;
     typedef std::set<structure_id_type>                                             structure_id_set;
     typedef std::pair<const structure_id_type, boost::shared_ptr<structure_type> >  structure_id_pair;
     typedef std::map<structure_id_type, boost::shared_ptr<structure_type> >         structure_map;
@@ -85,6 +93,16 @@ protected:
             typename structure_map::const_iterator>                                 structure_iterator;
     typedef typename std::map<structure_id_type, structure_id_set>                  per_structure_substructure_id_set;
 
+    typedef ConnectivityContainer<structure_id_type, typename structure_type::position_type, 2> cylinders_boundaryconditions_type;
+    typedef ConnectivityContainer<structure_id_type, typename structure_type::position_type, 4> planes_boundaryconditions_type;
+    typedef ConnectivityContainer<structure_id_type, typename structure_type::position_type, 6> boxes_boundaryconditions_type;
+
+    typedef CuboidalRegion<traits_type>                             cuboidalregion_type;
+    typedef PlanarSurface<traits_type>                              planarsurface_type;
+    typedef CylindricalSurface<traits_type>                         cylindricalsurface_type;
+    typedef std::pair<structure_id_type, boost::shared_ptr<cuboidalregion_type> >       cuboidalreg_id_pair_type;
+    typedef std::pair<structure_id_type, boost::shared_ptr<planarsurface_type> >        planarsurf_id_pair_type;
+    typedef std::pair<structure_id_type, boost::shared_ptr<cylindricalsurface_type> >   cylindrsurf_id_pair_type;
 
 public:
     typedef sized_iterator_range<structure_iterator>                                structures_range;
@@ -93,42 +111,61 @@ public:
 public:
     virtual ~StructureContainer() {};
 
+    // The constructor
     StructureContainer(structure_id_type default_structid) : default_structure_id_(default_structid)
     {
         structure_substructures_map_[default_structid] = structure_id_set();
     }
 
-/*    add_structure (CylindricalSurface)  // can I make this into a template function?
+    virtual bool update_structure (cylindrsurf_id_pair_type const& structid_cylinder)  // can I make this into a template function?
     {
         // add to Connectivity container for cylindrical surfaces
+        return false;
     }
-    add_structure (PlanarSurface)
+    virtual bool update_structure (planarsurf_id_pair_type const& structid_plane)
     {
-        // add to Connectivity container for planar surfaces
+        // call regular update method (this also checks if the structure was already present)
+        if ( update_structure_base(structid_plane))
+        {
+            // We now assume that the structure was not already in the boundary_conditions_thing
+            // add to Connectivity container for planar surfaces and set reflective boundary conditions.
+            return true;
+        }
+        // if the structure was already present, don't change anything
+        return false;
     }
-    add_structure (CuboidalRegion)
+    virtual bool update_structure (cuboidalreg_id_pair_type const& structid_cube)
     {
-        // add to Connectivity container for planar surfaces
+        // add to Connectivity container for cuboidal regions
+        if ( update_structure_base(structid_cube))
+        {
+            cuboidal_structs_bc_.set_neighbor_info(structid_cube.first, 0, std::make_pair(structid_cube.first,  structid_cube.second->shape().unit_z()));
+            cuboidal_structs_bc_.set_neighbor_info(structid_cube.first, 1, std::make_pair(structid_cube.first, -structid_cube.second->shape().unit_z()));
+            cuboidal_structs_bc_.set_neighbor_info(structid_cube.first, 2, std::make_pair(structid_cube.first,  structid_cube.second->shape().unit_y()));
+            cuboidal_structs_bc_.set_neighbor_info(structid_cube.first, 3, std::make_pair(structid_cube.first, -structid_cube.second->shape().unit_y()));
+            cuboidal_structs_bc_.set_neighbor_info(structid_cube.first, 4, std::make_pair(structid_cube.first,  structid_cube.second->shape().unit_x()));
+            cuboidal_structs_bc_.set_neighbor_info(structid_cube.first, 5, std::make_pair(structid_cube.first, -structid_cube.second->shape().unit_x()));
+            return true;
+        }
+        return false;
     }
-    remove_structure (StructureID)
+/*    get_neighbor_info(PlanarSurface)
     {
-        // find StructureID in all ConnectivityContainers -> remove references
     }
-
 */
     virtual structure_id_type get_def_structure_id() const
     {
         return default_structure_id_;
     }
-    void set_def_structure(const boost::shared_ptr<structure_type> structure)
+    void set_def_structure(const boost::shared_ptr<cuboidalregion_type> cuboidalregion)
     {
         // check that the structure_type is the default structure_type
-        if ( structure->structure_id() != default_structure_id_)
+        if ( cuboidalregion->structure_id() != default_structure_id_)
         {
-            throw illegal_state("Default structure doesn't have right properties");
+            throw illegal_state("Default structure should have itself as parent.");
         }
-        structure->set_id(default_structure_id_);
-        update_structure(std::make_pair(default_structure_id_, structure));
+        cuboidalregion->set_id(default_structure_id_);
+        update_structure(std::make_pair(default_structure_id_, cuboidalregion));
     }
     virtual bool has_structure(structure_id_type const& id) const
     {
@@ -151,7 +188,34 @@ public:
         structure_iterator(structure_map_.end(),   structures_second_selector_type()),
         structure_map_.size());
     }
-    virtual bool update_structure(structure_id_pair const& structid_pair)
+    virtual bool remove_structure(structure_id_type const& id)
+    {
+        // TODO
+        //  -find StructureID in all ConnectivityContainers -> remove references
+        //  -get all the substructures of structure
+        //  -only remove if no substructures
+        return false;
+    }
+    structure_id_set get_visible_structures(structure_id_type const& id) const
+    {
+        structure_id_set visible_structures;
+
+        const boost::shared_ptr<const structure_type> structure(get_structure(id));
+        if (structure->structure_id() == id)
+        {
+            visible_structures = structure_id_set();
+        }
+        else
+        {
+            visible_structures = get_visible_structures(structure->structure_id());
+            visible_structures.erase(id);
+        }
+        const structure_id_set substructures (get_substructure_ids(id));
+        visible_structures.insert(substructures.begin(), substructures.end());
+        return visible_structures;
+    }
+
+    bool update_structure_base(structure_id_pair const& structid_pair)
     {
         typename structure_map::const_iterator i(structure_map_.find(structid_pair.first));
         if (i != structure_map_.end())
@@ -177,32 +241,6 @@ public:
         structure_substructures_map_[structid_pair.first] = structure_id_set();
         return true;
     }
-    virtual bool remove_structure(structure_id_type const& id)
-    {
-        // TODO
-        //  -get all the substructures of structure
-        //  -only remove if no substructures
-        return false;
-    }
-    structure_id_set get_visible_structures(structure_id_type const& id) const
-    {
-        structure_id_set visible_structures;
-
-        const boost::shared_ptr<const structure_type> structure(get_structure(id));
-        if (structure->structure_id() == id)
-        {
-            visible_structures = structure_id_set();
-        }
-        else
-        {
-            visible_structures = get_visible_structures(structure->structure_id());
-            visible_structures.erase(id);
-        }
-        const structure_id_set substructures (get_substructure_ids(id));
-        visible_structures.insert(substructures.begin(), substructures.end());
-        return visible_structures;
-    }
-
 private:
     // Get all the structure ids of the substructures
     structure_id_set get_substructure_ids(structure_id_type const& id) const
@@ -221,10 +259,10 @@ protected:
     per_structure_substructure_id_set   structure_substructures_map_;
     structure_id_type                   default_structure_id_;
 
-//    CylindricalSurfaceConnectivityContainer     // This contains a StructureID -> vector <(StructureID, index), 2> map
-//    PlanarSurfaceConnectivityContainer          // This contains a StructureID -> vector <(StructureID, index), 4> map
-//    CuboidalReginConnectivityContainer          // This contains a StructureID -> vector <(StructureID, index), 6> map
-
+    // The next object describe the boundary conditions that are applied to the different types of structures.
+    cylinders_boundaryconditions_type   cylindrical_structs_bc_;
+    planes_boundaryconditions_type      planar_structs_bc_;
+    boxes_boundaryconditions_type       cuboidal_structs_bc_;
 };
 
 
@@ -235,7 +273,7 @@ protected:
 //// functions for Planes
 template<typename T_, typename Ttraits_ >
 inline std::pair<typename Plane<T_>::position_type, typename Ttraits_::structure_id_type>
-apply_boundary (StructureContainer<typename Ttraits_::structure_type, typename Ttraits_::structure_id_type> const& sc,
+apply_boundary (StructureContainer<typename Ttraits_::structure_type, typename Ttraits_::structure_id_type, Ttraits_> const& sc,
                 ConnectivityContainer<typename Ttraits_::structure_id_type, typename Plane<T_>::position_type, 4> const& cc, // Plane<T_>::num_neighbors > const& cc,
                 std::pair<typename Plane<T_>::position_type, typename Ttraits_::structure_id_type> const& pos_structure_id)
 // The template needs to be parameterized with the appropriate shape (which then parameterizes the type

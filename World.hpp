@@ -232,6 +232,10 @@ public:
     typedef typename base_type::structure_id_set                            structure_id_set;
     typedef typename base_type::structure_types_range                       structure_types_range;
 
+    typedef typename base_type::cuboidal_region_type                cuboidal_region_type;
+    typedef typename base_type::planar_surface_type                 planar_surface_type;
+    typedef typename base_type::cylindrical_surface_type            cylindrical_surface_type;
+
 protected:
     typedef std::map<species_id_type, species_type>                         species_map;
     typedef std::map<structure_id_type, boost::shared_ptr<structure_type> > structure_map;          // note: this is a structure_map_type
@@ -420,17 +424,17 @@ public:
     {
         return base_type::structures_.get_def_structure_id();
     }
-    void set_def_structure(const boost::shared_ptr<structure_type> structure)
+    void set_def_structure(const boost::shared_ptr<cuboidal_region_type> cuboidal_region)
     {
         // check that the structure_type is the default structure_type
         if (!default_structure_type_id_ ||
-            (structure->sid() != default_structure_type_id_) )
+            (cuboidal_region->sid() != default_structure_type_id_) )
         {
-            throw illegal_state("Default structure doesn't have right properties");
+            throw illegal_state("Default structure is not of default StructureType");
         }
         // check that the structure_type that is defined in the structure exists!
-        structure_type_type const& structure_type(get_structure_type(structure->sid()));
-        base_type::structures_.set_def_structure(structure);
+        structure_type_type const& structure_type(get_structure_type(cuboidal_region->sid()));
+        base_type::structures_.set_def_structure(cuboidal_region);
     }
     // Get the closest surface(surface is a subclass of structures)
     // TODO change this to get all the surfaces within a certain distance of the particle.
