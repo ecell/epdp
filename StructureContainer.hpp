@@ -93,13 +93,16 @@ protected:
             typename structure_map::const_iterator>                                 structure_iterator;
     typedef typename std::map<structure_id_type, structure_id_set>                  per_structure_substructure_id_set;
 
-    typedef ConnectivityContainer<structure_id_type, typename structure_type::position_type, 2> cylinders_boundaryconditions_type;
-    typedef ConnectivityContainer<structure_id_type, typename structure_type::position_type, 4> planes_boundaryconditions_type;
-    typedef ConnectivityContainer<structure_id_type, typename structure_type::position_type, 6> boxes_boundaryconditions_type;
-
     typedef CuboidalRegion<traits_type>                             cuboidalregion_type;
     typedef PlanarSurface<traits_type>                              planarsurface_type;
     typedef CylindricalSurface<traits_type>                         cylindricalsurface_type;
+
+    typedef typename structure_type::position_type                      vector_type;
+    typedef std::pair<structure_id_type, vector_type>                   neighbor_id_vector_type;
+    typedef ConnectivityContainer<structure_id_type, vector_type, 2>    cylinders_boundaryconditions_type;
+    typedef ConnectivityContainer<structure_id_type, vector_type, 4>    planes_boundaryconditions_type;
+    typedef ConnectivityContainer<structure_id_type, vector_type, 6>    boxes_boundaryconditions_type;
+
     typedef std::pair<structure_id_type, boost::shared_ptr<cuboidalregion_type> >       cuboidalreg_id_pair_type;
     typedef std::pair<structure_id_type, boost::shared_ptr<planarsurface_type> >        planarsurf_id_pair_type;
     typedef std::pair<structure_id_type, boost::shared_ptr<cylindricalsurface_type> >   cylindrsurf_id_pair_type;
@@ -159,10 +162,19 @@ public:
         }
         return false;
     }
-/*    get_neighbor_info(PlanarSurface)
+    virtual neighbor_id_vector_type get_neighbor_info(const boost::shared_ptr<planarsurface_type> structure, int n) const
     {
+        planar_structs_bc_.get_neighbor_info(structure->id(), n);
     }
-*/
+    virtual neighbor_id_vector_type get_neighbor_info(const boost::shared_ptr<cylindricalsurface_type> structure, int n) const
+    {
+        cylindrical_structs_bc_.get_neighbor_info(structure->id(), n);
+    }
+    virtual neighbor_id_vector_type get_neighbor_info(const boost::shared_ptr<cuboidalregion_type> structure, int n) const
+    {
+        cuboidal_structs_bc_.get_neighbor_info(structure->id(), n);
+    }
+
     virtual structure_id_type get_def_structure_id() const
     {
         return default_structure_id_;
@@ -284,7 +296,6 @@ protected:
 template<typename T_, typename Ttraits_ >
 inline std::pair<typename Plane<T_>::position_type, typename Ttraits_::structure_id_type>
 apply_boundary (StructureContainer<typename Ttraits_::structure_type, typename Ttraits_::structure_id_type, Ttraits_> const& sc,
-                ConnectivityContainer<typename Ttraits_::structure_id_type, typename Plane<T_>::position_type, 4> const& cc, // Plane<T_>::num_neighbors > const& cc,
                 std::pair<typename Plane<T_>::position_type, typename Ttraits_::structure_id_type> const& pos_structure_id)
 // The template needs to be parameterized with the appropriate shape (which then parameterizes the type
 // of the ConnectivityContainer that we use.
@@ -293,8 +304,10 @@ apply_boundary (StructureContainer<typename Ttraits_::structure_type, typename T
 // query the boundary conditions and connectivity.
 {
     // useful typedefs
-    typedef Ttraits_    traits_type;
-    typedef Plane<T_>   plane_type;
+    typedef Ttraits_                    traits_type;
+    typedef Plane<T_>                   plane_type;
+    typedef PlanarSurface<traits_type>  planar_surface_type;
+
     typedef typename plane_type::length_type            length_type;
     typedef typename plane_type::position_type          position_type;
     typedef typename traits_type::structure_id_type     structure_id_type;
@@ -303,7 +316,8 @@ apply_boundary (StructureContainer<typename Ttraits_::structure_type, typename T
     typedef std::pair<structure_id_type, position_type> neighbor_id_vector_type;
 
     // Note that we assume that the new position is in the plane (dot(pos, unit_z)==0)
-    const plane_type origin_plane (sc.get_structure(pos_structure_id.second)->shape());
+    const boost::shared_ptr<planar_surface_type> planar_surface(sc.get_structure(pos_structure_id.second));
+    const plane_type origin_plane (planar_surface->shape());
     boost::array<length_type, 2> half_extends(origin_plane.half_extent());
     const length_type origin_length_x (2*half_extends[0]);
     const length_type origin_length_y (2*half_extends[1]);
@@ -330,7 +344,8 @@ apply_boundary (StructureContainer<typename Ttraits_::structure_type, typename T
     {
         // we are at the 'top' of the plane (side nr. 0)
         // get the unit vector pointing from the edge between the two planes to the center of the plane
-        const neighbor_id_vector_type neighbor_id_vector (cc.get_neighbor_info(pos_structure_id.second, 0));
+        // TODO just pass origin_structure instead of plane and structure_id separately.
+        const neighbor_id_vector_type neighbor_id_vector (sc.get_neighbor_info(planar_surface, 0));
 
         new_id = neighbor_id_vector.first;
         neighbor_plane_par = component_x * origin_plane.unit_x();
@@ -341,7 +356,7 @@ apply_boundary (StructureContainer<typename Ttraits_::structure_type, typename T
     {
         // we are at the 'bottom' of the plane (side nr. 1)
         // get the unit vector pointing from the edge between the two planes to the center of the plane
-        const neighbor_id_vector_type neighbor_id_vector (cc.get_neighbor_info(pos_structure_id.second, 1));
+        const neighbor_id_vector_type neighbor_id_vector (sc.get_neighbor_info(planar_surface, 1));
 
         new_id = neighbor_id_vector.first;
         neighbor_plane_par = component_x * origin_plane.unit_x();
@@ -352,7 +367,7 @@ apply_boundary (StructureContainer<typename Ttraits_::structure_type, typename T
     {
         // we are at the 'left' of the plane (side nr. 2)
         // get the unit vector pointing from the edge between the two planes to the center of the plane
-        const neighbor_id_vector_type neighbor_id_vector (cc.get_neighbor_info(pos_structure_id.second, 2));
+        const neighbor_id_vector_type neighbor_id_vector (sc.get_neighbor_info(planar_surface, 2));
 
         new_id = neighbor_id_vector.first;
         neighbor_plane_par = component_y * origin_plane.unit_y();
@@ -363,8 +378,7 @@ apply_boundary (StructureContainer<typename Ttraits_::structure_type, typename T
     {
         // we are at the 'right' of the plane (side nr. 3)
         // this is a unit vector pointing from the edge between the two planes to the center of the plane
-        const position_type neighbor_plane_unit_inline (cc.get_neighbor_info(pos_structure_id.second, 3).second);
-        const neighbor_id_vector_type neighbor_id_vector (cc.get_neighbor_info(pos_structure_id.second, 3));
+        const neighbor_id_vector_type neighbor_id_vector (sc.get_neighbor_info(planar_surface, 3));
 
         new_id = neighbor_id_vector.first;
         neighbor_plane_par = component_y * origin_plane.unit_y();
