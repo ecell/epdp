@@ -317,8 +317,6 @@ apply_boundary (StructureContainer<typename Ttraits_::structure_type, typename T
     const boost::shared_ptr<planar_surface_type> planar_surface(sc.get_structure(pos_structure_id.second));
     const plane_type origin_plane (planar_surface->shape());
     boost::array<length_type, 2> half_extends(origin_plane.half_extent());
-    const length_type origin_length_x (2*half_extends[0]);
-    const length_type origin_length_y (2*half_extends[1]);
 
     // TODO do cyclic transpose here first
     const position_type pos_vector( subtract(pos_structure_id.first, origin_plane.position()) );
@@ -347,7 +345,8 @@ apply_boundary (StructureContainer<typename Ttraits_::structure_type, typename T
 
         new_id = neighbor_id_vector.first;
         neighbor_plane_par = component_x * origin_plane.unit_x();
-        neighbor_plane_inl = (component_y - origin_length_y)* neighbor_id_vector.second;
+        neighbor_plane_inl = add(half_extends[1]                * origin_plane.unit_y(),
+                                 (component_y - half_extends[1])* neighbor_id_vector.second );
     }
     else if ( (-half_extends[0] < component_x) && ( component_x < half_extends[0]) &&
               (component_y < -half_extends[1] ) )
@@ -358,7 +357,8 @@ apply_boundary (StructureContainer<typename Ttraits_::structure_type, typename T
 
         new_id = neighbor_id_vector.first;
         neighbor_plane_par = component_x * origin_plane.unit_x();
-        neighbor_plane_inl = (-component_y - origin_length_y)* neighbor_id_vector.second;
+        neighbor_plane_inl = add(-half_extends[1]                * origin_plane.unit_y(),
+                                 (-component_y - half_extends[1])* neighbor_id_vector.second );
     }
     else if ( (-half_extends[1] < component_y) && ( component_y < half_extends[1]) &&
               (component_x < -half_extends[0]) )
@@ -369,7 +369,8 @@ apply_boundary (StructureContainer<typename Ttraits_::structure_type, typename T
 
         new_id = neighbor_id_vector.first;
         neighbor_plane_par = component_y * origin_plane.unit_y();
-        neighbor_plane_inl = (-component_x - origin_length_x)* neighbor_id_vector.second;
+        neighbor_plane_inl = add(-half_extends[0]                * origin_plane.unit_x(),
+                                 (-component_x - half_extends[0])* neighbor_id_vector.second );
     }
     else if ( (-half_extends[1] < component_y) && ( component_y < half_extends[1]) &&
               (half_extends[0] < component_x) )
@@ -380,7 +381,8 @@ apply_boundary (StructureContainer<typename Ttraits_::structure_type, typename T
 
         new_id = neighbor_id_vector.first;
         neighbor_plane_par = component_y * origin_plane.unit_y();
-        neighbor_plane_inl = (component_x - origin_length_x)* neighbor_id_vector.second;
+        neighbor_plane_inl = add(half_extends[0]                * origin_plane.unit_x(),
+                                 (component_x - half_extends[0])* neighbor_id_vector.second );
     }
     else
     {
@@ -389,7 +391,7 @@ apply_boundary (StructureContainer<typename Ttraits_::structure_type, typename T
         return pos_structure_id;
     }
 
-    const position_type new_pos ( add(sc.get_structure(new_id)->position(),
+    const position_type new_pos ( add(origin_plane.position(),
                                       add(neighbor_plane_par, neighbor_plane_inl)));
     // TODO do normal apply_boundary too?
     return std::make_pair(new_pos, new_id);
@@ -482,8 +484,10 @@ apply_boundary (StructureContainer<typename Ttraits_::structure_type, typename T
     typedef Box<T_>                         box_type;
     typedef typename box_type::length_type  length_type;
 
-    const length_type world_size(sc.get_structure(pos_structure_id.second)->shape().Lx());
-    return std::make_pair(traits_type::apply_boundary(pos_structure_id.first, world_size), pos_structure_id.second);
+//    const length_type world_size(sc.get_structure(pos_structure_id.second)->shape().Lx());
+//    return std::make_pair(traits_type::apply_boundary(pos_structure_id.first, world_size), pos_structure_id.second);
+    // TODO do normal apply_boundary too?
+    return pos_structure_id;
 }
 
 #endif /* STRUCTURE_CONTAINER_HPP */
