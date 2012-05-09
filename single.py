@@ -27,6 +27,7 @@ __all__ = [
     'NonInteractionSingle',
     'InteractionSingle',
     'CylindricalSurfaceInteraction',
+    'CylindricalSurfaceCapSingle',
     'CylindricalSurfaceSink',
     'PlanarSurfaceInteraction',
     'TransitionSingle',
@@ -947,6 +948,97 @@ class CylindricalSurfaceSink(InteractionSingle):
 
     def __str__(self):
         return 'CylindricalSurfaceSink ' + Single.__str__(self)
+
+
+class CylindricalSurfaceCapSingle(InteractionSingle):
+    """1 Particle inside a (Cylindrical) shell on a CylindricalSurface
+       limited by a cap. The cap is a reactive surface to the particle
+       and defines the exit point from the cylinder.
+
+        * Particle coordinates on surface: z.
+        * Domain: cartesian z.
+        * Initial position: z = 0.
+        * Selected randomly when drawing displacement vector: none. # TODO What does this mean?
+    """
+    def __init__(self, domain_id, shell_id, testShell, reactionrules, interactionrules):
+
+        assert isinstance(testShell, CylindricalSurfaceCaptestShell)
+        InteractionSingle.__init__(self, domain_id, shell_id, testShell, reactionrules, interactionrules)
+
+        self.zcap = self.shell.get_referencepoint()
+
+    def get_inner_dz_left(self):
+        # This is the distance that the particle can travel from its initial position
+        # towards the reactive cap.
+        # For the cap it is the center of particle that "reacts" with it.
+        # The testShell is taking this into account at construction to ensure that
+        # there is enough space around the cap in case of reaction.
+        # Note that the reference point of the shell is the cap position.
+        return self.shell.particle_surface_distance
+
+    def get_inner_dz_right(self):
+        # This is the distance that the particle can travel from its initial position
+        # towards the absorbing cylinder boundary opposite of the cap.
+        # Note that the reference point of the shell is the cap position,
+        # therefore we have to subtract particle_surface_distance here.
+        return self.shell.dz_right - self.shell.particle_surface_distance
+                                   - self.pid_particle_pair[1].radius
+        # TODO is shell.dz_right always positive?
+
+    def determine_next_event(self):
+        """Return an (event_time, event_type)-tuple.
+
+        """
+        return min(self.draw_reaction_time_tuple(),
+                   self.draw_iv_event_time_tuple())
+
+    def iv_greens_function(self):
+
+        # zcap = position of the cap relative to the initial particle position.
+        # zabs = position of the absorbing cylinder boundary opposite of the cap
+        dz_cap = -self.get_inner_dz_left()
+        dz_abs = self.get_inner_dz_right()
+
+        return GreensFunction1DRadAbs(self.D, self.v, self.interaction_ktot, 0.0, dz_cap, dz_abs)
+
+    def draw_new_position(self, dt, event_type):
+
+        oldpos = self.pid_particle_pair[1].position
+
+        if self.D == 0 or \
+                (event_type == EventType.SINGLE_REACTION and len(self.reactionrule.products) == 0):
+            newpos = oldpos
+        else:
+            gf = self.iv_greens_function()
+
+            if event_type == EventType.IV_INTERACTION:
+                # The particle left the domain through the reactive boundary, i.e. bound to the cap.
+                dz = -self.get_inner_dz_left()
+                structure_id = self.target_structure.id
+
+            elif event_type == EventType.IV_ESCAPE:
+                # The particle left the domain through the absorbing boundary,
+                # i.e. opposite of the cap.
+                dz = self.get_inner_dz_right()
+                structure_id = self.origin_structure.id
+
+            else:
+                # Some other event took place and the particle didn't escape;
+                # as a consequence it stays on the origin structure.
+                dz = draw_r_wrapper(gf, dt, -self.get_inner_dz_left(), self.get_inner_dz_right()) # TODO Is this sampling correctly?
+                structure_id = self.origin_structure.id
+
+            # Add displacement to particle.position.
+            # The direction of the shell is leading (not direction of the structure)
+            # The convention is that shell.shape.unit_z points from the cap towards
+            # the particle's initial position.
+            dz_vector = self.shell.shape.unit_z * dz
+            newpos = oldpos + dz_vector
+
+        return newpos, structure_id
+
+    def __str__(self):
+        return 'CylindricalSurfaceCapSingle ' + Single.__str__(self)
 
 
 class TransitionSingle(Single, TransitionTools, Others):
