@@ -295,8 +295,9 @@ protected:
 //// functions for Planes
 template<typename T_, typename Ttraits_ >
 inline std::pair<typename Plane<T_>::position_type, typename Ttraits_::structure_id_type>
-apply_boundary (StructureContainer<typename Ttraits_::structure_type, typename Ttraits_::structure_id_type, Ttraits_> const& sc,
-                std::pair<typename Plane<T_>::position_type, typename Ttraits_::structure_id_type> const& pos_structure_id)
+apply_boundary (std::pair<typename Plane<T_>::position_type, typename Ttraits_::structure_id_type> const& pos_structure_id,
+                const boost::shared_ptr<PlanarSurface<Ttraits_> > planar_surface,
+                StructureContainer<typename Ttraits_::structure_type, typename Ttraits_::structure_id_type, Ttraits_> const& sc)
 // The template needs to be parameterized with the appropriate shape (which then parameterizes the type
 // of the ConnectivityContainer that we use.
 // We supply the structure container as an argument so that we can get the structures that we need.
@@ -306,7 +307,7 @@ apply_boundary (StructureContainer<typename Ttraits_::structure_type, typename T
     // useful typedefs
     typedef Ttraits_                    traits_type;
     typedef Plane<T_>                   plane_type;
-    typedef PlanarSurface<traits_type>  planar_surface_type;
+//    typedef PlanarSurface<traits_type>  planar_surface_type;
 
     typedef typename plane_type::length_type            length_type;
     typedef typename plane_type::position_type          position_type;
@@ -314,7 +315,7 @@ apply_boundary (StructureContainer<typename Ttraits_::structure_type, typename T
     typedef std::pair<structure_id_type, position_type> neighbor_id_vector_type;
 
     // Note that we assume that the new position is in the plane (dot(pos, unit_z)==0)
-    const boost::shared_ptr<planar_surface_type> planar_surface(sc.get_structure(pos_structure_id.second));
+//    const boost::shared_ptr<planar_surface_type> planar_surface(sc.get_structure(pos_structure_id.second));
     const plane_type origin_plane (planar_surface->shape());
     boost::array<length_type, 2> half_extends(origin_plane.half_extent());
 
@@ -405,8 +406,10 @@ cyclic_transpose
 ///// Functions for Cylinders
 template<typename T_, typename Ttraits_ >
 inline std::pair<typename Cylinder<T_>::position_type, typename Ttraits_::structure_id_type>
-apply_boundary (StructureContainer<typename Ttraits_::structure_type, typename Ttraits_::structure_id_type, Ttraits_> const& sc,
-                std::pair<typename Cylinder<T_>::position_type, typename Ttraits_::structure_id_type> const& pos_structure_id)
+apply_boundary (std::pair<typename Cylinder<T_>::position_type, typename Ttraits_::structure_id_type> const& pos_structure_id,
+                const boost::shared_ptr<CylindricalSurface<Ttraits_> > cylindrical_surface,
+                StructureContainer<typename Ttraits_::structure_type, typename Ttraits_::structure_id_type, Ttraits_> const& sc)
+
 // The template needs to be parameterized with the appropriate shape (which then parameterizes the type
 // of the ConnectivityContainer that we use.
 // We supply the structure container as an argument so that we can get the structures that we need.
@@ -416,7 +419,7 @@ apply_boundary (StructureContainer<typename Ttraits_::structure_type, typename T
     // useful typedefs
     typedef Ttraits_                        traits_type;
     typedef Cylinder<T_>                    cylinder_type;
-    typedef CylindricalSurface<traits_type> cylindrical_surface_type;
+//    typedef CylindricalSurface<traits_type> cylindrical_surface_type;
 
     typedef typename cylinder_type::length_type         length_type;
     typedef typename cylinder_type::position_type       position_type;
@@ -424,7 +427,7 @@ apply_boundary (StructureContainer<typename Ttraits_::structure_type, typename T
     typedef std::pair<structure_id_type, position_type> neighbor_id_vector_type;
 
     // Note that we assume that the new position is in the cylinder (dot(pos, unit_r)==0)
-    const boost::shared_ptr<cylindrical_surface_type> cylindrical_surface(sc.get_structure(pos_structure_id.second));
+//    const boost::shared_ptr<cylindrical_surface_type> cylindrical_surface(sc.get_structure(pos_structure_id.second));
     const cylinder_type origin_cylinder (cylindrical_surface->shape());
     const length_type half_length(origin_cylinder.half_length());
 
@@ -471,8 +474,9 @@ apply_boundary (StructureContainer<typename Ttraits_::structure_type, typename T
 //// Functions for Boxes
 template<typename T_, typename Ttraits_ >
 inline std::pair<typename Box<T_>::position_type, typename Ttraits_::structure_id_type>
-apply_boundary (StructureContainer<typename Ttraits_::structure_type, typename Ttraits_::structure_id_type, Ttraits_> const& sc,
-                std::pair<typename Box<T_>::position_type, typename Ttraits_::structure_id_type> const& pos_structure_id)
+apply_boundary (std::pair<typename Box<T_>::position_type, typename Ttraits_::structure_id_type> const& pos_structure_id,
+                const boost::shared_ptr<CuboidalRegion<Ttraits_> > cuboidal_region,
+                StructureContainer<typename Ttraits_::structure_type, typename Ttraits_::structure_id_type, Ttraits_> const& sc)
 // The template needs to be parameterized with the appropriate shape (which then parameterizes the type
 // of the ConnectivityContainer that we use.
 // We supply the structure container as an argument so that we can get the structures that we need.
