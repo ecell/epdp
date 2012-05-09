@@ -121,11 +121,12 @@ public:
     typedef std::pair<particle_id_pair, length_type>                    particle_id_pair_and_distance;
     typedef sized_iterator_range<typename particle_matrix_type::const_iterator> particle_id_pair_range;
 
-    typedef StructureContainer<structure_type, structure_id_type, traits_type>       structure_container_type;
+    typedef StructureContainer<structure_type, structure_id_type, traits_type>  structure_container_type;
 
     typedef typename base_type::particle_id_pair_and_distance_list      particle_id_pair_and_distance_list;
     typedef typename base_type::structure_id_pair_and_distance_list     structure_id_pair_and_distance_list;
     typedef typename base_type::structure_id_pair_and_distance          structure_id_pair_and_distance;
+    typedef typename base_type::position_structid_pair_type             position_structid_pair_type;
 
 
 public:
@@ -175,6 +176,12 @@ public:
     virtual length_type apply_boundary(length_type const& v) const
     {
         return traits_type::apply_boundary(v, world_size());
+    }
+
+    virtual position_structid_pair_type apply_boundary(position_structid_pair_type const& pos_struct_id,
+                                                       const boost::shared_ptr<structure_type> structure) const
+    {
+        return structure->apply_boundary(pos_struct_id, structures_);
     }
 
     virtual position_type cyclic_transpose(position_type const& p0, position_type const& p1) const

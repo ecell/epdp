@@ -353,6 +353,7 @@ public:
     typedef typename wrapped_type::particle_id_pair_and_distance_list   particle_id_pair_and_distance_list;
     typedef typename wrapped_type::structure_id_pair_and_distance_list  structure_id_pair_and_distance_list;
     typedef typename wrapped_type::structure_id_and_distance_pair       structure_id_and_distance_pair;
+    typedef typename wrapped_type::position_structid_pair_type          position_structid_pair_type;
     typedef typename wrapped_type::structure_id_set                     structure_id_set;
     typedef typename wrapped_type::structures_range                     structures_range;
     typedef typename wrapped_type::structure_types_range                structure_types_range;
@@ -560,6 +561,12 @@ public:
     virtual length_type apply_boundary(length_type const& v) const
     {
         return py_wrapper_type::get_override("apply_boundary")(v);
+    }
+
+    virtual position_structid_pair_type apply_boundary(position_structid_pair_type const& pos_struct_id,
+                                                       const boost::shared_ptr<structure_type> structure) const
+    {
+        return py_wrapper_type::get_override("apply_boundary")(pos_struct_id, structure);
     }
 
     virtual position_type cyclic_transpose(position_type const& p0, position_type const& p1) const

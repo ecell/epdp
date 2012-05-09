@@ -37,6 +37,7 @@ public:
 
     typedef typename particle_type::shape_type                  particle_shape_type;
     typedef Transaction<traits_type>                            transaction_type;
+
     typedef CuboidalRegion<traits_type>                         cuboidal_region_type;
     typedef PlanarSurface<traits_type>                          planar_surface_type;
     typedef CylindricalSurface<traits_type>                     cylindrical_surface_type;
@@ -73,7 +74,7 @@ private:
 public:    
     typedef sized_iterator_range<structure_iterator>                            structures_range;
     typedef sized_iterator_range<structure_type_iterator>                       structure_types_range;
-
+    typedef std::pair<position_type, structure_id_type>                         position_structid_pair_type;
 
 
     virtual ~ParticleContainer() {};
@@ -145,6 +146,9 @@ public:
     virtual position_type apply_boundary(position_type const& v) const = 0;
 
     virtual length_type apply_boundary(length_type const& v) const = 0;
+
+    virtual position_structid_pair_type apply_boundary(position_structid_pair_type const& pos_struct_id,
+                                                       const boost::shared_ptr<structure_type> structure) const = 0;
 
     virtual position_type cyclic_transpose(position_type const& p0, position_type const& p1) const = 0;
 
