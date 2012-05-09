@@ -85,7 +85,9 @@ def try_default_testinteraction(single, target_structure, geometrycontainer, dom
     elif isinstance(single.structure, PlanarSurface):
         raise testShellError('(Interaction). Combination of (2D particle, target_structure) is not supported')
     elif isinstance(single.structure, CylindricalSurface):
-        if isinstance(target_structure, CylindricalSurface):     # TODO differentiate between a sink and a cap
+        if isinstance(target_structure, DiskSurface):
+            return CylindricalSurfaceCaptestShell (single, target_structure, geometrycontainer, domains)
+        elif isinstance(target_structure, CylindricalSurface):
             return CylindricalSurfaceSinktestShell (single, target_structure, geometrycontainer, domains)
         else:
             raise testShellError('(Interaction). Combination of (1D particle, target_structure) is not supported')
@@ -97,6 +99,8 @@ def create_default_interaction(domain_id, shell_id, testShell, reaction_rules, i
         return CylindricalSurfaceInteraction (domain_id, shell_id, testShell, reaction_rules, interaction_rules)
     elif isinstance(testShell, PlanarSurfaceInteractiontestShell):
         return PlanarSurfaceInteraction      (domain_id, shell_id, testShell, reaction_rules, interaction_rules)
+    elif isinstance(testShell, CylindricalSurfaceCaptestShell):
+        return CylindricalSurfaceCapSingle   (domain_id, shell_id, testShell, reaction_rules, interaction_rules)
     elif isinstance(testShell, CylindricalSurfaceSinktestShell):
         return CylindricalSurfaceSink        (domain_id, shell_id, testShell, reaction_rules, interaction_rules)
 
@@ -1534,8 +1538,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
                 pair_interaction_partners.append((domain, pair_distance - pair_horizon))
         
         for surface, surface_distance in surface_distances:
-            if isinstance(surface, PlanarSurface):
-                # with a planar surface it is the center of mass that 'looks around'
+            if isinstance(surface, PlanarSurface) or isinstance(surface, DiskSurface):
+                # with a planar or disk surface it is the center of mass that 'looks around'
                 surface_horizon = single_radius * (SINGLE_SHELL_FACTOR - 1.0)
             else:
                 # with a cylindrical surface it is the surface of the particle
@@ -1563,7 +1567,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
             elif isinstance(obj, PlanarSurface) and isinstance(single.structure, PlanarSurface):
                 domain = self.try_transition(single, obj)
 
-            elif isinstance(obj, CylindricalSurface) or isinstance(obj, PlanarSurface):
+            elif isinstance(obj, CylindricalSurface) or isinstance(obj, PlanarSurface) or isinstance(obj, DiskSurface):
                 # try making an Interaction
                 domain = self.try_interaction (single, obj)
 
