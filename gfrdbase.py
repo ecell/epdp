@@ -94,7 +94,7 @@ def get_closest_surface(world, pos, ignore):
 
     surfaces_and_distances_to_surfaces = []
 
-    for surface in world.structures:
+    for _, surface in world.structures:
         if isinstance(surface, _gfrd.Surface) and surface.id not in ignore:
             pos_transposed = \
                 world.cyclic_transpose(pos, surface.shape.position)

@@ -318,11 +318,6 @@ public:
     {
         return structures_range(
             structure_map_.begin(), structure_map_.end(), structure_map_.size());
-        // return make_range_generator<structure_id_pair>(structure_map_);
-        // return structures_range(
-        //     structure_iterator(structure_map_.begin(), structure_second_selector_type()),
-        //     structure_iterator(structure_map_.end(), structure_second_selector_type()),
-        //     structure_map_.size());
     }
 
     structure_id_set get_structure_ids() const
