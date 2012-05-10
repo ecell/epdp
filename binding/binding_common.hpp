@@ -46,6 +46,7 @@ typedef ::GSLRandomNumberGenerator GSLRandomNumberGenerator;
 typedef ::CyclicWorldTraits<Real, Real> WorldTraits;
 typedef WorldTraits::particle_type Particle;
 typedef WorldTraits::structure_id_type StructureID;
+typedef WorldTraits::structure_type_id_type StructureTypeID;
 typedef WorldTraits::species_id_type SpeciesID;
 typedef WorldTraits::species_type SpeciesInfo;
 typedef WorldTraits::structure_type Structure;

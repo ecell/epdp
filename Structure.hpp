@@ -19,7 +19,7 @@ class Structure
 public:
     typedef Ttraits_ traits_type;
     typedef typename traits_type::rng_type rng_type;
-    typedef typename traits_type::structure_id_type identifier_type;
+    typedef typename traits_type::structure_type_id_type identifier_type;
     typedef typename traits_type::length_type length_type;
     typedef typename traits_type::position_type position_type;
     typedef std::pair<position_type, length_type> projected_type;

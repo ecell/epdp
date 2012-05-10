@@ -13,7 +13,7 @@ struct SpeciesInfo
     typedef TD_ D_type;
     typedef TD_ v_type;
     typedef Tlen_ length_type;
-    typedef Tstructure_id_ structure_id_type;
+    typedef Tstructure_id_ structure_type_id_type;
 
     identifier_type const& id() const
     {
@@ -30,12 +30,12 @@ struct SpeciesInfo
         return radius_;
     }
 
-    structure_id_type const& structure_id() const
+    structure_type_id_type const& structure_id() const
     {
         return structure_id_;
     }
 
-    structure_id_type& structure_id()
+    structure_type_id_type& structure_id()
     {
         return structure_id_;
     }
@@ -74,7 +74,7 @@ struct SpeciesInfo
     SpeciesInfo() {}
 
     SpeciesInfo(identifier_type const& id, D_type const& D = 0., 
-                length_type const& r = 0., structure_id_type const& s = "", v_type const& v = 0.) 
+                length_type const& r = 0., structure_type_id_type const& s = "", v_type const& v = 0.) 
         : id_(id), diffusion_coef_(D), drift_velocity_(v), radius_(r), structure_id_(s) {}
   
 
@@ -83,7 +83,7 @@ private:
     D_type diffusion_coef_;
     v_type drift_velocity_;
     length_type radius_;
-    structure_id_type structure_id_;
+    structure_type_id_type structure_id_;
 };
 
 template<typename Tchar_, typename Ttraits_, typename Tid_, typename TD_, typename Tlen_, typename Tstructure_id_>

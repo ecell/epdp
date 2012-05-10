@@ -16,7 +16,7 @@ struct StructureUtils
     typedef typename simulator_type::traits_type traits_type;
     typedef typename traits_type::world_type::position_type position_type;
     typedef typename traits_type::world_type::length_type length_type;
-    typedef typename traits_type::world_type::structure_id_type structure_id_type;
+    typedef typename traits_type::world_type::structure_type_id_type structure_type_id_type;
     typedef typename traits_type::world_type::structure_type structure_type;
     typedef typename simulator_type::surface_type surface_type;
     typedef typename simulator_type::region_type region_type;
@@ -31,7 +31,7 @@ struct StructureUtils
     typedef typename simulator_type::world_type::traits_type::rng_type rng_type;
  
     static planar_surface_type* create_planar_surface(
-            structure_id_type const& id,
+            structure_type_id_type const& id,
             position_type const& corner,
             position_type const& unit_x,
             position_type const& unit_y,
@@ -54,7 +54,7 @@ struct StructureUtils
     }
 
     static spherical_surface_type* create_spherical_surface(
-            structure_id_type const& id,
+            structure_type_id_type const& id,
             position_type const& pos,
             length_type const& radius)
     {
@@ -62,7 +62,7 @@ struct StructureUtils
     }
 
     static cylindrical_surface_type* create_cylindrical_surface(
-            structure_id_type const& id,
+            structure_type_id_type const& id,
             position_type const& corner,
             length_type const& radius,
             position_type const& unit_z,
@@ -78,7 +78,7 @@ struct StructureUtils
     }
 
     static cuboidal_region_type* create_cuboidal_region(
-            structure_id_type const& id,
+            structure_type_id_type const& id,
             position_type const& corner,
             boost::array<length_type, 3> const& extent)
     {

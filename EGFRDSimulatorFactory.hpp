@@ -70,7 +70,7 @@ public:
                     boost::lexical_cast<typename world_traits_type::D_type>(
                         (*st)["D"]),
                     boost::lexical_cast<length_type>((*st)["radius"]),
-                    boost::lexical_cast<typename world_traits_type::structure_id_type>(
+                    boost::lexical_cast<typename world_traits_type::structure_type_id_type>(
                         structure_id.empty() ? "world": structure_id)
                     ));
         }

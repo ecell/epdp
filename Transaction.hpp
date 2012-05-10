@@ -25,7 +25,7 @@ public:
     typedef typename traits_type::particle_id_type particle_id_type;
     typedef typename traits_type::size_type size_type;
     typedef typename traits_type::length_type length_type;
-    typedef typename traits_type::structure_id_type structure_id_type;
+    typedef typename traits_type::structure_type_id_type structure_type_id_type;
     typedef typename traits_type::structure_type structure_type;
     typedef std::pair<const particle_id_type, particle_type> particle_id_pair;
     typedef abstract_limited_generator<particle_id_pair> particle_id_pair_generator;
@@ -57,7 +57,7 @@ public:
     typedef typename traits_type::particle_id_type particle_id_type;
     typedef typename traits_type::size_type size_type;
     typedef typename traits_type::length_type length_type;
-    typedef typename traits_type::structure_id_type structure_id_type;
+    typedef typename traits_type::structure_type_id_type structure_type_id_type;
     typedef typename traits_type::structure_type structure_type;
     typedef std::pair<const particle_id_type, particle_type> particle_id_pair;
     typedef abstract_limited_generator<particle_id_pair> particle_id_pair_generator;
@@ -150,7 +150,7 @@ public:
         return new TransactionImpl<particle_container_type>(*this);
     }
 
-    virtual boost::shared_ptr<structure_type> get_structure(structure_id_type const& id) const
+    virtual boost::shared_ptr<structure_type> get_structure(structure_type_id_type const& id) const
     {
         return pc_.get_structure(id);
     }

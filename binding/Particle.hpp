@@ -258,7 +258,7 @@ public:
     static int set_structure_id(ParticleWrapper* self, PyObject* val, void *)
     try
     {
-        self->impl_.structure_id() = boost::python::extract<typename Timpl_::structure_id_type>(val);
+        self->impl_.structure_id() = boost::python::extract<typename Timpl_::structure_type_id_type>(val);
         return 0;
     }
     catch (boost::python::error_already_set const&)

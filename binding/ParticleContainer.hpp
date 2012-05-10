@@ -173,7 +173,7 @@ public:
     typedef typename wrapped_type::position_type position_type;
     typedef typename wrapped_type::species_id_type species_id_type;
     typedef typename wrapped_type::species_type species_type;
-    typedef typename wrapped_type::structure_id_type structure_id_type;
+    typedef typename wrapped_type::structure_type_id_type structure_type_id_type;
     typedef typename wrapped_type::structure_type structure_type;
     typedef typename wrapped_type::particle_id_pair particle_id_pair;
     typedef typename wrapped_type::transaction_type transaction_type;
@@ -208,7 +208,7 @@ public:
         return py_wrapper_type::get_override("get_species")(id).template unchecked<species_type const&>();
     }
 
-    virtual boost::shared_ptr<structure_type> get_structure(structure_id_type const& id) const
+    virtual boost::shared_ptr<structure_type> get_structure(structure_type_id_type const& id) const
     {
         return py_wrapper_type::get_override("get_structure")(id);
     }
