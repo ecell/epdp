@@ -130,7 +130,7 @@ public:
         const length_type                             r0( pp_species.radius() );
         const position_type                           old_pos( pp.second.position() );
         const structure_id_type                       old_struct_id(pp.second.structure_id());
-        const boost::shared_ptr<const structure_type> pp_structure( tx_.get_structure( old_struct_id ) );
+        const boost::shared_ptr<structure_type> pp_structure( tx_.get_structure( old_struct_id ) );
         // declare variables to use
         position_type                   new_pos(old_pos);
         structure_id_type               new_structure_id( old_struct_id );
@@ -146,30 +146,10 @@ public:
                                                                             std::sqrt(2.0 * pp_species.D() * dt_),
                                                                             rng_) );
 
-            // TODO check if the new position is actually still in the structure
-            // else
-            // get 'connecting' structure and apply deflection. Should we do this recursively until the coordinate stays in the currents structure?
-            // This actually kinda similar to the boundary condition application.
-            new_pos = tx_.apply_boundary( add( old_pos, displacement ) );
-            if ( !(pp_structure->is_alongside(new_pos)) )
-            {
-                // TODO apply deflection and change structure_id with appropriate neighbor structure
-                //new_pos = ;
-                //new_structure_id = ;
-            }
-
-/*            const structure_id_type target_struct_id(pp_structure->get_target_structure(new_pos));
-
-            if (target_struct_id != pp_structure.id())
-            // The particle jumped to a new position outside of the current surface.
-            {
-                const structure_type target_structure(tx_.get_structure(target_struct_id));
-                new_structure_id = target_struct_id;
-                const position_flag_pair_type newpos_flag (target_structure->deflect(old_pos, displacement));
-                new_pos = newpos_flag.first;
-            }
-            // Else, just use the current information.
-*/
+            const position_structid_pair_type pos_structid(tx_.apply_boundary( std::make_pair( add(old_pos, displacement), old_struct_id),
+                                                                              pp_structure));
+            new_pos = tx_.apply_boundary( pos_structid.first );
+            new_structure_id = pos_structid.second;
         }
 
         bool bounced( false );
@@ -900,17 +880,15 @@ private:
 
         if(species.D() != 0)
         {
-            const boost::shared_ptr<const structure_type> old_structure( tx_.get_structure( new_structure_id ) );
+            const boost::shared_ptr<structure_type> old_structure( tx_.get_structure( new_structure_id ) );
 
             const position_type displacement( old_structure->bd_displacement(species.v() * dt_, std::sqrt(2.0 * species.D() * dt_), rng_) );
-            new_pos = tx_.apply_boundary( add( old_pos_struct_id.first, displacement ) );
-            if ( !(old_structure->is_alongside(new_pos)) )
-            {
-                // TODO apply deflection and change structure_id with appropriate neighbor structure
-                //new_pos = ;
-                //new_structure_id = ;
-            }
-        
+
+            const position_structid_pair_type pos_structid(tx_.apply_boundary( std::make_pair( add(old_pos_struct_id.first, displacement), old_pos_struct_id.second),
+                                                                              old_structure));
+            new_pos = tx_.apply_boundary( pos_structid.first );
+            new_structure_id = pos_structid.second;
+
             // See if it overlaps with any particles
             const particle_shape_type new_shape(new_pos, species.radius());
             const boost::scoped_ptr<const particle_id_pair_and_distance_list> overlap_particles( 
