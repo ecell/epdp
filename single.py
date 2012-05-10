@@ -981,7 +981,7 @@ class CylindricalSurfaceCapSingle(InteractionSingle):
         # towards the absorbing cylinder boundary opposite of the cap.
         # Note that the reference point of the shell is the cap position,
         # therefore we have to subtract particle_surface_distance here.
-        return self.shell.dz_right - self.shell.particle_surface_distance
+        return self.shell.dz_right - self.shell.particle_surface_distance \
                                    - self.pid_particle_pair[1].radius
         # TODO is shell.dz_right always positive?
 
