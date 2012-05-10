@@ -34,6 +34,7 @@ public:
     typedef typename traits_type::length_type length_type;
     typedef typename traits_type::size_type size_type;
     typedef typename traits_type::structure_type_id_type structure_type_id_type;
+    typedef typename traits_type::structure_id_type structure_id_type;
     typedef typename traits_type::structure_type structure_type;
     typedef std::pair<const particle_id_type, particle_type> particle_id_pair;
     typedef Transaction<traits_type> transaction_type;
@@ -61,6 +62,11 @@ public:
     }
 
     virtual boost::shared_ptr<structure_type> get_structure(structure_type_id_type const& id) const
+    {
+        return world_.get_structure(id);
+    }
+
+    virtual boost::shared_ptr<structure_type> get_structure(structure_id_type const& id) const
     {
         return world_.get_structure(id);
     }

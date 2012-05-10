@@ -34,11 +34,11 @@ struct WorldTraitsBase
     typedef TD_ D_type;
     typedef TD_ v_type;
     typedef ParticleID particle_id_type;
-    typedef SerialIDGenerator<particle_id_type> particle_id_generator;
+    typedef SerialIDGenerator<particle_id_type> particle_id_generator_type;
     typedef SpeciesTypeID species_id_type;
     typedef Structure<Tderived_> structure_type;
     typedef StructureID structure_id_type;
-    typedef SerialIDGenerator<structure_id_type> structure_id_generator;
+    typedef SerialIDGenerator<structure_id_type> structure_id_generator_type;
     typedef std::string structure_type_id_type;
     typedef Particle<length_type, D_type, species_id_type, structure_type_id_type> particle_type;
     typedef SpeciesInfo<species_id_type, D_type, length_type, structure_type_id_type> species_type;
@@ -167,23 +167,29 @@ public:
     typedef typename traits_type::position_type position_type;
     typedef typename traits_type::particle_type particle_type;
     typedef typename traits_type::particle_id_type particle_id_type;
-    typedef typename traits_type::particle_id_generator particle_id_generator;
+    typedef typename traits_type::particle_id_generator_type particle_id_generator_type;
     typedef typename traits_type::species_id_type species_id_type;
     typedef typename traits_type::particle_type::shape_type particle_shape_type;
     typedef typename traits_type::size_type size_type;
     typedef typename traits_type::structure_type_id_type structure_type_id_type;
     typedef typename traits_type::structure_type structure_type;
+    typedef typename traits_type::structure_id_type structure_id_type;
+    typedef typename traits_type::structure_id_generator_type structure_id_generator_type;
     typedef std::pair<const particle_id_type, particle_type> particle_id_pair;
 
 protected:
     typedef std::map<species_id_type, species_type> species_map;
-    typedef std::map<structure_type_id_type, boost::shared_ptr<structure_type> > structure_map;
     typedef std::set<particle_id_type> particle_id_set;
     typedef std::map<species_id_type, particle_id_set> per_species_particle_id_set;
     typedef select_second<typename species_map::value_type> species_second_selector_type;
+
+    // typedef std::map<structure_type_id_type, boost::shared_ptr<structure_type> > structure_map;
+    typedef std::map<structure_id_type, boost::shared_ptr<structure_type> > structure_map;
+    typedef std::map<structure_type_id_type, structure_id_type> structure_id_map;
     typedef select_second<typename structure_map::value_type> surface_second_selector_type;
 
 public:
+    typedef typename structure_map::value_type structure_id_pair;
     typedef boost::transform_iterator<species_second_selector_type,
             typename species_map::const_iterator> species_iterator;
     typedef boost::transform_iterator<surface_second_selector_type,
@@ -199,7 +205,7 @@ public:
             position_type const& pos)
     {
         species_type const& species(get_species(sid));
-        particle_id_pair retval(pidgen_(),
+        particle_id_pair retval(particle_id_generator_(),
             particle_type(sid, particle_shape_type(pos, species.radius()),
                           species.D(), species.structure_id(), species.v() ));
         update_particle(retval);
@@ -273,12 +279,15 @@ public:
         return (*i).second;
     }
 
-    bool add_structure(boost::shared_ptr<structure_type> surface)
+    structure_id_pair add_structure(boost::shared_ptr<structure_type> surface)
     {
-        return structure_map_.insert(std::make_pair(surface->id(), surface)).second;
+        structure_id_type structure_id(structure_id_generator_());
+        structure_id_map_.insert(std::make_pair(surface->id(), structure_id));
+        return (*structure_map_.insert(
+                    std::make_pair(structure_id, surface)).first);
     }
 
-    virtual boost::shared_ptr<structure_type> get_structure(structure_type_id_type const& id) const
+    virtual boost::shared_ptr<structure_type> get_structure(structure_id_type const& id) const
     {
         typename structure_map::const_iterator i(structure_map_.find(id));
         if (structure_map_.end() == i)
@@ -286,6 +295,17 @@ public:
             throw not_found(std::string("Unknown surface (id=") + boost::lexical_cast<std::string>(id) + ")");
         }
         return (*i).second;
+    }
+
+    virtual boost::shared_ptr<structure_type> get_structure(structure_type_id_type const& id) const
+    {
+        typename structure_id_map::const_iterator i(
+            structure_id_map_.find(id));
+        if (structure_id_map_.end() == i)
+        {
+            throw not_found(std::string("Unknown surface (id=") + boost::lexical_cast<std::string>(id) + ")");
+        }
+        return get_structure((*i).second);
     }
 
     structures_range get_structures() const
@@ -297,9 +317,11 @@ public:
     }
 
 private:
-    particle_id_generator pidgen_;
+    particle_id_generator_type particle_id_generator_;
+    structure_id_generator_type structure_id_generator_;
     species_map species_map_;
     structure_map structure_map_;
+    structure_id_map structure_id_map_;
     per_species_particle_id_set particle_pool_;
 };
 

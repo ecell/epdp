@@ -86,7 +86,7 @@ public:
     typedef typename traits_type::position_type position_type;
     typedef typename traits_type::particle_type particle_type;
     typedef typename traits_type::particle_id_type particle_id_type;
-    typedef typename traits_type::particle_id_generator particle_id_generator;
+    typedef typename traits_type::particle_id_generator_type particle_id_generator_type;
     typedef typename traits_type::species_id_type species_id_type;
     typedef typename traits_type::particle_type::shape_type particle_shape_type;
     typedef typename traits_type::size_type size_type;

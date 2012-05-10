@@ -9,6 +9,7 @@
 
 #include "peer/utils.hpp"
 #include "peer/set_indexing_suite.hpp"
+#include "peer/converters/tuple.hpp"
 #include "utils/range.hpp"
 #include "utils/pair.hpp"
 
@@ -250,6 +251,7 @@ inline boost::python::objects::class_base register_world_class(char const* name)
     typedef species_range_converter<typename impl_type::species_range> species_range_converter_type;
     typedef structures_range_converter<typename impl_type::structures_range> structures_range_converter_type;
 
+    peer::converters::register_tuple_converter<typename impl_type::structure_id_pair>();
     species_range_converter_type::__register();
     structures_range_converter_type::__register();
 

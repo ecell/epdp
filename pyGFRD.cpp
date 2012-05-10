@@ -114,7 +114,7 @@ BOOST_PYTHON_MODULE(_gfrd)
     b::register_world_class();
     b::register_structure_type_class();
     b::register_structure_classes();
-    // b::register_structure_id_class();
+    b::register_structure_id_class();
     b::register_module_functions();
     b::register_volume_clearer_classes();
     b::register_reaction_record_classes();

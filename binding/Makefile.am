@@ -129,5 +129,6 @@ libbinding_utils_la_SOURCES = \
 	sphere_class.cpp \
 	structure_classes.cpp \
 	structure_type_class.cpp \
+	structure_id_class.cpp \
 	transaction_classes.cpp \
 	world_class.cpp
