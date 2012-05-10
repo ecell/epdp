@@ -161,7 +161,7 @@ public:
 private:
     position_type drawR_free(species_type const& species)
     {
-        return tx_.get_structure(species.structure_id())->bd_displacement(std::sqrt(2.0 * species.D() * dt_), rng_);
+        return tx_.get_structure(species.structure_id()).second->bd_displacement(std::sqrt(2.0 * species.D() * dt_), rng_);
     }
 
     bool attempt_reaction(particle_id_pair const& pp)

@@ -180,6 +180,7 @@ public:
     typedef typename wrapped_type::transaction_type transaction_type;
     typedef typename wrapped_type::particle_id_pair_generator particle_id_pair_generator;
     typedef typename wrapped_type::particle_id_pair_and_distance_list particle_id_pair_and_distance_list;
+    typedef typename wrapped_type::structure_id_pair structure_id_pair;
 
 public:
     virtual ~ParticleContainerWrapper() {}
@@ -209,12 +210,12 @@ public:
         return py_wrapper_type::get_override("get_species")(id).template unchecked<species_type const&>();
     }
 
-    virtual boost::shared_ptr<structure_type> get_structure(structure_type_id_type const& id) const
+    virtual structure_id_pair get_structure(structure_type_id_type const& id) const
     {
         return py_wrapper_type::get_override("get_structure")(id);
     }
 
-    virtual boost::shared_ptr<structure_type> get_structure(structure_id_type const& id) const
+    virtual structure_id_pair get_structure(structure_id_type const& id) const
     {
         return py_wrapper_type::get_override("get_structure")(id);
     }
@@ -331,12 +332,12 @@ inline boost::python::objects::class_base register_particle_container_class(
             pure_virtual((typename impl_type::species_type const&(impl_type::*)(typename impl_type::species_id_type const&) const)&impl_type::get_species),
             return_internal_reference<>())
         .def("get_structure", pure_virtual(
-                 (boost::shared_ptr<typename impl_type::structure_type>
+                 (typename impl_type::structure_id_pair
                   (impl_type::*)
                   (typename impl_type::structure_type_id_type const&) const)
                  &impl_type::get_structure))
         .def("get_structure", pure_virtual(
-                 (boost::shared_ptr<typename impl_type::structure_type>
+                 (typename impl_type::structure_id_pair
                   (impl_type::*)
                   (typename impl_type::structure_id_type const&) const)
                  &impl_type::get_structure))

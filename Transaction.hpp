@@ -61,6 +61,7 @@ public:
     typedef typename traits_type::structure_id_type structure_id_type;
     typedef typename traits_type::structure_type structure_type;
     typedef std::pair<const particle_id_type, particle_type> particle_id_pair;
+    typedef std::pair<const structure_id_type, boost::shared_ptr<structure_type> > structure_id_pair;
     typedef abstract_limited_generator<particle_id_pair> particle_id_pair_generator;
     typedef std::pair<particle_id_pair, length_type> particle_id_pair_and_distance;
     typedef unassignable_adapter<particle_id_pair_and_distance, get_default_impl::std::vector> particle_id_pair_and_distance_list;
@@ -151,12 +152,12 @@ public:
         return new TransactionImpl<particle_container_type>(*this);
     }
 
-    virtual boost::shared_ptr<structure_type> get_structure(structure_type_id_type const& id) const
+    virtual structure_id_pair get_structure(structure_type_id_type const& id) const
     {
         return pc_.get_structure(id);
     }
 
-    virtual boost::shared_ptr<structure_type> get_structure(structure_id_type const& id) const
+    virtual structure_id_pair get_structure(structure_id_type const& id) const
     {
         return pc_.get_structure(id);
     }

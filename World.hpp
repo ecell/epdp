@@ -175,7 +175,10 @@ public:
     typedef typename traits_type::structure_type structure_type;
     typedef typename traits_type::structure_id_type structure_id_type;
     typedef typename traits_type::structure_id_generator_type structure_id_generator_type;
+    typedef std::pair<const structure_id_type, boost::shared_ptr<structure_type> > structure_id_pair;
     typedef std::pair<const particle_id_type, particle_type> particle_id_pair;
+
+    typedef abstract_limited_generator<structure_id_pair> structure_id_pair_generator;
 
 protected:
     typedef std::map<species_id_type, species_type> species_map;
@@ -186,16 +189,19 @@ protected:
     // typedef std::map<structure_type_id_type, boost::shared_ptr<structure_type> > structure_map;
     typedef std::map<structure_id_type, boost::shared_ptr<structure_type> > structure_map;
     typedef std::map<structure_type_id_type, structure_id_type> structure_id_map;
-    typedef select_second<typename structure_map::value_type> surface_second_selector_type;
-
+    typedef select_first<typename structure_map::value_type> structure_first_selector_type;
+    typedef std::set<structure_id_type> structure_id_set;
+    // typedef select_second<typename structure_map::value_type> structure_second_selector_type;
+ 
 public:
-    typedef typename structure_map::value_type structure_id_pair;
     typedef boost::transform_iterator<species_second_selector_type,
             typename species_map::const_iterator> species_iterator;
-    typedef boost::transform_iterator<surface_second_selector_type,
-            typename structure_map::const_iterator> surface_iterator;
     typedef sized_iterator_range<species_iterator> species_range;
-    typedef sized_iterator_range<surface_iterator> structures_range;
+
+    // typedef boost::transform_iterator<structure_second_selector_type,
+    //         typename structure_map::const_iterator> structure_iterator;
+    // typedef sized_iterator_range<structure_iterator> structures_range;
+    typedef sized_iterator_range<typename structure_map::const_iterator> structures_range;
 
 public:
     World(length_type world_size = 1., size_type size = 1)
@@ -279,31 +285,31 @@ public:
         return (*i).second;
     }
 
-    structure_id_pair add_structure(boost::shared_ptr<structure_type> surface)
+    structure_id_pair add_structure(boost::shared_ptr<structure_type> structure)
     {
         structure_id_type structure_id(structure_id_generator_());
-        structure_id_map_.insert(std::make_pair(surface->id(), structure_id));
+        structure_id_map_.insert(std::make_pair(structure->id(), structure_id));
         return (*structure_map_.insert(
-                    std::make_pair(structure_id, surface)).first);
+                    std::make_pair(structure_id, structure)).first);
     }
 
-    virtual boost::shared_ptr<structure_type> get_structure(structure_id_type const& id) const
+    virtual structure_id_pair get_structure(structure_id_type const& id) const
     {
         typename structure_map::const_iterator i(structure_map_.find(id));
         if (structure_map_.end() == i)
         {
-            throw not_found(std::string("Unknown surface (id=") + boost::lexical_cast<std::string>(id) + ")");
+            throw not_found(std::string("Unknown structure (id=") + boost::lexical_cast<std::string>(id) + ")");
         }
-        return (*i).second;
+        return (*i);
     }
 
-    virtual boost::shared_ptr<structure_type> get_structure(structure_type_id_type const& id) const
+    virtual structure_id_pair get_structure(structure_type_id_type const& id) const
     {
         typename structure_id_map::const_iterator i(
             structure_id_map_.find(id));
         if (structure_id_map_.end() == i)
         {
-            throw not_found(std::string("Unknown surface (id=") + boost::lexical_cast<std::string>(id) + ")");
+            throw not_found(std::string("Unknown structure (id=") + boost::lexical_cast<std::string>(id) + ")");
         }
         return get_structure((*i).second);
     }
@@ -311,9 +317,19 @@ public:
     structures_range get_structures() const
     {
         return structures_range(
-            surface_iterator(structure_map_.begin(), surface_second_selector_type()),
-            surface_iterator(structure_map_.end(), surface_second_selector_type()),
-            structure_map_.size());
+            structure_map_.begin(), structure_map_.end(), structure_map_.size());
+        // return make_range_generator<structure_id_pair>(structure_map_);
+        // return structures_range(
+        //     structure_iterator(structure_map_.begin(), structure_second_selector_type()),
+        //     structure_iterator(structure_map_.end(), structure_second_selector_type()),
+        //     structure_map_.size());
+    }
+
+    structure_id_set get_structure_ids() const
+    {
+        return structure_id_set(
+            boost::make_transform_iterator(structure_map_.begin(), structure_first_selector_type()),
+            boost::make_transform_iterator(structure_map_.end(), structure_first_selector_type()));
     }
 
 private:

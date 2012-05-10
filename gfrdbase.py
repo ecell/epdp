@@ -200,7 +200,7 @@ def throw_in_particles(world, sid, n):
 
     """
     species = world.get_species(sid)
-    structure = world.get_structure(species.structure_id)
+    structure = world.get_structure(species.structure_id)[1]
 
     if __debug__:
         name = world.model.get_species_type_by_id(sid)["name"]
@@ -254,7 +254,7 @@ def place_particle(world, sid, position):
 
     """
     species = world.get_species(sid)
-    structure = world.get_structure(species.structure_id)
+    structure = world.get_structure(species.structure_id)[1]
     radius = species.radius
 
     if world.check_overlap((position, radius)):
@@ -272,7 +272,7 @@ def place_particle(world, sid, position):
 
     if __debug__:
         species = world.get_species(sid)
-        structure = world.get_structure(species.structure_id)
+        structure = world.get_structure(species.structure_id)[1]
         name = world.model.get_species_type_by_id(sid)["name"]
         if name[0] != '(':
             name = '(' + name + ')'

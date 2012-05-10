@@ -231,7 +231,7 @@ struct structures_range_converter: public boost::python::default_call_policies
 
     static void __register()
     {
-        wrapper_type::__class_init__("SurfacesRange", boost::python::scope().ptr());
+        wrapper_type::__class_init__("StructureRange", boost::python::scope().ptr());
     }
 };
 
@@ -259,6 +259,10 @@ inline boost::python::objects::class_base register_world_class(char const* name)
         .def(peer::util::set_indexing_suite<std::set<typename impl_type::particle_id_type> >())
         ;
 
+    class_<std::set<typename impl_type::structure_id_type> >("StructureIDSet")
+        .def(peer::util::set_indexing_suite<std::set<typename impl_type::structure_id_type> >())
+        ;
+
     return class_<impl_type, bases<Tbase_>,
                   boost::shared_ptr<impl_type> >(
         "World", init<typename impl_type::length_type, typename impl_type::size_type>())
@@ -273,6 +277,7 @@ inline boost::python::objects::class_base register_world_class(char const* name)
         .add_property("particle_ids", &World_get_particle_ids<impl_type>)
         .def("add_species", &impl_type::add_species)
         .def("add_structure", &impl_type::add_structure)
+        .def("get_structure_ids", &impl_type::get_structure_ids)
         .def("get_particle_ids", &impl_type::get_particle_ids)
         .def("distance", &impl_type::template distance<typename impl_type::position_type>)
         .def("distance", &impl_type::template distance<typename Tsim::sphere_type>)
