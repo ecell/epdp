@@ -49,6 +49,7 @@ from shells import (
     PlanarSurfaceTransitionPairtestShell,
     CylindricalSurfaceSingletestShell,
     CylindricalSurfacePairtestShell,
+    DiskSurfaceSingletestShell,
     PlanarSurfaceInteractiontestShell,
     CylindricalSurfaceInteractiontestShell,
     CylindricalSurfaceCapInteractiontestShell,
@@ -75,6 +76,10 @@ def create_default_single(domain_id, shell_id, pid_particle_pair, structure, rea
         # first make the test shell
         testSingle = CylindricalSurfaceSingletestShell(pid_particle_pair, structure, geometrycontainer, domains)
         return CylindricalSurfaceSingle (domain_id, shell_id, testSingle, reaction_rules)
+    elif isinstance(structure, DiskSurface):
+        # first make the test shell
+        testSingle = DiskSurfaceSingletestShell(pid_particle_pair, structure, geometrycontainer, domains)
+        return DiskSurfaceSingle (domain_id, shell_id, testSingle, reaction_rules)
 
 ### Interactions
 def try_default_testinteraction(single, target_structure, geometrycontainer, domains):

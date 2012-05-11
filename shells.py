@@ -42,6 +42,7 @@ __all__ = [
     'PlanarSurfaceTransitionSingletestShell',
     'PlanarSurfaceTransitionPairtestShell',
     'CylindricalSurfaceSingletestShell',
+    'DiskSurfaceSingletestShell',
     'CylindricalSurfacePairtestShell',
     'PlanarSurfaceInteractiontestShell',
     'CylindricalSurfaceInteractiontestShell',
@@ -1598,6 +1599,52 @@ class CylindricalSurfaceSingletestShell(CylindricaltestShell, testNonInteraction
     def apply_safety(self, r, z_right, z_left):
         return r, z_right/SAFETY, z_left/SAFETY
 
+class DiskSurfaceSingletestShell(CylindricaltestShell, testNonInteractionSingle):
+
+    def __init__(self, pid_particle_pair, structure, geometrycontainer, domains):
+        CylindricaltestShell.__init__(self, geometrycontainer, domains)
+        testNonInteractionSingle.__init__(self, pid_particle_pair, structure)
+
+        # initialize scaling parameters
+        self.dzdr_right = numpy.inf
+        self.drdz_right = 0.0
+        self.r0_right   = self.pid_particle_pair[1].radius
+        self.z0_right   = 0.0
+        self.dzdr_left  = 0.0
+        self.drdz_left  = numpy.inf
+        self.r0_left    = self.pid_particle_pair[1].radius      # TODO put to zero?
+        self.z0_left    = self.pid_particle_pair[1].radius * SINGLE_SHELL_FACTOR
+
+        # sizing up the shell to a zero shell
+        self.dz_right = self.pid_particle_pair[1].radius
+        self.dz_left  = self.pid_particle_pair[1].radius
+        self.dr       = self.pid_particle_pair[1].radius        
+
+    def get_orientation_vector(self):
+        return self.structure.shape.unit_z
+        # just copy from disk structure; note that this defines the direction of dissociation!        
+
+    def get_searchpoint(self):
+        return self.pid_particle_pair[1].position
+
+    def get_referencepoint(self):
+        return self.pid_particle_pair[1].position
+
+    def get_min_dr_dzright_dzleft(self):
+        dr       = self.pid_particle_pair[1].radius
+        dz_left  = self.pid_particle_pair[1].radius * SINGLE_SHELL_FACTOR
+        dz_right = dz_left
+        return dr, dz_right, dz_left
+        
+    def get_max_dr_dzright_dzleft(self):
+        dr       = self.pid_particle_pair[1].radius
+        dz_left  = self.pid_particle_pair[1].radius * SINGLE_SHELL_FACTOR # same as the minimum, i.e. no scaling of this length
+        dz_right = dz_left
+        return dr, dz_right, dz_left
+
+    def apply_safety(self, r, z_right, z_left):
+        return r, z_right/SAFETY, z_left/SAFETY
+
 #####
 class CylindricalSurfacePairtestShell(CylindricaltestShell, testSimplePair):
 
@@ -1778,7 +1825,7 @@ class CylindricalSurfaceCapInteractiontestShell(CylindricaltestShell, testIntera
         self.dzdr_left  = 0.0
         self.drdz_left  = numpy.inf
         self.r0_left    = self.pid_particle_pair[1].radius      # TODO put to zero?
-        self.z0_left    = self.pid_particle_pair[1].radius / 2.0 * SINGLE_SHELL_FACTOR
+        self.z0_left    = self.pid_particle_pair[1].radius * SINGLE_SHELL_FACTOR
 
         # This will determine if the shell is possible.
         # If possible, it will write the dr, dz_right, dz_left defining the dimensions of the cylindrical shell.
@@ -1805,13 +1852,13 @@ class CylindricalSurfaceCapInteractiontestShell(CylindricaltestShell, testIntera
 
     def get_min_dr_dzright_dzleft(self):
         dr       = self.pid_particle_pair[1].radius
-        dz_left  = self.pid_particle_pair[1].radius / 2.0 * SINGLE_SHELL_FACTOR
+        dz_left  = self.pid_particle_pair[1].radius * SINGLE_SHELL_FACTOR
         dz_right = self.particle_surface_distance + self.pid_particle_pair[1].radius * SINGLE_SHELL_FACTOR
         return dr, dz_right, dz_left
         
     def get_max_dr_dzright_dzleft(self):
         dr       = self.pid_particle_pair[1].radius
-        dz_left  = self.pid_particle_pair[1].radius / 2.0 * SINGLE_SHELL_FACTOR # same as the minimum, i.e. no scaling of this length
+        dz_left  = self.pid_particle_pair[1].radius * SINGLE_SHELL_FACTOR # same as the minimum, i.e. no scaling of this length
         dz_right = math.sqrt((self.get_searchradius())**2 - dr**2) + self.particle_surface_distance  # stay within the searchradius
         return dr, dz_right, dz_left
 

@@ -23,6 +23,7 @@ from shells import *
 
 __all__ = [
     'CylindricalSurfaceSingle',
+    'DiskSurfaceSingle',
     'PlanarSurfaceSingle',
     'SphericalSingle',
     'Single',
@@ -569,6 +570,97 @@ class CylindricalSurfaceSingle(NonInteractionSingle, hasCylindricalShell):
 
     def __str__(self):
         return 'CylindricalSurface' + Single.__str__(self)
+
+
+class DiskSurfaceSingle(NonInteractionSingle, hasCylindricalShell):
+    """1 Particle inside a (cylindrical) shell on a DiskSurface. 
+
+        * Particle coordinates on surface: z.
+        * Domain: cartesian z.
+        * Initial position: z = 0.
+        * Selected randomly when drawing displacement vector: none.
+    """
+    def __init__(self, domain_id, shell_id, testShell, reactionrules):
+
+        assert isinstance(testShell, DiskSurfaceSingletestShell)
+        hasCylindricalShell.__init__(self, testShell, domain_id)
+        NonInteractionSingle.__init__(self, domain_id, shell_id, reactionrules)
+
+    def get_inner_a(self):
+        return self.pid_particle_pair[1].radius
+
+    def greens_function(self):
+        # The domain is created around r0, so r0 corresponds to r=0 within the domain
+        # The Green's function should not be used for anything on the DiskSurface
+        # but is defined for completeness here. # TODO Do we really have to do that?
+        inner_half_length = self.get_inner_a()
+        return GreensFunction1DAbsAbs(0.0, 0.0, 0.0, -inner_half_length, inner_half_length)
+
+    # these return corrected dimensions, since we reserve more space for the NonInteractionSingle
+    # For explanation see NonInteractionSingles and Others in shells.py
+    def shell_list_for_single(self):
+        # The shell should always be larger that the bare minimum for a test shell
+        # Note that in case of a cylindrical shell this fits inside of the spherical multi shell
+        min_half_length = self.pid_particle_pair[1].radius * math.sqrt(MULTI_SHELL_FACTOR**2 - 1.0)
+        if self.shell.shape.half_length < min_half_length:
+            # This should only happen if the domain is just initialized.
+            position = self.shell.shape.position
+            # There should always be space to make the spherical multi shell.
+            radius = self.pid_particle_pair[1].radius * MULTI_SHELL_FACTOR
+            fake_shell = SphericalShell(self.domain_id, Sphere(position, radius))
+            return [(self.shell_id, fake_shell), ]
+        else:
+            return self.shell_list
+
+    def shell_list_for_other(self):
+        min_half_length = self.pid_particle_pair[1].radius * math.sqrt(SINGLE_SHELL_FACTOR**2 - 1.0)
+        if self.shell.shape.half_length < min_half_length:
+            position = self.shell.shape.position
+            radius = self.pid_particle_pair[1].radius * SINGLE_SHELL_FACTOR
+            # Keep all the other shells outside the burst radius (which is spherical!)
+            # Note that this makes the cylindrical shell have a slightly smaller radius than the burst radius.
+            fake_shell = SphericalShell(self.domain_id, Sphere(position, radius))
+            return [(self.shell_id, fake_shell), ]
+        else:
+            # When the shell is larger than the burst volume -> return the real shell.
+            return self.shell_list
+
+    def create_updated_shell(self, position):
+        # TODO what should we do with the position now?
+        # maybe update the reference_point of the shell before updating the shell
+        try:
+            dr, dz_right, dz_left = self.testShell.determine_possible_shell(self.structure.id, [self.domain_id], [])
+            dz_right = min(dz_right, dz_left)       # make sure the domain is symmetric around the particle
+            dz_left  = dz_right                     # This is not necessary but it's assumed later
+            center, radius, half_length = self.r_zright_zleft_to_r_center_hl(self.testShell.get_referencepoint(),
+                                                                             self.testShell.get_orientation_vector(),
+                                                                             dr, dz_right, dz_left)
+            return self.create_new_shell(center, radius, half_length, self.domain_id)
+        except ShellmakingError as e:
+            raise Exception('DiskSurfaceSingle, create_updated_shell failed: %s' % str(e) )
+
+    def create_position_vector(self, z):
+        # Particles on DiskStructures are immobile; always keep them in the center of the structure
+        return self.structure.shape.position
+
+    def check(self):
+        assert ProtectiveDomain.check(self)
+        # check shell stuff
+        assert isinstance(self.testShell, DiskSurfaceSingletestShell)
+        assert isinstance(self.shell.shape, Cylinder)
+
+        if self.is_reset():
+            assert self.shell.shape.half_length == self.pid_particle_pair[1].radius
+
+        assert self.is_reset() ^ (self.dt != 0.0)
+        assert isinstance(self.structure, DiskSurface)
+        #assert self.greens_function
+        assert (self.shell.shape.unit_z == self.structure.shape.unit_z).all()
+
+        return True
+
+    def __str__(self):
+        return 'DiskSurface' + Single.__str__(self)
 
 
 class InteractionSingle(Single, hasCylindricalShell, Others):
