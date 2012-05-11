@@ -968,6 +968,14 @@ class EGFRDSimulator(ParticleSimulatorBase):
                                         (reactant_structure.shape.unit_z * numpy.dot(unit_vector3D, reactant_structure.shape.unit_z)))
                         vector = reactant_pos + vector_length * unit_vector2D
                         product_pos_list.append(vector)
+
+                elif isinstance(reactant_structure, DiskSurface):
+                    a = myrandom.choice(-1, 1)
+                    directions = [-a,a]
+                    # place the center of mass of the particle 'at contact' with the membrane
+                    vector_length = (product_radius + 0.0) * (MINIMAL_SEPARATION_FACTOR - 1.0)  # the thickness of the membrane is 0.0
+                    product_pos_list = [reactant_pos + vector_length * reactant_structure.shape.unit_z * direction \
+                                        for direction in directions]
                 else:
                     # cannot decay from 3D to other structure
                     raise RuntimeError('fire_single_reaction: Can not decay from 3D to other structure')
@@ -2580,6 +2588,11 @@ rejected moves = %d
             # 3D NonInteractionSingles can overlap with planar surfaces but not with rods
             ignores = [s.id for s in self.world.structures if isinstance(s, PlanarSurface)]
             associated = []
+        elif isinstance(domain, DiskSurfaceSingle):
+            # Particles bound to DiskSurfaces ignore all rods for now
+            # TODO Only ignore parent structure
+            ignores = [s.id for s in self.world.structures if isinstance(s, CylindricalSurface)]
+            associated = [domain.structure.id]
         elif isinstance(domain, InteractionSingle) or isinstance(domain, MixedPair2D3D):
             # Ignore surface of the particle and interaction surface
             ignores = []
@@ -2713,14 +2726,11 @@ rejected moves = %d
              (type(shape1) is Disk)     and (type(shape2) is Disk) :
 
             # Disk has no property half_length, so check type before any calculation
-            if type(shape1) is Disk:
-                shape1_hl = 0.0
-            else:
+            shape1_hl = 0.0
+            shape2_hl = 0.0
+            if type(shape1) is Cylinder:
                 shape1_hl = shape1.half_length
-
-            if type(shape2) is Disk:
-                shape2_hl = 0.0
-            else:
+            if type(shape2) is Cylinder:                
                 shape2_hl = shape2.half_length
 
             if math.sqrt(shape1_hl**2 + shape1.radius**2) < self.world.distance(shape2, shape1.position) or \
@@ -2734,7 +2744,7 @@ rejected moves = %d
                 inter_pos = shape1_post - shape2_pos
 
                 relative_orientation = numpy.dot(shape1.unit_z, shape2.unit_z)
-                # if the unit_z of cylinder1 is perpendicular to the axis of cylinder2.
+                # if the unit_z of cylinder1 (disk1) is perpendicular to the axis of cylinder2 (disk2).
                 if feq(relative_orientation, 0.0):
                     return 1                                      # TODO Why does this always return 1 ?
 
@@ -2744,8 +2754,12 @@ rejected moves = %d
                     inter_pos_r = inter_pos - inter_pos_z
                     overlap_r = length(inter_pos_r) - (shape1.radius + shape2.radius)
                     overlap_z = length(inter_pos_z) - (shape1_hl + shape2_hl)
-                    if (overlap_r < 0.0) and (overlap_z < 0.0):
-                        return -(overlap_r * overlap_z)           # TODO: find better number for overlap measure
+                    if (overlap_r <= 0.0) and (overlap_z <= 0.0):
+                        if (overlap_r == 0.0) or (overlap_z == 0.0):
+                            # Special treatment of "direct overlap", i.e. e.g. two overlapping disks
+                            return -1
+                        else:
+                            return -(overlap_r * overlap_z)        # TODO: find better number for overlap measure
                     else:
                         return 1
                 else:
