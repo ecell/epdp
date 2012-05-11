@@ -17,6 +17,7 @@ from _gfrd import (
     ParticleContainer,
     CuboidalRegion,
     CylindricalSurface,
+    DiskSurface,
     PlanarSurface,
     Surface,
     _random_vector,
