@@ -23,6 +23,7 @@ public:
     typedef typename traits_type::length_type length_type;
     typedef typename traits_type::position_type position_type;
     typedef std::pair<position_type, length_type> projected_type;
+    typedef typename traits_type::length_type value_type;
 
 public:
     virtual ~Structure() {}

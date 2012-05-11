@@ -6,6 +6,7 @@
 #include <map>
 #include <boost/lexical_cast.hpp>
 #include <boost/array.hpp>
+#include <boost/foreach.hpp>
 #include <boost/utility/enable_if.hpp>
 #include <boost/type_traits/is_same.hpp>
 #include "exceptions.hpp"
@@ -19,8 +20,6 @@
 #include "Transaction.hpp"
 #include "Structure.hpp"
 #include "StructureID.hpp"
-#include "Surface.hpp"
-#include "Region.hpp"
 #include "geometry.hpp"
 #include "GSLRandomNumberGenerator.hpp"
 #include "Point.hpp" // XXX: workaround. should be removed later.
@@ -179,6 +178,8 @@ public:
     typedef std::pair<const particle_id_type, particle_type> particle_id_pair;
 
     typedef abstract_limited_generator<structure_id_pair> structure_id_pair_generator;
+    typedef std::pair<structure_id_pair, length_type> structure_id_pair_and_distance;
+    typedef unassignable_adapter<structure_id_pair_and_distance, get_default_impl::std::vector> structure_id_pair_and_distance_list;
 
 protected:
     typedef std::map<species_id_type, species_type> species_map;
@@ -327,6 +328,49 @@ public:
             boost::make_transform_iterator(structure_map_.begin(), structure_first_selector_type()),
             boost::make_transform_iterator(structure_map_.end(), structure_first_selector_type()));
     }
+
+    std::pair<structure_id_type, length_type> get_closest_structure(position_type const& p) const
+    {
+        std::pair<structure_id_type, length_type> closest(
+            structure_id_type(), std::numeric_limits<length_type>::infinity());
+        // BOOST_FOREACH(structure_id_pair const st_pair, structure_map_)
+        // {
+        //     length_type const distance(
+        //         fabs(::distance(st_pair.second.shape(), p)));
+        //     if (distance < closest.second)
+        //     {
+        //         closest.first = st_pair.first;
+        //         closest.second = distance;
+        //     }
+        // }
+        return closest;
+    }
+
+    structure_id_pair_and_distance_list* check_overlap_with_structures(particle_shape_type const& s, structure_id_type const& ignore) const
+    {
+        return check_overlap_with_structures(s, array_gen(ignore));
+    }
+
+    template<typename Tsph_, typename Tset_>
+    structure_id_pair_and_distance_list* check_overlap_with_structures(Tsph_ const& s, Tset_ const& ignore, typename boost::disable_if<boost::is_same<Tsph_, particle_id_pair> >::type* = 0) const
+    {
+        structure_id_pair_and_distance_list* result;
+        result = new structure_id_pair_and_distance_list();
+        // BOOST_FOREACH(structure_id_pair const st_pair, structure_map_)
+        // {
+        //     if (!contains(ignore, st_pair.first))
+        //     {
+        //         length_type const distance(
+        //             fabs(::distance(st_pair.second->shape(), s.position())));
+        //         if (distance < s.radius())
+        //         {
+        //             result->push_back(std::make_pair(st_pair, distance));
+        //         }
+        //     }
+        // }
+        return result;
+    }
+    
 
 private:
     particle_id_generator_type particle_id_generator_;

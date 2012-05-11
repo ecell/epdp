@@ -8,6 +8,7 @@
 #include <boost/range/const_iterator.hpp>
 
 #include "peer/utils.hpp"
+#include "peer/compat.h"
 #include "peer/set_indexing_suite.hpp"
 #include "peer/converters/tuple.hpp"
 #include "utils/range.hpp"
@@ -235,6 +236,112 @@ struct structures_range_converter: public boost::python::default_call_policies
     }
 };
 
+
+template<typename Timpl_>
+struct structure_id_pair_and_distance_list_converter
+{
+    typedef Timpl_ native_type;
+
+    struct to_python_converter
+    {
+        template<typename T_>
+        struct policy
+        {
+            typedef typename boost::range_size<T_>::type size_type;
+            typedef typename boost::range_value<T_>::type value_type;
+            typedef value_type const& reference;
+            typedef value_type const& const_reference;
+            typedef typename boost::range_const_iterator<T_>::type iterator;
+            typedef typename boost::range_const_iterator<T_>::type const_iterator;
+
+            static size_type size(T_ const& c)
+            {
+                return ::size(c);
+            }
+
+            static void set(T_& c, size_type i, const_reference v)
+            {
+                c.set(i, v);
+            }
+
+            static reference get(T_ const& c, size_type i)
+            {
+                return c.at(i);
+            }
+
+            static iterator begin(T_ const& c)
+            {
+                return boost::begin(c);
+            }
+
+            static iterator end(T_ const& c)
+            {
+                return boost::end(c);
+            }
+        };
+
+        typedef peer::wrappers::stl_container_wrapper<native_type, std::auto_ptr<native_type>, peer::wrappers::default_policy_generator<policy> > wrapper_type;
+        static PyObject* convert(native_type* v)
+        {
+            return reinterpret_cast<PyObject*>(wrapper_type::create(std::auto_ptr<native_type>(v ? v: new native_type())));
+        }
+    };
+
+    struct to_native_converter
+    {
+        static PyTypeObject const* expected_pytype()
+        {
+            return &PyBaseObject_Type;
+        }
+
+        static void* convert(PyObject* pyo)
+        {
+            if (pyo == Py_None)
+            {
+                return 0;
+            }
+
+            Py_ssize_t hint(-1);
+            hint = PyObject_Size(pyo);
+            if (hint < 0)
+            {
+                PyErr_Clear();
+            }
+
+            boost::python::handle<> iter(PyObject_GetIter(pyo));
+            if (!iter)
+            {
+                boost::python::throw_error_already_set();
+            }
+
+            if (hint < 0)
+            {
+                hint = compat_PyObject_LengthHint(iter.get());
+                if (hint < 0)
+                {
+                    hint = 0;
+                }
+            }
+
+            native_type* obj(new native_type);
+            obj->reserve(hint);
+            while (PyObject* item = PyIter_Next(iter.get()))
+            {
+                obj->push_back(boost::python::extract<typename native_type::value_type>(item)());
+            }
+
+            return obj;
+        }
+    };
+
+    static void __register()
+    {
+        to_python_converter::wrapper_type::__class_init__("StructureIDAndDistanceVector", boost::python::scope().ptr());
+        boost::python::to_python_converter<native_type*, to_python_converter>();
+        peer::util::to_native_lvalue_converter<native_type, to_native_converter>();
+    }
+};
+
 template<typename T>
 static typename get_select_first_range<typename T::particle_id_pair_range>::type
 World_get_particle_ids(T const& world)
@@ -252,6 +359,7 @@ inline boost::python::objects::class_base register_world_class(char const* name)
     typedef structures_range_converter<typename impl_type::structures_range> structures_range_converter_type;
 
     peer::converters::register_tuple_converter<typename impl_type::structure_id_pair>();
+    structure_id_pair_and_distance_list_converter<typename impl_type::structure_id_pair_and_distance_list>::__register();
     species_range_converter_type::__register();
     structures_range_converter_type::__register();
 
