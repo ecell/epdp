@@ -40,7 +40,7 @@ struct WorldTraitsBase
     typedef StructureID structure_id_type;
     typedef SerialIDGenerator<structure_id_type> structure_id_generator_type;
     typedef std::string structure_type_id_type;
-    typedef Particle<length_type, D_type, species_id_type, structure_type_id_type> particle_type;
+    typedef Particle<length_type, D_type, species_id_type, structure_id_type> particle_type;
     typedef SpeciesInfo<species_id_type, D_type, length_type, structure_type_id_type> species_type;
     typedef Vector3<length_type> point_type;
     typedef typename particle_type::shape_type::position_type position_type;
@@ -211,9 +211,10 @@ public:
             position_type const& pos)
     {
         species_type const& species(get_species(sid));
+        structure_id_pair stp(get_structure(species.structure_id()));
         particle_id_pair retval(particle_id_generator_(),
             particle_type(sid, particle_shape_type(pos, species.radius()),
-                          species.D(), species.structure_id(), species.v() ));
+                          species.D(), stp.first, species.v()));
         update_particle(retval);
         return retval;
     }

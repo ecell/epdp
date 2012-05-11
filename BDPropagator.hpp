@@ -38,6 +38,8 @@ public:
     typedef typename particle_container_type::particle_id_pair_and_distance particle_id_pair_and_distance;
     typedef typename particle_container_type::particle_id_pair_and_distance_list particle_id_pair_and_distance_list;
     typedef typename particle_container_type::structure_type structure_type;
+    typedef typename particle_container_type::structure_id_type structure_id_type;
+    typedef typename particle_container_type::structure_id_pair structure_id_pair;
     typedef typename traits_type::world_type::traits_type::rng_type rng_type;
     typedef typename traits_type::time_type time_type;
     typedef typename traits_type::network_rules_type network_rules_type;
@@ -46,6 +48,7 @@ public:
     typedef typename traits_type::reaction_record_type reaction_record_type;
     typedef typename traits_type::reaction_recorder_type reaction_recorder_type;
     typedef typename traits_type::volume_clearer_type volume_clearer_type;
+    typedef typename traits_type::world_type::traits_type::D_type D_type;
 
 public:
     template<typename Trange_>
@@ -97,16 +100,22 @@ public:
         if (species.D() == 0.)
             return true;
 
-        position_type const displacement(drawR_free(species));
+        position_type const displacement(
+            drawR_free(pp.second.structure_id(), species.D()));
+        // position_type const displacement(drawR_free(species));
         position_type const new_pos(
             tx_.apply_boundary(
                 add(pp.second.position(), displacement)));
-
         particle_id_pair particle_to_update(
                 pp.first, particle_type(
                     species.id(),
                     particle_shape_type(new_pos, species.radius()),
-                    species.D(), species.structure_id(), species.v()));
+                    species.D(), pp.second.structure_id(), species.v()));
+        // particle_id_pair particle_to_update(
+        //         pp.first, particle_type(
+        //             species.id(),
+        //             particle_shape_type(new_pos, species.radius()),
+        //             species.D(), species.structure_id(), species.v()));
         boost::scoped_ptr<particle_id_pair_and_distance_list> overlapped(
             tx_.check_overlap(particle_to_update.second.shape(),
                               particle_to_update.first));
@@ -159,10 +168,16 @@ public:
     }
 
 private:
-    position_type drawR_free(species_type const& species)
+    position_type drawR_free(
+        structure_id_type const& structure_id, D_type const& D)
     {
-        return tx_.get_structure(species.structure_id()).second->bd_displacement(std::sqrt(2.0 * species.D() * dt_), rng_);
+        return tx_.get_structure(structure_id).second->bd_displacement(std::sqrt(2.0 * D * dt_), rng_);
     }
+
+    // position_type drawR_free(species_type const& species)
+    // {
+    //     return tx_.get_structure(species.structure_id()).second->bd_displacement(std::sqrt(2.0 * species.D() * dt_), rng_);
+    // }
 
     bool attempt_reaction(particle_id_pair const& pp)
     {
@@ -193,12 +208,20 @@ private:
                 case 1:
                     {
                         const species_type s0(tx_.get_species(products[0]));
+                        structure_id_pair stp(
+                            tx_.get_structure(s0.structure_id()));
                         const particle_id_pair new_p(
                             pp.first, particle_type(
                                 products[0],
                                 particle_shape_type(pp.second.position(),
                                                     s0.radius()),
-                                s0.D(), s0.structure_id(), s0.v()));
+                                s0.D(), stp.first, s0.v()));
+                        // const particle_id_pair new_p(
+                        //     pp.first, particle_type(
+                        //         products[0],
+                        //         particle_shape_type(pp.second.position(),
+                        //                             s0.radius()),
+                        //         s0.D(), s0.structure_id(), s0.v()));
                         boost::scoped_ptr<particle_id_pair_and_distance_list> overlapped(tx_.check_overlap(new_p.second.shape(), new_p.first));
                         if (overlapped && overlapped->size() > 0)
                         {

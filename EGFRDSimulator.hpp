@@ -572,9 +572,12 @@ protected:
         {
             boost::shared_ptr<structure_type> const _structure(
                 world_.get_structure(
-                    world_.get_species(
-                        domain.particles()[0].second.sid())
-                    .structure_id()).second);
+                    domain.particles()[0].second.structure_id()).second);
+            // boost::shared_ptr<structure_type> const _structure(
+            //     world_.get_structure(
+            //         world_.get_species(
+            //             domain.particles()[0].second.sid())
+            //         .structure_id()).second);
             
             cylindrical_surface_type const* const structure(
                 dynamic_cast<cylindrical_surface_type*>(_structure.get()));
@@ -704,9 +707,12 @@ protected:
         {
             boost::shared_ptr<structure_type> const _structure(
                 world_.get_structure(
-                    world_.get_species(
-                        domain.particles()[0].second.sid())
-                    .structure_id()).second);
+                    domain.particles()[0].second.structure_id()).second);
+            // boost::shared_ptr<structure_type> const _structure(
+            //     world_.get_structure(
+            //         world_.get_species(
+            //             domain.particles()[0].second.sid())
+            //         .structure_id()).second);
             
             cylindrical_surface_type const* const structure(
                 dynamic_cast<cylindrical_surface_type*>(_structure.get()));
@@ -771,9 +777,12 @@ protected:
         {
             boost::shared_ptr<structure_type> const _structure(
                 world_.get_structure(
-                    world_.get_species(
-                        domain.particles()[0].second.sid())
-                    .structure_id()).second);
+                    domain.particles()[0].second.structure_id()).second);
+            // boost::shared_ptr<structure_type> const _structure(
+            //     world_.get_structure(
+            //         world_.get_species(
+            //             domain.particles()[0].second.sid())
+            //         .structure_id()).second);
             
             cylindrical_surface_type const* const structure(
                 dynamic_cast<cylindrical_surface_type*>(_structure.get()));
@@ -839,9 +848,12 @@ protected:
         {
             boost::shared_ptr<structure_type> const _structure(
                 world_.get_structure(
-                    world_.get_species(
-                        domain.particles()[0].second.sid())
-                    .structure_id()).second);
+                    domain.particles()[0].second.structure_id()).second);
+            // boost::shared_ptr<structure_type> const _structure(
+            //     world_.get_structure(
+            //         world_.get_species(
+            //             domain.particles()[0].second.sid())
+            //         .structure_id()).second);
 
             cylindrical_surface_type const* const structure(
                 dynamic_cast<cylindrical_surface_type*>(_structure.get()));
@@ -1498,8 +1510,9 @@ protected:
             domain_kind& kind;
         };
 
-        species_type const& species((*base_type::world_).get_species(p.second.sid()));
-        dynamic_cast<particle_simulation_structure_type const&>(*(*base_type::world_).get_structure(species.structure_id()).second).accept(factory(this, p, did, new_single, kind));
+        dynamic_cast<particle_simulation_structure_type const&>(*(*base_type::world_).get_structure(p.second.structure_id()).second).accept(factory(this, p, did, new_single, kind));
+        // species_type const& species((*base_type::world_).get_species(p.second.sid()));
+        // dynamic_cast<particle_simulation_structure_type const&>(*(*base_type::world_).get_structure(species.structure_id()).second).accept(factory(this, p, did, new_single, kind));
         boost::shared_ptr<domain_type> const retval(new_single);
         domains_.insert(std::make_pair(did, retval));
         BOOST_ASSERT(kind != NONE);
@@ -1594,8 +1607,9 @@ protected:
             domain_kind& kind;
         };
 
-        species_type const& species((*base_type::world_).get_species(p0.second.sid()));
-        dynamic_cast<particle_simulation_structure_type&>(*(*base_type::world_).get_structure(species.structure_id()).second).accept(factory(this, p0, p1, com, iv, shell_size, did, new_pair, kind));
+        dynamic_cast<particle_simulation_structure_type&>(*(*base_type::world_).get_structure(p0.second.structure_id()).second).accept(factory(this, p0, p1, com, iv, shell_size, did, new_pair, kind));
+        // species_type const& species((*base_type::world_).get_species(p0.second.sid()));
+        // dynamic_cast<particle_simulation_structure_type&>(*(*base_type::world_).get_structure(species.structure_id()).second).accept(factory(this, p0, p1, com, iv, shell_size, did, new_pair, kind));
 
         boost::shared_ptr<domain_type> const retval(new_pair);
         domains_.insert(std::make_pair(did, retval));

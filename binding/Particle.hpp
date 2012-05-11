@@ -101,10 +101,10 @@ public:
         switch (PyTuple_Size(arg))
         {
         default:
-            PyErr_SetString(PyExc_TypeError, "the number of arguments must be either 0 or 4");
+            PyErr_SetString(PyExc_TypeError, "the number of arguments must be either 0 or 5");
             return NULL;
 
-        case 4:
+        case 5:
             retval = create();
             if (set_position(reinterpret_cast<ParticleWrapper*>(retval), 
                         PyTuple_GetItem(arg, 0), 0)
@@ -113,7 +113,10 @@ public:
                 || set_D(reinterpret_cast<ParticleWrapper*>(retval), 
                         PyTuple_GetItem(arg, 2), 0)
                 || set_sid(reinterpret_cast<ParticleWrapper*>(retval), 
-                        PyTuple_GetItem(arg, 3), 0))
+                        PyTuple_GetItem(arg, 3), 0)
+                || set_structure_id(
+                    reinterpret_cast<ParticleWrapper*>(retval), 
+                    PyTuple_GetItem(arg, 4), 0))
             {
                 ParticleWrapper::operator delete(retval);
                 return NULL;
@@ -258,7 +261,7 @@ public:
     static int set_structure_id(ParticleWrapper* self, PyObject* val, void *)
     try
     {
-        self->impl_.structure_id() = boost::python::extract<typename Timpl_::structure_type_id_type>(val);
+        self->impl_.structure_id() = boost::python::extract<typename Timpl_::structure_id_type>(val);
         return 0;
     }
     catch (boost::python::error_already_set const&)
@@ -305,12 +308,12 @@ public:
 
     static Py_ssize_t __sq_len__(PyObject *self)
     {
-        return 4;
+        return 5;
     }
 
     static PyObject* __sq_item__(PyObject *self, Py_ssize_t idx)
     {
-        if (idx < 0 || idx >= 4)
+        if (idx < 0 || idx >= 5)
         {
             PyErr_SetString(PyExc_IndexError, "index out of range");
             return NULL;
@@ -334,7 +337,7 @@ public:
 
     static int __sq_ass_item__(PyObject *self, Py_ssize_t idx, PyObject *val)
     {
-        if (idx < 0 || idx >= 4)
+        if (idx < 0 || idx >= 5)
         {
             PyErr_SetString(PyExc_IndexError, "index out of range");
             return -1;

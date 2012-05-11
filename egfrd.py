@@ -308,7 +308,9 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
         # Get structure (region or surface).
         species = self.world.get_species(pid_particle_pair[1].sid)
-        structure = self.world.get_structure(species.structure_id)[1]
+        # structure = self.world.get_structure(species.structure_id)[1]
+        structure = self.world.get_structure(
+            pid_particle_pair[1].structure_id)[1]
 
         # Create single. The type of the single that will be created 
         # depends on the structure (region or surface) this particle is 
@@ -351,7 +353,9 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
         # Get structure (region or surface).
         species = self.world.get_species(single1.pid_particle_pair[1].sid)
-        structure = self.world.get_structure(species.structure_id)[1]
+        # structure = self.world.get_structure(species.structure_id)[1]
+        structure = self.world.get_structure(
+            single1.pid_particle_pair[1].structure_id)[1]
 
         # Create pair. The type of the pair that will be created depends
         # on the structure (region or surface) the particles are in/on.  
@@ -410,7 +414,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
                           Particle(position,
                                    single.pid_particle_pair[1].radius,
                                    single.pid_particle_pair[1].D,
-                                   single.pid_particle_pair[1].sid))
+                                   single.pid_particle_pair[1].sid,
+                                   single.pid_particle_pair[1].structure_id))
         single.pid_particle_pair = new_pid_particle_pair
 
         self.world.update_particle(new_pid_particle_pair)

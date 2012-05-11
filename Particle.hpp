@@ -20,19 +20,19 @@ struct Particle
     typedef Td_ D_type;
     typedef Td_ v_type;	// the drift v has the same type as diffusion constant D for now, may be generalized at a later stage
     typedef Tsid_ species_id_type;
-    typedef Tstid_ structure_type_id_type;
+    typedef Tstid_ structure_id_type;
     typedef typename shape_type::position_type position_type;
     typedef typename shape_type::length_type length_type;
 
     Particle(): shape_(), species_id_(), structure_id_(), D_(0.), v_(0.) {}
 
     Particle(species_id_type const& species_id, shape_type const& shape,
-             D_type const& D, structure_type_id_type const& structure_type)
+             D_type const& D, structure_id_type const& structure_type)
         : shape_(shape), species_id_(species_id), 
           structure_id_(structure_type), D_(D), v_(0.) {}
 
     Particle(species_id_type const& species_id, shape_type const& shape,
-             D_type const& D, structure_type_id_type const& structure_type,
+             D_type const& D, structure_id_type const& structure_type,
              v_type const& v)
         : shape_(shape), species_id_(species_id), 
           structure_id_(structure_type), D_(D), v_(v) {}
@@ -97,12 +97,12 @@ struct Particle
         return species_id_;
     }
 
-    structure_type_id_type const& structure_id() const
+    structure_id_type const& structure_id() const
     {
         return structure_id_;
     }
 
-    structure_type_id_type& structure_id()
+    structure_id_type& structure_id()
     {
         return structure_id_;
     }
@@ -129,7 +129,7 @@ struct Particle
 private:
     shape_type shape_;
     species_id_type species_id_;
-    structure_type_id_type structure_id_;
+    structure_id_type structure_id_;
     D_type D_;
     v_type v_;
 };
@@ -160,7 +160,7 @@ struct hash<Particle<T_, Td_, Tsid_, Tstid_> >
             hash<typename argument_type::length_type>()(val.radius()) ^
             hash<typename argument_type::D_type>()(val.D()) ^
             hash<typename argument_type::species_id_type>()(val.sid()) ^
-            hash<typename argument_type::structure_type_id_type>()(val.structure_id());
+            hash<typename argument_type::structure_id_type>()(val.structure_id());
     }
 };
 

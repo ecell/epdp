@@ -52,7 +52,7 @@ template<typename Tstrm_, typename Ttraits_>
 inline std::basic_ostream<Tstrm_, Ttraits_>& operator<<(std::basic_ostream<Tstrm_, Ttraits_>& strm,
         const StructureID& v)
 {
-    strm << "PID(" << v().first << ":" << v().second << ")";
+    strm << "STID(" << v().first << ":" << v().second << ")";
     return strm;
 }
 
