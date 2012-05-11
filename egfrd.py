@@ -51,7 +51,7 @@ from shells import (
     CylindricalSurfacePairtestShell,
     PlanarSurfaceInteractiontestShell,
     CylindricalSurfaceInteractiontestShell,
-    CylindricalSurfaceCaptestShell,
+    CylindricalSurfaceCapInteractiontestShell,
     CylindricalSurfaceSinktestShell,
     MixedPair2D3DtestShell,
     )
@@ -89,7 +89,7 @@ def try_default_testinteraction(single, target_structure, geometrycontainer, dom
         raise testShellError('(Interaction). Combination of (2D particle, target_structure) is not supported')
     elif isinstance(single.structure, CylindricalSurface):
         if isinstance(target_structure, DiskSurface):
-            return CylindricalSurfaceCaptestShell (single, target_structure, geometrycontainer, domains)
+            return CylindricalSurfaceCapInteractiontestShell (single, target_structure, geometrycontainer, domains)
         elif isinstance(target_structure, CylindricalSurface):
             return CylindricalSurfaceSinktestShell (single, target_structure, geometrycontainer, domains)
         else:
@@ -102,8 +102,8 @@ def create_default_interaction(domain_id, shell_id, testShell, reaction_rules, i
         return CylindricalSurfaceInteraction (domain_id, shell_id, testShell, reaction_rules, interaction_rules)
     elif isinstance(testShell, PlanarSurfaceInteractiontestShell):
         return PlanarSurfaceInteraction      (domain_id, shell_id, testShell, reaction_rules, interaction_rules)
-    elif isinstance(testShell, CylindricalSurfaceCaptestShell):
-        return CylindricalSurfaceCapSingle   (domain_id, shell_id, testShell, reaction_rules, interaction_rules)
+    elif isinstance(testShell, CylindricalSurfaceCapInteractiontestShell):
+        return CylindricalSurfaceCapInteraction   (domain_id, shell_id, testShell, reaction_rules, interaction_rules)
     elif isinstance(testShell, CylindricalSurfaceSinktestShell):
         return CylindricalSurfaceSink        (domain_id, shell_id, testShell, reaction_rules, interaction_rules)
 

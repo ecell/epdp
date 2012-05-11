@@ -29,7 +29,7 @@ __all__ = [
     'NonInteractionSingle',
     'InteractionSingle',
     'CylindricalSurfaceInteraction',
-    'CylindricalSurfaceCapSingle',
+    'CylindricalSurfaceCapInteraction',
     'CylindricalSurfaceSink',
     'PlanarSurfaceInteraction',
     'TransitionSingle',
@@ -952,7 +952,7 @@ class CylindricalSurfaceSink(InteractionSingle):
         return 'CylindricalSurfaceSink ' + Single.__str__(self)
 
 
-class CylindricalSurfaceCapSingle(InteractionSingle):
+class CylindricalSurfaceCapInteraction(InteractionSingle):
     """1 Particle inside a (Cylindrical) shell on a CylindricalSurface
        limited by a cap. The cap is a reactive surface to the particle
        and defines the exit point from the cylinder.
@@ -964,7 +964,7 @@ class CylindricalSurfaceCapSingle(InteractionSingle):
     """
     def __init__(self, domain_id, shell_id, testShell, reactionrules, interactionrules):
 
-        assert isinstance(testShell, CylindricalSurfaceCaptestShell)
+        assert isinstance(testShell, CylindricalSurfaceCapInteractiontestShell)
         InteractionSingle.__init__(self, domain_id, shell_id, testShell, reactionrules, interactionrules)
 
         self.zcap = self.testShell.get_referencepoint()
@@ -1044,7 +1044,7 @@ class CylindricalSurfaceCapSingle(InteractionSingle):
         return newpos, structure_id
 
     def __str__(self):
-        return 'CylindricalSurfaceCapSingle ' + Single.__str__(self)
+        return 'CylindricalSurfaceCapInteraction ' + Single.__str__(self)
 
 
 class TransitionSingle(Single, TransitionTools, Others):

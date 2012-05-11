@@ -45,7 +45,7 @@ __all__ = [
     'CylindricalSurfacePairtestShell',
     'PlanarSurfaceInteractiontestShell',
     'CylindricalSurfaceInteractiontestShell',
-    'CylindricalSurfaceCaptestShell',
+    'CylindricalSurfaceCapInteractiontestShell',
     'CylindricalSurfaceSinktestShell',
     'MixedPair2D3DtestShell',
     ]
@@ -1764,7 +1764,7 @@ class CylindricalSurfaceInteractiontestShell(CylindricaltestShell, testInteracti
     def apply_safety(self, r, z_right, z_left):
         return r/SAFETY, self.z_right(r/SAFETY), self.z_left(r/SAFETY)
 
-class CylindricalSurfaceCaptestShell(CylindricaltestShell, testInteractionSingle):
+class CylindricalSurfaceCapInteractiontestShell(CylindricaltestShell, testInteractionSingle):
 
     def __init__(self, single, target_structure, geometrycontainer, domains):
         CylindricaltestShell.__init__(self, geometrycontainer, domains)  # this must be first because of world definition
@@ -1787,7 +1787,7 @@ class CylindricalSurfaceCaptestShell(CylindricaltestShell, testInteractionSingle
             self.dr, self.dz_right, self.dz_left = \
                             self.determine_possible_shell(self.origin_structure.id, [self.single.domain_id], [self.target_structure.id])
         except ShellmakingError as e:
-            raise testShellError('(CylindricalSurfaceCap). %s' %
+            raise testShellError('(CylindricalSurfaceCapInteraction). %s' %
                                  (str(e)))
 
     def get_orientation_vector(self):
