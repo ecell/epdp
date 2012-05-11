@@ -970,12 +970,10 @@ class EGFRDSimulator(ParticleSimulatorBase):
                         product_pos_list.append(vector)
 
                 elif isinstance(reactant_structure, DiskSurface):
-                    a = myrandom.choice(-1, 1)
-                    directions = [-a,a]
-                    # place the center of mass of the particle 'at contact' with the membrane
-                    vector_length = (product_radius + 0.0) * (MINIMAL_SEPARATION_FACTOR - 1.0)  # the thickness of the membrane is 0.0
-                    product_pos_list = [reactant_pos + vector_length * reactant_structure.shape.unit_z * direction \
-                                        for direction in directions]
+                    vector_length = (2.0*product_radius + 0.0) * MINIMAL_SEPARATION_FACTOR  # the thickness of the membrane is 0.0
+                    vector        = reactant_pos + vector_length * reactant_structure.shape.unit_z
+                    product_pos_list.append(vector)
+
                 else:
                     # cannot decay from 3D to other structure
                     raise RuntimeError('fire_single_reaction: Can not decay from 3D to other structure')
