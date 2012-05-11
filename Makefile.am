@@ -51,6 +51,7 @@ noinst_HEADERS = \
 	BDSimulator.hpp\
 	bessel.hpp\
 	Box.hpp\
+    ConnectivityContainer.hpp\
 	ConsoleAppender.hpp\
 	Cylinder.hpp\
 	Defs.hpp\
