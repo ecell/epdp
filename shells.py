@@ -1566,7 +1566,6 @@ class CylindricalSurfaceSingletestShell(CylindricaltestShell, testNonInteraction
         self.r0_left    = self.pid_particle_pair[1].radius
         self.z0_left    = 0.0
 
-
         # sizing up the shell to a zero shell
         self.dz_right = self.pid_particle_pair[1].radius
         self.dz_left  = self.pid_particle_pair[1].radius
@@ -1610,10 +1609,10 @@ class DiskSurfaceSingletestShell(CylindricaltestShell, testNonInteractionSingle)
         self.drdz_right = 0.0
         self.r0_right   = self.pid_particle_pair[1].radius
         self.z0_right   = 0.0
-        self.dzdr_left  = 0.0
-        self.drdz_left  = numpy.inf
-        self.r0_left    = self.pid_particle_pair[1].radius      # TODO put to zero?
-        self.z0_left    = self.pid_particle_pair[1].radius * SINGLE_SHELL_FACTOR
+        self.dzdr_left  = numpy.inf
+        self.drdz_left  = 0.0
+        self.r0_left    = self.pid_particle_pair[1].radius
+        self.z0_left    = 0.0
 
         # sizing up the shell to a zero shell
         self.dz_right = self.pid_particle_pair[1].radius
@@ -1632,14 +1631,14 @@ class DiskSurfaceSingletestShell(CylindricaltestShell, testNonInteractionSingle)
 
     def get_min_dr_dzright_dzleft(self):
         dr       = self.pid_particle_pair[1].radius
-        dz_left  = self.pid_particle_pair[1].radius * SINGLE_SHELL_FACTOR
-        dz_right = dz_left
+        dz_right = self.pid_particle_pair[1].radius * math.sqrt(MULTI_SHELL_FACTOR**2 - 1.0) #  TODO Use SINGLE_SHELL_FACTOR instead?
+        dz_left  = dz_right
         return dr, dz_right, dz_left
         
     def get_max_dr_dzright_dzleft(self):
         dr       = self.pid_particle_pair[1].radius
-        dz_left  = self.pid_particle_pair[1].radius * SINGLE_SHELL_FACTOR # same as the minimum, i.e. no scaling of this length
-        dz_right = dz_left
+        dz_right = self.pid_particle_pair[1].radius * math.sqrt(MULTI_SHELL_FACTOR**2 - 1.0) # same as the minimum, i.e. no scaling of this length
+        dz_left  = dz_right
         return dr, dz_right, dz_left
 
     def apply_safety(self, r, z_right, z_left):
