@@ -3,9 +3,11 @@ from _gfrd import (
     CylindricalShell,
     Sphere,
     Cylinder,
+    Disk,
     CuboidalRegion,
     PlanarSurface,
     CylindricalSurface,
+    DiskSurface,
     )
 from _greens_functions import *
 from greens_function_wrapper import *
@@ -965,7 +967,11 @@ class CylindricalSurfaceCapSingle(InteractionSingle):
         assert isinstance(testShell, CylindricalSurfaceCaptestShell)
         InteractionSingle.__init__(self, domain_id, shell_id, testShell, reactionrules, interactionrules)
 
-        self.zcap = self.shell.get_referencepoint()
+        self.zcap = self.testShell.get_referencepoint()
+
+    def getv(self):
+        return self.pid_particle_pair[1].v
+    v = property(getv)
 
     def get_inner_dz_left(self):
         # This is the distance that the particle can travel from its initial position
@@ -974,15 +980,15 @@ class CylindricalSurfaceCapSingle(InteractionSingle):
         # The testShell is taking this into account at construction to ensure that
         # there is enough space around the cap in case of reaction.
         # Note that the reference point of the shell is the cap position.
-        return self.shell.particle_surface_distance
+        return self.testShell.particle_surface_distance
 
     def get_inner_dz_right(self):
         # This is the distance that the particle can travel from its initial position
         # towards the absorbing cylinder boundary opposite of the cap.
         # Note that the reference point of the shell is the cap position,
         # therefore we have to subtract particle_surface_distance here.
-        return self.shell.dz_right - self.shell.particle_surface_distance \
-                                   - self.pid_particle_pair[1].radius
+        return self.testShell.dz_right - self.testShell.particle_surface_distance \
+                                       - self.pid_particle_pair[1].radius
         # TODO is shell.dz_right always positive?
 
     def determine_next_event(self):

@@ -6,8 +6,10 @@ from _gfrd import (
     Sphere,
     SphericalShell,
     Cylinder,
-    CylindricalShell,
+    CylindricalShell,    
     CylindricalSurface,
+    Disk,
+    DiskSurface,
     Plane,
     PlanarSurface,
     CuboidalRegion,
@@ -692,7 +694,7 @@ def get_radius_to_SphericalShape(shape, testShell, r):
     return min(r, r_new)
 
 # functions to size up a testShell to a Cylindrical shape object
-def get_dr_dzright_dzleft_to_CylindricalShape(shape, testShell, r, z_right, z_left):
+def get_dr_dzright_dzleft_to_Cylindrical_or_DiskShape(shape, testShell, r, z_right, z_left):
     # This function returns the dr, dz_right, dz_left parameters for the cylindrical 'testShell'
     # using the cylindrical 'shell' as its closest neighbor. Note that it returns the minimum the newly calculated
     # dr, dz_right, dz_left and the old r, z_right, z_left. The 'testShell' can therefore only become
@@ -700,12 +702,16 @@ def get_dr_dzright_dzleft_to_CylindricalShape(shape, testShell, r, z_right, z_le
 
     # Note that the 'shell' is querried from this domain earlier by the testShell.
     # -> the shell MUST be a Cylinder.
-    assert (type(shape) is Cylinder)
+    assert (type(shape) is Cylinder) or (type(shape) is Disk)
 
     # Laurens' algorithm (part2)
     shell_position = shape.position
     shell_radius = shape.radius 
-    shell_half_length = shape.half_length 
+
+    if type(shape) is Cylinder:
+        shell_half_length = shape.half_length 
+    else: # shape is Disk and has no property half_length
+        shell_half_length = 0.0
 
 
     # get the reference point and orientation of the domain to scale
@@ -985,10 +991,10 @@ def get_dr_dzright_dzleft_to_CylindricalShape(shape, testShell, r, z_right, z_le
             z1_new = min(z1, z1_function(r_new))
 
         else:
-            raise RuntimeError('get_dr_dzright_dzleft_to_CylindricalShape: Bad situation for making cylinders against cylinders.')
+            raise RuntimeError('get_dr_dzright_dzleft_to_Cylindrical_or_DiskShape: Bad situation for making cylinders against cylinders.')
 
     else:
-        raise NotImplementedError('get_dr_dzright_dzleft_to_CylindricalShape: Cylinders should be oriented parallel or perpendicular.')
+        raise NotImplementedError('get_dr_dzright_dzleft_to_Cylindrical_or_DiskShape: Cylinders should be oriented parallel or perpendicular.')
 
     z2_new = min(z2, z2_function(r_new))
 
@@ -1305,9 +1311,9 @@ class CylindricaltestShell(testShell):
         # or planar surfaces and parallel to the testCylinder axis
         for surface, distance in neighbor_surfaces:
             # TODO
-            if isinstance(surface, CylindricalSurface):
-                dr, dz_right, dz_left = get_dr_dzright_dzleft_to_CylindricalShape(surface.shape, self,
-                                                                                              dr, dz_right, dz_left)
+            if isinstance(surface, CylindricalSurface) or isinstance(surface, DiskSurface):
+                dr, dz_right, dz_left = get_dr_dzright_dzleft_to_Cylindrical_or_DiskShape(surface.shape, self,
+                                                                                              dr, dz_right, dz_left)            
             elif isinstance(surface, PlanarSurface):
                 dr, dz_right, dz_left = get_dr_dzright_dzleft_to_PlanarShape(surface.shape, self,
                                                                                          dr, dz_right, dz_left)
@@ -1330,7 +1336,7 @@ class CylindricaltestShell(testShell):
                     dr, dz_right, dz_left = get_dr_dzright_dzleft_to_SphericalShape(shell_appearance.shape, self,
                                                                                                 dr, dz_right, dz_left)
                 elif isinstance(shell_appearance.shape, Cylinder):
-                    dr, dz_right, dz_left = get_dr_dzright_dzleft_to_CylindricalShape(shell_appearance.shape, self,
+                    dr, dz_right, dz_left = get_dr_dzright_dzleft_to_Cylindrical_or_DiskShape(shell_appearance.shape, self,
                                                                                                   dr, dz_right, dz_left)
                 else:
                     assert False, "Wrong type of shell shape"

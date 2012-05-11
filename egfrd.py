@@ -51,6 +51,7 @@ from shells import (
     CylindricalSurfacePairtestShell,
     PlanarSurfaceInteractiontestShell,
     CylindricalSurfaceInteractiontestShell,
+    CylindricalSurfaceCaptestShell,
     CylindricalSurfaceSinktestShell,
     MixedPair2D3DtestShell,
     )
@@ -1542,7 +1543,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
         for surface, surface_distance in surface_distances:
             if isinstance(surface, PlanarSurface) or isinstance(surface, DiskSurface):
                 # with a planar or disk surface it is the center of mass that 'looks around'
-                surface_horizon = single_radius * (SINGLE_SHELL_FACTOR - 1.0)
+                surface_horizon = single_radius * (SINGLE_SHELL_FACTOR - 1.0) * 5 # HACK
             else:
                 # with a cylindrical surface it is the surface of the particle
                 surface_horizon = single_radius * SINGLE_SHELL_FACTOR
@@ -2700,11 +2701,25 @@ rejected moves = %d
                 else:
                     raise RuntimeError('check_shape_overlap: planes and cylinders should be either parallel or perpendicular.')
 
-        # overlap criterium when both shells are cylindrical 
-        elif (type(shape1) is Cylinder) and (type(shape2) is Cylinder):
+        # overlap criterium when both shells are cylindrical or disks (= cylinders with half_length = 0.0)
+        elif (type(shape1) is Cylinder) and (type(shape2) is Cylinder) or \
+             (type(shape1) is Cylinder) and (type(shape2) is Disk) or \
+             (type(shape1) is Disk)     and (type(shape2) is Cylinder) or \
+             (type(shape1) is Disk)     and (type(shape2) is Disk) :
 
-            if math.sqrt(shape1.half_length**2 + shape1.radius**2) < self.world.distance(shape2, shape1.position) or \
-               math.sqrt(shape2.half_length**2 + shape2.radius**2) < self.world.distance(shape1, shape2.position):
+            # Disk has no property half_length, so check type before any calculation
+            if type(shape1) is Disk:
+                shape1_hl = 0.0
+            else:
+                shape1_hl = shape1.half_length
+
+            if type(shape2) is Disk:
+                shape2_hl = 0.0
+            else:
+                shape2_hl = shape2.half_length
+
+            if math.sqrt(shape1_hl**2 + shape1.radius**2) < self.world.distance(shape2, shape1.position) or \
+               math.sqrt(shape2_hl**2 + shape2.radius**2) < self.world.distance(shape1, shape2.position):
                 # if cylinder2 is outside the sphere surrounding the cylinder.
                 return 1
             else: 
@@ -2714,16 +2729,16 @@ rejected moves = %d
                 inter_pos = shape1_post - shape2_pos
 
                 relative_orientation = numpy.dot(shape1.unit_z, shape2.unit_z)
-                # if the unit_z of the plane is perpendicular to the axis of the cylinder.
+                # if the unit_z of cylinder1 is perpendicular to the axis of cylinder2.
                 if feq(relative_orientation, 0.0):
-                    return 1
+                    return 1                                      # TODO Why does this always return 1 ?
 
 
                 elif feq(abs(relative_orientation), 1.0):
                     inter_pos_z = shape2.unit_z * numpy.dot(inter_pos, shape2.unit_z)
                     inter_pos_r = inter_pos - inter_pos_z
                     overlap_r = length(inter_pos_r) - (shape1.radius + shape2.radius)
-                    overlap_z = length(inter_pos_z) - (shape1.half_length + shape2.half_length)
+                    overlap_z = length(inter_pos_z) - (shape1_hl + shape2_hl)
                     if (overlap_r < 0.0) and (overlap_z < 0.0):
                         return -(overlap_r * overlap_z)           # TODO: find better number for overlap measure
                     else:
