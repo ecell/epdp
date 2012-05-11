@@ -22,6 +22,7 @@ from _gfrd import (
     Surface,
     _random_vector,
     Cylinder,
+    Disk,
     Sphere,
     Plane,
     NetworkRulesWrapper,
