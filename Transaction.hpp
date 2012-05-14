@@ -321,7 +321,7 @@ public:
     }
 
     virtual position_structid_pair_type apply_boundary(position_structid_pair_type const& pos_struct_id,
-                                                       const boost::shared_ptr<structure_type> structure) const
+                                                       const boost::shared_ptr<const structure_type> structure) const
     {
         return pc_.apply_boundary(pos_struct_id, structure);
     }
@@ -337,7 +337,7 @@ public:
     }
 
     virtual position_structid_pair_type cyclic_transpose(position_structid_pair_type const& pos_struct_id,
-                                                         const boost::shared_ptr<structure_type> structure) const
+                                                         const boost::shared_ptr<const structure_type> structure) const
     {
         return pc_.cyclic_transpose(pos_struct_id, structure);
     }
