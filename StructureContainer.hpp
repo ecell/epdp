@@ -22,6 +22,12 @@ apply_boundary (std::pair<typename Ttraits_::position_type, typename Ttraits_::s
                 StructureContainer<typename Ttraits_::structure_type, typename Ttraits_::structure_id_type, Ttraits_> const& sc);
 
 template<typename Ttraits_ >
+inline std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type>
+cyclic_transpose (std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type> const& pos_structure_id,
+                  PlanarSurface<Ttraits_> const& planar_surface,
+                  StructureContainer<typename Ttraits_::structure_type, typename Ttraits_::structure_id_type, Ttraits_> const& sc);
+
+template<typename Ttraits_ >
 std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type>
 apply_boundary (std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type> const& pos_structure_id,
                 CylindricalSurface<Ttraits_> const& cylindrical_surface,
@@ -134,6 +140,11 @@ public:
     position_structid_type apply_boundary(Tstructure_ const& structure, position_structid_type const& pos_struct_id) const
     {
         return ::apply_boundary(pos_struct_id, structure, *this);
+    }
+    template <typename Tstructure_>
+    position_structid_type cyclic_transpose(Tstructure_ const& structure, position_structid_type const& pos_struct_id) const
+    {
+        return ::cyclic_transpose(pos_struct_id, structure, *this);
     }
 
     virtual structure_id_type get_def_structure_id() const
@@ -362,6 +373,96 @@ apply_boundary (std::pair<typename Ttraits_::position_type, typename Ttraits_::s
                                       add(neighbor_plane_par, neighbor_plane_inl)));
     return std::make_pair(new_pos, new_id);
 }
+
+template<typename Ttraits_ >
+inline std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type>
+cyclic_transpose (std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type> const& pos_structure_id,
+                  PlanarSurface<Ttraits_> const& planar_surface,
+                  StructureContainer<typename Ttraits_::structure_type, typename Ttraits_::structure_id_type, Ttraits_> const& sc)
+{
+    // useful typedefs
+    typedef Ttraits_        traits_type;
+    typedef typename traits_type::structure_id_type         structure_id_type;
+
+    typedef typename PlanarSurface<Ttraits_>::shape_type    plane_type;
+    typedef typename plane_type::length_type                length_type;
+    typedef typename plane_type::position_type              position_type;
+
+    typedef std::pair<structure_id_type, position_type>     neighbor_id_vector_type;
+
+
+
+    if ( pos_structure_id.second == planar_surface.id() )
+        return pos_structure_id;
+
+    position_type new_pos_par;
+    position_type new_pos_inl;
+
+    int side_nr;
+    neighbor_id_vector_type neighbor_id_vector;
+    for (side_nr = 0; side_nr < 4; ++side_nr)
+    {
+        neighbor_id_vector = sc.get_neighbor_info(planar_surface, side_nr);
+        if ( neighbor_id_vector.first == pos_structure_id.second )
+            // we have found the correct side
+            break;
+    }
+    // TODO use iterator so that we can check whether match was found or that we escaped by reaching the end of the list.
+
+    const plane_type plane (planar_surface.shape());
+    boost::array<length_type, 2> half_extends(plane.half_extent());
+    switch ( side_nr )
+    {
+        case 0:     // top side
+        {
+            const position_type pos (subtract(pos_structure_id.first, add(plane.position(),
+                                                                          multiply(plane.unit_y(),
+                                                                                   half_extends[1]) ) ));
+            const length_type plane_par (dot_product(pos, plane.unit_x()));     // TODO replace by subtraction?
+            const length_type plane_inl (dot_product(pos, neighbor_id_vector.second));
+            new_pos_par = multiply(plane.unit_x(), plane_par);
+            new_pos_inl = multiply(plane.unit_y(), half_extends[1] + plane_inl);
+            break;
+        }
+        case 1:     // botom
+        {
+            const position_type pos (subtract(pos_structure_id.first, add(plane.position(),
+                                                                          multiply(plane.unit_y(),
+                                                                                   -half_extends[1]) ) ));
+            const length_type plane_par (dot_product(pos, plane.unit_x()));     // TODO replace by subtraction?
+            const length_type plane_inl (dot_product(pos, neighbor_id_vector.second));
+            new_pos_par = multiply(plane.unit_x(), plane_par);
+            new_pos_inl = multiply(plane.unit_y(), -(half_extends[1] + plane_inl) );
+            break;
+        }
+        case 2:     // left
+        {
+            const position_type pos (subtract(pos_structure_id.first, add(plane.position(),
+                                                                          multiply(plane.unit_x(),
+                                                                                   -half_extends[0]) ) ));
+            const length_type plane_par (dot_product(pos, plane.unit_y()));     // TODO replace by subtraction?
+            const length_type plane_inl (dot_product(pos, neighbor_id_vector.second));
+            new_pos_par = multiply(plane.unit_y(), plane_par);
+            new_pos_inl = multiply(plane.unit_x(), -(half_extends[0] + plane_inl) );
+            break;
+        }
+        case 3:     // right
+        {
+            const position_type pos (subtract(pos_structure_id.first, add(plane.position(),
+                                                                          multiply(plane.unit_x(),
+                                                                                   half_extends[0]) ) ));
+            const length_type plane_par (dot_product(pos, plane.unit_y()));     // TODO replace by subtraction?
+            const length_type plane_inl (dot_product(pos, neighbor_id_vector.second));
+            new_pos_par = multiply(plane.unit_y(), plane_par);
+            new_pos_inl = multiply(plane.unit_x(), half_extends[0] + plane_inl );
+            break;
+        }
+    }
+    const position_type new_pos ( add(plane.position(),
+                                      add(new_pos_par, new_pos_inl)));
+    return std::make_pair(new_pos, planar_surface.id());
+}
+
 
 
 ///// Functions for CylindricalSurfaces

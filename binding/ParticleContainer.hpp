@@ -578,6 +578,13 @@ public:
     {
         return py_wrapper_type::get_override("cyclic_transpose")(p0, p1);
     }
+
+    virtual position_structid_pair_type cyclic_transpose(position_structid_pair_type const& pos_struct_id,
+                                                         const boost::shared_ptr<structure_type> structure) const
+    {
+        return py_wrapper_type::get_override("cyclic_transpose")(pos_struct_id, structure);
+    }
+
 };
 
 

@@ -113,6 +113,12 @@ public:
         return pos_struct_id;
     }
 
+    virtual position_structid_pair_type cyclic_transpose(position_structid_pair_type const& pos_struct_id,
+                                                         structure_container_type const& structure_container) const
+    {
+        return pos_struct_id;       // Two spherical surface cannot be connected (there is no boundary!)
+    }
+
     virtual void accept(ImmutativeStructureVisitor<traits_type> const& visitor) const
     {
         visitor(*this);

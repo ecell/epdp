@@ -209,6 +209,13 @@ public:
         return traits_type::cyclic_transpose(p0, p1, world_size());
     }
 
+    virtual position_structid_pair_type cyclic_transpose(position_structid_pair_type const& pos_struct_id,
+                                                         const boost::shared_ptr<structure_type> structure) const
+    {
+        const position_type pos (cyclic_transpose(pos_struct_id.first, structure->position()));
+        return structure->cyclic_transpose(std::make_pair(pos, pos_struct_id.second), structures_);
+    }
+
     // THIS SEEMS STRANGE TO PUT THIS HERE. 
     template<typename T1_>
     T1_ calculate_pair_CoM(

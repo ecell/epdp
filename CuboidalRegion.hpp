@@ -140,6 +140,12 @@ public:
         return pos_struct_id;
     }
 
+    virtual position_structid_pair_type cyclic_transpose(position_structid_pair_type const& pos_struct_id,
+                                                         structure_container_type const& structure_container) const
+    {
+        return pos_struct_id;       // The cyclic_transpose does nothing because we'll apply world cyclic transpose later.
+    }
+
     virtual void accept(ImmutativeStructureVisitor<traits_type> const& visitor) const
     {
         visitor(*this);

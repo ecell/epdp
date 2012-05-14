@@ -129,6 +129,8 @@ public:
 
     virtual position_structid_pair_type apply_boundary(position_structid_pair_type const& pos_struct_id,
                                                        structure_container_type const& structure_container) const = 0;
+    virtual position_structid_pair_type cyclic_transpose(position_structid_pair_type const& pos_struct_id,
+                                                         structure_container_type const& structure_container) const = 0;
 
 
     virtual std::size_t hash() const

@@ -211,6 +211,11 @@ public:
         return structure_container.apply_boundary(*this, pos_struct_id);
     }
 
+    virtual position_structid_pair_type cyclic_transpose(position_structid_pair_type const& pos_struct_id,
+                                                         structure_container_type const& structure_container) const
+    {
+        return structure_container.cyclic_transpose(*this, pos_struct_id);
+    }
 
     virtual void accept(ImmutativeStructureVisitor<traits_type> const& visitor) const
     {

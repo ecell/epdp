@@ -217,6 +217,12 @@ public:
         return structure_container.apply_boundary(*this, pos_struct_id);
     }
 
+    virtual position_structid_pair_type cyclic_transpose(position_structid_pair_type const& pos_struct_id,
+                                                         structure_container_type const& structure_container) const
+    {
+        return pos_struct_id;       // for now we do not support connected cylindrical surfaces.
+    }
+
     virtual void accept(ImmutativeStructureVisitor<traits_type> const& visitor) const
     {
         visitor(*this);

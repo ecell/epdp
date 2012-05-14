@@ -282,6 +282,12 @@ public:
         return world_.cyclic_transpose(p0, p1);
     }
 
+    virtual position_structid_pair_type cyclic_transpose(position_structid_pair_type const& pos_struct_id,
+                                                         const boost::shared_ptr<structure_type> structure) const
+    {
+        return world_.cyclic_transpose(pos_struct_id, structure);
+    }
+
     particle_id_pair_range get_particles_range() const
     {
         return particle_id_pair_range(particles_.begin(), particles_.end(),
