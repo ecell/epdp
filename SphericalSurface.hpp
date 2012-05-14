@@ -105,10 +105,11 @@ public:
         return 0.; // TODO
     }
 */
-    // FIXME This is a mess but it works
+
     virtual position_structid_pair_type apply_boundary(position_structid_pair_type const& pos_struct_id,
                                                        structure_container_type const& structure_container) const
     {
+        // The apply_boundary for a spherical surface is trivial (since there is no boundary!)
         return pos_struct_id;
     }
 

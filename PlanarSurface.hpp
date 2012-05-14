@@ -204,7 +204,7 @@ public:
         return radius * traits_type::MINIMAL_SEPARATION_FACTOR;
     }
 */
-    // FIXME This is a mess but it works
+    // FIXME This is a mess but it works. See ParticleContainerBase.hpp for explanation.
     virtual position_structid_pair_type apply_boundary(position_structid_pair_type const& pos_struct_id,
                                                        structure_container_type const& structure_container) const
     {

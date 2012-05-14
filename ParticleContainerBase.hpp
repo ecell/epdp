@@ -181,6 +181,14 @@ public:
     // apply_boundary that takes the structure on which the particle lives into account
     // This also applies the 'local' boundary conditions of the individual structures (reflecting, periodic, moving
     // onto another adjacent structure etc).
+
+    // To call the right function for a particular Surface we:
+    // -first need to call the 'apply_boundary method of the structure in question with the StructureContainer as an argument (to get
+    //  the StructureContainer that we need to use ->structures don't know about the container they're in!)
+    // -second call the apply_boundary method of the structure_container using the structure (which is now of a fully speciefied type!!!)
+    //  as an argument (see for example PlanarSurface.hpp, NOT surface.hpp)
+    // -Use this fully defined type to call the right function through the template method 'apply_boundary' of the StructureContainer.
+    //  (See StructureContainer.hpp)
     virtual position_structid_pair_type apply_boundary(position_structid_pair_type const& pos_struct_id,
                                                        const boost::shared_ptr<structure_type> structure) const
     {
