@@ -1871,9 +1871,7 @@ class CylindricalSurfaceCapInteractiontestShell(CylindricaltestShell, testIntera
     def get_max_dr_dzright_dzleft(self):
         dr       = self.pid_particle_pair[1].radius
         dz_left  = self.pid_particle_pair[1].radius * SINGLE_SHELL_FACTOR # same as the minimum, i.e. no scaling of this length
-        dz_right_sr   = math.sqrt((self.get_searchradius())**2 - dr**2) + self.particle_surface_distance  # stay within the searchradius
-        dz_right_edge = self.origin_structure.min_dist_proj_to_edge(self.get_referencepoint())
-        dz_right      = min(dz_right_sr, dz_right_edge)
+        dz_right = math.sqrt((self.get_searchradius())**2 - dr**2) + self.particle_surface_distance  # stay within the searchradius
         return dr, dz_right, dz_left
 
     def apply_safety(self, r, z_right, z_left):
