@@ -2587,10 +2587,13 @@ rejected moves = %d
             ignores = [s.id for s in self.world.structures if isinstance(s, PlanarSurface)]
             associated = []
         elif isinstance(domain, DiskSurfaceSingle):
-            # Particles bound to DiskSurfaces ignore all rods for now
-            # TODO Only ignore parent structure
+            # Particles bound to DiskSurfaces ignore all rods for now. TODO Only ignore parent structure
             ignores = [s.id for s in self.world.structures if isinstance(s, CylindricalSurface)]
             associated = [domain.structure.id]
+        elif isinstance(domain, CylindricalSurfaceInteraction):
+            # Ignore surface of the particle and interaction surface and all DiskSurfaces for now.
+            ignores = [s.id for s in self.world.structures if isinstance(s, DiskSurface)]
+            associated = [domain.origin_structure.id, domain.target_structure.id]
         elif isinstance(domain, InteractionSingle) or isinstance(domain, MixedPair2D3D):
             # Ignore surface of the particle and interaction surface
             ignores = []
