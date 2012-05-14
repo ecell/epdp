@@ -126,10 +126,10 @@ public:
 
         //// 1.?
         // Get info of the particle
-        const species_type                            pp_species(tx_.get_species(pp.second.sid()));
-        const length_type                             r0( pp_species.radius() );
-        const position_type                           old_pos( pp.second.position() );
-        const structure_id_type                       old_struct_id(pp.second.structure_id());
+        const species_type                      pp_species(tx_.get_species(pp.second.sid()));
+        const length_type                       r0( pp_species.radius() );
+        const position_type                     old_pos( pp.second.position() );
+        const structure_id_type                 old_struct_id(pp.second.structure_id());
         const boost::shared_ptr<structure_type> pp_structure( tx_.get_structure( old_struct_id ) );
         // declare variables to use
         position_type                   new_pos(old_pos);
@@ -167,12 +167,9 @@ public:
             bounced = overlap_particles->at(j++).second < r0;
         
         //// 3.2 Check for core overlaps structures
-        /* If the particle has not bounced with another particle and lives in the bulk: 
-           check for core overlap with a surface. */
+        /* If the particle has not bounced with another particle check for overlap with a surface. */
         boost::scoped_ptr<structure_id_pair_and_distance_list> overlap_structures;
         int structures_in_overlap(0);
-
-        // Check for overlap with nearest surface.
         if (!bounced)
         {
             // Get all the structures within the reaction volume (and that may consequently also be in the core)
@@ -515,23 +512,12 @@ private:
                                 prod0_struct_id = pp.second.structure_id();         // same structure as the reactant
                                 prod1_struct_id = pp.second.structure_id();         // ditto
                             }
-                            pos0pos1.first  = tx_.apply_boundary( pos0pos1.first );
-                            pos0pos1.second = tx_.apply_boundary( pos0pos1.second );
-
-                            // check that the positions do not cross any edges.
+                            // TODO clean this up
                             const boost::shared_ptr<const structure_type> prod0_structure(reactant_structure);
                             const boost::shared_ptr<const structure_type> prod1_structure(tx_.get_structure(prod1_struct_id));
-                            if ( !(prod0_structure->is_alongside(pos0pos1.first)))
-                            {
-                                // TODO deflect pos0pos1.first with right neigboring structure
-                            }
-                            if ( !(prod1_structure->is_alongside(pos0pos1.second)))
-                            {
-                                // TODO deflect pos0pos1.second with right neigboring structure
-                            }
-
-                            pos0pos1_pair = std::make_pair(std::make_pair(pos0pos1.first, prod0_struct_id),
-                                                           std::make_pair(pos0pos1.second, prod1_struct_id));
+                            const position_structid_pair_type pos_structid0 (tx_.apply_boundary( std::make_pair(pos0pos1.second, prod1_struct_id), prod1_structure ));
+                            const position_structid_pair_type pos_structid1 (tx_.apply_boundary( std::make_pair(pos0pos1.first,  prod0_struct_id), prod0_structure ));
+                            pos0pos1_pair = std::make_pair(pos_structid0, pos_structid1);
 
 
                             ////// Check for overlaps
@@ -661,9 +647,9 @@ private:
                         if ((s0.structure_type_id() == s1.structure_type_id()) &&
                             (reactant0_structure_id != reactant1_structure_id))
                         {
-                            // deflect_back one of the coordinates.
-                            // TODO unit_z() is not accessible!
-//                            reactant1_pos = reactant0_structure->deflect_back(reactant1_pos, reactant1_structure->shape().unit_z());
+                            const position_structid_pair_type pos_cyclic1 (tx_.cyclic_transpose(std::make_pair(reactant1_pos, reactant1_structure_id),
+                                                                                                reactant0_structure));
+                            reactant1_pos = pos_cyclic1.first;
                         }
 
                         // calculate the product position (CoM of the two particles)
@@ -708,13 +694,10 @@ private:
                         {
                             if (reactant0_structure_id != reactant1_structure_id)
                             {
+                                const position_structid_pair_type bla (tx_.apply_boundary(std::make_pair(product_pos, reactant0_structure_id), reactant0_structure));
                                 // deflect the product coordinate and get right structure_id.
-                                std::pair<position_type, bool> bla = reactant1_structure->deflect(reactant0_pos, subtract(product_pos, reactant0_pos));
-                                if (bla.second)
-                                {
-                                    product_pos = bla.first;
-                                    product_structure_id = reactant1_structure_id;
-                                }
+                                product_pos = bla.first;
+                                product_structure_id = bla.second;
 
                             }
                         }
@@ -885,7 +868,7 @@ private:
             const position_type displacement( old_structure->bd_displacement(species.v() * dt_, std::sqrt(2.0 * species.D() * dt_), rng_) );
 
             const position_structid_pair_type pos_structid(tx_.apply_boundary( std::make_pair( add(old_pos_struct_id.first, displacement), old_pos_struct_id.second),
-                                                                              old_structure));
+                                                                               old_structure));
             new_pos = pos_structid.first;
             new_structure_id = pos_structid.second;
 
