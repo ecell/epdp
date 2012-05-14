@@ -132,11 +132,13 @@ public:
         return base_type::distance(new_pos);
     }
 
-    // FIXME This is a mess but it works
+    // The apply boundary for the cuboidal structure doesn't have to do anything because we'll apply the world
+    // boundary conditions later too.
     virtual position_structid_pair_type apply_boundary(position_structid_pair_type const& pos_struct_id,
                                                        structure_container_type const& structure_container) const
     {
-        return structure_container.apply_boundary(*this, pos_struct_id);
+//        return structure_container.apply_boundary(*this, pos_struct_id);
+        return pos_struct_id;
     }
 
     virtual void accept(ImmutativeStructureVisitor<traits_type> const& visitor) const

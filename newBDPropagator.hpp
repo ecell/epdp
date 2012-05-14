@@ -148,7 +148,7 @@ public:
 
             const position_structid_pair_type pos_structid(tx_.apply_boundary( std::make_pair( add(old_pos, displacement), old_struct_id),
                                                                               pp_structure));
-            new_pos = tx_.apply_boundary( pos_structid.first );
+            new_pos = pos_structid.first;
             new_structure_id = pos_structid.second;
         }
 
@@ -886,7 +886,7 @@ private:
 
             const position_structid_pair_type pos_structid(tx_.apply_boundary( std::make_pair( add(old_pos_struct_id.first, displacement), old_pos_struct_id.second),
                                                                               old_structure));
-            new_pos = tx_.apply_boundary( pos_structid.first );
+            new_pos = pos_structid.first;
             new_structure_id = pos_structid.second;
 
             // See if it overlaps with any particles

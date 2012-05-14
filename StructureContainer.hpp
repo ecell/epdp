@@ -24,13 +24,6 @@ apply_boundary (std::pair<typename Ttraits_::position_type, typename Ttraits_::s
                 CylindricalSurface<Ttraits_> const& cylindrical_surface,
                 StructureContainer<typename Ttraits_::structure_type, typename Ttraits_::structure_id_type, Ttraits_> const& sc);
 
-template<typename Ttraits_ >
-std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type>
-apply_boundary (std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type> const& pos_structure_id,
-                CuboidalRegion<Ttraits_> const& cuboidal_region,
-                StructureContainer<typename Ttraits_::structure_type, typename Ttraits_::structure_id_type, Ttraits_> const& sc);
-
-
 
 template <typename Tobj_, typename Tid_, typename Ttraits_>
 class StructureContainer
@@ -107,6 +100,7 @@ public:
     virtual bool update_structure (cuboidalreg_id_pair_type const& structid_cube)
     {
         // add to Connectivity container for cuboidal regions
+        // NOTE this information is never queried!!
         if ( update_structure_base(structid_cube))
         {
             cuboidal_structs_bc_.set_neighbor_info(structid_cube.first, 0, std::make_pair(structid_cube.first,          structid_cube.second->shape().unit_z()));
@@ -126,10 +120,6 @@ public:
     virtual neighbor_id_vector_type get_neighbor_info(cylindricalsurface_type const& structure, int n) const
     {
         cylindrical_structs_bc_.get_neighbor_info(structure.id(), n);
-    }
-    virtual neighbor_id_vector_type get_neighbor_info(cuboidalregion_type const& structure, int n) const
-    {
-        cuboidal_structs_bc_.get_neighbor_info(structure.id(), n);
     }
     template <typename Tstructure_>
     position_structid_type apply_boundary(Tstructure_ const& structure, position_structid_type const& pos_struct_id) const
@@ -357,7 +347,6 @@ apply_boundary (std::pair<typename Ttraits_::position_type, typename Ttraits_::s
 
     const position_type new_pos ( add(origin_plane.position(),
                                       add(neighbor_plane_par, neighbor_plane_inl)));
-    // TODO do normal apply_boundary too?
     return std::make_pair(new_pos, new_id);
 }
 
@@ -427,31 +416,7 @@ apply_boundary (std::pair<typename Ttraits_::position_type, typename Ttraits_::s
     }
 
     const position_type new_pos ( add(origin_cylinder.position(), neighbor_cylinder_inl) );
-    // TODO do normal apply_boundary too?
     return std::make_pair(new_pos, new_id);
-}
-
-//// Functions for Boxes
-template<typename Ttraits_ >
-inline std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type>
-apply_boundary (std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type> const& pos_structure_id,
-                CuboidalRegion<Ttraits_> const& cuboidal_region,
-                StructureContainer<typename Ttraits_::structure_type, typename Ttraits_::structure_id_type, Ttraits_> const& sc)
-// The template needs to be parameterized with the appropriate shape (which then parameterizes the type
-// of the ConnectivityContainer that we use.
-// We supply the structure container as an argument so that we can get the structures that we need.
-// The connectivity container then needs to a part of the structure container such that we can also
-// query the boundary conditions and connectivity.
-{
-    // useful typedefs
-    typedef Ttraits_                        traits_type;
-    typedef typename CuboidalRegion<Ttraits_>::shape_type    box_type;
-    typedef typename box_type::length_type          length_type;
-
-//    const length_type world_size(sc.get_structure(pos_structure_id.second)->shape().Lx());
-//    return std::make_pair(traits_type::apply_boundary(pos_structure_id.first, world_size), pos_structure_id.second);
-    // TODO do normal apply_boundary too?
-    return pos_structure_id;
 }
 
 #endif /* STRUCTURE_CONTAINER_HPP */

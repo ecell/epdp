@@ -178,10 +178,17 @@ public:
         return traits_type::apply_boundary(v, world_size());
     }
 
+    // apply_boundary that takes the structure on which the particle lives into account
+    // This also applies the 'local' boundary conditions of the individual structures (reflecting, periodic, moving
+    // onto another adjacent structure etc).
     virtual position_structid_pair_type apply_boundary(position_structid_pair_type const& pos_struct_id,
                                                        const boost::shared_ptr<structure_type> structure) const
     {
-        return structure->apply_boundary(pos_struct_id, structures_);
+        // The generalized boundary condition application first:
+        // 1. applies the boundary of the structure/surface (go around the corner etc)
+        const position_structid_pair_type new_pos_struct_id(structure->apply_boundary(pos_struct_id, structures_));
+        // 2. Then also apply the boundary condition of the world
+        return std::make_pair(apply_boundary(new_pos_struct_id.first), new_pos_struct_id.second);
     }
 
     virtual position_type cyclic_transpose(position_type const& p0, position_type const& p1) const
