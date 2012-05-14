@@ -9,9 +9,12 @@
 #include "PlanarSurface.hpp"
 #include "CylindricalSurface.hpp"
 
+
+// Forward declaration of the StructureContainer to allow the forward declarations of the 'apply_boundary' functions
 template <typename Tobj_, typename Tid_, typename Ttraits_>
 class StructureContainer;
 
+// Forward declaration of the 'apply_boundary' functions needed in the definition of the StructureContainer below
 template<typename Ttraits_ >
 std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type>
 apply_boundary (std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type> const& pos_structure_id,
@@ -23,6 +26,9 @@ std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type
 apply_boundary (std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type> const& pos_structure_id,
                 CylindricalSurface<Ttraits_> const& cylindrical_surface,
                 StructureContainer<typename Ttraits_::structure_type, typename Ttraits_::structure_id_type, Ttraits_> const& sc);
+
+
+
 
 
 template <typename Tobj_, typename Tid_, typename Ttraits_>
@@ -58,18 +64,16 @@ protected:
     typedef std::pair<structure_id_type, boost::shared_ptr<cylindricalsurface_type> >   cylindrsurf_id_pair_type;
 
 public:
-    typedef sized_iterator_range<structure_iterator>                                structures_range;
+    typedef sized_iterator_range<structure_iterator>        structures_range;
     typedef std::pair<position_type, structure_id_type>     position_structid_type;
 
+
+
 public:
+    // The destructor
     virtual ~StructureContainer() {};
 
-    // The constructor
-    StructureContainer(structure_id_type default_structid) : default_structure_id_(default_structid)
-    {
-        structure_substructures_map_[default_structid] = structure_id_set();
-    }
-
+    // Update_structure methods for the different kind of structures supported by the StructureContainer
     virtual bool update_structure (cylindrsurf_id_pair_type const& structid_cylinder)  // can I make this into a template function?
     {
         if ( update_structure_base(structid_cylinder))
@@ -100,7 +104,7 @@ public:
     virtual bool update_structure (cuboidalreg_id_pair_type const& structid_cube)
     {
         // add to Connectivity container for cuboidal regions
-        // NOTE this information is never queried!!
+        // NOTE this information is never queried!! Maybe leave the neighbor info out?
         if ( update_structure_base(structid_cube))
         {
             cuboidal_structs_bc_.set_neighbor_info(structid_cube.first, 0, std::make_pair(structid_cube.first,          structid_cube.second->shape().unit_z()));
@@ -113,14 +117,19 @@ public:
         }
         return false;
     }
+
+    // Methods to get the 'n-th' neighbor structure of a particular structure from the container.
+    // We pass the structure and not just the ID because with just the ID we can't differentiate between the various types of structures.
     virtual neighbor_id_vector_type get_neighbor_info(planarsurface_type const& structure, int n) const
     {
-        planar_structs_bc_.get_neighbor_info(structure.id(), n);
+        return planar_structs_bc_.get_neighbor_info(structure.id(), n);
     }
     virtual neighbor_id_vector_type get_neighbor_info(cylindricalsurface_type const& structure, int n) const
     {
-        cylindrical_structs_bc_.get_neighbor_info(structure.id(), n);
+        return cylindrical_structs_bc_.get_neighbor_info(structure.id(), n);
     }
+
+    // Template member function to call the right 'apply_boundary' function for the various types of structures.
     template <typename Tstructure_>
     position_structid_type apply_boundary(Tstructure_ const& structure, position_structid_type const& pos_struct_id) const
     {
@@ -141,6 +150,7 @@ public:
         cuboidalregion->set_id(default_structure_id_);
         update_structure(std::make_pair(default_structure_id_, cuboidalregion));
     }
+
     virtual bool has_structure(structure_id_type const& id) const
     {
         typename structure_map::const_iterator i(structure_map_.find(id));
@@ -189,6 +199,15 @@ public:
         return visible_structures;
     }
 
+    // The constructor
+    StructureContainer(structure_id_type default_structid) : default_structure_id_(default_structid)
+    {
+        structure_substructures_map_[default_structid] = structure_id_set();
+    }
+
+
+private:
+    // Update the datastructures that are general for all the structures.
     bool update_structure_base(structure_id_pair const& structid_pair)
     {
         typename structure_map::const_iterator i(structure_map_.find(structid_pair.first));
@@ -215,7 +234,7 @@ public:
         structure_substructures_map_[structid_pair.first] = structure_id_set();
         return true;
     }
-private:
+
     // Get all the structure ids of the substructures
     structure_id_set get_substructure_ids(structure_id_type const& id) const
     {
@@ -228,6 +247,7 @@ private:
         return (*i).second;
     }
 
+///// Member variables
 protected:
     structure_map                       structure_map_;     // mapping: structure_id -> structure
     per_structure_substructure_id_set   structure_substructures_map_;
@@ -243,8 +263,6 @@ protected:
 
 //////// Inline functions applicable to the StructureContainer
 
-
-
 //// functions for Planes
 template<typename Ttraits_ >
 inline std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type>
@@ -253,26 +271,25 @@ apply_boundary (std::pair<typename Ttraits_::position_type, typename Ttraits_::s
                 StructureContainer<typename Ttraits_::structure_type, typename Ttraits_::structure_id_type, Ttraits_> const& sc)
 // The template needs to be parameterized with the appropriate shape (which then parameterizes the type
 // of the ConnectivityContainer that we use.
-// We supply the structure container as an argument so that we can get the structures that we need.
-// The connectivity container then needs to a part of the structure container such that we can also
+// We supply the structure container as an argument so that we can get the structures that we need, and to
 // query the boundary conditions and connectivity.
 {
     // useful typedefs
-    typedef Ttraits_                    traits_type;
-    typedef typename PlanarSurface<Ttraits_>::shape_type    plane_type;
-//    typedef PlanarSurface<traits_type>  planar_surface_type;
+    typedef Ttraits_        traits_type;
+    typedef typename traits_type::structure_id_type         structure_id_type;
 
-    typedef typename plane_type::length_type            length_type;
-    typedef typename plane_type::position_type          position_type;
-    typedef typename traits_type::structure_id_type     structure_id_type;
-    typedef std::pair<structure_id_type, position_type> neighbor_id_vector_type;
+    typedef typename PlanarSurface<Ttraits_>::shape_type    plane_type;
+    typedef typename plane_type::length_type                length_type;
+    typedef typename plane_type::position_type              position_type;
+
+    typedef std::pair<structure_id_type, position_type>     neighbor_id_vector_type;
+
 
     // Note that we assume that the new position is in the plane (dot(pos, unit_z)==0)
-//    const boost::shared_ptr<planar_surface_type> planar_surface(sc.get_structure(pos_structure_id.second));
     const plane_type origin_plane (planar_surface.shape());
     boost::array<length_type, 2> half_extends(origin_plane.half_extent());
 
-    // TODO do cyclic transpose here first
+    // TODO do cyclic transpose here first?
     const position_type pos_vector( subtract(pos_structure_id.first, origin_plane.position()) );
     const length_type component_x ( dot_product(pos_vector, origin_plane.unit_x()) );
     const length_type component_y ( dot_product(pos_vector, origin_plane.unit_y()) );
@@ -293,8 +310,7 @@ apply_boundary (std::pair<typename Ttraits_::position_type, typename Ttraits_::s
               (half_extends[1] < component_y) )
     {
         // we are at the 'top' of the plane (side nr. 0)
-        // get the unit vector pointing from the edge between the two planes to the center of the plane
-        // TODO just pass origin_structure instead of plane and structure_id separately.
+        // the 'vector' is the unit vector pointing from the edge between the two planes to the center of the plane
         const neighbor_id_vector_type neighbor_id_vector (sc.get_neighbor_info(planar_surface, 0));
 
         new_id = neighbor_id_vector.first;
@@ -306,7 +322,6 @@ apply_boundary (std::pair<typename Ttraits_::position_type, typename Ttraits_::s
               (component_y < -half_extends[1] ) )
     {
         // we are at the 'bottom' of the plane (side nr. 1)
-        // get the unit vector pointing from the edge between the two planes to the center of the plane
         const neighbor_id_vector_type neighbor_id_vector (sc.get_neighbor_info(planar_surface, 1));
 
         new_id = neighbor_id_vector.first;
@@ -318,7 +333,6 @@ apply_boundary (std::pair<typename Ttraits_::position_type, typename Ttraits_::s
               (component_x < -half_extends[0]) )
     {
         // we are at the 'left' of the plane (side nr. 2)
-        // get the unit vector pointing from the edge between the two planes to the center of the plane
         const neighbor_id_vector_type neighbor_id_vector (sc.get_neighbor_info(planar_surface, 2));
 
         new_id = neighbor_id_vector.first;
@@ -330,7 +344,6 @@ apply_boundary (std::pair<typename Ttraits_::position_type, typename Ttraits_::s
               (half_extends[0] < component_x) )
     {
         // we are at the 'right' of the plane (side nr. 3)
-        // this is a unit vector pointing from the edge between the two planes to the center of the plane
         const neighbor_id_vector_type neighbor_id_vector (sc.get_neighbor_info(planar_surface, 3));
 
         new_id = neighbor_id_vector.first;
@@ -350,7 +363,8 @@ apply_boundary (std::pair<typename Ttraits_::position_type, typename Ttraits_::s
     return std::make_pair(new_pos, new_id);
 }
 
-///// Functions for Cylinders
+
+///// Functions for CylindricalSurfaces
 template<typename Ttraits_ >
 inline std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type>
 apply_boundary (std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type> const& pos_structure_id,
@@ -359,26 +373,25 @@ apply_boundary (std::pair<typename Ttraits_::position_type, typename Ttraits_::s
 
 // The template needs to be parameterized with the appropriate shape (which then parameterizes the type
 // of the ConnectivityContainer that we use.
-// We supply the structure container as an argument so that we can get the structures that we need.
-// The connectivity container then needs to a part of the structure container such that we can also
-// query the boundary conditions and connectivity.
+// We supply the structure container as an argument so that we can get the structures that we need and
+// to query the boundary conditions and connectivity.
 {
     // useful typedefs
-    typedef Ttraits_                        traits_type;
-    typedef typename CylindricalSurface<Ttraits_>::shape_type    cylinder_type;
-//    typedef CylindricalSurface<traits_type> cylindrical_surface_type;
+    typedef Ttraits_        traits_type;
+    typedef typename traits_type::structure_id_type             structure_id_type;
 
-    typedef typename cylinder_type::length_type         length_type;
-    typedef typename cylinder_type::position_type       position_type;
-    typedef typename traits_type::structure_id_type     structure_id_type;
-    typedef std::pair<structure_id_type, position_type> neighbor_id_vector_type;
+    typedef typename CylindricalSurface<Ttraits_>::shape_type   cylinder_type;
+    typedef typename cylinder_type::length_type                 length_type;
+    typedef typename cylinder_type::position_type               position_type;
+
+    typedef std::pair<structure_id_type, position_type>         neighbor_id_vector_type;
+
 
     // Note that we assume that the new position is in the cylinder (dot(pos, unit_r)==0)
-//    const boost::shared_ptr<cylindrical_surface_type> cylindrical_surface(sc.get_structure(pos_structure_id.second));
     const cylinder_type origin_cylinder (cylindrical_surface.shape());
     const length_type half_length(origin_cylinder.half_length());
 
-    // TODO do cyclic transpose here first
+    // TODO do cyclic transpose here first?
     const position_type pos_vector( subtract(pos_structure_id.first, origin_cylinder.position()) );
     const length_type component_z ( dot_product(pos_vector, origin_cylinder.unit_z()) );
 
@@ -391,7 +404,6 @@ apply_boundary (std::pair<typename Ttraits_::position_type, typename Ttraits_::s
         // we are at the 'right' side of the cylinder (side nr. 0, side in the direction of the normal vector)
         // get the unit vector pointing from the edge between the two planes to the center of the plane
         const neighbor_id_vector_type neighbor_id_vector (sc.get_neighbor_info(cylindrical_surface, 0));
-//        const length_type half_length_new (sc.get_structure(new_id)->shape().half_length());
 
         new_id = neighbor_id_vector.first;
         neighbor_cylinder_inl = add( multiply(origin_cylinder.unit_z(),  half_length),
@@ -402,7 +414,6 @@ apply_boundary (std::pair<typename Ttraits_::position_type, typename Ttraits_::s
         // we are at the 'right' side of the cylinder (side nr. 0, side in the direction of the normal vector)
         // get the unit vector pointing from the edge between the two planes to the center of the plane
         const neighbor_id_vector_type neighbor_id_vector (sc.get_neighbor_info(cylindrical_surface, 1));
-//        const length_type half_length_new (sc.get_structure(new_id)->shape().half_length());
 
         new_id = neighbor_id_vector.first;
         neighbor_cylinder_inl = add( multiply(origin_cylinder.unit_z() , -half_length),
