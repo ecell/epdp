@@ -153,7 +153,7 @@ distance(Disk<T_> const& obj,
     const length_type dr(r_z.first - obj.radius());
     length_type distance;
 
-    if (r_z.first > obj.radius())
+    if (dr > 0)
     {
         // pos is not above the disk.
         // Compute distance to edge.
@@ -166,6 +166,28 @@ distance(Disk<T_> const& obj,
     }
 
     return distance;
+}
+
+template<typename T_>
+inline typename Disk<T_>::length_type
+min_dist_proj_to_edge(Disk<T_> const& obj,
+                typename Disk<T_>::position_type const& pos)
+// Calculates the distance from the projection of 'pos' to the edge of the disk
+// if it is within in the disk; if not, it returns zero
+{
+    typedef typename Disk<T_>::position_type position_type;
+    typedef typename Disk<T_>::length_type length_type;
+
+    /* First compute the (r,z) components of pos in a coordinate system 
+     * defined by the vectors unitR and unit_z, where unitR is
+     * choosen such that unitR and unit_z define a plane in which
+     * pos lies. */
+    const std::pair<length_type, length_type> r_z(to_internal(obj, pos));
+    /* Then compute distance to radial edge. */
+    const length_type dr(r_z.first - obj.radius());
+
+    if (dr < 0)         return -dr;
+    else                return 0;
 }
 
 template<typename T_>

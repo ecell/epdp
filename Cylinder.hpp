@@ -201,6 +201,29 @@ distance(Cylinder<T_> const& obj,
 }
 
 template<typename T_>
+inline typename Cylinder<T_>::length_type
+min_dist_proj_to_edge(Cylinder<T_> const& obj,
+                typename Cylinder<T_>::position_type const& pos)
+// Calculates the distance from the projection of 'pos' to the closest cap of the cylinder
+// if it is within in the cylinder; if not, it returns zero
+{
+    typedef typename Cylinder<T_>::position_type position_type;
+    typedef typename Cylinder<T_>::length_type length_type;
+
+    /* First compute the (r,z) components of pos in a coordinate system 
+     * defined by the vectors unitR and unit_z, where unitR is
+     * choosen such that unitR and unit_z define a plane in which
+     * pos lies. */
+    const std::pair<length_type, length_type> r_z(to_internal(obj, pos));
+    /* Then compute distance to caps. */
+    const length_type dz(std::fabs(r_z.second) - obj.half_length());
+    
+    if (dz < 0)         return -dz;
+    else                return 0;
+
+}
+
+template<typename T_>
 inline std::pair<typename Cylinder<T_>::position_type, bool>
 deflect(Cylinder<T_> const& obj,
         typename Cylinder<T_>::position_type const& r0,

@@ -103,6 +103,15 @@ distance(Sphere<T_> const& obj, typename Sphere<T_>::position_type const& pos)
 }
 
 template<typename T_>
+inline typename Sphere<T_>::length_type
+min_dist_proj_to_edge(Sphere<T_> const& obj, typename Sphere<T_>::position_type const& pos)
+// Calculates the distance from the projection of 'pos' to the edge of the sphere.
+// Since the projection is always at the sphere center, this is just the radius.
+{
+    return obj.radius();
+}
+
+template<typename T_>
 inline std::pair<typename Sphere<T_>::position_type, bool>
 deflect(Sphere<T_> const& obj, typename Sphere<T_>::position_type const& r0, typename Sphere<T_>::position_type const& d)
 {
