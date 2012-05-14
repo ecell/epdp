@@ -970,7 +970,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
                         product_pos_list.append(vector)
 
                 elif isinstance(reactant_structure, DiskSurface):
-                    vector_length = (2.0*product_radius + 0.0) * MINIMAL_SEPARATION_FACTOR  # the thickness of the membrane is 0.0
+                    vector_length = (5.0*product_radius + 0.0) * MINIMAL_SEPARATION_FACTOR  # HACK remove factor 5.0 after testing
                     vector        = reactant_pos + vector_length * reactant_structure.shape.unit_z
                     product_pos_list.append(vector)
 
@@ -1548,17 +1548,17 @@ class EGFRDSimulator(ParticleSimulatorBase):
             if (isinstance (domain, NonInteractionSingle) and domain.is_reset()):
                 # distance from the center of the particles/domains
                 pair_distance = self.world.distance(single_pos, domain.shell.shape.position)
-                pair_horizon  = (single_radius + domain.pid_particle_pair[1].radius) * SINGLE_SHELL_FACTOR * 5 # HACK
+                pair_horizon  = (single_radius + domain.pid_particle_pair[1].radius) * SINGLE_SHELL_FACTOR * 5 # HACK  to be balanced
                 pair_interaction_partners.append((domain, pair_distance - pair_horizon))
         
         for surface, surface_distance in surface_distances:
             if isinstance(surface, PlanarSurface) or isinstance(surface, DiskSurface):
                 # with a planar or disk surface it is the center of mass that 'looks around'
-                surface_horizon = single_radius * (SINGLE_SHELL_FACTOR - 1.0) * 5 # HACK
+                surface_horizon = single_radius * (SINGLE_SHELL_FACTOR - 1.0) * 5 # HACK to be balanced
             else:
                 # with a cylindrical surface it is the surface of the particle
                 surface_horizon = single_radius * SINGLE_SHELL_FACTOR
-            if isinstance(surface, PlanarSurface) and isinstance(single.structure, PlanarSurface):        # HACK
+            if isinstance(surface, PlanarSurface) and isinstance(single.structure, PlanarSurface):        # HACK  to be balanced
                 surface_horizon = single_radius * SINGLE_SHELL_FACTOR * 2
             pair_interaction_partners.append((surface, surface_distance - surface_horizon))
 
@@ -1581,7 +1581,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
             elif isinstance(obj, PlanarSurface) and isinstance(single.structure, PlanarSurface):
                 domain = self.try_transition(single, obj)
 
-            elif isinstance(obj, CylindricalSurface) or isinstance(obj, PlanarSurface) or isinstance(obj, DiskSurface):
+            elif ( isinstance(obj, CylindricalSurface) or isinstance(obj, PlanarSurface) or isinstance(obj, DiskSurface) ) \
+             and obj.allows_interaction_from(single_pos) :
                 # try making an Interaction
                 domain = self.try_interaction (single, obj)
 
