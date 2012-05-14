@@ -121,6 +121,10 @@ public:
         return ::deflect_back(shape(), pos, u_z);
     }
     
+    virtual bool allows_interaction_from(position_type const& pos) const
+    {
+        return ::allows_interaction_from(shape(), pos);
+    }
 
     // The constructor
     BasicRegionImpl(structure_name_type const& name, structure_type_id_type const& sid, structure_id_type const& parent_struct_id, shape_type const& shape)

@@ -222,6 +222,21 @@ deflect_back(Cylinder<T_> const& obj,
     return r;
 }
 
+template<typename T_>
+inline bool
+allows_interaction_from(Cylinder<T_> const& obj, typename Cylinder<T_>::position_type const& pos)
+// Returns true if a particle at position pos is supposed to interact with the cylinder
+{
+    typedef typename Cylinder<T_>::length_type length_type;
+
+    // The projection lies on the z-axis.
+    std::pair<length_type, length_type> r_z(to_internal(obj, pos));
+    
+    // Only interact from points that are between the cylinder caps
+    // when projected onto the cylinder axis
+    return ( abs(r_z.second) <= obj.half_length() );
+}
+
 template<typename T, typename Trng>
 inline typename Cylinder<T>::position_type
 random_position(Cylinder<T> const& shape, Trng& rng)
