@@ -349,7 +349,6 @@ World_get_particle_ids(T const& world)
     return make_select_first_range(world.get_particles_range());
 }
 
-
 template<typename Timpl_, typename Tbase_, typename Tsim>
 inline boost::python::objects::class_base register_world_class(char const* name)
 {
@@ -359,6 +358,7 @@ inline boost::python::objects::class_base register_world_class(char const* name)
     typedef structures_range_converter<typename impl_type::structures_range> structures_range_converter_type;
 
     peer::converters::register_tuple_converter<typename impl_type::structure_id_pair>();
+    peer::converters::register_tuple_converter<typename std::pair<typename impl_type::structure_id_type, typename impl_type::length_type> >();
     structure_id_pair_and_distance_list_converter<typename impl_type::structure_id_pair_and_distance_list>::__register();
     species_range_converter_type::__register();
     structures_range_converter_type::__register();
@@ -387,6 +387,7 @@ inline boost::python::objects::class_base register_world_class(char const* name)
         .def("add_structure", &impl_type::add_structure)
         .def("get_structure_ids", &impl_type::get_structure_ids)
         .def("get_particle_ids", &impl_type::get_particle_ids)
+        .def("get_closest_structure", &impl_type::get_closest_structure)
         .def("distance", &impl_type::template distance<typename impl_type::position_type>)
         .def("distance", &impl_type::template distance<typename Tsim::sphere_type>)
         .def("distance", &impl_type::template distance<typename Tsim::cylinder_type>)

@@ -9,6 +9,7 @@
 #include <boost/foreach.hpp>
 #include <boost/utility/enable_if.hpp>
 #include <boost/type_traits/is_same.hpp>
+#include <boost/type_traits/is_pointer.hpp>
 #include "exceptions.hpp"
 #include "generator.hpp"
 #include "filters.hpp"
@@ -74,6 +75,12 @@ public:
         return ::distance(p0, p1);
     }
 
+    template<typename T1_, typename T2_>
+    static length_type distance(boost::shared_ptr<T1_> const& p0, T2_ const& p1, length_type const& world_size)
+    {
+        return p0->distance(p1);
+    }
+
     template<typename Toc_, typename Tfun_, typename Tsphere_>
     static void each_neighbor(Toc_& oc, Tfun_& fun, Tsphere_ const& pos)
     {
@@ -127,6 +134,12 @@ public:
     static length_type distance(T1_ const& p0, T2_ const& p1, length_type const& world_size)
     {
         return distance_cyclic(p0, p1, world_size);
+    }
+
+    template<typename T1_, typename T2_>
+    static length_type distance(boost::shared_ptr<T1_> const& p0, T2_ const& p1, length_type const& world_size)
+    {
+        return p0->distance_cyclic(p1, world_size);
     }
 
     template<typename Toc_, typename Tfun_, typename Tsphere_>
@@ -333,16 +346,16 @@ public:
     {
         std::pair<structure_id_type, length_type> closest(
             structure_id_type(), std::numeric_limits<length_type>::infinity());
-        // BOOST_FOREACH(structure_id_pair const st_pair, structure_map_)
-        // {
-        //     length_type const distance(
-        //         fabs(::distance(st_pair.second.shape(), p)));
-        //     if (distance < closest.second)
-        //     {
-        //         closest.first = st_pair.first;
-        //         closest.second = distance;
-        //     }
-        // }
+        BOOST_FOREACH(structure_id_pair const st_pair, structure_map_)
+        {
+            length_type const distance_to_structure(
+                fabs(base_type::distance(st_pair.second, p)));
+            if (distance_to_structure < closest.second)
+            {
+                closest.first = st_pair.first;
+                closest.second = distance_to_structure;
+            }
+        }
         return closest;
     }
 
@@ -356,18 +369,19 @@ public:
     {
         structure_id_pair_and_distance_list* result;
         result = new structure_id_pair_and_distance_list();
-        // BOOST_FOREACH(structure_id_pair const st_pair, structure_map_)
-        // {
-        //     if (!contains(ignore, st_pair.first))
-        //     {
-        //         length_type const distance(
-        //             fabs(::distance(st_pair.second->shape(), s.position())));
-        //         if (distance < s.radius())
-        //         {
-        //             result->push_back(std::make_pair(st_pair, distance));
-        //         }
-        //     }
-        // }
+        BOOST_FOREACH(structure_id_pair const st_pair, structure_map_)
+        {
+            if (!contains(ignore, st_pair.first))
+            {
+                length_type const distance_to_structure(
+                    fabs(base_type::distance(st_pair.second, s.position())));
+                if (distance_to_structure < s.radius())
+                {
+                    result->push_back(
+                        std::make_pair(st_pair, distance_to_structure));
+                }
+            }
+        }
         return result;
     }
     

@@ -20,9 +20,21 @@ class Region: public ParticleSimulationStructure<Ttraits_>
 public:
     typedef ParticleSimulationStructure<Ttraits_> base_type;
     typedef typename base_type::identifier_type identifier_type;
+    typedef typename base_type::length_type length_type;
+    typedef typename base_type::position_type position_type;
 
 public:
     virtual ~Region() {}
+
+    virtual length_type distance(position_type const& pos) const
+    {
+        return std::numeric_limits<length_type>::infinity();
+    };
+
+    virtual length_type distance_cyclic(position_type const& pos, length_type const& world_size) const
+    {
+        return std::numeric_limits<length_type>::infinity();
+    }
 
     Region(identifier_type const& id): base_type(id) {}
 };

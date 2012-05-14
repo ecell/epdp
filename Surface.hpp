@@ -87,6 +87,16 @@ public:
         return ::projected_point(shape(), pos);
     }
 
+    virtual length_type distance(position_type const& pos) const
+    {
+        return ::distance(shape(), pos);
+    };
+
+    virtual length_type distance_cyclic(position_type const& pos, length_type const& world_size) const
+    {
+        return ::distance_cyclic(shape(), pos, world_size);
+    }
+
     BasicSurfaceImpl(identifier_type const& id, shape_type const& shape)
         : base_type(id), shape_(shape) {}
 

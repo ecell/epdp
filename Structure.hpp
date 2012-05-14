@@ -51,6 +51,10 @@ public:
 
     virtual projected_type projected_point(position_type const& pos) const = 0;
 
+    virtual length_type distance(position_type const& pos) const = 0;
+
+    virtual length_type distance_cyclic(position_type const& pos, length_type const& world_size) const = 0;
+
     virtual std::size_t hash() const
     {
 #if defined(HAVE_TR1_FUNCTIONAL)
