@@ -130,11 +130,11 @@ public:
 
 
 public:
-//    ParticleContainerBase(length_type world_size, size_type size)
-//        : pmat_(world_size, size) {}
-    ParticleContainerBase(length_type world_size, size_type size, structure_id_type default_structid)
-        : pmat_(world_size, size), structures_(default_structid) {}
     // constructors
+    ParticleContainerBase(length_type world_size, size_type size)
+        : pmat_(world_size, size), structures_() {}
+//    ParticleContainerBase(length_type world_size, size_type size, structure_id_type default_structid)
+//        : pmat_(world_size, size), structures_(default_structid) {}
 
     virtual size_type num_particles() const
     {

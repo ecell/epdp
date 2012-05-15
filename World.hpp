@@ -255,8 +255,13 @@ public:
 
 public:
     // The constructor
+//    World(length_type world_size = 1., size_type size = 1)
+//        : base_type(world_size, size, structidgen_()) {}
     World(length_type world_size = 1., size_type size = 1)
-        : base_type(world_size, size, structidgen_()) {}
+        : base_type(world_size, size)
+    {
+        base_type::structures_.initialize(structidgen_());
+    }
 
     // To create new particles
     virtual particle_id_pair new_particle(species_id_type const& sid, structure_id_type const& structure_id,
@@ -367,7 +372,7 @@ public:
         // check that the structure_type that is defined in the structure exists!
         structure_type_type const& structure_type(get_structure_type(structure->sid()));
 
-        structure_id_type structure_id(structidgen_());
+        const structure_id_type structure_id(structidgen_());
         structure->set_id(structure_id);
         update_structure(std::make_pair(structure_id, structure));
         return structure_id;

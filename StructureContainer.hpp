@@ -210,11 +210,18 @@ public:
         return visible_structures;
     }
 
-    // The constructor
-    StructureContainer(structure_id_type default_structid) : default_structure_id_(default_structid)
+    void initialize(structure_id_type const& default_structid)
     {
+        default_structure_id_ = default_structid;
         structure_substructures_map_[default_structid] = structure_id_set();
     }
+
+    // The constructor
+//    StructureContainer() {}
+//    StructureContainer(structure_id_type default_structid) : default_structure_id_(default_structid)
+//    {
+//        structure_substructures_map_[default_structid] = structure_id_set();
+//    }
 
 
 private:
@@ -227,7 +234,7 @@ private:
         {
             if ((*i).second->structure_id() != structid_pair.second->structure_id())
             // If the structure had a different parent structure
-            // Note that all the substructures of the structures are kept (they are aldo moved moved through the hierarchy)
+            // Note that all the substructures of the structures are kept (they are also moved moved through the hierarchy)
             {
                 structure_substructures_map_[(*i).second->structure_id()].erase((*i).first);
                 structure_substructures_map_[structid_pair.second->structure_id()].insert(structid_pair.first);
