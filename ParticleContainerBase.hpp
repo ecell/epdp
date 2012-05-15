@@ -23,6 +23,8 @@ struct ParticleContainerUtils
     typedef std::pair<const particle_id_type, particle_type>    particle_id_pair;
     typedef std::pair<particle_id_pair, length_type>            particle_id_pair_and_distance;
 
+    // This distance_comparator orders two tuples based on the second part of the tuple
+    // example (obj1, distance1) < (obj2, distance2) if distance1 < distance2
     template<typename Tobject_and_distance_list_>
     struct distance_comparator:
             public std::binary_function<
@@ -43,7 +45,8 @@ struct ParticleContainerUtils
     };
 
 
-
+    // The overlap checker is sorted list of tuples (object, distance) which is sorted on
+    // the second part of the tuple (the distance).
     template<typename Tobject_and_distance_list_, typename Tset_>
     struct overlap_checker
     {
@@ -275,6 +278,7 @@ public:
         typename utils::template overlap_checker<structure_id_pair_and_distance_list, boost::array<structure_id_type, 0> > checker;
         const structure_id_set visible_structures (structures_.get_visible_structures(current));
 
+        // get and temporarily store all the visibles structures (upto now we only had their IDs)
         structure_map temp_map;
         for (typename structure_id_set::const_iterator i(visible_structures.begin()),
                                                        e(visible_structures.end());
@@ -283,12 +287,14 @@ public:
             temp_map[(*i)] = get_structure(*i);
         }
 
+        // calculate the distances and store the surface,distance tuple in the overlap checker if smaller that the particle radius.
         for (typename structure_map::const_iterator i(temp_map.begin()),
                                                     e(temp_map.end());
              i != e; ++i)
         {
-            const position_type cyc_pos(cyclic_transpose(s.position(), ((*i).second)->position())); //
-            const length_type dist((*i).second->newBD_distance(cyc_pos, s.radius(), old_pos, sigma));
+            const position_type cyc_pos     (cyclic_transpose(s.position(), ((*i).second)->position()));
+            const position_type cyc_old_pos (cyclic_transpose(old_pos,      ((*i).second)->position()));
+            const length_type dist((*i).second->newBD_distance(cyc_pos, s.radius(), cyc_old_pos, sigma));
             if (dist < s.radius())
             {
                 checker(i, dist);
@@ -373,6 +379,7 @@ public:
         typename utils::template overlap_checker<structure_id_pair_and_distance_list, boost::array<structure_id_type, 1> > checker(array_gen(ignore));
         const structure_id_set visible_structures (structures_.get_visible_structures(current_struct_id));
 
+        // get and temporarily store all the visibles structures (upto now we only had their IDs)
         structure_map temp_map;
         for (typename structure_id_set::const_iterator i(visible_structures.begin()),
                                                        e(visible_structures.end());
@@ -381,6 +388,7 @@ public:
             temp_map[(*i)] = get_structure(*i);
         }
 
+        // calculate the distances and store the surface,distance tuple in the overlap checker (in a list is sorted by distance).
         for (typename structure_map::const_iterator i(temp_map.begin()),
                                                     e(temp_map.end());
              i != e; ++i)
