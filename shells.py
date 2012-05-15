@@ -1492,7 +1492,7 @@ class PlanarSurfaceSingletestShell(CylindricaltestShell, testNonInteractionSingl
         dz_right = self.pid_particle_pair[1].radius
         dz_left  = dz_right
         dr_sr    = math.sqrt((self.get_searchradius())**2 - dz_right**2) # stay within the searchradius
-        dr_edge  = self.target_structure.min_dist_proj_to_edge(self.get_referencepoint())
+        dr_edge  = self.structure.min_dist_proj_to_edge(self.get_referencepoint())
         dr       = min(dr_sr, dr_edge)
         return dr, dz_right, dz_left
 
