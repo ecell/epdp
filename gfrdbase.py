@@ -242,44 +242,30 @@ def throw_in_particles(world, sid, n):
         log.info('\n\tthrowing in %s particles of type %s to %s' %
                  (n, name, structure_type.id))
 
-    # This is messy, but it works.
     i = 0
     while i < int(n):
+        # This is messy, but it works.
         myrandom.shuffle(structure_list)
         structure = world.get_structure(structure_list[0])
         position = structure.random_position(myrandom.rng)
         position = world.apply_boundary(position)
 
-#        surfaces = get_neighbor_surfaces(world, position, structure.id, [])
-#        if surfaces:
-#            surface, distance = surfaces[0]
-#        else:
-#            surface, distance = None, 0
+        # Check overlap. TODO put in 'if' statement for improved efficiency?
+        particle_overlaps = world.check_overlap((position, species.radius))
+        surface_overlaps  = world.check_surface_overlap((position, species.radius*MINIMAL_SEPARATION_FACTOR),
+                                                        position, structure.id, species.radius)
 
-        # Check overlap.
-        if (not world.check_overlap((position, species.radius))) and \
-           (not world.check_surface_overlap((position, species.radius*MINIMAL_SEPARATION_FACTOR),
-                                           position, structure.id, species.radius)):
-            create = True
-#            # Check if not too close to a neighbouring structures for 
-#            # particles added to the world, or added to a self-defined 
-#            # box.
-#            # FIXME replace by check_surface_overlap
-#            if (isinstance(structure, _gfrd.CuboidalRegion) and \
-#                surface and \
-#                distance < surface.minimal_distance(species.radius)):
-#                if __debug__:
-#                    log.info('\t%d-th particle rejected. Too close to '
-#                             'surface. I will keep trying.' % i)
-#                create = False
-            if create:
-                # All checks passed. Create particle.
-                p = world.new_particle(sid, structure.id, position)
-                i += 1
-                if __debug__:
-                    log.info('(%s,\n %s' % (p[0], p[1]))
+        if (not particle_overlaps) and (not surface_overlaps):
+            # All checks passed. Create particle.
+            p = world.new_particle(sid, structure.id, position)
+            i += 1
+            if __debug__:
+                log.info('particle accepted: (%s,\n %s)' % (p[0], p[1]))
         elif __debug__:
-            log.info('\t%d-th particle rejected. I will keep trying.' % i)
+            if particle_overlaps:
+                log.info('\t%d-th particle rejected. Too close to particle. I will keep trying.' % i)
+            if surface_overlaps:
+                log.info('\t%d-th particle rejected. Too close to surface. I will keep trying.' % i)
 
 def place_particle(world, sid, position):
     """Place a particle of a certain Species at a specific position in 
@@ -298,6 +284,8 @@ def place_particle(world, sid, position):
     """
     species = world.get_species(sid)
     radius = species.radius
+
+    # FIXME This is a mess!!
 
     # check that particle doesn't overlap with other particles.
     if world.check_overlap((position, radius)):
@@ -339,6 +327,8 @@ def place_particle(world, sid, position):
                  (name, world.get_structure(structure_id).name, position))
 
     particle = world.new_particle(sid, structure_id, position)
+    if __debug__:
+        log.info('(%s,\n %s' % (particle[0], particle[1]))
     return particle
 
 
