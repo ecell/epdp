@@ -300,13 +300,12 @@ def place_particle(world, sid, position):
     # Check if not too close to a neighbouring structures for particles 
     # added to the world, or added to a self-defined box.
     if species.structure_type_id == world.get_def_structure_type_id():
-        if(surface and
-           distance < surface.minimal_distance(species.radius)):
+        structure_id = world.get_def_structure_id()
+        if world.check_surface_overlap((position, radius*MINIMAL_SEPARATION_FACTOR),
+                                       position, structure_id, radius):#(surface and distance < surface.minimal_distance(species.radius)):
             raise RuntimeError('Placing particle failed: %s %s. '
                                'Too close to surface: %s.' %
                                (sid, position, distance))
-        else:
-            structure_id = world.get_def_structure_id()
     else:
         # If the particle lives on a surface then the position should be in the closest surface.
         # The closest surface should also be of the structure_type associated with the species.
@@ -327,8 +326,10 @@ def place_particle(world, sid, position):
                  (name, world.get_structure(structure_id).name, position))
 
     particle = world.new_particle(sid, structure_id, position)
+
     if __debug__:
         log.info('(%s,\n %s' % (particle[0], particle[1]))
+
     return particle
 
 
