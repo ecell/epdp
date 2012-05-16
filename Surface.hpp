@@ -45,7 +45,9 @@ class BasicSurfaceImpl: public Surface<Ttraits_>
 {
 public:
     typedef Surface<Ttraits_> base_type;
-    typedef Tshape_ shape_type;
+
+    typedef Tshape_                                     shape_type;
+    typedef typename shape_type::side_enum_type         side_enum_type;     // Defines the type of enum to use for the sides of the surface
 
     typedef typename base_type::structure_name_type     structure_name_type;
     typedef typename base_type::structure_id_type       structure_id_type;
