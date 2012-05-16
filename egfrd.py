@@ -970,7 +970,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
                         product_pos_list.append(vector)
 
                 elif isinstance(reactant_structure, DiskSurface):
-                    vector_length = (5.0*product_radius + 0.0) * MINIMAL_SEPARATION_FACTOR  # HACK remove factor 5.0 after testing
+                    vector_length = 1.0*product_radius * MINIMAL_SEPARATION_FACTOR
                     vector        = reactant_pos + vector_length * reactant_structure.shape.unit_z
                     product_pos_list.append(vector)
 
