@@ -54,6 +54,7 @@ protected:
             typename structure_map::const_iterator>                                 structure_iterator;
     typedef typename std::map<structure_id_type, structure_id_set>                  per_structure_substructure_id_set;
 
+    typedef typename structure_type::length_type                        length_type;
     typedef typename structure_type::position_type                      position_type;
     typedef typename structure_type::position_type                      vector_type;
 
@@ -138,6 +139,32 @@ public:
     virtual neighbor_id_vector_type get_neighbor_info(cylindrical_surface_type const& structure, int n) const
     {
         return cylindrical_structs_bc_.get_neighbor_info(structure.id(), n);
+    }
+    virtual bool connect_structures(planar_surface_type const& structure1, planar_surface_side_type const& side1,
+                                    planar_surface_type const& structure2, planar_surface_side_type const& side2)
+    {
+        // TODO if the structure are not the same, check that the planes actually touch at the right edge.
+        return true;
+    }
+    virtual bool connect_structures(cylindrical_surface_type const& structure1, cylindrical_surface_side_type const& side1,
+                                    cylindrical_surface_type const& structure2, cylindrical_surface_side_type const& side2)
+    {
+        if ( structure1.id() != structure2.id() )
+        {
+            throw unsupported("Two different cylinders cannot be connected (yet...).");
+        }
+        const length_type factor( (side1 == 1) ? 1.0 : -1.0);
+        if ( side1 == side2 )
+        {
+            cylindrical_structs_bc_.set_neighbor_info(structure1.id(), side1, std::make_pair(structure2.id(), multiply( structure2.shape().unit_z(), -factor ) ) );
+            cylindrical_structs_bc_.set_neighbor_info(structure2.id(), side2, std::make_pair(structure1.id(), multiply( structure1.shape().unit_z(), -factor ) ) );
+        }
+        else
+        {
+            cylindrical_structs_bc_.set_neighbor_info(structure1.id(), side1, std::make_pair(structure2.id(), multiply( structure2.shape().unit_z(), factor  ) ) );
+            cylindrical_structs_bc_.set_neighbor_info(structure2.id(), side2, std::make_pair(structure1.id(), multiply( structure1.shape().unit_z(), -factor ) ) );
+        }
+        return true;
     }
 
     // Template member function to call the right 'apply_boundary' function for the various types of structures.
