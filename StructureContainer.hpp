@@ -54,20 +54,25 @@ protected:
             typename structure_map::const_iterator>                                 structure_iterator;
     typedef typename std::map<structure_id_type, structure_id_set>                  per_structure_substructure_id_set;
 
-    typedef CuboidalRegion<traits_type>                             cuboidalregion_type;
-    typedef PlanarSurface<traits_type>                              planarsurface_type;
-    typedef CylindricalSurface<traits_type>                         cylindricalsurface_type;
-
     typedef typename structure_type::position_type                      position_type;
     typedef typename structure_type::position_type                      vector_type;
-    typedef std::pair<structure_id_type, vector_type>                   neighbor_id_vector_type;
-    typedef ConnectivityContainer<structure_id_type, vector_type, 2>    cylinders_boundaryconditions_type;
-    typedef ConnectivityContainer<structure_id_type, vector_type, 4>    planes_boundaryconditions_type;
-    typedef ConnectivityContainer<structure_id_type, vector_type, 6>    boxes_boundaryconditions_type;
 
-    typedef std::pair<structure_id_type, boost::shared_ptr<cuboidalregion_type> >       cuboidalreg_id_pair_type;
-    typedef std::pair<structure_id_type, boost::shared_ptr<planarsurface_type> >        planarsurf_id_pair_type;
-    typedef std::pair<structure_id_type, boost::shared_ptr<cylindricalsurface_type> >   cylindrsurf_id_pair_type;
+    typedef CylindricalSurface<traits_type>                                             cylindrical_surface_type;
+    typedef std::pair<structure_id_type, boost::shared_ptr<cylindrical_surface_type> >  cylindrical_surface_id_pair_type;
+    typedef typename cylindrical_surface_type::side_enum_type                           cylindrical_surface_side_type;
+    typedef ConnectivityContainer<structure_id_type, vector_type, 2>                    cylindrical_surface_bc_type;  // FIXME number of neighbors should be the length of the side enumerator
+
+    typedef PlanarSurface<traits_type>                                                  planar_surface_type;
+    typedef std::pair<structure_id_type, boost::shared_ptr<planar_surface_type> >       planar_surface_id_pair_type;
+    typedef typename planar_surface_type::side_enum_type                                planar_surface_side_type;
+    typedef ConnectivityContainer<structure_id_type, vector_type, 4>                    planar_surface_bc_type;
+
+    typedef CuboidalRegion<traits_type>                                                 cuboidal_region_type;
+    typedef std::pair<structure_id_type, boost::shared_ptr<cuboidal_region_type> >      cuboidal_region_id_pair_type;
+    typedef typename cuboidal_region_type::side_enum_type                               cuboidal_region_side_type;
+    typedef ConnectivityContainer<structure_id_type, vector_type, 6>                    cuboidal_region_bc_type;
+
+    typedef std::pair<structure_id_type, vector_type>                   neighbor_id_vector_type;    // FIXME this is actually a datatype of the ConnectivityContainer.
 
 public:
     typedef sized_iterator_range<structure_iterator>        structures_range;
@@ -80,7 +85,7 @@ public:
     virtual ~StructureContainer() {};
 
     // Update_structure methods for the different kind of structures supported by the StructureContainer
-    virtual bool update_structure (cylindrsurf_id_pair_type const& structid_cylinder)  // can I make this into a template function?
+    virtual bool update_structure (cylindrical_surface_id_pair_type const& structid_cylinder)  // can I make this into a template function?
     {
         if ( update_structure_base(structid_cylinder))
         {
@@ -91,7 +96,7 @@ public:
         }
         return false;
     }
-    virtual bool update_structure (planarsurf_id_pair_type const& structid_plane)
+    virtual bool update_structure (planar_surface_id_pair_type const& structid_plane)
     {
         // call regular update method (this also checks if the structure was already present)
         if ( update_structure_base(structid_plane))
@@ -107,7 +112,7 @@ public:
         // if the structure was already present, don't change anything
         return false;
     }
-    virtual bool update_structure (cuboidalreg_id_pair_type const& structid_cube)
+    virtual bool update_structure (cuboidal_region_id_pair_type const& structid_cube)
     {
         // add to Connectivity container for cuboidal regions
         // NOTE this information is never queried!! Maybe leave the neighbor info out?
@@ -126,11 +131,11 @@ public:
 
     // Methods to get the 'n-th' neighbor structure of a particular structure from the container.
     // We pass the structure and not just the ID because with just the ID we can't differentiate between the various types of structures.
-    virtual neighbor_id_vector_type get_neighbor_info(planarsurface_type const& structure, int n) const
+    virtual neighbor_id_vector_type get_neighbor_info(planar_surface_type const& structure, int n) const
     {
         return planar_structs_bc_.get_neighbor_info(structure.id(), n);
     }
-    virtual neighbor_id_vector_type get_neighbor_info(cylindricalsurface_type const& structure, int n) const
+    virtual neighbor_id_vector_type get_neighbor_info(cylindrical_surface_type const& structure, int n) const
     {
         return cylindrical_structs_bc_.get_neighbor_info(structure.id(), n);
     }
@@ -151,7 +156,7 @@ public:
     {
         return default_structure_id_;
     }
-    void set_def_structure(const boost::shared_ptr<cuboidalregion_type> cuboidalregion)
+    void set_def_structure(const boost::shared_ptr<cuboidal_region_type> cuboidalregion)
     {
         // check that the structure_type is the default structure_type
         if ( cuboidalregion->structure_id() != default_structure_id_)
@@ -272,9 +277,9 @@ protected:
     structure_id_type                   default_structure_id_;
 
     // The next object describe the boundary conditions that are applied to the different types of structures.
-    cylinders_boundaryconditions_type   cylindrical_structs_bc_;
-    planes_boundaryconditions_type      planar_structs_bc_;
-    boxes_boundaryconditions_type       cuboidal_structs_bc_;
+    cylindrical_surface_bc_type cylindrical_structs_bc_;
+    planar_surface_bc_type      planar_structs_bc_;
+    cuboidal_region_bc_type     cuboidal_structs_bc_;
 };
 
 
