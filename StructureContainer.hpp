@@ -140,14 +140,45 @@ public:
     {
         return cylindrical_structs_bc_.get_neighbor_info(structure.id(), n);
     }
-    virtual bool connect_structures(planar_surface_type const& structure1, planar_surface_side_type const& side1,
-                                    planar_surface_type const& structure2, planar_surface_side_type const& side2)
+//    virtual bool connect_structures(planar_surface_type const& structure1, planar_surface_side_type const& side1,
+//                                    planar_surface_type const& structure2, planar_surface_side_type const& side2)
+    virtual bool connect_structures(planar_surface_type const& structure1, int const& side1,
+                                    planar_surface_type const& structure2, int const& side2)
     {
         // TODO if the structure are not the same, check that the planes actually touch at the right edge.
+        vector_type structure1_vector;
+        vector_type structure2_vector;
+        // FIXME cleanup code below
+        switch (side1)
+        {
+            case 0: structure1_vector = multiply(structure1.shape().unit_y(), -1.0);
+                break;
+            case 1: structure1_vector = structure1.shape().unit_y();
+                break;
+            case 2: structure1_vector = structure1.shape().unit_x();
+                break;
+            case 3: structure1_vector = multiply(structure1.shape().unit_x(), -1.0);
+                break;
+        }
+        switch (side2)
+        {
+            case 0: structure2_vector = multiply(structure2.shape().unit_y(), -1.0);
+                break;
+            case 1: structure2_vector = structure2.shape().unit_y();
+                break;
+            case 2: structure2_vector = structure2.shape().unit_x();
+                break;
+            case 3: structure2_vector = multiply(structure2.shape().unit_x(), -1.0);
+                break;
+        }
+        planar_structs_bc_.set_neighbor_info(structure1.id(), side1, std::make_pair(structure2.id(), structure2_vector) );
+        planar_structs_bc_.set_neighbor_info(structure2.id(), side2, std::make_pair(structure1.id(), structure1_vector) );
         return true;
     }
-    virtual bool connect_structures(cylindrical_surface_type const& structure1, cylindrical_surface_side_type const& side1,
-                                    cylindrical_surface_type const& structure2, cylindrical_surface_side_type const& side2)
+//    virtual bool connect_structures(cylindrical_surface_type const& structure1, cylindrical_surface_side_type const& side1,
+//                                    cylindrical_surface_type const& structure2, cylindrical_surface_side_type const& side2)
+    virtual bool connect_structures(cylindrical_surface_type const& structure1, int const& side1,
+                                    cylindrical_surface_type const& structure2, int const& side2)
     {
         if ( structure1.id() != structure2.id() )
         {

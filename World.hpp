@@ -234,7 +234,9 @@ public:
 
     typedef typename base_type::cuboidal_region_type                cuboidal_region_type;
     typedef typename base_type::planar_surface_type                 planar_surface_type;
+    typedef typename planar_surface_type::side_enum_type            planar_surface_side_type;
     typedef typename base_type::cylindrical_surface_type            cylindrical_surface_type;
+    typedef typename cylindrical_surface_type::side_enum_type       cylindrical_surface_side_type;
 
 protected:
     typedef std::map<species_id_type, species_type>                         species_map;
@@ -415,6 +417,13 @@ public:
         //  -only remove if no particles
         return base_type::remove_structure(id);
     }
+    template <typename Tstructure_, typename Tside_enum_>
+    bool connect_structures(Tstructure_ const& structure1, Tside_enum_ const& side1,
+                            Tstructure_ const& structure2, Tside_enum_ const& side2)
+    {
+        return base_type::structures_.connect_structures(structure1, side1, structure2, side2);
+    }
+
     // Get all the structure ids by structure_type id
     structure_id_set get_structure_ids(structure_type_id_type const& sid) const
     {
