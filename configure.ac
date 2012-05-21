@@ -65,30 +65,26 @@ AC_SUBST(DEBUG)
 CXXFLAGS="$CXXFLAGS -g"
 CFLAGS="$CFLAGS -g"
 
-AX_BOOST_BASE([1.37],,AC_MSG_ERROR([could not find required version of BOOST.]))
+BOOST_REQUIRE([1.37])
 
 CPPFLAGS="$CPPFLAGS $BOOST_CPPFLAGS"
-LDFLAGS="$LDFLAGS $BOOST_LDFLAGS"
 
-BOOST_PYTHON_LIBNAME=boost_python
-
+boost_lib_only_with=
 AC_ARG_WITH(boost-python-libname,
   AC_HELP_STRING([--with-boost-python-libname=LIBNAME],
                  [specify the library name of Boost.Python [[boost_python]]]
                 ),
-  [BOOST_PYTHON_LIBNAME=$withval]
+  [boost_lib_only_with=$withval]
 )
-AC_SUBST(BOOST_PYTHON_LIBNAME)
-
-BOOST_REGEX_LIBNAME=boost_regex
+BOOST_PYTHON
 
 AC_ARG_WITH(boost-regex-libname,
   AC_HELP_STRING([--with-boost-date-time-libname=LIBNAME],
                  [specify the library name of Boost.Python [[boost_regex]]]
                 ),
-  [BOOST_REGEX_LIBNAME=$withval]
+  [boost_lib_only_with=$withval]
 )
-AC_SUBST(BOOST_REGEX_LIBNAME)
+BOOST_REGEX
 
 dnl
 dnl
