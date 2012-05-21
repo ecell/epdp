@@ -368,8 +368,10 @@ for boost_rtopt_ in $boost_rtopt '' -d; do
     boost_$1$boost_tag_$boost_mt_$boost_rtopt_$boost_ver_ \
     boost_$1$boost_tag_$boost_rtopt_$boost_ver_ \
     boost_$1$boost_tag_$boost_mt_$boost_ver_ \
-    boost_$1$boost_tag_$boost_ver_
+    boost_$1$boost_tag_$boost_ver_ \
+    $boost_lib_only_with
   do
+    test x"$boost_lib_only_with" != x -a "$boost_lib" != "$boost_lib_only_with" && continue
     # Avoid testing twice the same lib
     case $boost_failed_libs in #(
       *@$boost_lib@*) continue;;
