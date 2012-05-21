@@ -65,7 +65,6 @@ struct ParticleContainerUtils
                     result_ = new list_type();
                 }
                 result_->push_back(std::make_pair(*i, dist));
-                std::cout << "add to result: " << (*i).first << ", distance: " << dist << std::endl;
             }
         }
 
@@ -273,24 +272,24 @@ public:
         return oc.result();
     }
 
-    virtual structure_id_pair_and_distance_list* check_surface_overlap(particle_shape_type const& s, position_type const& displacement, structure_id_type const& current,
+    virtual structure_id_pair_and_distance_list* check_surface_overlap(particle_shape_type const& s, position_type const& old_pos, structure_id_type const& current,
                                                                        length_type const& sigma, structure_id_type const& ignore) const
     {
         typename utils::template overlap_checker<structure_id_pair_and_distance_list, boost::array<structure_id_type, 1> > checker(array_gen(ignore));
-        surface_overlap_checker(s, displacement, current, sigma, checker);
+        surface_overlap_checker(s, old_pos, current, sigma, checker);
         return checker.result();
     }
 
-    virtual structure_id_pair_and_distance_list* check_surface_overlap(particle_shape_type const& s, position_type const& displacement, structure_id_type const& current,
+    virtual structure_id_pair_and_distance_list* check_surface_overlap(particle_shape_type const& s, position_type const& old_pos, structure_id_type const& current,
                                                                        length_type const& sigma) const
     {
         typename utils::template overlap_checker<structure_id_pair_and_distance_list, boost::array<structure_id_type, 0> > checker;
-        surface_overlap_checker(s, displacement, current, sigma, checker);
+        surface_overlap_checker(s, old_pos, current, sigma, checker);
         return checker.result();
     }
 
     template<typename Tfun_>
-    void surface_overlap_checker(particle_shape_type const& s, position_type const& displacement, structure_id_type const& current,
+    void surface_overlap_checker(particle_shape_type const& s, position_type const& old_pos, structure_id_type const& current,
                                         length_type const& sigma, Tfun_& checker ) const
     {
         const structure_id_set visible_structures (structures_.get_visible_structures(current));
@@ -310,11 +309,10 @@ public:
              i != e; ++i)
         {
             const position_type cyc_pos     (cyclic_transpose(s.position(), ((*i).second)->position()));
-            const position_type cyc_old_pos (subtract(cyc_pos, displacement));
+            const position_type cyc_old_pos (cyclic_transpose(old_pos,      ((*i).second)->position()));
             const length_type dist((*i).second->newBD_distance(cyc_pos, s.radius(), cyc_old_pos, sigma));
             if (dist < s.radius())
             {
-                std::cout << "add to checker: " << (*i).first << std::endl;
                 checker(i, dist);
             }
         }

@@ -246,7 +246,6 @@ def throw_in_particles(world, sid, n):
     species = world.get_species(sid)
     structure_type = world.get_structure_type(species.structure_type_id)
     structure_list = list(world.get_structure_ids(structure_type))
-    print structure_list
 
     if __debug__:
         name = world.model.get_species_type_by_id(sid)["name"]
@@ -266,7 +265,7 @@ def throw_in_particles(world, sid, n):
         # Check overlap. TODO put in 'if' statement for improved efficiency?
         particle_overlaps = world.check_overlap((position, species.radius))
         surface_overlaps  = world.check_surface_overlap((position, species.radius*MINIMAL_SEPARATION_FACTOR),
-                                                        [0,0,0], structure.id, species.radius)
+                                                        position, structure.id, species.radius)
 
         if (not particle_overlaps) and (not surface_overlaps):
             # All checks passed. Create particle.
@@ -315,7 +314,7 @@ def place_particle(world, sid, position):
     if species.structure_type_id == world.get_def_structure_type_id():
         structure_id = world.get_def_structure_id()
         if world.check_surface_overlap((position, radius*MINIMAL_SEPARATION_FACTOR),
-                                       [0,0,0], structure_id, radius):#(surface and distance < surface.minimal_distance(species.radius)):
+                                       position, structure_id, radius):#(surface and distance < surface.minimal_distance(species.radius)):
             raise RuntimeError('Placing particle failed: %s %s. '
                                'Too close to surface: %s.' %
                                (sid, position, distance))
