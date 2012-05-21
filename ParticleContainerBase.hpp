@@ -273,9 +273,25 @@ public:
     }
 
     virtual structure_id_pair_and_distance_list* check_surface_overlap(particle_shape_type const& s, position_type const& old_pos, structure_id_type const& current,
+                                                                       length_type const& sigma, structure_id_type const& ignore) const
+    {
+        typename utils::template overlap_checker<structure_id_pair_and_distance_list, boost::array<structure_id_type, 1> > checker(array_gen(ignore));
+        surface_overlap_checker(s, old_pos, current, sigma, checker);
+        return checker.result();
+    }
+
+    virtual structure_id_pair_and_distance_list* check_surface_overlap(particle_shape_type const& s, position_type const& old_pos, structure_id_type const& current,
                                                                        length_type const& sigma) const
     {
         typename utils::template overlap_checker<structure_id_pair_and_distance_list, boost::array<structure_id_type, 0> > checker;
+        surface_overlap_checker(s, old_pos, current, sigma, checker);
+        return checker.result();
+    }
+
+    template<typename Tfun_>
+    void surface_overlap_checker(particle_shape_type const& s, position_type const& old_pos, structure_id_type const& current,
+                                        length_type const& sigma, Tfun_& checker ) const
+    {
         const structure_id_set visible_structures (structures_.get_visible_structures(current));
 
         // get and temporarily store all the visibles structures (upto now we only had their IDs)
@@ -287,7 +303,7 @@ public:
             temp_map[(*i)] = get_structure(*i);
         }
 
-        // calculate the distances and store the surface,distance tuple in the overlap checker if smaller that the particle radius.
+        // calculate the distances and store the surface,distance tuple in the overlap checker if smaller than the particle radius.
         for (typename structure_map::const_iterator i(temp_map.begin()),
                                                     e(temp_map.end());
              i != e; ++i)
@@ -300,7 +316,6 @@ public:
                 checker(i, dist);
             }
         }
-        return checker.result();
     }
 
     particle_id_pair get_particle(particle_id_type const& id, bool& found) const

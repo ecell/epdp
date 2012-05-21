@@ -240,6 +240,12 @@ public:
         return world_.check_surface_overlap(s, old_pos, current, sigma);
     }
 
+    virtual structure_id_pair_and_distance_list* check_surface_overlap(particle_shape_type const& s, position_type const& old_pos, structure_id_type const& current,
+                                                                       length_type const& sigma, structure_id_type const& ignore) const
+    {
+        return world_.check_surface_overlap(s, old_pos, current, sigma, ignore);
+    }
+
     virtual particle_id_pair_generator* get_particles() const
     {
         return make_range_generator<particle_id_pair>(particles_);

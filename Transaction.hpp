@@ -175,6 +175,12 @@ public:
         return pc_.check_surface_overlap(s, old_pos, current, sigma);
     }
 
+    virtual structure_id_pair_and_distance_list* check_surface_overlap(particle_shape_type const& s, position_type const& old_pos, structure_id_type const& current,
+                                                                       length_type const& sigma, structure_id_type const& ignore) const
+    {
+        return pc_.check_surface_overlap(s, old_pos, current, sigma, ignore);
+    }
+
     virtual Transaction<traits_type>* create_transaction()
     {
         return new TransactionImpl<particle_container_type>(*this);
