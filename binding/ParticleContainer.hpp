@@ -527,19 +527,19 @@ public:
                .template unchecked<particle_id_pair_and_distance_list*>();
     }
 
-    virtual structure_id_pair_and_distance_list* check_surface_overlap(particle_shape_type const& s, position_type const& old_pos, structure_id_type const& current,
+    virtual structure_id_pair_and_distance_list* check_surface_overlap(particle_shape_type const& s, position_type const& displacement, structure_id_type const& current,
                                                                        length_type const& sigma) const
     {
         return py_wrapper_type::get_override("check_surface_overlap")(
-                s, old_pos, current, sigma)
+                s, displacement, current, sigma)
                .template unchecked<structure_id_pair_and_distance_list*>();
     }
 
-    virtual structure_id_pair_and_distance_list* check_surface_overlap(particle_shape_type const& s, position_type const& old_pos, structure_id_type const& current,
+    virtual structure_id_pair_and_distance_list* check_surface_overlap(particle_shape_type const& s, position_type const& displacement, structure_id_type const& current,
                                                                        length_type const& sigma, structure_id_type const& ignore) const
     {
         return py_wrapper_type::get_override("check_surface_overlap")(
-                s, old_pos, current, sigma, ignore)
+                s, displacement, current, sigma, ignore)
                .template unchecked<structure_id_pair_and_distance_list*>();
     }
 

@@ -169,16 +169,16 @@ public:
         return pc_.check_overlap(s, ignore1, ignore2);
     }
 
-    virtual structure_id_pair_and_distance_list* check_surface_overlap(particle_shape_type const& s, position_type const& old_pos, structure_id_type const& current,
+    virtual structure_id_pair_and_distance_list* check_surface_overlap(particle_shape_type const& s, position_type const& displacement, structure_id_type const& current,
                                                                        length_type const& sigma) const
     {
-        return pc_.check_surface_overlap(s, old_pos, current, sigma);
+        return pc_.check_surface_overlap(s, displacement, current, sigma);
     }
 
-    virtual structure_id_pair_and_distance_list* check_surface_overlap(particle_shape_type const& s, position_type const& old_pos, structure_id_type const& current,
+    virtual structure_id_pair_and_distance_list* check_surface_overlap(particle_shape_type const& s, position_type const& displacement, structure_id_type const& current,
                                                                        length_type const& sigma, structure_id_type const& ignore) const
     {
-        return pc_.check_surface_overlap(s, old_pos, current, sigma, ignore);
+        return pc_.check_surface_overlap(s, displacement, current, sigma, ignore);
     }
 
     virtual Transaction<traits_type>* create_transaction()
