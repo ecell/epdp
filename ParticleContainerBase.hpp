@@ -308,9 +308,11 @@ public:
                                                     e(temp_map.end());
              i != e; ++i)
         {
-            const position_type cyc_pos     (cyclic_transpose(s.position(), ((*i).second)->position()));
-            const position_type cyc_old_pos (cyclic_transpose(old_pos,      ((*i).second)->position()));
-            const length_type dist((*i).second->newBD_distance(cyc_pos, s.radius(), cyc_old_pos, sigma));
+            const position_type cyc_old_pos (cyclic_transpose(old_pos, s.position()));      // The old position transposed towards the new position (which may also be modified by periodic BC's)
+            const position_type displacement (subtract(s.position(), cyc_old_pos));         // the relative displacement from the 'old' position towards the real new position
+            const position_type cyc_pos     (cyclic_transpose(s.position(), ((*i).second)->position()));    // new position transposed to the structure in question
+            const position_type cyc_old_pos2 (subtract(cyc_pos, displacement));             // calculate the old_pos relative to the transposed new position.
+            const length_type dist((*i).second->newBD_distance(cyc_pos, s.radius(), cyc_old_pos2, sigma));
             if (dist < s.radius())
             {
                 checker(i, dist);
