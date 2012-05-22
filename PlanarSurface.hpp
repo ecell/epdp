@@ -109,14 +109,13 @@ public:
     virtual position_type surface_dissociation_vector( rng_type& rng, length_type const& r0, length_type const& rl ) const
     {
         Real X( rng.uniform(0.,1.) );
-        
         length_type diss_vec_length( X*rl );
 
-        position_type unit_z( cross_product( base_type::shape().unit_x(), base_type::shape().unit_y() ) );
+//        position_type unit_z( cross_product( base_type::shape().unit_x(), base_type::shape().unit_y() ) );
+//
+//        unit_z = normalize ( unit_z );
 
-        unit_z = normalize ( unit_z );
-
-        return multiply( unit_z, (rng.uniform_int(0, 1) * 2 - 1) * diss_vec_length );
+        return multiply( base_type::shape().unit_z(), (rng.uniform_int(0, 1) * 2 - 1) * diss_vec_length );
     }
 
     virtual position_pair_type geminate_dissociation_positions( rng_type& rng, species_type const& s0, species_type const& s1, position_type const& op, 
