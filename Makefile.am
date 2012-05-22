@@ -54,6 +54,7 @@ noinst_HEADERS = \
     ConnectivityContainer.hpp\
 	ConsoleAppender.hpp\
 	Cylinder.hpp\
+	Disk.hpp\
 	Defs.hpp\
 	DomainFactory.hpp\
 	Domain.hpp\

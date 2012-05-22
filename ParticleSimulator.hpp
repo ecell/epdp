@@ -4,12 +4,14 @@
 #include <boost/bind.hpp>
 #include <boost/shared_ptr.hpp>
 #include "Sphere.hpp"
+#include "Disk.hpp"
 #include "Cylinder.hpp"
 #include "Box.hpp"
 #include "ParticleSimulationStructure.hpp"
 #include "CuboidalRegion.hpp"
 #include "PlanarSurface.hpp"
 #include "CylindricalSurface.hpp"
+#include "DiskSurface.hpp"
 #include "SphericalSurface.hpp"
 #include "ParticleContainer.hpp"
 #include "NetworkRules.hpp"
@@ -57,6 +59,7 @@ struct ImmutativeStructureVisitor
     typedef typename ParticleContainer<traits_type>::cylindrical_surface_type   cylindrical_surface_type;
     typedef typename ParticleContainer<traits_type>::planar_surface_type        planar_surface_type;
     typedef typename ParticleContainer<traits_type>::cuboidal_region_type       cuboidal_region_type;
+    typedef typename ParticleContainer<traits_type>::disk_surface_type          disk_surface_type;
 
 
     virtual ~ImmutativeStructureVisitor() {}
@@ -64,6 +67,8 @@ struct ImmutativeStructureVisitor
     virtual void operator()(spherical_surface_type const&) const = 0;
 
     virtual void operator()(cylindrical_surface_type const&) const = 0;
+    
+    virtual void operator()(disk_surface_type const&) const = 0;
 
     virtual void operator()(planar_surface_type const&) const = 0;
 
@@ -78,6 +83,7 @@ struct MutativeStructureVisitor
     typedef typename ParticleContainer<traits_type>::cylindrical_surface_type   cylindrical_surface_type;
     typedef typename ParticleContainer<traits_type>::planar_surface_type        planar_surface_type;
     typedef typename ParticleContainer<traits_type>::cuboidal_region_type       cuboidal_region_type;
+    typedef typename ParticleContainer<traits_type>::disk_surface_type          disk_surface_type;
 
 
     virtual ~MutativeStructureVisitor() {}
@@ -85,6 +91,8 @@ struct MutativeStructureVisitor
     virtual void operator()(spherical_surface_type&) const = 0;
 
     virtual void operator()(cylindrical_surface_type&) const = 0;
+    
+    virtual void operator()(disk_surface_type const&) const = 0;
 
     virtual void operator()(planar_surface_type&) const = 0;
 
@@ -102,6 +110,7 @@ public:
     // shorthand typedefs
     typedef Sphere<typename world_type::length_type>    sphere_type;
     typedef Cylinder<typename world_type::length_type>  cylinder_type;
+    typedef Disk<typename world_type::length_type>      disk_type;
     typedef Box<typename world_type::length_type>       box_type;
     typedef Plane<typename world_type::length_type>     plane_type;
     typedef ParticleSimulationStructure<world_traits_type>    particle_simulation_structure_type;
@@ -109,6 +118,7 @@ public:
     typedef Region<world_traits_type>                   region_type;
     typedef SphericalSurface<world_traits_type>         spherical_surface_type;
     typedef CylindricalSurface<world_traits_type>       cylindrical_surface_type;
+    typedef DiskSurface<world_traits_type>              disk_surface_type;
     typedef PlanarSurface<world_traits_type>            planar_surface_type;
     typedef CuboidalRegion<world_traits_type>           cuboidal_region_type;
 
