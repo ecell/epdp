@@ -356,10 +356,10 @@ apply_boundary (std::pair<typename Ttraits_::position_type, typename Ttraits_::s
 
 
     // Note that we assume that the new position is in the plane (dot(pos, unit_z)==0)
+    // and that the position is already transposed for the plane.
     const plane_type origin_plane (planar_surface.shape());
     boost::array<length_type, 2> half_extends(origin_plane.half_extent());
 
-    // TODO do cyclic transpose here first?
     const position_type pos_vector( subtract(pos_structure_id.first, origin_plane.position()) );
     const length_type component_x ( dot_product(pos_vector, origin_plane.unit_x()) );
     const length_type component_y ( dot_product(pos_vector, origin_plane.unit_y()) );
@@ -423,8 +423,8 @@ apply_boundary (std::pair<typename Ttraits_::position_type, typename Ttraits_::s
     }
     else
     {
-        // we are somewhere in the corners and don't know what to do
-        // reject move?
+        // we are somewhere in the corners and don't know what to do ->reject move
+        // We return the unmodified position, it will bounce later.
         return pos_structure_id;
     }
 
@@ -551,7 +551,6 @@ apply_boundary (std::pair<typename Ttraits_::position_type, typename Ttraits_::s
     const cylinder_type origin_cylinder (cylindrical_surface.shape());
     const length_type half_length(origin_cylinder.half_length());
 
-    // TODO do cyclic transpose here first?
     const position_type pos_vector( subtract(pos_structure_id.first, origin_cylinder.position()) );
     const length_type component_z ( dot_product(pos_vector, origin_cylinder.unit_z()) );
 
