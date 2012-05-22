@@ -55,6 +55,7 @@ from shells import (
     CylindricalSurfaceCapInteractiontestShell,
     CylindricalSurfaceSinktestShell,
     MixedPair2D3DtestShell,
+    MixedPair1DCaptestShell,
     )
 
 import logging
@@ -145,9 +146,13 @@ def try_default_testpair(single1, single2, geometrycontainer, domains):
         return MixedPair2D3DtestShell(single1, single2, geometrycontainer, domains) 
     elif (isinstance(single2.structure, PlanarSurface) and isinstance(single1.structure, CuboidalRegion)):
         return MixedPair2D3DtestShell(single2, single1, geometrycontainer, domains)
+    elif (isinstance(single1.structure, DiskSurface) and isinstance(single2.structure, CylindricalSurface)):
+        return MixedPair1DCaptestShell(single1, single2, geometrycontainer, domains)
+    elif (isinstance(single2.structure, DiskSurface) and isinstance(single1.structure, CylindricalSurface)):
+        return MixedPair1DCaptestShell(single2, single1, geometrycontainer, domains)
     else:
-        # a 1D/3D pair was supposed to be formed -> unsupported
-        raise testShellError('(MixedPair). combination of structure not supported')
+        # another mixed pair was supposed to be formed -> unsupported
+        raise testShellError('(MixedPair). combination of structures not supported')
         
 def create_default_pair(domain_id, shell_id, testShell, reaction_rules):
     # Either SphericalPair, PlanarSurfacePair, or CylindricalSurfacePair.
@@ -159,10 +164,11 @@ def create_default_pair(domain_id, shell_id, testShell, reaction_rules):
         return PlanarSurfaceTransitionPair (domain_id, shell_id, testShell, reaction_rules)
     elif isinstance(testShell, CylindricalSurfacePairtestShell):
         return CylindricalSurfacePair      (domain_id, shell_id, testShell, reaction_rules)
-    # or MixedPair (3D/2D)
+    # or MixedPair (3D/2D or 1D/Cap)
     elif isinstance(testShell, MixedPair2D3DtestShell):
         return MixedPair2D3D               (domain_id, shell_id, testShell, reaction_rules)
-
+    elif isinstance(testShell, MixedPair1DCaptestShell):
+        return MixedPair1DCap              (domain_id, shell_id, testShell, reaction_rules)
 
 class DomainEvent(Event):
     __slot__ = ['data']
