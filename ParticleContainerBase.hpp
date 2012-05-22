@@ -195,9 +195,13 @@ public:
     virtual position_structid_pair_type apply_boundary(position_structid_pair_type const& pos_struct_id,
                                                        const boost::shared_ptr<const structure_type> structure) const
     {
+        // cyclic transpose the position with the structure
+        const position_structid_pair_type cyc_pos_struct_id (std::make_pair(cyclic_transpose(pos_struct_id.first, structure->position()),
+                                                                            pos_struct_id.second));
+
         // The generalized boundary condition application first:
         // 1. applies the boundary of the structure/surface (go around the corner etc)
-        const position_structid_pair_type new_pos_struct_id(structure->apply_boundary(pos_struct_id, structures_));
+        const position_structid_pair_type new_pos_struct_id(structure->apply_boundary(cyc_pos_struct_id, structures_));
         // 2. Then also apply the boundary condition of the world
         return std::make_pair(apply_boundary(new_pos_struct_id.first), new_pos_struct_id.second);
     }
@@ -215,8 +219,9 @@ public:
     virtual position_structid_pair_type cyclic_transpose(position_structid_pair_type const& pos_struct_id,
                                                          const boost::shared_ptr<const structure_type> structure) const
     {
-        const position_type pos (cyclic_transpose(pos_struct_id.first, structure->position()));
-        return structure->cyclic_transpose(std::make_pair(pos, pos_struct_id.second), structures_);
+        const position_structid_pair_type cyc_pos_struct_id (std::make_pair(cyclic_transpose(pos_struct_id.first, structure->position()),
+                                                                            pos_struct_id.second));
+        return structure->cyclic_transpose(cyc_pos_struct_id, structures_);
     }
 
     // THIS SEEMS STRANGE TO PUT THIS HERE. 
@@ -310,7 +315,7 @@ public:
         {
             const position_type cyc_old_pos (cyclic_transpose(old_pos, s.position()));      // The old position transposed towards the new position (which may also be modified by periodic BC's)
             const position_type displacement (subtract(s.position(), cyc_old_pos));         // the relative displacement from the 'old' position towards the real new position
-            const position_type cyc_pos     (cyclic_transpose(s.position(), ((*i).second)->position()));    // new position transposed to the structure in question
+            const position_type cyc_pos      (cyclic_transpose(s.position(), ((*i).second)->position()));    // new position transposed to the structure in question
             const position_type cyc_old_pos2 (subtract(cyc_pos, displacement));             // calculate the old_pos relative to the transposed new position.
             const length_type dist((*i).second->newBD_distance(cyc_pos, s.radius(), cyc_old_pos2, sigma));
             if (dist < s.radius())
