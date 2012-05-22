@@ -174,10 +174,10 @@ public:
         {
             // Get all the structures within the reaction volume (and that may consequently also be in the core)
             boost::scoped_ptr<structure_id_pair_and_distance_list> overlap_structures_tmp(
-                tx_.check_surface_overlap(particle_shape_type( new_pos, r0 + reaction_length_ ), old_pos, old_struct_id, r0));
+                tx_.check_surface_overlap(particle_shape_type( new_pos, r0 + reaction_length_ ), old_pos, new_structure_id, r0, old_struct_id));
             overlap_structures.swap(overlap_structures_tmp);
             int structures_in_overlap(overlap_structures ? overlap_structures->size(): 0);
-
+ 
             j = 0;
             while(!bounced && j < structures_in_overlap)
                 bounced = overlap_structures->at(j++).second < r0;
@@ -272,8 +272,8 @@ public:
             species_type s0(pp_species);
             species_type s1(tx_.get_species(overlap_particle.first.second.sid()));
                 
-            /* If the structure_types of the reactants are not equal, one of the reactants has to come from the bulk,
-               and we let this be s1, the particle from the surface is named s0. */
+/*            // If the structure_types of the reactants are not equal, one of the reactants has to come from the bulk,
+            // and we let this be s1, the particle from the surface is named s0.
             if(s0.structure_type_id() != s1.structure_type_id())
             {
                 if( !(s0.structure_type_id() == tx_.get_def_structure_type_id() || s1.structure_type_id() == tx_.get_def_structure_type_id())  )
@@ -284,7 +284,7 @@ public:
                 if(s0.structure_type_id() == tx_.get_def_structure_type_id())
                     std::swap(s0,s1);       // ??????
             }
-            
+*/            
             const boost::shared_ptr<const structure_type> s1_struct( tx_.get_structure( overlap_particle.first.second.structure_id()) );
             accumulated_prob += k_total(s0.id(), s1.id()) * dt_ /
                                 ( 2. * s1_struct->particle_reaction_volume( s0.radius() + s1.radius(), reaction_length_ ) ); 
@@ -639,8 +639,8 @@ private:
                         boost::shared_ptr<structure_type>   reactant1_structure (tx_.get_structure( reactant1_structure_id ));
                         position_type                       reactant0_pos (pp0.second.position());
                         position_type                       reactant1_pos (pp1.second.position());
-                        const species_type                  product_species(tx_.get_species(products[0]));
 
+                        const species_type                  product_species(tx_.get_species(products[0]));
                         structure_id_type                   product_structure_id(reactant0_structure_id);
 
                         // If the particles lived on adjacent structures of the same type
@@ -674,10 +674,14 @@ private:
                                 product_structure_id = reactant0_structure_id;                          // -> lesser structure is structure0
                                 product_structure = reactant0_structure;
                             }
-                            else                                                                        // pp0 lives on the parent structure of pp1
+                            else if ( reactant1_structure->structure_id() == reactant0_structure_id )   // pp0 lives on the parent structure of pp1
                             {
                                 product_structure_id = reactant1_structure_id;                          // -> lesser structure is structure1
                                 product_structure = reactant1_structure;
+                            }
+                            else
+                            {
+                                throw propagation_error("Particles can only be one hierarchical level apart.");
                             }
 
                             projected_type const position_on_surface( product_structure-> projected_point(
@@ -788,7 +792,7 @@ private:
                     case 0:
                     {
 
-                        remove_particle(pp.first);  // pp was just popped of the local queue so only has to be removed from the upstream particlecontainer.
+                        remove_particle(pp.first);
                         break;
                     }
                     // When one product particle
@@ -817,7 +821,7 @@ private:
                         {
                             throw propagation_error("no space due to near surface");
                         }
-                        // check for overlap with particles outside of the progator (e.g. the eGFRD simulator)
+                        // check for overlap with particles outside of the propagator (e.g. the eGFRD simulator)
                         if (vc_)
                         {
                             if (!(*vc_)(new_shape, pp.first))
