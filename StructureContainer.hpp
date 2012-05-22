@@ -115,10 +115,10 @@ public:
     }
     virtual bool update_structure (cuboidal_region_id_pair_type const& structid_cube)
     {
-        // add to Connectivity container for cuboidal regions
-        // NOTE this information is never queried!! Maybe leave the neighbor info out?
         if ( update_structure_base(structid_cube))
         {
+            // add to Connectivity container for cuboidal regions
+            // NOTE this information is never queried!! Maybe leave the neighbor info out?
             cuboidal_structs_bc_.set_neighbor_info(structid_cube.first, 0, std::make_pair(structid_cube.first,          structid_cube.second->shape().unit_z()));
             cuboidal_structs_bc_.set_neighbor_info(structid_cube.first, 1, std::make_pair(structid_cube.first, multiply(structid_cube.second->shape().unit_z(), -1.0) ));
             cuboidal_structs_bc_.set_neighbor_info(structid_cube.first, 2, std::make_pair(structid_cube.first,          structid_cube.second->shape().unit_y()));
@@ -214,17 +214,6 @@ public:
     {
         return default_structure_id_;
     }
-    void set_def_structure(const boost::shared_ptr<cuboidal_region_type> cuboidalregion)
-    {
-        // check that the structure_type is the default structure_type
-        if ( cuboidalregion->structure_id() != default_structure_id_)
-        {
-            throw illegal_state("Default structure should have itself as parent.");
-        }
-        cuboidalregion->set_id(default_structure_id_);
-        update_structure(std::make_pair(default_structure_id_, cuboidalregion));
-    }
-
     virtual bool has_structure(structure_id_type const& id) const
     {
         typename structure_map::const_iterator i(structure_map_.find(id));

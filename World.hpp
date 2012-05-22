@@ -257,8 +257,6 @@ public:
 
 public:
     // The constructor
-//    World(length_type world_size = 1., size_type size = 1)
-//        : base_type(world_size, size, structidgen_()) {}
     World(length_type world_size = 1., size_type size = 1)
         : base_type(world_size, size)
     {
@@ -442,15 +440,24 @@ public:
     }
     void set_def_structure(const boost::shared_ptr<cuboidal_region_type> cuboidal_region)
     {
+        const structure_id_type default_struct_id(get_def_structure_id());
+
         // check that the structure_type is the default structure_type
         if (!default_structure_type_id_ ||
             (cuboidal_region->sid() != default_structure_type_id_) )
         {
             throw illegal_state("Default structure is not of default StructureType");
         }
+        if ( cuboidal_region->structure_id() != default_struct_id)
+        {
+            throw illegal_state("Default structure should have itself as parent.");
+        }
+
         // check that the structure_type that is defined in the structure exists!
         structure_type_type const& structure_type(get_structure_type(cuboidal_region->sid()));
-        base_type::structures_.set_def_structure(cuboidal_region);
+
+        cuboidal_region->set_id(default_struct_id);
+        update_structure(std::make_pair(default_struct_id, cuboidal_region));
     }
     // Get the closest surface(surface is a subclass of structures)
     // TODO change this to get all the surfaces within a certain distance of the particle.
