@@ -1044,7 +1044,7 @@ class MixedPair1DCap(Pair, hasCylindricalShell):
 
         self.LD_MAX = numpy.inf # TODO what is that for?
 
-   def get_shell_size(self): # TODO Is that even used?
+    def get_shell_size(self): # TODO Is that even used?
         return self.shell.shape.half_length
 
     def get_v_tot(self):
