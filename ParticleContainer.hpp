@@ -10,6 +10,7 @@
 #include "PlanarSurface.hpp"
 #include "CylindricalSurface.hpp"
 #include "SphericalSurface.hpp"
+#include "DiskSurface.hpp"
 
 template<typename Ttraits_>
 class Transaction;
@@ -41,11 +42,14 @@ public:
     typedef CuboidalRegion<traits_type>                         cuboidal_region_type;
     typedef PlanarSurface<traits_type>                          planar_surface_type;
     typedef CylindricalSurface<traits_type>                     cylindrical_surface_type;
+    typedef DiskSurface<traits_type>                            disk_surface_type;
     typedef SphericalSurface<traits_type>                       spherical_surface_type;
 
-    typedef std::pair<structure_id_type, boost::shared_ptr<cuboidal_region_type> >       cuboidalreg_id_pair_type;
-    typedef std::pair<structure_id_type, boost::shared_ptr<planar_surface_type> >        planarsurface_id_pair_type;
-    typedef std::pair<structure_id_type, boost::shared_ptr<cylindrical_surface_type> >   cylindrsurf_id_pair_type;
+//    typedef std::pair<structure_id_type, boost::shared_ptr<cuboidal_region_type> >       cuboidal_region_id_pair_type;
+//    typedef std::pair<structure_id_type, boost::shared_ptr<planar_surface_type> >        planar_surface_id_pair_type;
+//    typedef std::pair<structure_id_type, boost::shared_ptr<cylindrical_surface_type> >   cylindrsurf_id_pair_type;
+//    typedef std::pair<structure_id_type, boost::shared_ptr<disk_surface_type> >          disk_surface_id_pair_type;
+//    typedef std::pair<structure_id_type, boost::shared_ptr<spherical_surface_type> >     spherical_surface_id_pair_type;
 
     typedef std::set<particle_id_type>                                              particle_id_set;
     typedef std::pair<const particle_id_type, particle_type>                        particle_id_pair;

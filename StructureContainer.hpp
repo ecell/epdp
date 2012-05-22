@@ -8,7 +8,8 @@
 #include "CuboidalRegion.hpp"
 #include "PlanarSurface.hpp"
 #include "CylindricalSurface.hpp"
-
+#include "DiskSurface.hpp"
+#include "SphericalSurface.hpp"
 
 // Forward declaration of the StructureContainer to allow the forward declarations of the 'apply_boundary' functions
 template <typename Tobj_, typename Tid_, typename Ttraits_>
@@ -32,6 +33,12 @@ std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type
 apply_boundary (std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type> const& pos_structure_id,
                 CylindricalSurface<Ttraits_> const& cylindrical_surface,
                 StructureContainer<typename Ttraits_::structure_type, typename Ttraits_::structure_id_type, Ttraits_> const& sc);
+
+template<typename Ttraits_ >
+inline std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type>
+cyclic_transpose (std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type> const& pos_structure_id,
+                  CylindricalSurface<Ttraits_> const& cylindrical_surface,
+                  StructureContainer<typename Ttraits_::structure_type, typename Ttraits_::structure_id_type, Ttraits_> const& sc);
 
 
 
@@ -58,6 +65,15 @@ protected:
     typedef typename structure_type::position_type                      position_type;
     typedef typename structure_type::position_type                      vector_type;
 
+    typedef std::pair<structure_id_type, vector_type>                   neighbor_id_vector_type;    // FIXME this is actually a datatype of the ConnectivityContainer.
+
+public:
+    typedef SphericalSurface<traits_type>                                               spherical_surface_type;
+    typedef std::pair<structure_id_type, boost::shared_ptr<spherical_surface_type> >    spherical_surface_id_pair_type;
+
+    typedef DiskSurface<traits_type>                                                    disk_surface_type;
+    typedef std::pair<structure_id_type, boost::shared_ptr<disk_surface_type> >         disk_surface_id_pair_type;
+
     typedef CylindricalSurface<traits_type>                                             cylindrical_surface_type;
     typedef std::pair<structure_id_type, boost::shared_ptr<cylindrical_surface_type> >  cylindrical_surface_id_pair_type;
     typedef typename cylindrical_surface_type::side_enum_type                           cylindrical_surface_side_type;
@@ -73,8 +89,6 @@ protected:
     typedef typename cuboidal_region_type::side_enum_type                               cuboidal_region_side_type;
     typedef ConnectivityContainer<structure_id_type, vector_type, 6>                    cuboidal_region_bc_type;
 
-    typedef std::pair<structure_id_type, vector_type>                   neighbor_id_vector_type;    // FIXME this is actually a datatype of the ConnectivityContainer.
-
 public:
     typedef sized_iterator_range<structure_iterator>        structures_range;
     typedef std::pair<position_type, structure_id_type>     position_structid_type;
@@ -86,7 +100,31 @@ public:
     virtual ~StructureContainer() {};
 
     // Update_structure methods for the different kind of structures supported by the StructureContainer
-    virtual bool update_structure (cylindrical_surface_id_pair_type const& structid_cylinder)  // can I make this into a template function?
+    virtual bool update_structure (spherical_surface_id_pair_type const& structid_sphere)  // can I make this into a template function?
+    {
+        return update_structure_base(structid_sphere);  // No connecting needs to be done
+    }
+    virtual bool update_structure (disk_surface_id_pair_type const& structid_disk)
+    {
+        return update_structure_base(structid_disk);
+    }
+    virtual bool update_structure (cuboidal_region_id_pair_type const& structid_cube)
+    {
+        if ( update_structure_base(structid_cube))
+        {
+            // add to Connectivity container for cuboidal regions
+            // NOTE this information is never queried!! Maybe leave the neighbor info out?
+            cuboidal_structs_bc_.set_neighbor_info(structid_cube.first, 0, std::make_pair(structid_cube.first,          structid_cube.second->shape().unit_z()));
+            cuboidal_structs_bc_.set_neighbor_info(structid_cube.first, 1, std::make_pair(structid_cube.first, multiply(structid_cube.second->shape().unit_z(), -1.0) ));
+            cuboidal_structs_bc_.set_neighbor_info(structid_cube.first, 2, std::make_pair(structid_cube.first,          structid_cube.second->shape().unit_y()));
+            cuboidal_structs_bc_.set_neighbor_info(structid_cube.first, 3, std::make_pair(structid_cube.first, multiply(structid_cube.second->shape().unit_y(), -1.0) ));
+            cuboidal_structs_bc_.set_neighbor_info(structid_cube.first, 4, std::make_pair(structid_cube.first,          structid_cube.second->shape().unit_x()));
+            cuboidal_structs_bc_.set_neighbor_info(structid_cube.first, 5, std::make_pair(structid_cube.first, multiply(structid_cube.second->shape().unit_x(), -1.0) ));
+            return true;
+        }
+        return false;
+    }
+    virtual bool update_structure (cylindrical_surface_id_pair_type const& structid_cylinder)
     {
         if ( update_structure_base(structid_cylinder))
         {
@@ -111,22 +149,6 @@ public:
             return true;
         }
         // if the structure was already present, don't change anything
-        return false;
-    }
-    virtual bool update_structure (cuboidal_region_id_pair_type const& structid_cube)
-    {
-        if ( update_structure_base(structid_cube))
-        {
-            // add to Connectivity container for cuboidal regions
-            // NOTE this information is never queried!! Maybe leave the neighbor info out?
-            cuboidal_structs_bc_.set_neighbor_info(structid_cube.first, 0, std::make_pair(structid_cube.first,          structid_cube.second->shape().unit_z()));
-            cuboidal_structs_bc_.set_neighbor_info(structid_cube.first, 1, std::make_pair(structid_cube.first, multiply(structid_cube.second->shape().unit_z(), -1.0) ));
-            cuboidal_structs_bc_.set_neighbor_info(structid_cube.first, 2, std::make_pair(structid_cube.first,          structid_cube.second->shape().unit_y()));
-            cuboidal_structs_bc_.set_neighbor_info(structid_cube.first, 3, std::make_pair(structid_cube.first, multiply(structid_cube.second->shape().unit_y(), -1.0) ));
-            cuboidal_structs_bc_.set_neighbor_info(structid_cube.first, 4, std::make_pair(structid_cube.first,          structid_cube.second->shape().unit_x()));
-            cuboidal_structs_bc_.set_neighbor_info(structid_cube.first, 5, std::make_pair(structid_cube.first, multiply(structid_cube.second->shape().unit_x(), -1.0) ));
-            return true;
-        }
         return false;
     }
 
@@ -210,6 +232,8 @@ public:
         return ::cyclic_transpose(pos_struct_id, structure, *this);
     }
 
+
+    /////////////////// Methods that are general for all the structures.
     virtual structure_id_type get_def_structure_id() const
     {
         return default_structure_id_;
@@ -589,5 +613,13 @@ apply_boundary (std::pair<typename Ttraits_::position_type, typename Ttraits_::s
     return std::make_pair(new_pos, new_id);
 }
 
+template<typename Ttraits_ >
+inline std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type>
+cyclic_transpose (std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type> const& pos_structure_id,
+                  CylindricalSurface<Ttraits_> const& cylindrical_surface,
+                  StructureContainer<typename Ttraits_::structure_type, typename Ttraits_::structure_id_type, Ttraits_> const& sc)
+{
+    // This is not used and not implemented yet.
+}
 #endif /* STRUCTURE_CONTAINER_HPP */
 

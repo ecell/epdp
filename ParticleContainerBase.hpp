@@ -125,6 +125,11 @@ public:
     typedef sized_iterator_range<typename particle_matrix_type::const_iterator> particle_id_pair_range;
 
     typedef StructureContainer<structure_type, structure_id_type, traits_type>  structure_container_type;
+    typedef typename structure_container_type::spherical_surface_type           spherical_surface_type;
+    typedef typename structure_container_type::disk_surface_type                disk_surface_type;
+    typedef typename structure_container_type::cylindrical_surface_type         cylindrical_surface_type;
+    typedef typename structure_container_type::planar_surface_type              planar_surface_type;
+    typedef typename structure_container_type::cuboidal_region_type             cuboidal_region_type;
 
     typedef typename base_type::particle_id_pair_and_distance_list      particle_id_pair_and_distance_list;
     typedef typename base_type::structure_id_pair_and_distance_list     structure_id_pair_and_distance_list;

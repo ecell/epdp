@@ -234,8 +234,10 @@ public:
 
     typedef typename base_type::cuboidal_region_type                cuboidal_region_type;
     typedef typename base_type::planar_surface_type                 planar_surface_type;
-    typedef typename planar_surface_type::side_enum_type            planar_surface_side_type;
     typedef typename base_type::cylindrical_surface_type            cylindrical_surface_type;
+    typedef typename base_type::disk_surface_type                   disk_surface_type;
+    typedef typename base_type::spherical_surface_type              spherical_surface_type;
+    typedef typename planar_surface_type::side_enum_type            planar_surface_side_type;
     typedef typename cylindrical_surface_type::side_enum_type       cylindrical_surface_side_type;
 
 protected:
