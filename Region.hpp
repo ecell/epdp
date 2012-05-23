@@ -132,7 +132,7 @@ public:
     virtual bool allows_interaction_from(position_type const& pos) const
     {
         return ::allows_interaction_from(shape(), pos);
-	}
+    }
 
     virtual bool is_alongside(position_type const& pos) const
     {
