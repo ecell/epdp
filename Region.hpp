@@ -38,7 +38,10 @@ class BasicRegionImpl: public Region<Ttraits_>
 {
 public:
     typedef Region<Ttraits_>                            base_type;
+
     typedef Tshape_                                     shape_type;
+    typedef typename shape_type::side_enum_type         side_enum_type;     // Defines the type of enum to use for the sides of the region
+
     typedef typename base_type::structure_name_type     structure_name_type;
     typedef typename base_type::structure_id_type       structure_id_type;
     typedef typename base_type::structure_type_id_type  structure_type_id_type;
@@ -59,7 +62,7 @@ public:
         return shape_;
     }
 
-    virtual bool operator==(Structure<typename Ttraits_::world_type::traits_type> const& rhs) const
+    virtual bool operator==(Structure<Ttraits_> const& rhs) const
     {
         BasicRegionImpl const* _rhs(dynamic_cast<BasicRegionImpl const*>(&rhs));
         return _rhs &&
@@ -113,7 +116,7 @@ public:
     
     virtual position_type const& position() const
     {
-        return shape_.position();
+        return ::shape_position(shape());
     }
 
     virtual position_flag_pair_type deflect(position_type const& pos0, position_type const& displacement) const
@@ -129,6 +132,11 @@ public:
     virtual bool allows_interaction_from(position_type const& pos) const
     {
         return ::allows_interaction_from(shape(), pos);
+	}
+
+    virtual bool is_alongside(position_type const& pos) const
+    {
+        return ::is_alongside(shape(), pos);
     }
 
     // The constructor

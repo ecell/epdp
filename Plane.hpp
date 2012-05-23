@@ -18,6 +18,7 @@ public:
     typedef T_ value_type;
     typedef Vector3<T_> position_type;
     typedef T_ length_type;
+    typedef enum side_enum_type {TOP=0, BOTTOM=1, LEFT=2, RIGHT=3} side_enum_type;  // The typedef is a little bit C style but doesn't matter for C++
 
 public:
     Plane(position_type const& position = position_type())
@@ -281,6 +282,8 @@ min_dist_proj_to_edge(Plane<T_> const& obj, typename Plane<T_>::position_type co
     
 }
 
+///// Function below are inline functions that can be applied on Plane objects.
+
 template<typename T_>
 inline std::pair<typename Plane<T_>::position_type, bool>
 deflect(Plane<T_> const& obj, typename Plane<T_>::position_type const& r0, typename Plane<T_>::position_type const& d)
@@ -299,13 +302,13 @@ deflect(Plane<T_> const& obj, typename Plane<T_>::position_type const& r0, typen
    position_type center_pt = obj.position();
    position_type u_x = obj.unit_x();
    position_type u_y = obj.unit_y();
-   position_type u_z = obj.unit_z();   
+   position_type u_z = obj.unit_z();
    
    // Variables used for calculation
    position_type intersect_pt;          // the point at which the displacement vector intersects the edge
    position_type d_out, d_edge, d_perp; // the part of the displacement ranging out of the plane and
                                         // the components parallel and perpendicular to the edge
-   position_type d_edge_n;              // normalized d_edge                                        
+   position_type d_edge_n;              // normalized d_edge
    position_type icv;                   // = intersect_to_center_vector
    position_type icv_edge, icv_perp;    // the components of icv parallel and perpendicular to the edge
    
@@ -400,8 +403,10 @@ deflect_back(Plane<T_> const& obj, typename Plane<T_>::position_type const& r, t
     
     // Find the unit vector perpendicular to the edge by comparing with u_z
     // (u_z might point outwards or inwards with respect to plane obj)
-    if(dot_product(dc, u_z) > 0.0)     u_perp = u_z;
-    else                               u_perp = multiply(u_z, -1.0);        
+    if(dot_product(dc, u_z) > 0.0)
+        u_perp = u_z;
+    else
+        u_perp = multiply(u_z, -1.0);
     
     r_new = add(r_proj.first, multiply(u_perp, abs(r_proj.second)) );
     
@@ -417,6 +422,20 @@ allows_interaction_from(Plane<T_> const& obj, typename Plane<T_>::position_type 
     
     // Return true if projection of pos is within the confined plane
     return ( abs(x_y_z[0]) <= obj.Lx() ) && ( abs(x_y_z[1]) <= obj.Ly() );
+}
+
+template<typename T_>
+inline bool
+is_alongside(Plane<T_> const& obj, typename Plane<T_>::position_type const& pos)
+// The function checks if the projection of the position 'pos' is 'inside' the object.
+{
+    typedef typename Plane<T_>::position_type position_type;
+
+    boost::array<typename Plane<T_>::length_type, 2> half_extends(obj.half_extent());
+    position_type pos_vector(subtract(pos, obj.position()));
+
+    return ((abs(dot_product(pos_vector, obj.unit_x())) < half_extends[0]) &&
+            (abs(dot_product(pos_vector, obj.unit_y())) < half_extends[1]));
 }
 
 template<typename T, typename Trng>
