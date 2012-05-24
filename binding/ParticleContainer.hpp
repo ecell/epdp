@@ -352,7 +352,6 @@ public:
     typedef typename wrapped_type::structure_id_pair_generator          structure_id_pair_generator;
     typedef typename wrapped_type::particle_id_pair_and_distance_list   particle_id_pair_and_distance_list;
     typedef typename wrapped_type::structure_id_pair_and_distance_list  structure_id_pair_and_distance_list;
-    typedef typename wrapped_type::structure_id_and_distance_pair       structure_id_and_distance_pair;
     typedef typename wrapped_type::position_structid_pair_type          position_structid_pair_type;
     typedef typename wrapped_type::structure_id_set                     structure_id_set;
     typedef typename wrapped_type::structures_range                     structures_range;
@@ -455,10 +454,6 @@ public:
         return py_wrapper_type::get_override("get_def_structure_id")();
     }
 
-    virtual structure_id_and_distance_pair get_closest_surface(position_type const& pos, structure_id_type const& ignore) const
-    {
-        return py_wrapper_type::get_override("get_closest_surface")(pos, ignore);
-    }
     virtual structure_id_pair_and_distance_list* get_close_structures(position_type const& pos, structure_id_type const& current_struct_id,
                                                                       structure_id_type const& ignore) const
     {
@@ -619,7 +614,6 @@ inline boost::python::objects::class_base register_particle_container_class(
     // registering converters from standard boost templates.
     peer::converters::register_tuple_converter<typename impl_type::particle_id_pair>();
     peer::converters::register_tuple_converter<typename impl_type::structure_id_pair>();
-    peer::converters::register_tuple_converter<typename impl_type::structure_id_and_distance_pair>();   // TODO remove later.
     peer::converters::register_tuple_converter<typename impl_type::particle_id_pair_and_distance>();
     peer::converters::register_tuple_converter<typename impl_type::structure_id_pair_and_distance>();
 
@@ -653,7 +647,6 @@ inline boost::python::objects::class_base register_particle_container_class(
         .def("remove_structure", pure_virtual(&impl_type::remove_structure))
         .def("get_structure_ids", pure_virtual(&impl_type::get_structure_ids))
         .def("get_def_structure_id", pure_virtual(&impl_type::get_def_structure_id))
-        .def("get_closest_surface", pure_virtual(&impl_type::get_closest_surface))
         .def("get_close_structures", pure_virtual((typename impl_type::structure_id_pair_and_distance_list*(impl_type::*)(typename impl_type::position_type const& pos, typename impl_type::structure_id_type const&, typename impl_type::structure_id_type const&) const)&impl_type::get_close_structures), return_value_policy<return_by_value>())
         // Particle stuff
         .def("new_particle", pure_virtual(&impl_type::new_particle))
