@@ -716,7 +716,7 @@ def get_radius_to_SphericalShape(shape, testShell, r):
     # if the newly calculated dimensions are smaller than the current one, use them
     return min(r, r_new)
 
-# functions to size up a testShell to a Cylindrical or Disk shape object
+# functions to size up a testShell to a Cylindrical shape object
 def get_dr_dzright_dzleft_to_Cylindrical_or_DiskShape(shape, testShell, r, z_right, z_left):
     # This function returns the dr, dz_right, dz_left parameters for the cylindrical 'testShell'
     # using the cylindrical 'shell' as its closest neighbor. Note that it returns the minimum the newly calculated
@@ -724,7 +724,7 @@ def get_dr_dzright_dzleft_to_Cylindrical_or_DiskShape(shape, testShell, r, z_rig
     # smaller.
 
     # Note that the 'shell' is querried from this domain earlier by the testShell.
-    # -> the shell MUST be a Cylinder or Disk.
+    # -> the shell MUST be a Cylinder.
     assert (type(shape) is Cylinder) or (type(shape) is Disk)
 
     # Laurens' algorithm (part2)
@@ -1328,7 +1328,7 @@ class CylindricaltestShell(testShell):
         # initialize the parameters to start the scaling of the cylinder
         min_dr, min_dz_right, min_dz_left = self.apply_safety(min_dr, min_dz_right, min_dz_left)
         dr, dz_right, dz_left             = max_dr, max_dz_right, max_dz_left
-        
+ 
         # first check the maximum dr, dz_right, dz_left against the surfaces
         # NOTE: we assume that all relevant surfaces are cylindrical and parallel to the testCylinder
         # or planar surfaces and parallel to the testCylinder axis
