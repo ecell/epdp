@@ -220,11 +220,20 @@ inline std::pair<typename Box<T_>::position_type,
                            typename Box<T_>::length_type> >
 project_point(Box<T_> const& obj, typename Box<T_>::position_type const& pos)
 {
-    // Todo. If we ever need it.
+    typedef typename Box<T_>::length_type length_type;
+
+    const boost::array<length_type, 3> x_y_z(to_internal(obj, pos));
+    const boost::array<length_type, 3> dx_dy_dz(subtract(abs(x_y_z), obj.half_extent()));
+    const length_type min_dist ( (dx_dy_dz[0] <= 0 &&
+                                  dx_dy_dz[1] <= 0 &&
+                                  dx_dy_dz[2] <= 0) ? std::max(dx_dy_dz[0], std::max(dx_dy_dz[1], dx_dy_dz[2]) )
+                                                    : 1.0 );      // TODO make this is proper distance if we need it
+
+    // TODO the projection of the point is not very well defined.
     // The projection of a point on a box.
     return std::make_pair(typename Box<T_>::position_type(),
                           std::make_pair(typename Box<T_>::length_type(),
-                                         typename Box<T_>::length_type()) );
+                                         min_dist) );
 }
 
 template<typename T_>

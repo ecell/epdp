@@ -198,11 +198,18 @@ project_point(Plane<T_> const& obj, typename Plane<T_>::position_type const& pos
 // Calculates the projection of 'pos' onto the plane 'obj' and also returns the coefficient
 // for the normal component (z) of 'pos' in the basis of the plane
 {
+    typedef typename Plane<T_>::length_type length_type;
+
     boost::array<typename Plane<T_>::length_type, 3> x_y_z(to_internal(obj, pos));
-    return std::make_pair(
-        add(add(obj.position(), multiply(obj.unit_x(), x_y_z[0])),
-                                multiply(obj.unit_y(), x_y_z[1])),
-        std::make_pair(x_y_z[2], 0.0) );    //TODO
+
+    const length_type dx(subtract( abs(x_y_z[0]), obj.half_extent()[0]));
+    const length_type dy(subtract( abs(x_y_z[1]), obj.half_extent()[1]));
+    const length_type min_dist ( (dx <= 0 && dy <= 0) ? std::max(dx, dy)
+                                                      : 1.0 );      // TODO make this is proper distance if we need it
+
+    return std::make_pair( add(add(obj.position(), multiply(obj.unit_x(), x_y_z[0])),
+                               multiply(obj.unit_y(), x_y_z[1])),
+                           std::make_pair(x_y_z[2], min_dist) );
 }
 
 template<typename T_>

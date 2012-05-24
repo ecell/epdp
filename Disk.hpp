@@ -5,6 +5,7 @@
 #include <cmath>
 #include "Vector3.hpp"
 #include "Shape.hpp"
+#include "linear_algebra.hpp"
 
 template<typename T_>
 class Disk
@@ -111,10 +112,9 @@ to_internal(Disk<T_> const& obj, typename Disk<T_>::position_type const& pos)
     typedef typename Disk<T_>::length_type      length_type;
 
     const position_type pos_vector(subtract(pos, obj.position()));
-    // z can be < 0
-    const length_type z(dot_product(pos_vector, obj.unit_z()));
-    // r is always >= 0
-    const length_type r(length(pos_vector - multiply(obj.unit_z(), z)));
+    
+    const length_type z( dot_product(pos_vector, obj.unit_z()) );               // z can be < 0
+    const length_type r( length(subtract(pos_vector, multiply(obj.unit_z(), z))) );// r is always >= 0
 
     return array_gen<typename Disk<T_>::length_type>(r, z);
 }
@@ -123,19 +123,24 @@ template<typename T_>
 inline std::pair<typename Disk<T_>::position_type,
                  std::pair<typename Disk<T_>::length_type,
                            typename Disk<T_>::length_type> >
-project_point(Disk<T_> const& obj,
-                typename Disk<T_>::position_type const& pos)
+project_point(Disk<T_> const& obj, typename Disk<T_>::position_type const& pos)
+// Calculates the projection of 'pos' onto the disk 'obj' and also returns the coefficient
+// for the normal component (z) of 'pos' in the basis of the disk and the distance of the
+// projected point to the 'edge' of the disk. Here a positive number means the projected
+// point is outside the disk, and a negative numbers means it is 'inside' the disk.
 {
-    typedef typename Disk<T_>::length_type length_type;
+    typedef typename Disk<T_>::length_type   length_type;
+    typedef typename Disk<T_>::position_type position_type;
 
-    // The disk is in principle a 1D object:
-    // Projecting onto the disk means projecting onto its center.
-    // The distance is the z-component returned by to_internal().
-    boost::array<typename Disk<T_>::length_type, 2> r_z(to_internal(obj, pos));
-    
-    return std::make_pair( obj.position(),
-                           std::make_pair(r_z[1],
-                                          0.0) );       //TODO
+    // Here we do not call 'to_internal' for efficiency
+    const position_type pos_vector(subtract(pos, obj.position()));
+
+    const length_type   z ( dot_product(pos_vector, obj.unit_z()) );
+    const position_type r_vector (subtract(pos_vector, multiply(obj.unit_z(), z)));
+    const length_type   r (length(r_vector));
+
+    return std::make_pair( add(obj.position(), r_vector),
+                           std::make_pair(z, r - obj.radius()) );
 }
 
 // The same as in case of the plane: projected_point_on_surface = projected_point
@@ -143,8 +148,7 @@ template<typename T_>
 inline std::pair<typename Disk<T_>::position_type,
                  std::pair<typename Disk<T_>::length_type,
                            typename Disk<T_>::length_type> >
-project_point_on_surface(Disk<T_> const& obj,
-                typename Disk<T_>::position_type const& pos)
+project_point_on_surface(Disk<T_> const& obj, typename Disk<T_>::position_type const& pos)
 {
     return project_point(obj, pos);
 }

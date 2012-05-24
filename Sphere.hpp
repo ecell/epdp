@@ -4,6 +4,7 @@
 #include <ostream>
 #include "Vector3.hpp"
 #include "Shape.hpp"
+#include "linear_algebra.hpp"
 
 template<typename T_>
 class Sphere
@@ -86,22 +87,24 @@ inline typename Sphere<T_>::length_type
 to_internal(Sphere<T_> const& obj, typename Sphere<T_>::position_type const& pos)
 // The function calculates the coefficients to express 'pos' into the base of the sphere 'obj'
 {
+    typedef typename Sphere<T_>::position_type position_type;
+    position_type pos_vector(subtract(pos, obj.position()));
+
     // Todo. If we ever need it.
-    return typename Sphere<T_>::length_type();
+    return length(pos_vector);
 }
 
 template<typename T_>
 inline std::pair<typename Sphere<T_>::position_type,
                  std::pair<typename Sphere<T_>::length_type,
                            typename Sphere<T_>::length_type> >
-project_point(Sphere<T_> const& obj,
-                typename Sphere<T_>::position_type const& pos)
+project_point(Sphere<T_> const& obj, typename Sphere<T_>::position_type const& pos)
 {
-    // Todo. If we ever need it.
-    // The projection of a point on a sphere.
-    return std::make_pair(typename Sphere<T_>::position_type(),
-                          std::make_pair(typename Sphere<T_>::length_type(),
-                                         typename Sphere<T_>::length_type()) );
+    typename Sphere<T_>::length_type r(to_internal(obj, pos));
+
+    // The projection of a point on a sphere is always the centerpoint of the sphere.
+    return std::make_pair(obj.position(),
+                          std::make_pair(r, 0.0) );
 }
 
 template<typename T_>
