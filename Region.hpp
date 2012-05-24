@@ -42,12 +42,14 @@ public:
     typedef Tshape_                                     shape_type;
     typedef typename shape_type::side_enum_type         side_enum_type;     // Defines the type of enum to use for the sides of the region
 
-    typedef typename base_type::structure_name_type     structure_name_type;
-    typedef typename base_type::structure_id_type       structure_id_type;
-    typedef typename base_type::structure_type_id_type  structure_type_id_type;
-    typedef typename base_type::length_type             length_type;
-    typedef typename base_type::position_type           position_type;
-    typedef std::pair<position_type, bool>              position_flag_pair_type;
+    typedef typename base_type::structure_name_type         structure_name_type;
+    typedef typename base_type::structure_id_type           structure_id_type;
+    typedef typename base_type::structure_type_id_type      structure_type_id_type;
+    typedef typename base_type::length_type                 length_type;
+    typedef typename base_type::position_type               position_type;
+    typedef std::pair<position_type, bool>                  position_flag_pair_type;
+    typedef std::pair<length_type, length_type>             components_pair_type;
+    typedef std::pair<position_type, components_pair_type>  projected_type;
 
 public:
     virtual ~BasicRegionImpl() {}
@@ -94,14 +96,14 @@ public:
         return out.str();
     }
 
-    virtual std::pair<position_type, length_type> projected_point(position_type const& pos) const
+    virtual projected_type project_point(position_type const& pos) const
     {
-        return ::projected_point(shape(), pos);
+        return ::project_point(shape(), pos);
     }
     
-    virtual std::pair<position_type, length_type> projected_point_on_surface(position_type const& pos) const
+    virtual projected_type project_point_on_surface(position_type const& pos) const
     {
-        return ::projected_point(shape(), pos);
+        return ::project_point_on_surface(shape(), pos);
     }
     
     virtual length_type distance(position_type const& pos) const

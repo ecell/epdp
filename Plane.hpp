@@ -192,8 +192,9 @@ to_internal(Plane<T_> const& obj, typename Plane<T_>::position_type const& pos)
 
 template<typename T_>
 inline std::pair<typename Plane<T_>::position_type,
-                 typename Plane<T_>::length_type>
-projected_point(Plane<T_> const& obj, typename Plane<T_>::position_type const& pos)
+                 std::pair<typename Plane<T_>::length_type,
+                           typename Plane<T_>::length_type> >
+project_point(Plane<T_> const& obj, typename Plane<T_>::position_type const& pos)
 // Calculates the projection of 'pos' onto the plane 'obj' and also returns the coefficient
 // for the normal component (z) of 'pos' in the basis of the plane
 {
@@ -201,17 +202,18 @@ projected_point(Plane<T_> const& obj, typename Plane<T_>::position_type const& p
     return std::make_pair(
         add(add(obj.position(), multiply(obj.unit_x(), x_y_z[0])),
                                 multiply(obj.unit_y(), x_y_z[1])),
-        x_y_z[2]);
+        std::make_pair(x_y_z[2], 0.0) );    //TODO
 }
 
 template<typename T_>
 inline std::pair<typename Plane<T_>::position_type,
-                 typename Plane<T_>::length_type>
-projected_point_on_surface(Plane<T_> const& obj, typename Plane<T_>::position_type const& pos)
+                 std::pair<typename Plane<T_>::length_type,
+                           typename Plane<T_>::length_type> >
+project_point_on_surface(Plane<T_> const& obj, typename Plane<T_>::position_type const& pos)
 // Since the projected point on the plane, is already on the surface of the plane,
 // this function is just a wrapper of projected point.
 {
-    return projected_point(obj, pos);
+    return project_point(obj, pos);
 }
 
 template<typename T_>
@@ -342,7 +344,7 @@ deflect(Plane<T_> const& obj, typename Plane<T_>::position_type const& r0, typen
         // that ranges out of the target plane.
         // Project all points that are supposed to be in the plane into it,
         // just to be sure.
-        intersect_pt = projected_point( obj, add(r0, multiply(d, intersect_parameter)) ).first;
+        intersect_pt = project_point( obj, add(r0, multiply(d, intersect_parameter)) ).first;
         d_out = multiply(d, subtract(1.0, intersect_parameter));
         
         // Calculate the length of the component of d_out perpendicular to the edge
@@ -366,7 +368,7 @@ deflect(Plane<T_> const& obj, typename Plane<T_>::position_type const& r0, typen
         
         // Construct the new position vector, make sure it's in the plane to
         // avoid trouble with periodic boundary conditions
-        new_pos = projected_point(obj, add(intersect_pt, add(d_edge, d_perp)) ).first;        
+        new_pos = project_point(obj, add(intersect_pt, add(d_edge, d_perp)) ).first;        
         changeflag = true;
    }
    
@@ -389,9 +391,9 @@ deflect_back(Plane<T_> const& obj, typename Plane<T_>::position_type const& r, t
      // Type abbreviations
     typedef typename Plane<T_>::length_type length_type;
     typedef typename Plane<T_>::position_type position_type;
-    typedef std::pair<position_type, length_type> projected_type;
+    typedef std::pair<position_type, std::pair<length_type, length_type> > projected_type;
     
-    projected_type r_proj(projected_point(obj, r));
+    projected_type r_proj(project_point(obj, r));
     position_type  dc(subtract(r_proj.first, obj.position()));
                    // vector pointing towards the projection of r on plane obj
                    // from the center of the latter
@@ -408,9 +410,9 @@ deflect_back(Plane<T_> const& obj, typename Plane<T_>::position_type const& r, t
     else
         u_perp = multiply(u_z, -1.0);
     
-    r_new = add(r_proj.first, multiply(u_perp, abs(r_proj.second)) );
+    r_new = add(r_proj.first, multiply(u_perp, abs(r_proj.second.first)) );
     
-    return projected_point(obj, r_new).first;
+    return project_point(obj, r_new).first;
 }
 
 template<typename T_>

@@ -175,10 +175,10 @@ class testInteractionSingle(testSingle, Others):
         ### initialize some constants that are common for the testInteractionSingle domains.
 
         # calculate the Projected_point and distance to the target_structure
-        # Cyclic transpose needed when calling target_structure.projected_point!
+        # Cyclic transpose needed when calling target_structure.project_point!
         pos_transposed = self.world.cyclic_transpose(self.pid_particle_pair[1].position,
                                                      self.target_structure.shape.position)
-        self.reference_point, projection_length = self.target_structure.projected_point(pos_transposed)
+        self.reference_point, _ = self.target_structure.project_point(pos_transposed)
 
         # projection_distance can be negative in case of plane
         # note that the distance is to the center of the cylinder in case of cylinders
@@ -343,7 +343,7 @@ class testMixedPair2D3D(testPair):
 
         # and then projected onto the plane to make sure the CoM is in the surface
         com = self.world.cyclic_transpose(com, self.structure2D.shape.position)
-        com, _ = self.structure2D.projected_point (com)
+        com, _ = self.structure2D.project_point (com)
         com = self.world.apply_boundary(com)
 
 

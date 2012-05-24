@@ -1326,7 +1326,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
             # 1.5 get new position and structure_id of particle
             transposed_pos       = self.world.cyclic_transpose(reactant_pos, product_structure.shape.position)
-            product_pos, _       = product_structure.projected_point(transposed_pos)
+            product_pos, _       = product_structure.project_point(transposed_pos)
             product_pos          = self.world.apply_boundary(product_pos)        # not sure this is still necessary
             product_structure_id = product_structure.id
 

@@ -92,26 +92,30 @@ to_internal(Sphere<T_> const& obj, typename Sphere<T_>::position_type const& pos
 
 template<typename T_>
 inline std::pair<typename Sphere<T_>::position_type,
-                 typename Sphere<T_>::length_type>
-projected_point(Sphere<T_> const& obj,
+                 std::pair<typename Sphere<T_>::length_type,
+                           typename Sphere<T_>::length_type> >
+project_point(Sphere<T_> const& obj,
                 typename Sphere<T_>::position_type const& pos)
 {
     // Todo. If we ever need it.
     // The projection of a point on a sphere.
     return std::make_pair(typename Sphere<T_>::position_type(),
-                          typename Sphere<T_>::length_type());
+                          std::make_pair(typename Sphere<T_>::length_type(),
+                                         typename Sphere<T_>::length_type()) );
 }
 
 template<typename T_>
 inline std::pair<typename Sphere<T_>::position_type,
-                 typename Sphere<T_>::length_type>
-projected_point_on_surface(Sphere<T_> const& obj,
+                 std::pair<typename Sphere<T_>::length_type,
+                           typename Sphere<T_>::length_type> >
+project_point_on_surface(Sphere<T_> const& obj,
                 typename Sphere<T_>::position_type const& pos)
 {
     // Todo. If we ever need it.
     // The projection of a point on a sphere.
     return std::make_pair(typename Sphere<T_>::position_type(),
-                          typename Sphere<T_>::length_type());
+                          std::make_pair(typename Sphere<T_>::length_type(),
+                                         typename Sphere<T_>::length_type()) );
 }
 
 template<typename T_>

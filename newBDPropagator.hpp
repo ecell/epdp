@@ -59,7 +59,8 @@ public:
     typedef std::pair<position_type, position_type>                             position_pair_type;
     typedef std::pair<position_type, structure_id_type>                         position_structid_pair_type;
     typedef std::pair<position_structid_pair_type, position_structid_pair_type> posstructid_posstructid_pair_type;
-    typedef std::pair<position_type, length_type>                               projected_type;
+    typedef std::pair<length_type, length_type>                                 component_pair_type;
+    typedef std::pair<position_type, component_pair_type>                       projected_type;
 
 public:
     // The constructor
@@ -684,7 +685,7 @@ private:
                                 throw propagation_error("Particles can only be one hierarchical level apart.");
                             }
 
-                            projected_type const position_on_surface( product_structure-> projected_point(
+                            projected_type const position_on_surface( product_structure-> project_point(
                                     tx_.cyclic_transpose( product_pos, product_structure->position() )));       // TODO check of cyclic transpose is still needed.
 
                             // check that the projected point is not outside of the product surface.
@@ -801,7 +802,7 @@ private:
                         const species_type product_species(tx_.get_species(products[0]));
 
                         // Get the new position of the particle on the structure
-                        const position_type product_pos( tx_.apply_boundary( structure->projected_point( pp.second.position() ).first ) );
+                        const position_type product_pos( tx_.apply_boundary( structure->project_point( pp.second.position() ).first ) );
 
 
                         ///// Check for overlaps   

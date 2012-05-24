@@ -121,8 +121,9 @@ to_internal(Disk<T_> const& obj, typename Disk<T_>::position_type const& pos)
 
 template<typename T_>
 inline std::pair<typename Disk<T_>::position_type,
-                 typename Disk<T_>::length_type>
-projected_point(Disk<T_> const& obj,
+                 std::pair<typename Disk<T_>::length_type,
+                           typename Disk<T_>::length_type> >
+project_point(Disk<T_> const& obj,
                 typename Disk<T_>::position_type const& pos)
 {
     typedef typename Disk<T_>::length_type length_type;
@@ -132,17 +133,20 @@ projected_point(Disk<T_> const& obj,
     // The distance is the z-component returned by to_internal().
     boost::array<typename Disk<T_>::length_type, 2> r_z(to_internal(obj, pos));
     
-    return std::make_pair( obj.position(), r_z[1]);
+    return std::make_pair( obj.position(),
+                           std::make_pair(r_z[1],
+                                          0.0) );       //TODO
 }
 
 // The same as in case of the plane: projected_point_on_surface = projected_point
 template<typename T_>
 inline std::pair<typename Disk<T_>::position_type,
-                 typename Disk<T_>::length_type>
-projected_point_on_surface(Disk<T_> const& obj,
+                 std::pair<typename Disk<T_>::length_type,
+                           typename Disk<T_>::length_type> >
+project_point_on_surface(Disk<T_> const& obj,
                 typename Disk<T_>::position_type const& pos)
 {
-    return projected_point(obj, pos);
+    return project_point(obj, pos);
 }
 
 template<typename T_>

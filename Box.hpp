@@ -216,14 +216,31 @@ to_internal(Box<T_> const& obj, typename Box<T_>::position_type const& pos)
 
 template<typename T_>
 inline std::pair<typename Box<T_>::position_type,
-                 typename Box<T_>::length_type>
-projected_point(Box<T_> const& obj, typename Box<T_>::position_type const& pos)
+                 std::pair<typename Box<T_>::length_type,
+                           typename Box<T_>::length_type> >
+project_point(Box<T_> const& obj, typename Box<T_>::position_type const& pos)
 {
     // Todo. If we ever need it.
     // The projection of a point on a box.
     return std::make_pair(typename Box<T_>::position_type(),
-                          typename Box<T_>::length_type());
+                          std::make_pair(typename Box<T_>::length_type(),
+                                         typename Box<T_>::length_type()) );
 }
+
+template<typename T_>
+inline std::pair<typename Box<T_>::position_type,
+                 std::pair<typename Box<T_>::length_type,
+                           typename Box<T_>::length_type> >
+project_point_on_surface(Box<T_> const& obj,
+                typename Box<T_>::position_type const& pos)
+{
+    // Todo. If we ever need it.
+    // The projection of a point on a box.
+    return std::make_pair(typename Box<T_>::position_type(),
+                          std::make_pair(typename Box<T_>::length_type(),
+                                         typename Box<T_>::length_type()) );
+}
+
 
 template<typename T_>
 inline typename Box<T_>::length_type
