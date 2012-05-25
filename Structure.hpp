@@ -121,7 +121,6 @@ public:
     virtual projected_type project_point(position_type const& pos) const = 0;
     virtual projected_type project_point_on_surface(position_type const& pos) const = 0;
     virtual length_type distance(position_type const& pos) const = 0;
-    virtual length_type min_dist_proj_to_edge(position_type const& pos) const = 0;
     virtual position_type const& position() const = 0;    
 
     // Methods used for edge crossing (only for the planes so far)    

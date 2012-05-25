@@ -1536,8 +1536,9 @@ class PlanarSurfaceSingletestShell(CylindricaltestShell, testNonInteractionSingl
         dz_right = self.pid_particle_pair[1].radius
         dz_left  = dz_right
         dr_sr    = math.sqrt((self.get_searchradius())**2 - dz_right**2) # stay within the searchradius
-        dr_edge  = self.structure.min_dist_proj_to_edge(self.get_referencepoint())
-        dr       = min(dr_sr, dr_edge)
+#        dr_edge  = self.structure.min_dist_proj_to_edge(self.get_referencepoint())
+#        dr       = min(dr_sr, dr_edge)
+        dr = dr_sr
         return dr, dz_right, dz_left
 
     def apply_safety(self, r, z_right, z_left):
@@ -1590,8 +1591,9 @@ class PlanarSurfacePairtestShell(CylindricaltestShell, testSimplePair):
         dz_right = max(self.pid_particle_pair1[1].radius, self.pid_particle_pair2[1].radius)
         dz_left  = dz_right
         dr_sr    = math.sqrt((self.get_searchradius())**2 - dz_right**2) # stay within the searchradius
-        dr_edge  = self.structure.min_dist_proj_to_edge(self.get_referencepoint())
-        dr       = min(dr_sr, dr_edge)
+#        dr_edge  = self.structure.min_dist_proj_to_edge(self.get_referencepoint())
+#        dr       = min(dr_sr, dr_edge)
+        dr = dr_sr
         return dr, dz_right, dz_left
 
     def apply_safety(self, r, z_right, z_left):
@@ -1639,9 +1641,10 @@ class CylindricalSurfaceSingletestShell(CylindricaltestShell, testNonInteraction
 
     def get_max_dr_dzright_dzleft(self):
         dr = self.pid_particle_pair[1].radius
-        dz_right_edge = self.structure.min_dist_proj_to_edge(self.get_referencepoint())
+#        dz_right_edge = self.structure.min_dist_proj_to_edge(self.get_referencepoint())
         dz_right_sr   = math.sqrt((self.get_searchradius())**2 - dr**2) # stay within the searchradius
-        dz_right      = min(dz_right_sr, dz_right_edge)
+#        dz_right      = min(dz_right_sr, dz_right_edge)
+        dz_right      = dz_right_sr
         dz_left       = dz_right
         return dr, dz_right, dz_left
 
@@ -1744,9 +1747,10 @@ class CylindricalSurfacePairtestShell(CylindricaltestShell, testSimplePair):
 
     def get_max_dr_dzright_dzleft(self):
         dr = max(self.pid_particle_pair1[1].radius, self.pid_particle_pair2[1].radius)
-        dz_right_edge = self.structure.min_dist_proj_to_edge(self.get_referencepoint())
+#        dz_right_edge = self.structure.min_dist_proj_to_edge(self.get_referencepoint())
         dz_right_sr   = math.sqrt((self.get_searchradius())**2 - dr**2) # stay within the searchradius
-        dz_right      = min(dz_right_sr, dz_right_edge)
+#        dz_right      = min(dz_right_sr, dz_right_edge)
+        dz_right      = dz_right_sr
         dz_left       = dz_right
         return dr, dz_right, dz_left
 
@@ -1802,7 +1806,7 @@ class PlanarSurfaceInteractiontestShell(CylindricaltestShell, testInteractionSin
     def get_max_dr_dzright_dzleft(self):
         # TODO this can be improved
         dr_sr    = (self.get_searchradius()/math.sqrt(2))
-        dr_edge  = self.target_structure.min_dist_proj_to_edge(self.get_referencepoint())
+        dr_edge  = self.min_dist_proj_to_edge
         dr       = min(dr_sr, dr_edge)
         dz_right = dr + self.particle_surface_distance          # Note that we assume that dr >> particle_surface_distance        
         dz_left  = self.pid_particle_pair[1].radius             # so that the cylinder always fits inside the search_radius
@@ -1856,7 +1860,7 @@ class CylindricalSurfaceInteractiontestShell(CylindricaltestShell, testInteracti
         
     def get_max_dr_dzright_dzleft(self):
         # TODO clarify
-        dz_right_edge = self.target_structure.min_dist_proj_to_edge(self.get_referencepoint())
+        dz_right_edge = self.min_dist_proj_to_edge
         dz_right_sr   = ((-(self.particle_surface_distance + self.target_structure.shape.radius) + \
                        math.sqrt(2*(self.get_searchradius()**2) - (self.particle_surface_distance + self.target_structure.shape.radius)**2)) / 2.0)
         dz_right      = min(dz_right_sr, dz_right_edge)
@@ -1976,9 +1980,10 @@ class CylindricalSurfaceSinktestShell(CylindricaltestShell, testInteractionSingl
         
     def get_max_dr_dzright_dzleft(self):
         dr       = self.pid_particle_pair[1].radius
-        dz_right_edge = self.origin_structure.min_dist_proj_to_edge(self.get_referencepoint())
+#        dz_right_edge = self.origin_structure.min_dist_proj_to_edge(self.get_referencepoint())
         dz_right_sr   = math.sqrt((self.get_searchradius())**2 - dr**2) # stay within the searchradius
-        dz_right      = min(dz_right_sr, dz_right_edge)
+#        dz_right      = min(dz_right_sr, dz_right_edge)
+        dz_right      = dz_right_sr
         dz_left       = dz_right
         return dr, dz_right, dz_left
 
@@ -2091,8 +2096,9 @@ class MixedPair2D3DtestShell(CylindricaltestShell, testMixedPair2D3D):
     def get_max_dr_dzright_dzleft(self):
         # TODO this can be improved
         dr_sr    = self.get_searchradius()/math.sqrt(2)
-        dr_edge  = self.target_structure.min_dist_proj_to_edge(self.get_referencepoint())
-        dr       = min(dr_sr, dr_edge)
+#        dr_edge  = self.target_structure.min_dist_proj_to_edge(self.get_referencepoint())
+#        dr       = min(dr_sr, dr_edge)
+        dr       = dr_sr
 
         dz_left  = self.pid_particle_pair1[1].radius
 

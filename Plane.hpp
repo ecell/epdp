@@ -270,27 +270,6 @@ distance(Plane<T_> const& obj, typename Plane<T_>::position_type const& pos)
     }
 }
 
-template<typename T_>
-inline typename Plane<T_>::length_type
-min_dist_proj_to_edge(Plane<T_> const& obj, typename Plane<T_>::position_type const& pos)
-// Calculates the distance from the projection of 'pos' to the closest edge of the plane
-// if it is in the plane; if not, it returns zero
-{
-    typedef typename Plane<T_>::length_type length_type;
-    boost::array<length_type, 3> const x_y_z(to_internal(obj, pos));
-
-    length_type const dx(subtract( abs(x_y_z[0]), obj.half_extent()[0]));
-    length_type const dy(subtract( abs(x_y_z[1]), obj.half_extent()[1]));
-
-    if (dx < 0.0 && dy < 0.0)
-        // pos is positioned over the plane (projected point is in the plane and
-        // not next to it).
-        return std::min( -dx, -dy);
-
-    else        return 0.0;
-    
-}
-
 ///// Function below are inline functions that can be applied on Plane objects.
 
 template<typename T_>

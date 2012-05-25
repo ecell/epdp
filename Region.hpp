@@ -110,12 +110,7 @@ public:
     {
         return ::distance(shape(), pos);
     }
-    
-    virtual length_type min_dist_proj_to_edge(position_type const& pos) const
-    {
-        return ::min_dist_proj_to_edge(shape(), pos);
-    }
-    
+
     virtual position_type const& position() const
     {
         return ::shape_position(shape());
