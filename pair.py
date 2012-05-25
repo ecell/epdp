@@ -622,8 +622,8 @@ class PlanarSurfaceTransitionPair(SimplePair, hasSphericalShell):
         # These components also are used to calculate the safety factor for
         # interparticle vector enlargement in case that the two particles
         # indeed are on two different planes.
-        _, pos1_orth = structure2.projected_point(pos1)
-        _, pos2_orth = structure2.projected_point(pos2)
+        _, (pos1_orth, _) = structure2.project_point(pos1)
+        _, (pos2_orth, _) = structure2.project_point(pos2)
 
         if( pos1_orth * pos2_orth < 0.0 ) :
             # The particles will end up on different planes, i.e.

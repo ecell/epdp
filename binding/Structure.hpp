@@ -15,7 +15,7 @@ inline boost::python::objects::class_base register_structure_class(char const *n
     typedef Timpl impl_type;
 
     // registering converters from standard boost templates
-    // registers the projected_point/projected_distance tuple defined in ../Structure.hpp
+    // registers the projected_point/(projected_distance, dist_to_edge) tuple defined in ../Structure.hpp
     peer::converters::register_tuple_converter<typename impl_type::projected_type>();
     peer::converters::register_tuple_converter<typename impl_type::components_pair_type>();
     peer::converters::register_tuple_converter<typename impl_type::position_flag_pair_type>();

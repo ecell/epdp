@@ -132,7 +132,7 @@ project_point(Disk<T_> const& obj, typename Disk<T_>::position_type const& pos)
                            std::make_pair(z, r - obj.radius()) );
 }
 
-// The same as in case of the plane: projected_point_on_surface = projected_point
+// The same as in case of the plane: project_point_on_surface = project_point
 template<typename T_>
 inline std::pair<typename Disk<T_>::position_type,
                  std::pair<typename Disk<T_>::length_type,
