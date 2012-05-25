@@ -146,9 +146,9 @@ def try_default_testpair(single1, single2, geometrycontainer, domains):
         return MixedPair2D3DtestShell(single1, single2, geometrycontainer, domains) 
     elif (isinstance(single2.structure, PlanarSurface) and isinstance(single1.structure, CuboidalRegion)):
         return MixedPair2D3DtestShell(single2, single1, geometrycontainer, domains)
-    elif (isinstance(single1.structure, DiskSurface) and isinstance(single2.structure, CylindricalSurface)):
+    elif (isinstance(single1.structure, CylindricalSurface) and isinstance(single2.structure, DiskSurface)):
         return MixedPair1DCaptestShell(single1, single2, geometrycontainer, domains)
-    elif (isinstance(single2.structure, DiskSurface) and isinstance(single1.structure, CylindricalSurface)):
+    elif (isinstance(single2.structure, CylindricalSurface) and isinstance(single1.structure, DiskSurface)):
         return MixedPair1DCaptestShell(single2, single1, geometrycontainer, domains)
     else:
         # another mixed pair was supposed to be formed -> unsupported
@@ -2601,7 +2601,7 @@ rejected moves = %d
             # Ignore surface of the particle and interaction surface and all DiskSurfaces for now.
             ignores = [s.id for s in self.world.structures if isinstance(s, DiskSurface)]
             associated = [domain.origin_structure.id, domain.target_structure.id]
-        elif isinstance(domain, InteractionSingle) or isinstance(domain, MixedPair2D3D):
+        elif isinstance(domain, InteractionSingle) or isinstance(domain, MixedPair2D3D) or isinstance(domain, MixedPair1DCap):
             # Ignore surface of the particle and interaction surface
             ignores = []
             associated = [domain.origin_structure.id, domain.target_structure.id]
