@@ -594,7 +594,7 @@ public:
     }
 
     virtual position_structid_pair_type cyclic_transpose(position_structid_pair_type const& pos_struct_id,
-                                                         const boost::shared_ptr<const structure_type> structure) const
+                                                         structure_type const& structure) const
     {
         return py_wrapper_type::get_override("cyclic_transpose")(pos_struct_id, structure);
     }
@@ -666,7 +666,7 @@ inline boost::python::objects::class_base register_particle_container_class(
         .def("apply_boundary", pure_virtual((typename impl_type::position_structid_pair_type(impl_type::*)(typename impl_type::position_structid_pair_type const&) const)&impl_type::apply_boundary))
         .def("cyclic_transpose", pure_virtual((typename impl_type::position_type(impl_type::*)(typename impl_type::position_type const&, typename impl_type::position_type const&) const)&impl_type::cyclic_transpose))
         .def("cyclic_transpose", pure_virtual((typename impl_type::length_type(impl_type::*)(typename impl_type::length_type const&, typename impl_type::length_type const&) const)&impl_type::cyclic_transpose))
-//        .def("cyclic_transpose", pure_virtual((typename impl_type::position_structid_pair_type(impl_type::*)(typename impl_type::position_structid_pair_type const&, typename impl_type::structure_id_pair const&) const)&impl_type::cyclic_transpose))
+        .def("cyclic_transpose", pure_virtual((typename impl_type::position_structid_pair_type(impl_type::*)(typename impl_type::position_structid_pair_type const&, typename impl_type::structure_type const&) const)&impl_type::cyclic_transpose))
         .def("__contains__", pure_virtual(&impl_type::has_particle))
         .def("__iter__", pure_virtual(&impl_type::get_particles),
                 return_value_policy<return_by_value>())

@@ -222,11 +222,11 @@ public:
     }
 
     virtual position_structid_pair_type cyclic_transpose(position_structid_pair_type const& pos_struct_id,
-                                                         const boost::shared_ptr<const structure_type> structure) const
+                                                         structure_type const& structure) const
     {
-        const position_structid_pair_type cyc_pos_struct_id (std::make_pair(cyclic_transpose(pos_struct_id.first, structure->position()),
+        const position_structid_pair_type cyc_pos_struct_id (std::make_pair(cyclic_transpose(pos_struct_id.first, structure.position()),
                                                                             pos_struct_id.second));
-        return structure->cyclic_transpose(cyc_pos_struct_id, structures_);
+        return structure.cyclic_transpose(cyc_pos_struct_id, structures_);
     }
 
     // THIS SEEMS STRANGE TO PUT THIS HERE. 

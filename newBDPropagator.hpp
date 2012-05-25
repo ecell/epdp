@@ -649,7 +649,7 @@ private:
                             (reactant0_structure_id != reactant1_structure_id))
                         {
                             const position_structid_pair_type pos_cyclic1 (tx_.cyclic_transpose(std::make_pair(reactant1_pos, reactant1_structure_id),
-                                                                                                reactant0_structure));
+                                                                                                (*reactant0_structure) ));
                             reactant1_pos = pos_cyclic1.first;
                         }
 

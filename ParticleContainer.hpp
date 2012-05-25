@@ -158,7 +158,7 @@ public:
     virtual length_type cyclic_transpose(length_type const& p0, length_type const& p1) const = 0;
 
     virtual position_structid_pair_type cyclic_transpose(position_structid_pair_type const& pos_struct_id,
-                                                         const boost::shared_ptr<const structure_type> structure) const = 0;
+                                                         structure_type const& structure) const = 0;
 
 };
 
