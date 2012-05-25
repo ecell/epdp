@@ -147,8 +147,7 @@ public:
                                                                             std::sqrt(2.0 * pp_species.D() * dt_),
                                                                             rng_) );
 
-            const position_structid_pair_type pos_structid(tx_.apply_boundary( std::make_pair( add(old_pos, displacement), old_struct_id),
-                                                                              pp_structure));
+            const position_structid_pair_type pos_structid(tx_.apply_boundary( std::make_pair( add(old_pos, displacement), old_struct_id )));
             new_pos = pos_structid.first;
             new_structure_id = pos_structid.second;
         }
@@ -517,8 +516,8 @@ private:
                             // TODO clean this up
                             const boost::shared_ptr<const structure_type> prod0_structure(reactant_structure);
                             const boost::shared_ptr<const structure_type> prod1_structure(tx_.get_structure(prod1_struct_id));
-                            const position_structid_pair_type pos_structid0 (tx_.apply_boundary( std::make_pair(pos0pos1.second, prod1_struct_id), prod1_structure ));
-                            const position_structid_pair_type pos_structid1 (tx_.apply_boundary( std::make_pair(pos0pos1.first,  prod0_struct_id), prod0_structure ));
+                            const position_structid_pair_type pos_structid0 (tx_.apply_boundary( std::make_pair(pos0pos1.second, prod1_struct_id) ));
+                            const position_structid_pair_type pos_structid1 (tx_.apply_boundary( std::make_pair(pos0pos1.first,  prod0_struct_id) ));
                             pos0pos1_pair = std::make_pair(pos_structid0, pos_structid1);
 
 
@@ -700,7 +699,7 @@ private:
                         {
                             if (reactant0_structure_id != reactant1_structure_id)
                             {
-                                const position_structid_pair_type bla (tx_.apply_boundary(std::make_pair(product_pos, reactant0_structure_id), reactant0_structure));
+                                const position_structid_pair_type bla (tx_.apply_boundary(std::make_pair(product_pos, reactant0_structure_id)));
                                 // deflect the product coordinate and get right structure_id.
                                 product_pos = bla.first;
                                 product_structure_id = bla.second;
@@ -873,8 +872,7 @@ private:
 
             const position_type displacement( old_structure->bd_displacement(species.v() * dt_, std::sqrt(2.0 * species.D() * dt_), rng_) );
 
-            const position_structid_pair_type pos_structid(tx_.apply_boundary( std::make_pair( add(old_pos_struct_id.first, displacement), old_pos_struct_id.second),
-                                                                               old_structure));
+            const position_structid_pair_type pos_structid(tx_.apply_boundary( std::make_pair( add(old_pos_struct_id.first, displacement), old_pos_struct_id.second) ));
             new_pos = pos_structid.first;
             new_structure_id = pos_structid.second;
 

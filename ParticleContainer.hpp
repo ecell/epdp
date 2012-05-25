@@ -151,8 +151,7 @@ public:
 
     virtual length_type apply_boundary(length_type const& v) const = 0;
 
-    virtual position_structid_pair_type apply_boundary(position_structid_pair_type const& pos_struct_id,
-                                                       const boost::shared_ptr<const structure_type> structure) const = 0;
+    virtual position_structid_pair_type apply_boundary(position_structid_pair_type const& pos_struct_id) const = 0;
 
     virtual position_type cyclic_transpose(position_type const& p0, position_type const& p1) const = 0;
 

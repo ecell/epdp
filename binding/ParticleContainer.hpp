@@ -578,10 +578,9 @@ public:
         return py_wrapper_type::get_override("apply_boundary")(v);
     }
 
-    virtual position_structid_pair_type apply_boundary(position_structid_pair_type const& pos_struct_id,
-                                                       const boost::shared_ptr<const structure_type> structure) const
+    virtual position_structid_pair_type apply_boundary(position_structid_pair_type const& pos_struct_id) const
     {
-        return py_wrapper_type::get_override("apply_boundary")(pos_struct_id, structure);
+        return py_wrapper_type::get_override("apply_boundary")(pos_struct_id);
     }
 
     virtual position_type cyclic_transpose(position_type const& p0, position_type const& p1) const
@@ -616,6 +615,7 @@ inline boost::python::objects::class_base register_particle_container_class(
     peer::converters::register_tuple_converter<typename impl_type::structure_id_pair>();
     peer::converters::register_tuple_converter<typename impl_type::particle_id_pair_and_distance>();
     peer::converters::register_tuple_converter<typename impl_type::structure_id_pair_and_distance>();
+    peer::converters::register_tuple_converter<typename impl_type::position_structid_pair_type>();
 
     // register the converters that are defined above (not sure what this does)
     particle_id_pair_and_distance_list_converter<typename impl_type::particle_id_pair_and_distance_list>::__register();
@@ -663,8 +663,10 @@ inline boost::python::objects::class_base register_particle_container_class(
         .def("distance", pure_virtual(&impl_type::distance))
         .def("apply_boundary", pure_virtual((typename impl_type::position_type(impl_type::*)(typename impl_type::position_type const&) const)&impl_type::apply_boundary))
         .def("apply_boundary", pure_virtual((typename impl_type::length_type(impl_type::*)(typename impl_type::length_type const&) const)&impl_type::apply_boundary))
+        .def("apply_boundary", pure_virtual((typename impl_type::position_structid_pair_type(impl_type::*)(typename impl_type::position_structid_pair_type const&) const)&impl_type::apply_boundary))
         .def("cyclic_transpose", pure_virtual((typename impl_type::position_type(impl_type::*)(typename impl_type::position_type const&, typename impl_type::position_type const&) const)&impl_type::cyclic_transpose))
         .def("cyclic_transpose", pure_virtual((typename impl_type::length_type(impl_type::*)(typename impl_type::length_type const&, typename impl_type::length_type const&) const)&impl_type::cyclic_transpose))
+//        .def("cyclic_transpose", pure_virtual((typename impl_type::position_structid_pair_type(impl_type::*)(typename impl_type::position_structid_pair_type const&, typename impl_type::structure_id_pair const&) const)&impl_type::cyclic_transpose))
         .def("__contains__", pure_virtual(&impl_type::has_particle))
         .def("__iter__", pure_virtual(&impl_type::get_particles),
                 return_value_policy<return_by_value>())
