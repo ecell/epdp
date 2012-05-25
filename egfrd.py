@@ -1802,7 +1802,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
             if single.getD() != 0 and single.dt > 0.0:
                 # If the particle had the possibility to diffuse
                 newpos, struct_id = single.draw_new_position(single.dt, single.event_type)
-                newpos = self.world.apply_boundary(newpos)
+                newpos, struct_id = self.world.apply_boundary((newpos,struct_id))
             else:
                 # no change in position has taken place
                 newpos    = pid_particle_pair[1].position
@@ -1933,8 +1933,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
         ### 3.1 Get new position and current structures of particles
         if pair.dt > 0.0:
             newpos1, newpos2, struct1_id, struct2_id = pair.draw_new_positions(pair.dt, pair.r0, pair.iv, pair.event_type)
-            newpos1 = self.world.apply_boundary(newpos1)
-            newpos2 = self.world.apply_boundary(newpos2)
+            newpos1, struct1_id = self.world.apply_boundary((newpos1, struct1_id))
+            newpos2, struct2_id = self.world.apply_boundary((newpos2, struct2_id))
 
             # check that the particles do not overlap with any other particles in the world
             assert not self.world.check_overlap((newpos1, pid_particle_pair1[1].radius),
