@@ -1589,8 +1589,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
             elif isinstance(obj, PlanarSurface) and isinstance(single.structure, PlanarSurface):
                 domain = self.try_transition(single, obj)
 
-            elif ( isinstance(obj, CylindricalSurface) or isinstance(obj, PlanarSurface) or isinstance(obj, DiskSurface) ) and \
-                 obj.allows_interaction_from(single_pos) :
+            elif ( isinstance(obj, CylindricalSurface) or isinstance(obj, PlanarSurface) or isinstance(obj, DiskSurface) ):
                 # try making an Interaction
                 domain = self.try_interaction (single, obj)
 

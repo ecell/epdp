@@ -343,16 +343,6 @@ deflect_back(Box<T_> const& obj,
     return r;
 }
 
-template<typename T_>
-inline bool
-allows_interaction_from(Box<T_> const& obj,
-        typename Box<T_>::position_type const& r)
-{
-    // This function is not relevant for the box but has
-    // to return something for implementation reasons
-    return true;
-}
-
 template<typename T, typename Trng>
 inline typename Box<T>::position_type
 random_position(Box<T> const& shape, Trng& rng)

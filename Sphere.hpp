@@ -149,15 +149,6 @@ deflect_back(Sphere<T_> const& obj,
 }
 
 template<typename T_>
-inline bool
-allows_interaction_from(Sphere<T_> const& obj, typename Sphere<T_>::position_type const& pos)
-// Returns true if a particle at position pos is supposed to interact with the sphere
-{
-    // By default any point outside the sphere can interact with it
-    return ( length(subtract(pos, obj.position())) >= obj.radius() ); 
-}
-
-template<typename T_>
 inline Sphere<T_> const& shape(Sphere<T_> const& shape)
 {
     return shape;

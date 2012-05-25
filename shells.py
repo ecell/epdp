@@ -178,8 +178,11 @@ class testInteractionSingle(testSingle, Others):
         # Cyclic transpose needed when calling target_structure.project_point!
         pos_transposed = self.world.cyclic_transpose(self.pid_particle_pair[1].position,
                                                      self.target_structure.shape.position)
-        self.reference_point, _ = self.target_structure.project_point(pos_transposed)
+        self.reference_point, (_, dist_to_surface_edge) = self.target_structure.project_point(pos_transposed)
+        if dist_to_surface_edge >= 0:
+            raise testShellError('(testInteractionSingle). Projected point of particle is not in surface.')
 
+        self.min_dist_proj_to_edge = abs(dist_to_surface_edge)
         # projection_distance can be negative in case of plane
         # note that the distance is to the center of the cylinder in case of cylinders
         self.particle_surface_distance = self.world.distance(self.target_structure.shape, self.pid_particle_pair[1].position)

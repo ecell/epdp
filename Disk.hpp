@@ -220,20 +220,6 @@ deflect_back(Disk<T_> const& obj,
     return r;
 }
 
-template<typename T_>
-inline bool
-allows_interaction_from(Disk<T_> const& obj, typename Disk<T_>::position_type const& pos)
-// Returns true if a particle at position pos is supposed to interact with the disk
-{
-    typedef typename Disk<T_>::length_type length_type;
-
-    const boost::array<typename Disk<T_>::length_type, 2> r_z(to_internal(obj, pos));
-    
-    // Return true if the projection of pos is within the disk's radius
-    return ( r_z[0] <= obj.radius() );
-}
-
-
 template<typename T, typename Trng>
 inline typename Disk<T>::position_type
 random_position(Disk<T> const& shape, Trng& rng)

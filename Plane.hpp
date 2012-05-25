@@ -422,17 +422,6 @@ deflect_back(Plane<T_> const& obj, typename Plane<T_>::position_type const& r, t
     return project_point(obj, r_new).first;
 }
 
-template<typename T_>
-inline bool
-allows_interaction_from(Plane<T_> const& obj, typename Plane<T_>::position_type const& pos)
-// Returns true if a particle at position pos is supposed to interact with the plane
-{
-    boost::array<typename Plane<T_>::length_type, 3> x_y_z(to_internal(obj, pos));
-    
-    // Return true if projection of pos is within the confined plane
-    return ( abs(x_y_z[0]) <= obj.Lx() ) && ( abs(x_y_z[1]) <= obj.Ly() );
-}
-
 template<typename T, typename Trng>
 inline typename Plane<T>::position_type
 random_position(Plane<T> const& shape, Trng& rng)
