@@ -92,17 +92,6 @@ inline std::basic_ostream<Tstrm_>& operator<<(std::basic_ostream<Tstrm_>& strm,
 }
 
 template<typename T_>
-inline bool
-is_alongside(Disk<T_> const& obj, typename Disk<T_>::position_type const& pos)
-// The function checks if the projection of the position 'pos' is 'inside' the object.
-{
-    boost::array<typename Disk<T_>::length_type, 2> r_z(to_internal(obj, pos));
-
-    return ( r_z[0] <= obj.radius() );
-}
-
-
-template<typename T_>
 inline boost::array<typename Disk<T_>::length_type, 2>
 to_internal(Disk<T_> const& obj, typename Disk<T_>::position_type const& pos)
 {

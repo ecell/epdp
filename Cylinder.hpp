@@ -105,20 +105,6 @@ inline std::basic_ostream<Tstrm_>& operator<<(std::basic_ostream<Tstrm_>& strm,
 }
 
 template<typename T_>
-inline bool
-is_alongside(Cylinder<T_> const& obj, typename Cylinder<T_>::position_type const& pos)
-// The function checks if the projection of the position 'pos' is 'inside' the object.
-{
-    typedef typename Cylinder<T_>::position_type    position_type;
-    typedef typename Cylinder<T_>::length_type      length_type;
-
-    const position_type pos_vector(subtract(pos, obj.position()));
-
-    return (abs(dot_product(pos_vector, obj.unit_z())) <= obj.half_length());
-}
-
-
-template<typename T_>
 inline std::pair<typename Cylinder<T_>::length_type,
                  typename Cylinder<T_>::length_type>
 to_internal(Cylinder<T_> const& obj, typename Cylinder<T_>::position_type const& pos)

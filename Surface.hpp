@@ -143,11 +143,6 @@ public:
         // returns true if a particle at position pos is supposed to
         // be able to interact with the surface
     }
-    
-    virtual bool is_alongside(position_type const& pos) const
-    {
-        return ::is_alongside(shape(), pos);
-    }
 
     // Constructor
     BasicSurfaceImpl(structure_name_type const& name, structure_type_id_type const& sid, structure_id_type const& parent_struct_id, shape_type const& shape)

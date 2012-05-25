@@ -74,15 +74,6 @@ inline std::basic_ostream<Tstrm_, Ttraits_>& operator<<(std::basic_ostream<Tstrm
 }
 
 template<typename T_>
-inline bool
-is_alongside(Sphere<T_> const& obj, typename Sphere<T_>::position_type const& pos)
-// The function checks if the projection of the position 'pos' is 'inside' the object.
-// This is always true because the projection is always onto the center of the sphere.
-{
-    return true;
-}
-
-template<typename T_>
 inline typename Sphere<T_>::length_type
 to_internal(Sphere<T_> const& obj, typename Sphere<T_>::position_type const& pos)
 // The function calculates the coefficients to express 'pos' into the base of the sphere 'obj'

@@ -433,20 +433,6 @@ allows_interaction_from(Plane<T_> const& obj, typename Plane<T_>::position_type 
     return ( abs(x_y_z[0]) <= obj.Lx() ) && ( abs(x_y_z[1]) <= obj.Ly() );
 }
 
-template<typename T_>
-inline bool
-is_alongside(Plane<T_> const& obj, typename Plane<T_>::position_type const& pos)
-// The function checks if the projection of the position 'pos' is 'inside' the object.
-{
-    typedef typename Plane<T_>::position_type position_type;
-
-    boost::array<typename Plane<T_>::length_type, 2> half_extends(obj.half_extent());
-    position_type pos_vector(subtract(pos, obj.position()));
-
-    return ((abs(dot_product(pos_vector, obj.unit_x())) < half_extends[0]) &&
-            (abs(dot_product(pos_vector, obj.unit_y())) < half_extends[1]));
-}
-
 template<typename T, typename Trng>
 inline typename Plane<T>::position_type
 random_position(Plane<T> const& shape, Trng& rng)

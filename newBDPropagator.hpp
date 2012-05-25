@@ -224,11 +224,12 @@ public:
         while(j < structures_in_overlap)
         {
             const structure_id_pair_and_distance & overlap_struct( overlap_structures->at(j) );
+            const projected_type new_pos_projected (overlap_struct.first.second->project_point(new_pos));
 
             // For an interaction the structure must be:
             if( (overlap_struct.first.second->sid() != current_struct->sid()) &&    // - of a different structure_type
                 (overlap_struct.second < r0 + reaction_length_) &&                  // - within the reaction volume
-                (overlap_struct.first.second->is_alongside(new_pos)))               // - 'alongside' of the particle
+                (new_pos_projected.second.second < 0) )                             // - 'alongside' of the particle
             {
                 accumulated_prob += k_total( pp.second.sid(), overlap_struct.first.second->sid() ) * dt_ / 
                                     overlap_struct.first.second->surface_reaction_volume( r0, reaction_length_ );
@@ -244,7 +245,7 @@ public:
                     try
                     {
                         LOG_DEBUG(("fire surface interaction"));
-                        if(attempt_interaction(pp, overlap_struct.first.second ))
+                        if(attempt_interaction(pp, new_pos_projected.first, overlap_struct.first.second ))
                             return true;
                     }   
                     catch (propagation_error const& reason)
@@ -689,7 +690,7 @@ private:
                                     tx_.cyclic_transpose( product_pos, product_structure->position() )));       // TODO check of cyclic transpose is still needed.
 
                             // check that the projected point is not outside of the product surface.
-                            if ( !(product_structure->is_alongside( position_on_surface.first)) )
+                            if ( position_on_surface.second.second > 0 )
                                 throw propagation_error("position product particle was not in surface.");
 
                             product_pos = tx_.apply_boundary( position_on_surface.first );
@@ -761,7 +762,7 @@ private:
     }
 
         
-    const bool attempt_interaction(particle_id_pair const& pp, boost::shared_ptr<structure_type> const& structure)
+    const bool attempt_interaction(particle_id_pair const& pp, position_type const& pos_in_struct, boost::shared_ptr<structure_type> const& structure)
     // This handles the 'reaction' (interaction) between a particle and a structure.
     // Returns True if the interaction was succesfull
     {
@@ -802,7 +803,7 @@ private:
                         const species_type product_species(tx_.get_species(products[0]));
 
                         // Get the new position of the particle on the structure
-                        const position_type product_pos( tx_.apply_boundary( structure->project_point( pp.second.position() ).first ) );
+                        const position_type product_pos( tx_.apply_boundary(pos_in_struct) );
 
 
                         ///// Check for overlaps   

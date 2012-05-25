@@ -192,15 +192,6 @@ protected:
 };
 
 template<typename T_>
-inline bool
-is_alongside(Box<T_> const& obj, typename Box<T_>::position_type const& pos)
-// The function checks if the projection of the position 'pos' is 'inside' the object.
-{
-    // Todo. If we ever need it.
-    return true;
-}
-
-template<typename T_>
 inline boost::array<typename Box<T_>::length_type, 3>
 to_internal(Box<T_> const& obj, typename Box<T_>::position_type const& pos)
 {
