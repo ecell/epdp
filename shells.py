@@ -424,7 +424,8 @@ class testPlanarSurfaceTransitionPair(testPair):
         # As an indermediate step project position of single2 into plane of single1 and add its
         # orthogonal component rotated by 90 deg. to transform the whole problem into a single 2D plane
         pos1 = self.pid_particle_pair1[1].position
-        pos2 = self.structure1.deflect_back(self.pid_particle_pair2[1].position, self.structure2.shape.unit_z)
+#        pos2 = self.structure1.deflect_back(self.pid_particle_pair2[1].position, self.structure2.shape.unit_z)
+        pos2, _ = self.world.cyclic_transpose((self.pid_particle_pair2[1].position, self.pid_particle_pair2[1].structure_id), self.structure1)
         D_1 = self.pid_particle_pair1[1].D
         D_2 = self.pid_particle_pair2[1].D
 

@@ -315,7 +315,7 @@ deflect(Box<T_> const& obj,
     // For now it just returns original pos. + displacement. The changeflage = false.
     return std::make_pair( add(r0, d), false );
 }
-
+/*
 template<typename T_>
 inline typename Box<T_>::position_type
 deflect_back(Box<T_> const& obj,
@@ -325,7 +325,7 @@ deflect_back(Box<T_> const& obj,
     // Return the vector r without any changes
     return r;
 }
-
+*/
 template<typename T, typename Trng>
 inline typename Box<T>::position_type
 random_position(Box<T> const& shape, Trng& rng)

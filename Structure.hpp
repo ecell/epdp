@@ -125,7 +125,7 @@ public:
 
     // Methods used for edge crossing (only for the planes so far)    
     virtual position_flag_pair_type deflect(position_type const& pos0, position_type const& displacement) const = 0;
-    virtual position_type deflect_back(position_type const& pos, position_type const& u_z) const = 0;
+//    virtual position_type deflect_back(position_type const& pos, position_type const& u_z) const = 0;
 
     virtual position_structid_pair_type apply_boundary(position_structid_pair_type const& pos_struct_id,
                                                        structure_container_type const& structure_container) const = 0;

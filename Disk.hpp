@@ -187,7 +187,7 @@ deflect(Disk<T_> const& obj,
     // For now it just returns original pos. + displacement. The changeflage = false.
     return std::make_pair( add(r0, d), false );
 }
-
+/*
 template<typename T_>
 inline typename Disk<T_>::position_type
 deflect_back(Disk<T_> const& obj,
@@ -197,7 +197,7 @@ deflect_back(Disk<T_> const& obj,
     // Return the vector r without any changes
     return r;
 }
-
+*/
 template<typename T, typename Trng>
 inline typename Disk<T>::position_type
 random_position(Disk<T> const& shape, Trng& rng)

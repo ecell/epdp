@@ -128,7 +128,7 @@ deflect(Sphere<T_> const& obj, typename Sphere<T_>::position_type const& r0, typ
     // For now it just returns the new position. The changeflag = 0.
     return std::make_pair( add(r0, d), false );
 }
-
+/*
 template<typename T_>
 inline typename Sphere<T_>::position_type
 deflect_back(Sphere<T_> const& obj,
@@ -138,7 +138,7 @@ deflect_back(Sphere<T_> const& obj,
     // Return the vector r without any changes
     return r;
 }
-
+*/
 template<typename T_>
 inline Sphere<T_> const& shape(Sphere<T_> const& shape)
 {

@@ -362,7 +362,7 @@ deflect(Plane<T_> const& obj, typename Plane<T_>::position_type const& r0, typen
    // for now this returns the new position without changes
    return std::make_pair( new_pos, changeflag );
 }
-
+/*
 template<typename T_>
 inline typename Plane<T_>::position_type
 deflect_back(Plane<T_> const& obj, typename Plane<T_>::position_type const& r, typename Plane<T_>::position_type const& u_z)
@@ -400,7 +400,7 @@ deflect_back(Plane<T_> const& obj, typename Plane<T_>::position_type const& r, t
     
     return project_point(obj, r_new).first;
 }
-
+*/
 template<typename T, typename Trng>
 inline typename Plane<T>::position_type
 random_position(Plane<T> const& shape, Trng& rng)

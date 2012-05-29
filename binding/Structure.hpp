@@ -48,7 +48,7 @@ inline boost::python::objects::class_base register_structure_class(char const *n
         .def("bd_displacement", &impl_type::bd_displacement)
         .def("project_point", &impl_type::project_point)
         .def("deflect", &impl_type::deflect)
-        .def("deflect_back", &impl_type::deflect_back)
+//        .def("deflect_back", &impl_type::deflect_back)
         ;
 }
 

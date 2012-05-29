@@ -120,12 +120,12 @@ public:
     {
         return ::deflect(shape(), pos0, displacement);
     }
-    
+/*    
     virtual position_type deflect_back(position_type const& pos, position_type const& u_z) const
     {
         return ::deflect_back(shape(), pos, u_z);
     }
-
+*/
     // The constructor
     BasicRegionImpl(structure_name_type const& name, structure_type_id_type const& sid, structure_id_type const& parent_struct_id, shape_type const& shape)
         : base_type(name, sid, parent_struct_id), shape_(shape) {}
