@@ -198,6 +198,7 @@ deflect_back(Disk<T_> const& obj,
     return r;
 }
 */
+
 template<typename T, typename Trng>
 inline typename Disk<T>::position_type
 random_position(Disk<T> const& shape, Trng& rng)
