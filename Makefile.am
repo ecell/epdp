@@ -119,6 +119,8 @@ noinst_HEADERS = \
 	SphericalBesselGenerator.hpp\
 	SphericalBesselTable.hpp\
 	Structure.hpp\
+    StructureFunctions.cpp\
+    StructureFunctions.hpp\
     StructureID.hpp\
     StructureContainer.hpp\
 	StructureUtils.hpp\
@@ -193,6 +195,7 @@ _gfrd_la_SOURCES=\
 	SpeciesType.cpp\
 	SphericalBesselGenerator.cpp\
 	StructureType.cpp\
+    StructureFunctions.cpp\
 	utils.cpp
 
 _greens_functions_la_SOURCES=\

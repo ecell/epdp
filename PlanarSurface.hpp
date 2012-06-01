@@ -5,6 +5,7 @@
 #include "Surface.hpp"
 #include "Plane.hpp"
 #include "freeFunctions.hpp"
+#include "StructureFunctions.hpp"
 
 template <typename Tobj_, typename Tid_, typename Ttraits_>
 class StructureContainer;
@@ -28,6 +29,7 @@ public:
     typedef typename base_type::length_type             length_type;
     typedef typename base_type::side_enum_type          side_enum_type;
     typedef typename traits_type::species_type          species_type;
+    typedef typename traits_type::structure_type        structure_type;
 
     typedef StructureContainer<Structure<traits_type>, structure_id_type, traits_type>    structure_container_type;
 
@@ -156,7 +158,7 @@ public:
         length_type const diss_vec_length( cbrt( X * (r01l_cb - r01_cb ) + r01_cb ) );   
         
         position_type unit_z( cross_product( base_type::shape().unit_x(), base_type::shape().unit_y() ) );
-        unit_z = normalize ( unit_z );
+        unit_z = normalize ( unit_z );  // TODO unit_z is already defined, don't have to do a cross product
         
         //unit_z = multiply(unit_z, rng.uniform_int(0, 1) * 2 - 1);
         
@@ -214,6 +216,19 @@ public:
     {
         return structure_container.cyclic_transpose(*this, pos_struct_id);
     }
+
+    ///// TESTING
+    virtual position_structid_pair_type singlereaction_stuff(structure_type const& target_structure, position_type const& position) const
+    {
+        return target_structure.singlereaction_stuff2(*this, position);
+    }
+
+    template <typename Tstruct_>
+    position_structid_pair_type singlereaction_stuff2(Tstruct_ const& origin_structure, position_type const& position) const
+    {
+        return ::get_pos(origin_structure, *this, position);
+    }
+    ///// END TESTING
 
     virtual void accept(ImmutativeStructureVisitor<traits_type> const& visitor) const
     {
