@@ -28,6 +28,7 @@ public:
     typedef typename traits_type::rng_type                  rng_type;
     typedef typename traits_type::structure_name_type       structure_name_type;
     typedef typename traits_type::structure_id_type         structure_id_type;
+    typedef typename traits_type::structure_type            structure_type;
     typedef typename traits_type::length_type               length_type;
     typedef typename traits_type::position_type             position_type;
     typedef typename traits_type::species_type              species_type;
@@ -131,6 +132,12 @@ public:
                                                        structure_container_type const& structure_container) const = 0;
     virtual position_structid_pair_type cyclic_transpose(position_structid_pair_type const& pos_struct_id,
                                                          structure_container_type const& structure_container) const = 0;
+    ///// TESTING
+    virtual position_structid_pair_type singlereaction_stuff(structure_type const& target_structure, position_type const& position) const = 0;
+    template <typename Tstruct_>
+    position_structid_pair_type singlereaction_stuff2(Tstruct_ const& origin_structure, position_type const& position) const;
+    ///// END TESTING
+
 
 
     virtual std::size_t hash() const

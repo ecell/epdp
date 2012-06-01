@@ -5,6 +5,7 @@
 #include "Surface.hpp"
 #include "Plane.hpp"
 #include "freeFunctions.hpp"
+#include "StructureFunctions.hpp"
 
 template <typename Tobj_, typename Tid_, typename Ttraits_>
 class StructureContainer;
@@ -28,6 +29,7 @@ public:
     typedef typename base_type::length_type             length_type;
     typedef typename base_type::side_enum_type          side_enum_type;
     typedef typename traits_type::species_type          species_type;
+    typedef typename traits_type::structure_type        structure_type;
 
     typedef StructureContainer<Structure<traits_type>, structure_id_type, traits_type>    structure_container_type;
 
@@ -214,6 +216,19 @@ public:
     {
         return structure_container.cyclic_transpose(*this, pos_struct_id);
     }
+
+    ///// TESTING
+    virtual position_structid_pair_type singlereaction_stuff(structure_type const& target_structure, position_type const& position) const
+    {
+        return target_structure.singlereaction_stuff2(*this, position);
+    }
+
+    template <typename Tstruct_>
+    position_structid_pair_type singlereaction_stuff2(Tstruct_ const& origin_structure, position_type const& position) const
+    {
+        return ::get_pos(origin_structure, *this, position);
+    }
+    ///// END TESTING
 
     virtual void accept(ImmutativeStructureVisitor<traits_type> const& visitor) const
     {
