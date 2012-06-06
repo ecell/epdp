@@ -217,18 +217,18 @@ public:
         return structure_container.cyclic_transpose(*this, pos_struct_id);
     }
 
-    ///// TESTING
-    virtual position_structid_pair_type singlereaction_stuff(structure_type const& target_structure, position_type const& position) const
+    ///// TESTING TESTING TESTING TESTING TESTING
+    virtual position_structid_pair_type single_reaction_info(structure_type const& target_structure, position_type const& position) const
     {
-        return target_structure.singlereaction_stuff2(*this, position);
+        return target_structure.single_reaction_helper(*this, position);
     }
 
     template <typename Tstruct_>
-    position_structid_pair_type singlereaction_stuff2(Tstruct_ const& origin_structure, position_type const& position) const
+    position_structid_pair_type single_reaction_helper(Tstruct_ const& origin_structure, position_type const& position) const
     {
-        return ::get_pos(origin_structure, *this, position);
+        return ::get_pos_sid_pair(origin_structure, *this, position);
     }
-    ///// END TESTING
+    ///// END TESTING TESTING TESTING TESTING TESTING
 
     virtual void accept(ImmutativeStructureVisitor<traits_type> const& visitor) const
     {

@@ -5,6 +5,7 @@
 #include "Region.hpp"
 #include "Box.hpp"
 #include "freeFunctions.hpp"
+#include "StructureFunctions.hpp"
 
 template <typename Tobj_, typename Tid_, typename Ttraits_>
 class StructureContainer;
@@ -28,6 +29,7 @@ public:
     typedef typename base_type::length_type             length_type;
     typedef typename base_type::side_enum_type          side_enum_type;
     typedef typename traits_type::species_type          species_type;
+    typedef typename traits_type::structure_type        structure_type;
 
     typedef StructureContainer<typename traits_type::structure_type, structure_id_type, traits_type>    structure_container_type;
 
@@ -150,6 +152,19 @@ public:
     {
         return pos_struct_id;       // The cyclic_transpose does nothing because we'll apply world cyclic transpose later.
     }
+    
+    ///// TESTING TESTING TESTING TESTING TESTING
+    virtual position_structid_pair_type single_reaction_info(structure_type const& target_structure, position_type const& position) const
+    {
+        return target_structure.single_reaction_helper(*this, position);
+    }
+
+    template <typename Tstruct_>
+    position_structid_pair_type single_reaction_helper(Tstruct_ const& origin_structure, position_type const& position) const
+    {
+        return ::get_pos_sid_pair(origin_structure, *this, position);
+    }
+    ///// END TESTING TESTING TESTING TESTING TESTING
 
     virtual void accept(ImmutativeStructureVisitor<traits_type> const& visitor) const
     {
