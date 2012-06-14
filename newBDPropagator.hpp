@@ -406,7 +406,6 @@ private:
                         const position_type                             reactant_pos(pp.second.position());
                         const boost::shared_ptr<const structure_type>   reactant_structure( tx_.get_structure(pp.second.structure_id()) );
                         const species_type                              product_species(tx_.get_species(products[0]));
-                        // note that get_structure([..].structure_id()) gives back the parent_structure
 
                         // set default values for the position and structure of the product
                         position_structid_pair_type     product_pos_struct_id (std::make_pair(reactant_pos, pp.second.structure_id()));
@@ -422,7 +421,7 @@ private:
                             const position_type displacement( reactant_structure->surface_dissociation_vector(rng_, product_species.radius(), reaction_length_ ) );
                             const position_type product_pos (tx_.apply_boundary( add( reactant_pos, displacement ) ));
                             // When dissociating, the new structure is the parent structure (is this always true?)
-                            const structure_id_type product_structure_id (reactant_structure->structure_id());
+                            const structure_id_type product_structure_id (reactant_structure->structure_id()); // TODO WHY IS THAT NOT parent_structure_id() ?
 
                             product_pos_struct_id = std::make_pair(product_pos, product_structure_id);
                             // Particle is allowed to move after dissociation from surface. TODO Isn't it allways allowed to move?
