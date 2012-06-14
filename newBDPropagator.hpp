@@ -363,7 +363,9 @@ public:
 /***************************/
 private:
  
+    /************************/
     /*** SINGLE REACTIONS ***/
+    /************************/
     bool attempt_single_reaction(particle_id_pair const& pp)
     // Handles all monomolecular reactions
     {
@@ -391,24 +393,27 @@ private:
 
                 switch (::size(products))
                 {
-                    // When no product particles
+                    /*** NO PRODUCT / DECAY ***/
                     case 0:
                     {
-                        remove_particle(pp.first);  // pp was just popped of the local queue so only has to be removed from the upstream particlecontainer.
+                        remove_particle(pp.first);  // pp was just popped off the local queue so only has to be removed from the upstream particlecontainer.
                         break;
                     }
 
-                    // When one product particle
+                    /*** ONE PRODUCT ***/
                     case 1:
                     {
                         const position_type                             reactant_pos(pp.second.position());
                         const boost::shared_ptr<const structure_type>   reactant_structure( tx_.get_structure(pp.second.structure_id()) );
                         const species_type                              product_species(tx_.get_species(products[0]));
+                        // note that get_structure([..].structure_id()) gives back the parent_structure
 
-                        // default values for the position and structure of the product
+                        // set default values for the position and structure of the product
                         position_structid_pair_type     product_pos_struct_id (std::make_pair(reactant_pos, pp.second.structure_id()));
                         
-                        /* If the product particle does NOT live on the same structure type as the reactant => structure -> superstructure dissociation. */
+                        //// 1 - CREATE NEW POSITION AND STRUCTURE ID                        
+                        // If the product particle does NOT live on the same structure type as the reactant => structure -> superstructure dissociation.
+                        // TODO TODO TODO Rework this using structure functions! TODO TODO TODO
                         if( product_species.structure_type_id() != reactant_structure->sid() )
                         {
                             // get dissociation position and structure
@@ -424,8 +429,7 @@ private:
                             product_pos_struct_id = make_move(product_species, product_pos_struct_id, pp.first);
                         }
 
-
-                        ////// Check for overlaps
+                        //// 2- CHECK FOR OVERLAPS
                         const particle_shape_type new_shape(product_pos_struct_id.first, product_species.radius());
                         // check for overlap with particles that are inside the propagator
                         const boost::scoped_ptr<const particle_id_pair_and_distance_list> overlap_particles(
@@ -450,11 +454,11 @@ private:
                             }
                         }
 
-
-                        // Process changes
+                        //// 3 - PROCESS CHANGES
                         remove_particle(pp.first);
                         // Make new particle on right surface
                         const particle_id_pair product_particle( tx_.new_particle(product_species.id(), product_pos_struct_id.second, product_pos_struct_id.first) );
+                        
                         // Record changes
                         if (rrec_)
                         {
@@ -465,14 +469,16 @@ private:
                         break;
                     }
 
-                    // When two product particles
+                    /*** TWO PRODUCTS ***/
                     case 2:
                     {
                         const position_type                             reactant_pos(pp.second.position());
                         const boost::shared_ptr<const structure_type>   reactant_structure( tx_.get_structure( pp.second.structure_id() ) );
                         const boost::shared_ptr<const structure_type>   parent_structure( tx_.get_structure( reactant_structure->structure_id() ) );
                         
+                        //// 0 - SOME NECESSARY DEFINITONS
                         // We set: species 0 lives on the current structure; species 1 lives in the parent structure (if applicable).
+                        // TODO TODO TODO Rework this using structure functions! TODO TODO TODO
                         species_type product0_species(tx_.get_species(products[0]));
                         species_type product1_species(tx_.get_species(products[1]));
                         if( product0_species.structure_type_id() != product1_species.structure_type_id() )
@@ -490,6 +496,7 @@ private:
                         structure_id_type prod1_struct_id;
                         posstructid_posstructid_pair_type pos0pos1_pair;
 
+                        //// 1 - GENERATE POSITIONS AND STRUCTURE IDs & CHECK FOR OVERLAPS
                         /* Create positions (np0, np1) for the reaction products. 
                         The iv between the products lies within the reaction volume. */
                         int i (max_retry_count_);
@@ -500,13 +507,12 @@ private:
                             {
                                 throw propagation_error("no space due to particle or surface");
                             }
-                            
-
-                            //// Generate positions and structure_id for product particles after reaction
-
-                            /* If the product particles do NOT live on the same structure => structure -> structure + parent_structure dissociation.
-                               Else, the products live on the same structure AND on the same structure as the reactant. 
-                               => standard geminate dissociation. */
+                        
+                            //// 1a - GENERATE POSITIONS AND STRUCTURE IDs FOR PRODUCT PARTICLES AFTER REACTION
+                            // If the product particles do NOT live on the same structure => structure -> structure + parent_structure dissociation.
+                            // Else, the products live on the same structure AND on the same structure as the reactant. 
+                            // => standard geminate dissociation.
+                            // TODO TODO TODO Rework this using structure functions! TODO TODO TODO
                             if( product0_species.structure_type_id() != product1_species.structure_type_id() )
                             {
                                 // TODO include structure_id in return_type of dissociation_positions
@@ -531,7 +537,7 @@ private:
                             pos0pos1_pair = std::make_pair(pos_structid0, pos_structid1);
 
 
-                            ////// Check for overlaps
+                            //// 1b - CHECK FOR OVERLAPS
                             const particle_shape_type new_shape0(pos0pos1_pair.first.first, product0_species.radius());
                             // check overlap with particle in the propagator
                             const boost::scoped_ptr<const particle_id_pair_and_distance_list> overlap_particles_product0(
@@ -564,7 +570,7 @@ private:
                             break;
                         }
 
-                        /* After dissociation both particles are allowed to move. */
+                        //// 2 - GENERATE PARTICLE MOVES AFTER DISSOCIATION
                         pos0pos1_pair = make_pair_move(product0_species, product1_species, pos0pos1_pair, pp.first);
 
                         // check overlap with particle outside of propagator (for example in eGFRD simulator)
@@ -577,7 +583,7 @@ private:
                             }
                         }
 
-                        // Process changes
+                        //// 3 - PROCESS CHANGES
                         remove_particle(pp.first);
                         const particle_id_pair product0_particle(tx_.new_particle(product0_species.id(), pos0pos1_pair.first.second,  pos0pos1_pair.first.first));
                         const particle_id_pair product1_particle(tx_.new_particle(product1_species.id(), pos0pos1_pair.second.second, pos0pos1_pair.second.first));
@@ -593,6 +599,8 @@ private:
                         }
                         break;
                     }
+                    
+                    /*** HIGHER PRODUCT NUMBERS - not supported ***/
                     default:
                         throw not_implemented("monomolecular reactions that produce more than two products are not supported");
                 }
@@ -604,8 +612,9 @@ private:
         return false;
     }
 
-
+    /**********************/
     /*** PAIR REACTIONS ***/
+    /**********************/
     const bool attempt_pair_reaction(particle_id_pair const& pp0, particle_id_pair const& pp1,
                                      species_type const& s0, species_type const& s1)
     // This handles the reaction between a pair of particles.
@@ -635,14 +644,14 @@ private:
 
                 switch (::size(products))
                 {
-                    // When no products
+                    /*** NO PRODUCTS / DECAY ***/
                     case 0:
                     {
                         remove_particle(pp0.first);
                         remove_particle(pp1.first);
                         break;
                     }
-                    // When one product particle
+                    /*** ONE PRODUCT ***/
                     case 1:
                     {
                         const structure_id_type             reactant0_structure_id (pp0.second.structure_id());
@@ -655,7 +664,10 @@ private:
                         const species_type                  product_species(tx_.get_species(products[0]));
                         structure_id_type                   product_structure_id(reactant0_structure_id);
 
+                        
+                        //// 1 - GENERATE NEW POSITION AND STRUCTURE ID
                         // If the particles lived on adjacent structures of the same type
+                        // TODO TODO TODO Rework this using structure functions! TODO TODO TODO
                         if ((s0.structure_type_id() == s1.structure_type_id()) &&
                             (reactant0_structure_id != reactant1_structure_id))
                         {
@@ -677,6 +689,7 @@ private:
                         // For unequal structure types, project product_pos on the 'lesser' structure.
                         // The 'lesser' structure is the structure that is the lowest in the hierarchy of the two.
                         // Note that this means that a reaction can only cross ONE hierarchical level of structures.
+                        // TODO TODO TODO Rework this using structure functions! TODO TODO TODO
                         if( s0.structure_type_id() != s1.structure_type_id() )
                         {
 
@@ -718,8 +731,7 @@ private:
                             }
                         }
 
-
-                        //// Check for overlaps
+                        //// 2 - CHECK FOR OVERLAPS
                         const particle_shape_type new_shape(product_pos, product_species.radius());
                         // check for overlap with particles that are inside the propagator
                         const boost::scoped_ptr<const particle_id_pair_and_distance_list> overlap_particles(
@@ -744,8 +756,7 @@ private:
                             }
                         }
 
-
-                        // Process changes
+                        //// 3 - PROCESS CHANGES
                         remove_particle(pp0.first);
                         remove_particle(pp1.first);
                         // Make new particle on right structure
@@ -759,7 +770,8 @@ private:
                         }
                         break;
                     }
-                    // When number of products was not '0' or '1'
+                    
+                    /*** HIGHER PRODUCT NUMBERS - not supported ***/
                     default:
                         throw not_implemented("bimolecular reactions that produce more than one product are not supported");
                 }
@@ -771,8 +783,9 @@ private:
         throw illegal_state("Pair reaction failed, no reaction selected when reaction was supposed to happen.");
     }
 
-
+    /********************/
     /*** INTERACTIONS ***/
+    /********************/
     const bool attempt_interaction(particle_id_pair const& pp, position_type const& pos_in_struct, boost::shared_ptr<structure_type> const& structure)
     // This handles the 'reaction' (interaction) between a particle and a structure.
     // Returns True if the interaction was succesfull
@@ -801,23 +814,24 @@ private:
 
                 switch (::size(products))
                 {
-                    // When no products
+                    /*** NO PRODUCTS ***/
                     case 0:
                     {
 
                         remove_particle(pp.first);
                         break;
                     }
-                    // When one product particle
+                    /*** ONE PRODUCT ***/
                     case 1:
                     {
                         const species_type product_species(tx_.get_species(products[0]));
 
-                        // Get the new position of the particle on the structure
+                        //// 1 - GET NEW POSITION ON THE TARGET STRUCTURE
+                        // TODO TODO TODO Rework this using structure functions! TODO TODO TODO
                         const position_type product_pos( tx_.apply_boundary(pos_in_struct) );
 
 
-                        ///// Check for overlaps   
+                        //// 2 - CHECK FOR OVERLAPS
                         const particle_shape_type new_shape(product_pos, product_species.radius());
                         // check for overlap with particles that are in the propagator
                         const boost::scoped_ptr<const particle_id_pair_and_distance_list> overlap_particles(
@@ -843,7 +857,7 @@ private:
                             }
                         }
 
-                        // Process changes
+                        //// 3 - PROCESS CHANGES
                         remove_particle(pp.first);
                         // Make new particle in interaction structure 
                         const particle_id_pair product_particle( tx_.new_particle(product_species.id(), structure->id(), product_pos) );
@@ -856,7 +870,8 @@ private:
                         }
                         break;
                     }
-                    // When number of products was not '0' or '1'
+                    
+                    /*** HIGHER PRODUCT NUMBERS - not supported ***/
                     default:
                         throw not_implemented("structure interactions that produce more than one product are not supported");
                 }
@@ -868,8 +883,9 @@ private:
         throw illegal_state("Surface interaction failed, no interaction selected when interaction was supposed to happen.");
     }
     
-    
+    /*******************************/
     /*** COMMON HELPER FUNCTIONS ***/
+    /*******************************/
     const position_structid_pair_type make_move(species_type const& species, position_structid_pair_type const& old_pos_struct_id,
                                                 particle_id_type const& ignore) const
     // generates a move for a particle and checks if the move was allowed.
