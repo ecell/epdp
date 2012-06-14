@@ -89,18 +89,20 @@ public:
         shuffle(rng, queue_);
     }
 
-
-    //// MAIN 'step' method 
+    /****************************/
+    /**** MAIN 'step' method ****/
+    /****************************/
     // This method is called to process the change of position and putative reaction of every particle.
     // The method only treats one particle at a time and returns 'True' as long as there are still particles
     //    in the container that need to be processed.
     bool operator()()
     {
+      
+        /*** 0. TREAT QUEUE ***/
         // if there are no more particle to treat -> end
         if (queue_.empty())
             return false;        
 
-        //// 0.
         // Get the next particle from the queue
         particle_id_type pid(queue_.back());
         queue_.pop_back();
@@ -125,7 +127,7 @@ public:
         }
         
 
-        //// 1.?
+        /*** 1. COLLECT INFO ***/
         // Get info of the particle
         const species_type                      pp_species(tx_.get_species(pp.second.sid()));
         const length_type                       r0( pp_species.radius() );
@@ -136,7 +138,7 @@ public:
         position_type                   new_pos(old_pos);
         structure_id_type               new_structure_id( old_struct_id );
 
-        //// 2. New position
+        /*** 2. DISPLACEMENT TRIAL ***/
         /* Sample a potential move, and check if the particle _core_ has overlapped with another 
            particle or surface. If this is the case the particle bounces, and is returned
            to it's original position. For a particle with D = 0, new_pos = old_pos */        
@@ -152,6 +154,7 @@ public:
             new_structure_id = pos_structid.second;
         }
 
+        /*** 3. CHECK OVERLAPS ***/
         bool bounced( false );
         // Get all the particles that are in the reaction volume at the new position (and that may consequently also be in the core)
         /* Use a spherical shape with radius = particle_radius + reaction_length.
@@ -160,13 +163,13 @@ public:
                 tx_.check_overlap(particle_shape_type( new_pos, r0 + reaction_length_ ), pp.first));
         int particles_in_overlap(overlap_particles ? overlap_particles->size(): 0);
 
-        //// 3.1 Check for core overlaps with particles
+        //// 3.1 CHECK FOR CORE OVERLAPS WITH PARTICLES
         /* Check if the particle at new_pos overlaps with any particle cores. */        
         int j( 0 );
         while(!bounced && j < particles_in_overlap)
             bounced = overlap_particles->at(j++).second < r0;
         
-        //// 3.2 Check for core overlaps structures
+        //// 3.2 CHECK FOR CORE OVERLAPS WITH STRUCTURES
         /* If the particle has not bounced with another particle check for overlap with a surface. */
         boost::scoped_ptr<structure_id_pair_and_distance_list> overlap_structures;
         int structures_in_overlap(0);
@@ -183,7 +186,7 @@ public:
                 bounced = overlap_structures->at(j++).second < r0;
         }
          
-        //// 4. Finalize the position
+        /*** 4. TREAT BOUNCING => CHECK FOR POTENTIAL REACTIONS / INTERACTIONS ***/
         /* If particle is bounced, restore old position and check reaction_volume for reaction partners at old_pos. */
         if(bounced)
         {
@@ -209,14 +212,15 @@ public:
         }
         
 
-        //// 5.
+        /*** 5. REACTIONS & INTERACTIONS ***/
         /* Attempt a reaction (and/or interaction) with all the particles (and/or a surface) that 
            are/is inside the reaction volume. */
         Real accumulated_prob (0);
         Real rnd( rng_() );
         
         const boost::shared_ptr<const structure_type> current_struct( tx_.get_structure( new_structure_id) );
-        /* First, if a surface is inside the reaction volume, and the particle is in the 3D attempt an interaction. */
+        //// 5.1 INTERACTIONS WITH STRUCTURES
+        // First, if a surface is inside the reaction volume, and the particle is in the 3D attempt an interaction.
         // TODO also interaction should be allowed when a particle is on a cylinder.
         // TODO don't check only the closest but check all overlapping surfaces.
         j = 0;
@@ -233,13 +237,13 @@ public:
                 accumulated_prob += k_total( pp.second.sid(), overlap_struct.first.second->sid() ) * dt_ / 
                                     overlap_struct.first.second->surface_reaction_volume( r0, reaction_length_ );
         
-                if(accumulated_prob >= 1.)
+                if(accumulated_prob >= 1.) // sth. is wrong in this case
                 {
                     LOG_WARNING(("the acceptance probability of an interaction/reaction exeeded one; %f.",
                                  accumulated_prob));
                 } 
                 
-                if( accumulated_prob > rnd )
+                if( accumulated_prob > rnd ) // OK, try to fire the interaction
                 {            
                     try
                     {
@@ -260,10 +264,10 @@ public:
                 }
             }
 
-            j++;
+            j++; // next overlapping structure index
         }
         
-        ////
+        //// 5.1 REACTIONS WITH OTHER PARTICLES
         /* Now attempt a reaction with all particles inside the reaction volume. */
         j = 0;
         while(j < particles_in_overlap)
@@ -319,8 +323,9 @@ public:
             
             j++;
         }
-                               
-        /* If the particle did neither react, interact or bounce, update it to it's new position. */
+        
+        /*** 6. DEFAULT CASE: ACCEPT DISPLACEMENT TRIAL ***/
+        // If the particle did neither react, interact or bounce, update it to it's new position.
         if(!bounced)
         {   
             const particle_id_pair particle_to_update( pp.first, 
@@ -345,15 +350,20 @@ public:
         return true;
     }
 
-
+    /*** HELPER METHODS ***/
     // Getter of rejected_move
     std::size_t get_rejected_move_count() const
     {
         return rejected_move_count_;
     }
 
-////// Private methods
+
+/***************************/
+/***** PRIVATE METHODS *****/
+/***************************/
 private:
+ 
+    /*** SINGLE REACTIONS ***/
     bool attempt_single_reaction(particle_id_pair const& pp)
     // Handles all monomolecular reactions
     {
@@ -595,6 +605,7 @@ private:
     }
 
 
+    /*** PAIR REACTIONS ***/
     const bool attempt_pair_reaction(particle_id_pair const& pp0, particle_id_pair const& pp1,
                                      species_type const& s0, species_type const& s1)
     // This handles the reaction between a pair of particles.
@@ -760,7 +771,8 @@ private:
         throw illegal_state("Pair reaction failed, no reaction selected when reaction was supposed to happen.");
     }
 
-        
+
+    /*** INTERACTIONS ***/
     const bool attempt_interaction(particle_id_pair const& pp, position_type const& pos_in_struct, boost::shared_ptr<structure_type> const& structure)
     // This handles the 'reaction' (interaction) between a particle and a structure.
     // Returns True if the interaction was succesfull
@@ -856,7 +868,8 @@ private:
         throw illegal_state("Surface interaction failed, no interaction selected when interaction was supposed to happen.");
     }
     
-
+    
+    /*** COMMON HELPER FUNCTIONS ***/
     const position_structid_pair_type make_move(species_type const& species, position_structid_pair_type const& old_pos_struct_id,
                                                 particle_id_type const& ignore) const
     // generates a move for a particle and checks if the move was allowed.
@@ -934,7 +947,6 @@ private:
         return std::make_pair(temp_posstruct0, temp_posstruct1);
     }
 
-
     /* Function returns the accumulated intrinsic reaction rate between to species. */
     /* Note that the species_id_type is equal to the structure_type_id_type for structure_types */
     const Real k_total(species_id_type const& s0_id, species_id_type const& s1_id) const
@@ -950,7 +962,6 @@ private:
         }
         return k_tot;
     }
-
 
     void remove_particle(particle_id_type const& pid)
     // Removes a particle from the propagator and particle container.
@@ -969,7 +980,9 @@ private:
     }
 
 
-////// Member variables
+/****************************/
+/***** MEMBER VARIABLES *****/
+/****************************/
 private:
     particle_container_type&    tx_;            // The 'ParticleContainer' object that contains the particles.
     network_rules_type const&   rules_;
@@ -984,8 +997,10 @@ private:
     static Logger&              log_;
 };
 
+/*** LOGGER ***/
 template<typename Ttraits_>
 Logger& newBDPropagator<Ttraits_>::log_(Logger::get_logger("ecell.newBDPropagator"));
+
 
 #endif /* NEW_BD_PROPAGATOR_HPP */
 
