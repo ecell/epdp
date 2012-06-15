@@ -17,6 +17,7 @@
 /******************************/
 /* Coming from CuboidalRegion */
 /******************************/
+// CuboidalRegion -> CuboidalRegion
 template <typename Ttraits_>
 inline std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type>
 get_pos_sid_pair( CuboidalRegion<Ttraits_>              const& origin_structure,
@@ -33,6 +34,7 @@ get_pos_sid_pair( CuboidalRegion<Ttraits_>              const& origin_structure,
     return std::make_pair(position_type(), structure_id_type());
 };
 
+// CuboidalRegion -> SphericalSurface
 template <typename Ttraits_>
 inline std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type>
 get_pos_sid_pair( CuboidalRegion<Ttraits_>              const& origin_structure,
@@ -49,6 +51,7 @@ get_pos_sid_pair( CuboidalRegion<Ttraits_>              const& origin_structure,
     return std::make_pair(position_type(), structure_id_type());
 };
 
+// CuboidalRegion -> CylindricalSurface
 template <typename Ttraits_>
 inline std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type>
 get_pos_sid_pair( CuboidalRegion<Ttraits_>              const& origin_structure,
@@ -59,12 +62,22 @@ get_pos_sid_pair( CuboidalRegion<Ttraits_>              const& origin_structure,
     typedef typename Ttraits_::position_type            position_type;
     typedef typename Ttraits_::length_type              length_type;
 
-    /*** COMBINATION NOT SUPPORTED ***/
-    throw illegal_propagation_attempt("Interaction between combination of origin structure and target structure not supported.");
+    structure_id_type   new_id(    target_structure.id );
+    position_type       new_pos(   target_structure->project_point(old_pos).first );
+    length_type         proj_dist( target_structure->project_point(old_pos).second.second );
+        // the distance of the projection of old_pos on target_structure to target_structure
     
-    return std::make_pair(position_type(), structure_id_type());
+    if(proj_dist < 0){ // if projection of old_pos is in structure
+     
+          return std::make_pair( new_pos, new_id );
+    }
+    else // interaction not allowed
+      
+      throw illegal_propagation_attempt("Illegal original particle position for interaction.");
+    
 };
 
+// CuboidalRegion -> DiskSurface
 template <typename Ttraits_>
 inline std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type>
 get_pos_sid_pair( CuboidalRegion<Ttraits_>              const& origin_structure,
@@ -81,6 +94,7 @@ get_pos_sid_pair( CuboidalRegion<Ttraits_>              const& origin_structure,
     return std::make_pair(position_type(), structure_id_type());
 };
 
+// CuboidalRegion -> PlanarSurface
 template <typename Ttraits_>
 inline std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type>
 get_pos_sid_pair( CuboidalRegion<Ttraits_>              const& origin_structure,
@@ -91,15 +105,24 @@ get_pos_sid_pair( CuboidalRegion<Ttraits_>              const& origin_structure,
     typedef typename Ttraits_::position_type            position_type;
     typedef typename Ttraits_::length_type              length_type;
 
-    /*** COMBINATION NOT SUPPORTED ***/
-    throw illegal_propagation_attempt("Interaction between combination of origin structure and target structure not supported.");
+    structure_id_type   new_id(    target_structure.id );
+    position_type       new_pos(   target_structure->project_point(old_pos).first );
+    length_type         proj_dist( target_structure->project_point(old_pos).second.second );
+        // the distance of the projection of old_pos on target_structure to target_structure
     
-    return std::make_pair(position_type(), structure_id_type());
+    if(proj_dist < 0){ // if projection of old_pos is in structure
+     
+          return std::make_pair( new_pos, new_id );
+    }
+    else // interaction not allowed
+      
+      throw illegal_propagation_attempt("Illegal original particle position for interaction.");
 };
 
 /********************************/
 /* Coming from SphericalSurface */
 /********************************/
+// SphericalSurface -> CuboidalRegion
 template <typename Ttraits_>
 inline std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type>
 get_pos_sid_pair( SphericalSurface<Ttraits_>            const& origin_structure,
@@ -116,6 +139,7 @@ get_pos_sid_pair( SphericalSurface<Ttraits_>            const& origin_structure,
     return std::make_pair(position_type(), structure_id_type());
 };
 
+// SphericalSurface -> SphericalSurface
 template <typename Ttraits_>
 inline std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type>
 get_pos_sid_pair( SphericalSurface<Ttraits_>            const& origin_structure,
@@ -132,6 +156,7 @@ get_pos_sid_pair( SphericalSurface<Ttraits_>            const& origin_structure,
     return std::make_pair(position_type(), structure_id_type());
 };
 
+// SphericalSurface -> CylindricalSurface
 template <typename Ttraits_>
 inline std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type>
 get_pos_sid_pair( SphericalSurface<Ttraits_>            const& origin_structure,
@@ -148,6 +173,7 @@ get_pos_sid_pair( SphericalSurface<Ttraits_>            const& origin_structure,
     return std::make_pair(position_type(), structure_id_type());
 };
 
+// SphericalSurface -> DiskSurface
 template <typename Ttraits_>
 inline std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type>
 get_pos_sid_pair( SphericalSurface<Ttraits_>            const& origin_structure,
@@ -164,6 +190,7 @@ get_pos_sid_pair( SphericalSurface<Ttraits_>            const& origin_structure,
     return std::make_pair(position_type(), structure_id_type());
 };
 
+// SphericalSurface -> PlanarSurface
 template <typename Ttraits_>
 inline std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type>
 get_pos_sid_pair( SphericalSurface<Ttraits_>            const& origin_structure,
@@ -183,6 +210,7 @@ get_pos_sid_pair( SphericalSurface<Ttraits_>            const& origin_structure,
 /**********************************/
 /* Coming from CylindricalSurface */
 /**********************************/
+// CylindricalSurface -> CuboidalRegion
 template <typename Ttraits_>
 inline std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type>
 get_pos_sid_pair( CylindricalSurface<Ttraits_>          const& origin_structure,
@@ -199,6 +227,7 @@ get_pos_sid_pair( CylindricalSurface<Ttraits_>          const& origin_structure,
     return std::make_pair(position_type(), structure_id_type());
 };
 
+// CylindricalSurface -> CylindricalSurface
 template <typename Ttraits_>
 inline std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type>
 get_pos_sid_pair( CylindricalSurface<Ttraits_>          const& origin_structure,
@@ -215,6 +244,7 @@ get_pos_sid_pair( CylindricalSurface<Ttraits_>          const& origin_structure,
     return std::make_pair(position_type(), structure_id_type());
 };
 
+// CylindricalSurface -> SphericalSurface
 template <typename Ttraits_>
 inline std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type>
 get_pos_sid_pair( CylindricalSurface<Ttraits_>          const& origin_structure,
@@ -231,6 +261,7 @@ get_pos_sid_pair( CylindricalSurface<Ttraits_>          const& origin_structure,
     return std::make_pair(position_type(), structure_id_type());
 };
 
+// CylindricalSurface -> DiskSurface
 template <typename Ttraits_>
 inline std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type>
 get_pos_sid_pair( CylindricalSurface<Ttraits_>          const& origin_structure,
@@ -247,6 +278,7 @@ get_pos_sid_pair( CylindricalSurface<Ttraits_>          const& origin_structure,
     return std::make_pair(position_type(), structure_id_type());
 };
 
+// CylindricalSurface -> PlanarSurface
 template <typename Ttraits_>
 inline std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type>
 get_pos_sid_pair( CylindricalSurface<Ttraits_>          const& origin_structure,
@@ -266,6 +298,7 @@ get_pos_sid_pair( CylindricalSurface<Ttraits_>          const& origin_structure,
 /***************************/
 /* Coming from DiskSurface */
 /***************************/
+// DiskSurface -> CuboidalRegion
 template <typename Ttraits_>
 inline std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type>
 get_pos_sid_pair( DiskSurface<Ttraits_>                 const& origin_structure,
@@ -282,6 +315,7 @@ get_pos_sid_pair( DiskSurface<Ttraits_>                 const& origin_structure,
     return std::make_pair(position_type(), structure_id_type());
 };
 
+// DiskSurface -> SphericalSurface
 template <typename Ttraits_>
 inline std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type>
 get_pos_sid_pair( DiskSurface<Ttraits_>                 const& origin_structure,
@@ -298,6 +332,7 @@ get_pos_sid_pair( DiskSurface<Ttraits_>                 const& origin_structure,
     return std::make_pair(position_type(), structure_id_type());
 };
 
+// DiskSurface -> CylindricalSurface
 template <typename Ttraits_>
 inline std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type>
 get_pos_sid_pair( DiskSurface<Ttraits_>                 const& origin_structure,
@@ -314,6 +349,7 @@ get_pos_sid_pair( DiskSurface<Ttraits_>                 const& origin_structure,
     return std::make_pair(position_type(), structure_id_type());
 };
 
+// DiskSurface -> DiskSurface
 template <typename Ttraits_>
 inline std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type>
 get_pos_sid_pair( DiskSurface<Ttraits_>                 const& origin_structure,
@@ -330,6 +366,7 @@ get_pos_sid_pair( DiskSurface<Ttraits_>                 const& origin_structure,
     return std::make_pair(position_type(), structure_id_type());
 };
 
+// DiskSurface -> PlanarSurface
 template <typename Ttraits_>
 inline std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type>
 get_pos_sid_pair( DiskSurface<Ttraits_>                 const& origin_structure,
@@ -349,6 +386,7 @@ get_pos_sid_pair( DiskSurface<Ttraits_>                 const& origin_structure,
 /*****************************/
 /* Coming from PlanarSurface */
 /*****************************/
+// PlanarSurface -> CuboidalRegion
 template <typename Ttraits_>
 inline std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type>
 get_pos_sid_pair( PlanarSurface<Ttraits_>               const& origin_structure,
@@ -365,6 +403,7 @@ get_pos_sid_pair( PlanarSurface<Ttraits_>               const& origin_structure,
     return std::make_pair(position_type(), structure_id_type());
 };
 
+// PlanarSurface -> SphericalSurface
 template <typename Ttraits_>
 inline std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type>
 get_pos_sid_pair( PlanarSurface<Ttraits_>               const& origin_structure,
@@ -381,6 +420,7 @@ get_pos_sid_pair( PlanarSurface<Ttraits_>               const& origin_structure,
     return std::make_pair(position_type(), structure_id_type());
 };
 
+// PlanarSurface -> CylindricalSurface
 template <typename Ttraits_>
 inline std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type>
 get_pos_sid_pair( PlanarSurface<Ttraits_>               const& origin_structure,
@@ -397,6 +437,7 @@ get_pos_sid_pair( PlanarSurface<Ttraits_>               const& origin_structure,
     return std::make_pair(position_type(), structure_id_type());
 };
 
+// PlanarSurface -> DiskSurface
 template <typename Ttraits_>
 inline std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type>
 get_pos_sid_pair( PlanarSurface<Ttraits_>               const& origin_structure,
@@ -413,6 +454,7 @@ get_pos_sid_pair( PlanarSurface<Ttraits_>               const& origin_structure,
     return std::make_pair(position_type(), structure_id_type());
 };
 
+// PlanarSurface -> PlanarSurface
 template <typename Ttraits_>
 inline std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type>
 get_pos_sid_pair( PlanarSurface<Ttraits_>               const& origin_structure,
