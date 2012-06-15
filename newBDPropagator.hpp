@@ -98,7 +98,7 @@ public:
     bool operator()()
     {
       
-        /*** 0. TREAT QUEUE ***/
+        /*** 1. TREAT QUEUE ***/
         // if there are no more particle to treat -> end
         if (queue_.empty())
             return false;        
@@ -111,9 +111,9 @@ public:
         LOG_DEBUG(("propagating particle %s", boost::lexical_cast<std::string>(pp.first).c_str()));
         
 
-
-        /* Consider decay reactions first. Particles can move after decay, but this is done
-           inside the 'attempt_single_reaction' function. */
+        /*** 2. TRY SINGLE (DECAY) REACTION ***/
+        // Consider decay reactions first. Particles can move after decay, but this is done
+        // inside the 'attempt_single_reaction' function.
         try
         {
             if (attempt_single_reaction(pp))
@@ -127,7 +127,7 @@ public:
         }
         
 
-        /*** 1. COLLECT INFO ***/
+        /*** 3. COLLECT INFO ***/
         // Get info of the particle
         const species_type                      pp_species(tx_.get_species(pp.second.sid()));
         const length_type                       r0( pp_species.radius() );
@@ -154,7 +154,7 @@ public:
             new_structure_id = pos_structid.second;
         }
 
-        /*** 3. CHECK OVERLAPS ***/
+        /*** 4. CHECK OVERLAPS ***/
         bool bounced( false );
         // Get all the particles that are in the reaction volume at the new position (and that may consequently also be in the core)
         /* Use a spherical shape with radius = particle_radius + reaction_length.
@@ -186,7 +186,7 @@ public:
                 bounced = overlap_structures->at(j++).second < r0;
         }
          
-        /*** 4. TREAT BOUNCING => CHECK FOR POTENTIAL REACTIONS / INTERACTIONS ***/
+        /*** 5. TREAT BOUNCING => CHECK FOR POTENTIAL REACTIONS / INTERACTIONS ***/
         /* If particle is bounced, restore old position and check reaction_volume for reaction partners at old_pos. */
         if(bounced)
         {
@@ -212,7 +212,7 @@ public:
         }
         
 
-        /*** 5. REACTIONS & INTERACTIONS ***/
+        /*** 6. REACTIONS & INTERACTIONS ***/
         /* Attempt a reaction (and/or interaction) with all the particles (and/or a surface) that 
            are/is inside the reaction volume. */
         Real accumulated_prob (0);
@@ -221,6 +221,7 @@ public:
         const boost::shared_ptr<const structure_type> current_struct( tx_.get_structure( new_structure_id) );
         //// 5.1 INTERACTIONS WITH STRUCTURES
         // First, if a surface is inside the reaction volume, and the particle is in the 3D attempt an interaction.
+        // TODO TODO TODO THIS SHOULD BE REWORKED USING THE NEW STRUCTURE FUNCTIONS! TODO TODO TODO
         // TODO also interaction should be allowed when a particle is on a cylinder.
         // TODO don't check only the closest but check all overlapping surfaces.
         j = 0;
@@ -267,7 +268,7 @@ public:
             j++; // next overlapping structure index
         }
         
-        //// 5.1 REACTIONS WITH OTHER PARTICLES
+        //// 6.1 REACTIONS WITH OTHER PARTICLES
         /* Now attempt a reaction with all particles inside the reaction volume. */
         j = 0;
         while(j < particles_in_overlap)
@@ -297,7 +298,7 @@ public:
             if (accumulated_prob >= 1.)
             {
                 LOG_WARNING((
-                    "the accumulated acceptance probability inside a reaction volume exeeded one; %f.",
+                    "the accumulated acceptance probability inside a reaction volume exeededs one; %f.",
                     accumulated_prob));
             } 
             
@@ -324,7 +325,7 @@ public:
             j++;
         }
         
-        /*** 6. DEFAULT CASE: ACCEPT DISPLACEMENT TRIAL ***/
+        /*** 7. DEFAULT CASE: ACCEPT DISPLACEMENT TRIAL ***/
         // If the particle did neither react, interact or bounce, update it to it's new position.
         if(!bounced)
         {   
@@ -362,7 +363,7 @@ public:
 /***** PRIVATE METHODS *****/
 /***************************/
 private:
- 
+     
     /************************/
     /*** SINGLE REACTIONS ***/
     /************************/
@@ -611,6 +612,21 @@ private:
         return false;
     }
 
+
+    /* The following are the methods that pick up the information from overlap situations
+       with both particles and structures. Then they query the reaction rules to figure out
+       with what precisely the particle is interacting. This is used to determine the outcome
+       of the interaction, which can fail for several reasons:
+       
+       - There is no interaction / reaction rule that supports this interaction.
+       - The reaction / interaction is not supported for the combination of structures involved
+       - The new particle position is not in the target structure
+             (TODO this should possibly be checked by structure functions)
+       - There is no space for the product (due to overlaps)
+       - The number of products as read from the reaction rule is unsupported for the current
+         type of reaction / interaction
+    */
+    
     /**********************/
     /*** PAIR REACTIONS ***/
     /**********************/
