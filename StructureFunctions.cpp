@@ -25,6 +25,7 @@ get_pos_sid_pair( CuboidalRegion<Ttraits_>              const& origin_structure,
 {
     typedef typename Ttraits_::structure_id_type        structure_id_type;
     typedef typename Ttraits_::position_type            position_type;
+    typedef typename Ttraits_::length_type              length_type;
 
     /*** COMBINATION NOT SUPPORTED ***/
     throw illegal_propagation_attempt("Interaction between combination of origin structure and target structure not supported.");
@@ -40,6 +41,7 @@ get_pos_sid_pair( CuboidalRegion<Ttraits_>              const& origin_structure,
 {
     typedef typename Ttraits_::structure_id_type        structure_id_type;
     typedef typename Ttraits_::position_type            position_type;
+    typedef typename Ttraits_::length_type              length_type;
 
     /*** COMBINATION NOT SUPPORTED ***/
     throw illegal_propagation_attempt("Interaction between combination of origin structure and target structure not supported.");
@@ -55,6 +57,7 @@ get_pos_sid_pair( CuboidalRegion<Ttraits_>              const& origin_structure,
 {
     typedef typename Ttraits_::structure_id_type        structure_id_type;
     typedef typename Ttraits_::position_type            position_type;
+    typedef typename Ttraits_::length_type              length_type;
 
     /*** COMBINATION NOT SUPPORTED ***/
     throw illegal_propagation_attempt("Interaction between combination of origin structure and target structure not supported.");
@@ -70,6 +73,7 @@ get_pos_sid_pair( CuboidalRegion<Ttraits_>              const& origin_structure,
 {
     typedef typename Ttraits_::structure_id_type        structure_id_type;
     typedef typename Ttraits_::position_type            position_type;
+    typedef typename Ttraits_::length_type              length_type;
 
     /*** COMBINATION NOT SUPPORTED ***/
     throw illegal_propagation_attempt("Interaction between combination of origin structure and target structure not supported.");
@@ -85,6 +89,7 @@ get_pos_sid_pair( CuboidalRegion<Ttraits_>              const& origin_structure,
 {
     typedef typename Ttraits_::structure_id_type        structure_id_type;
     typedef typename Ttraits_::position_type            position_type;
+    typedef typename Ttraits_::length_type              length_type;
 
     /*** COMBINATION NOT SUPPORTED ***/
     throw illegal_propagation_attempt("Interaction between combination of origin structure and target structure not supported.");
@@ -103,6 +108,7 @@ get_pos_sid_pair( SphericalSurface<Ttraits_>            const& origin_structure,
 {
     typedef typename Ttraits_::structure_id_type        structure_id_type;
     typedef typename Ttraits_::position_type            position_type;
+    typedef typename Ttraits_::length_type              length_type;
 
     /*** COMBINATION NOT SUPPORTED ***/
     throw illegal_propagation_attempt("Interaction between combination of origin structure and target structure not supported.");
@@ -118,6 +124,7 @@ get_pos_sid_pair( SphericalSurface<Ttraits_>            const& origin_structure,
 {
     typedef typename Ttraits_::structure_id_type        structure_id_type;
     typedef typename Ttraits_::position_type            position_type;
+    typedef typename Ttraits_::length_type              length_type;
 
     /*** COMBINATION NOT SUPPORTED ***/
     throw illegal_propagation_attempt("Interaction between combination of origin structure and target structure not supported.");
@@ -133,6 +140,7 @@ get_pos_sid_pair( SphericalSurface<Ttraits_>            const& origin_structure,
 {
     typedef typename Ttraits_::structure_id_type        structure_id_type;
     typedef typename Ttraits_::position_type            position_type;
+    typedef typename Ttraits_::length_type              length_type;
 
     /*** COMBINATION NOT SUPPORTED ***/
     throw illegal_propagation_attempt("Interaction between combination of origin structure and target structure not supported.");
@@ -148,6 +156,7 @@ get_pos_sid_pair( SphericalSurface<Ttraits_>            const& origin_structure,
 {
     typedef typename Ttraits_::structure_id_type        structure_id_type;
     typedef typename Ttraits_::position_type            position_type;
+    typedef typename Ttraits_::length_type              length_type;
 
     /*** COMBINATION NOT SUPPORTED ***/
     throw illegal_propagation_attempt("Interaction between combination of origin structure and target structure not supported.");
@@ -163,6 +172,7 @@ get_pos_sid_pair( SphericalSurface<Ttraits_>            const& origin_structure,
 {
     typedef typename Ttraits_::structure_id_type        structure_id_type;
     typedef typename Ttraits_::position_type            position_type;
+    typedef typename Ttraits_::length_type              length_type;
 
     /*** COMBINATION NOT SUPPORTED ***/
     throw illegal_propagation_attempt("Interaction between combination of origin structure and target structure not supported.");
@@ -181,6 +191,7 @@ get_pos_sid_pair( CylindricalSurface<Ttraits_>          const& origin_structure,
 {
     typedef typename Ttraits_::structure_id_type        structure_id_type;
     typedef typename Ttraits_::position_type            position_type;
+    typedef typename Ttraits_::length_type              length_type;
 
     /*** COMBINATION NOT SUPPORTED ***/
     throw illegal_propagation_attempt("Interaction between combination of origin structure and target structure not supported.");
@@ -196,6 +207,7 @@ get_pos_sid_pair( CylindricalSurface<Ttraits_>          const& origin_structure,
 {
     typedef typename Ttraits_::structure_id_type        structure_id_type;
     typedef typename Ttraits_::position_type            position_type;
+    typedef typename Ttraits_::length_type              length_type;
 
     /*** COMBINATION NOT SUPPORTED ***/
     throw illegal_propagation_attempt("Interaction between combination of origin structure and target structure not supported.");
@@ -211,6 +223,7 @@ get_pos_sid_pair( CylindricalSurface<Ttraits_>          const& origin_structure,
 {
     typedef typename Ttraits_::structure_id_type        structure_id_type;
     typedef typename Ttraits_::position_type            position_type;
+    typedef typename Ttraits_::length_type              length_type;
 
     /*** COMBINATION NOT SUPPORTED ***/
     throw illegal_propagation_attempt("Interaction between combination of origin structure and target structure not supported.");
@@ -226,6 +239,7 @@ get_pos_sid_pair( CylindricalSurface<Ttraits_>          const& origin_structure,
 {
     typedef typename Ttraits_::structure_id_type        structure_id_type;
     typedef typename Ttraits_::position_type            position_type;
+    typedef typename Ttraits_::length_type              length_type;
 
     /*** COMBINATION NOT SUPPORTED ***/
     throw illegal_propagation_attempt("Interaction between combination of origin structure and target structure not supported.");
@@ -241,6 +255,7 @@ get_pos_sid_pair( CylindricalSurface<Ttraits_>          const& origin_structure,
 {
     typedef typename Ttraits_::structure_id_type        structure_id_type;
     typedef typename Ttraits_::position_type            position_type;
+    typedef typename Ttraits_::length_type              length_type;
 
     /*** COMBINATION NOT SUPPORTED ***/
     throw illegal_propagation_attempt("Interaction between combination of origin structure and target structure not supported.");
@@ -259,6 +274,7 @@ get_pos_sid_pair( DiskSurface<Ttraits_>                 const& origin_structure,
 {
     typedef typename Ttraits_::structure_id_type        structure_id_type;
     typedef typename Ttraits_::position_type            position_type;
+    typedef typename Ttraits_::length_type              length_type;
 
     /*** COMBINATION NOT SUPPORTED ***/
     throw illegal_propagation_attempt("Interaction between combination of origin structure and target structure not supported.");
@@ -274,6 +290,7 @@ get_pos_sid_pair( DiskSurface<Ttraits_>                 const& origin_structure,
 {
     typedef typename Ttraits_::structure_id_type        structure_id_type;
     typedef typename Ttraits_::position_type            position_type;
+    typedef typename Ttraits_::length_type              length_type;
 
     /*** COMBINATION NOT SUPPORTED ***/
     throw illegal_propagation_attempt("Interaction between combination of origin structure and target structure not supported.");
@@ -289,6 +306,7 @@ get_pos_sid_pair( DiskSurface<Ttraits_>                 const& origin_structure,
 {
     typedef typename Ttraits_::structure_id_type        structure_id_type;
     typedef typename Ttraits_::position_type            position_type;
+    typedef typename Ttraits_::length_type              length_type;
 
     /*** COMBINATION NOT SUPPORTED ***/
     throw illegal_propagation_attempt("Interaction between combination of origin structure and target structure not supported.");
@@ -304,6 +322,7 @@ get_pos_sid_pair( DiskSurface<Ttraits_>                 const& origin_structure,
 {
     typedef typename Ttraits_::structure_id_type        structure_id_type;
     typedef typename Ttraits_::position_type            position_type;
+    typedef typename Ttraits_::length_type              length_type;
 
     /*** COMBINATION NOT SUPPORTED ***/
     throw illegal_propagation_attempt("Interaction between combination of origin structure and target structure not supported.");
@@ -319,6 +338,7 @@ get_pos_sid_pair( DiskSurface<Ttraits_>                 const& origin_structure,
 {
     typedef typename Ttraits_::structure_id_type        structure_id_type;
     typedef typename Ttraits_::position_type            position_type;
+    typedef typename Ttraits_::length_type              length_type;
 
     /*** COMBINATION NOT SUPPORTED ***/
     throw illegal_propagation_attempt("Interaction between combination of origin structure and target structure not supported.");
@@ -337,6 +357,7 @@ get_pos_sid_pair( PlanarSurface<Ttraits_>               const& origin_structure,
 {
     typedef typename Ttraits_::structure_id_type        structure_id_type;
     typedef typename Ttraits_::position_type            position_type;
+    typedef typename Ttraits_::length_type              length_type;
 
     /*** COMBINATION NOT SUPPORTED ***/
     throw illegal_propagation_attempt("Interaction between combination of origin structure and target structure not supported.");
@@ -352,6 +373,7 @@ get_pos_sid_pair( PlanarSurface<Ttraits_>               const& origin_structure,
 {
     typedef typename Ttraits_::structure_id_type        structure_id_type;
     typedef typename Ttraits_::position_type            position_type;
+    typedef typename Ttraits_::length_type              length_type;
 
     /*** COMBINATION NOT SUPPORTED ***/
     throw illegal_propagation_attempt("Interaction between combination of origin structure and target structure not supported.");
@@ -367,6 +389,7 @@ get_pos_sid_pair( PlanarSurface<Ttraits_>               const& origin_structure,
 {
     typedef typename Ttraits_::structure_id_type        structure_id_type;
     typedef typename Ttraits_::position_type            position_type;
+    typedef typename Ttraits_::length_type              length_type;
 
     /*** COMBINATION NOT SUPPORTED ***/
     throw illegal_propagation_attempt("Interaction between combination of origin structure and target structure not supported.");
@@ -382,6 +405,7 @@ get_pos_sid_pair( PlanarSurface<Ttraits_>               const& origin_structure,
 {
     typedef typename Ttraits_::structure_id_type        structure_id_type;
     typedef typename Ttraits_::position_type            position_type;
+    typedef typename Ttraits_::length_type              length_type;
 
     /*** COMBINATION NOT SUPPORTED ***/
     throw illegal_propagation_attempt("Interaction between combination of origin structure and target structure not supported.");
@@ -397,6 +421,7 @@ get_pos_sid_pair( PlanarSurface<Ttraits_>               const& origin_structure,
 {
     typedef typename Ttraits_::structure_id_type        structure_id_type;
     typedef typename Ttraits_::position_type            position_type;
+    typedef typename Ttraits_::length_type              length_type;
 
     /*** COMBINATION NOT SUPPORTED ***/
     throw illegal_propagation_attempt("Interaction between combination of origin structure and target structure not supported.");
