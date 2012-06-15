@@ -125,13 +125,13 @@ public:
     }
 
     ///// TESTING TESTING TESTING TESTING TESTING
-    virtual position_structid_pair_type single_reaction_info(structure_type const& target_structure, position_type const& position) const
+    virtual position_structid_pair_type interaction_info(structure_type const& target_structure, position_type const& position) const
     {
-        return target_structure.single_reaction_helper(*this, position);
+        return target_structure.interaction_info_helper(*this, position);
     }
 
     template <typename Tstruct_>
-    position_structid_pair_type single_reaction_helper(Tstruct_ const& origin_structure, position_type const& position) const
+    position_structid_pair_type interaction_info_helper(Tstruct_ const& origin_structure, position_type const& position) const
     {
         return ::get_pos_sid_pair(origin_structure, *this, position);
     }
