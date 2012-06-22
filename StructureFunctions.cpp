@@ -101,10 +101,18 @@ get_pos_sid_pair( CuboidalRegion<Ttraits_>              const& origin_structure,
     typedef typename Ttraits_::position_type            position_type;
     typedef typename Ttraits_::length_type              length_type;
 
-    /*** COMBINATION NOT SUPPORTED ***/
-    throw illegal_propagation_attempt("Structure transition between combination of origin structure and target structure not supported.");
+    structure_id_type   new_id(    target_structure.id );
+    position_type       new_pos(   target_structure->project_point(old_pos).first );
+    length_type         proj_dist( target_structure->project_point(old_pos).second.second );
+        // the distance of the projection of old_pos on target_structure to target_structure
     
-    return std::make_pair(position_type(), structure_id_type());
+    if(proj_dist < 0){ // if projection of old_pos is in structure
+     
+          return std::make_pair( new_pos, new_id );
+    }
+    else // structure transition not allowed
+      
+      throw illegal_propagation_attempt("Illegal original particle position for structure transition.");
 };
 
 // CuboidalRegion -> PlanarSurface
