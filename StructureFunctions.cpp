@@ -241,11 +241,9 @@ get_pos_sid_pair( CylindricalSurface<Ttraits_>          const& origin_structure,
     typedef typename Ttraits_::structure_id_type        structure_id_type;
     typedef typename Ttraits_::position_type            position_type;
     typedef typename Ttraits_::length_type              length_type;
-
-    /*** COMBINATION NOT SUPPORTED ***/
-    throw illegal_propagation_attempt("Structure transition between combination of origin structure and target structure not supported.");
     
-    return std::make_pair(position_type(), structure_id_type());
+    // Call corresponding function for type combination (Cube, Cylinder, position)
+    return get_pos_sid_pair( target_structure, origin_structure, old_pos);
 };
 
 // CylindricalSurface -> CylindricalSurface
@@ -343,10 +341,8 @@ get_pos_sid_pair( DiskSurface<Ttraits_>                 const& origin_structure,
     typedef typename Ttraits_::position_type            position_type;
     typedef typename Ttraits_::length_type              length_type;
 
-    /*** COMBINATION NOT SUPPORTED ***/
-    throw illegal_propagation_attempt("Structure transition between combination of origin structure and target structure not supported.");
-    
-    return std::make_pair(position_type(), structure_id_type());
+    // Call corresponding function for type combination (Cube, Disk, position)
+    return get_pos_sid_pair( target_structure, origin_structure, old_pos);
 };
 
 // DiskSurface -> SphericalSurface
@@ -435,10 +431,8 @@ get_pos_sid_pair( PlanarSurface<Ttraits_>               const& origin_structure,
     typedef typename Ttraits_::position_type            position_type;
     typedef typename Ttraits_::length_type              length_type;
 
-    /*** COMBINATION NOT SUPPORTED ***/
-    throw illegal_propagation_attempt("Structure transition between combination of origin structure and target structure not supported.");
-    
-    return std::make_pair(position_type(), structure_id_type());
+    // Call corresponding function for type combination (Cube, Plane, position)
+    return get_pos_sid_pair( target_structure, origin_structure, old_pos);
 };
 
 // PlanarSurface -> SphericalSurface
