@@ -242,8 +242,10 @@ get_pos_sid_pair( CylindricalSurface<Ttraits_>          const& origin_structure,
     typedef typename Ttraits_::position_type            position_type;
     typedef typename Ttraits_::length_type              length_type;
     
-    // Call corresponding function for type combination (Cube, Cylinder, position)
-    return get_pos_sid_pair( target_structure, origin_structure, old_pos);
+    // Return trivial data, i.e. the position at which the single reaction happens
+    // and the id of the target structure; the position still has to be post-processed
+    // via target_structure functions making use of the species radius etc.
+    return std::make_pair(old_pos, target_structure.id);
 };
 
 // CylindricalSurface -> CylindricalSurface
@@ -341,8 +343,10 @@ get_pos_sid_pair( DiskSurface<Ttraits_>                 const& origin_structure,
     typedef typename Ttraits_::position_type            position_type;
     typedef typename Ttraits_::length_type              length_type;
 
-    // Call corresponding function for type combination (Cube, Disk, position)
-    return get_pos_sid_pair( target_structure, origin_structure, old_pos);
+    // Return trivial data, i.e. the position at which the single reaction happens
+    // and the id of the target structure; the position still has to be post-processed
+    // via target_structure functions making use of the species radius etc.
+    return std::make_pair(old_pos, target_structure.id);
 };
 
 // DiskSurface -> SphericalSurface
@@ -431,8 +435,10 @@ get_pos_sid_pair( PlanarSurface<Ttraits_>               const& origin_structure,
     typedef typename Ttraits_::position_type            position_type;
     typedef typename Ttraits_::length_type              length_type;
 
-    // Call corresponding function for type combination (Cube, Plane, position)
-    return get_pos_sid_pair( target_structure, origin_structure, old_pos);
+    // Return trivial data, i.e. the position at which the single reaction happens
+    // and the id of the target structure; the position still has to be post-processed
+    // via target_structure functions making use of the species radius etc.
+    return std::make_pair(old_pos, target_structure.id);
 };
 
 // PlanarSurface -> SphericalSurface
