@@ -41,7 +41,7 @@ get_pos_sid_pair( CuboidalRegion<Ttraits_>              const& origin_structure,
                   CuboidalRegion<Ttraits_>              const& target_structure,
                   typename Ttraits_::position_type      const& old_pos          );
 
-                  template <typename Ttraits_>
+template <typename Ttraits_>
 inline std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type>
 get_pos_sid_pair( CuboidalRegion<Ttraits_>              const& origin_structure,
                   SphericalSurface<Ttraits_>            const& target_structure,

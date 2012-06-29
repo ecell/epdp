@@ -19,6 +19,7 @@
 #include "utils/random.hpp"
 #include "utils/get_default_impl.hpp"
 #include "Logger.hpp"
+#include "StructureFunctions.hpp"
 
 #include <iostream>
 
@@ -41,9 +42,9 @@ public:
     typedef typename particle_container_type::structure_type        structure_type;
     typedef typename particle_container_type::structure_id_type     structure_id_type;    
 
-    typedef typename particle_container_type::particle_id_pair_generator         particle_id_pair_generator;
-    typedef typename particle_container_type::particle_id_pair_and_distance      particle_id_pair_and_distance;
-    typedef typename particle_container_type::particle_id_pair_and_distance_list particle_id_pair_and_distance_list;
+    typedef typename particle_container_type::particle_id_pair_generator          particle_id_pair_generator;
+    typedef typename particle_container_type::particle_id_pair_and_distance       particle_id_pair_and_distance;
+    typedef typename particle_container_type::particle_id_pair_and_distance_list  particle_id_pair_and_distance_list;
     typedef typename particle_container_type::structure_id_pair_and_distance      structure_id_pair_and_distance;
     typedef typename particle_container_type::structure_id_pair_and_distance_list structure_id_pair_and_distance_list;
     typedef typename traits_type::world_type::traits_type::rng_type rng_type;
@@ -404,14 +405,36 @@ private:
                     /*** ONE PRODUCT ***/
                     case 1:
                     {
-                        const position_type                             reactant_pos(pp.second.position());
+                        const position_type                             reactant_pos( pp.second.position() );
                         const boost::shared_ptr<const structure_type>   reactant_structure( tx_.get_structure(pp.second.structure_id()) );
-                        const species_type                              product_species(tx_.get_species(products[0]));
-
-                        // set default values for the position and structure of the product
-                        position_structid_pair_type     product_pos_struct_id (std::make_pair(reactant_pos, pp.second.structure_id()));
+                        const structure_id_type                         reactant_structure_id( pp.second.structure_id() );
+                        const species_type                              product_species( tx_.get_species(products[0]) );
                         
-                        //// 1 - CREATE NEW POSITION AND STRUCTURE ID                        
+                        // Set default values for the position and structure of the product
+                        // As a default, the product stays on the structure of origin
+                        boost::shared_ptr<const structure_type> product_structure( reactant_structure );
+                        position_structid_pair_type             product_pos_struct_id (std::make_pair(reactant_pos, reactant_structure_id));
+                        
+                        //// 1 - CREATE NEW POSITION AND STRUCTURE ID                                                
+                        if( product_species.structure_type_id() != reactant_structure->sid() )
+                        {
+                            // Get target structure id
+                            const structure_id_type product_structure_id(reactant_structure->structure_id()); // the parent structure
+                                  // TODO Allow for unbinding Disk->Cube; in that case the prod. structure is not the parent one!
+                            const boost::shared_ptr<const structure_type> product_structure( tx_.get_structure(product_structure_id) );
+                            // Produce new position and structure id                            
+                            const position_structid_pair_type new_pos_sid_pair( reactant_structure->get_pos_sid_pair(*product_structure, reactant_pos) );
+                            // Care for exit point from structures, which depends on product radius; TODO This is ugly and corrupts the sense of StructureFunctions!
+                            const position_type displacement( reactant_structure->surface_dissociation_vector(rng_, product_species.radius(), reaction_length_ ) );
+                            const position_type product_pos( add(new_pos_sid_pair.first, displacement) );
+                            
+                            product_pos_struct_id = std::make_pair(product_pos, new_pos_sid_pair.second);
+                            // Apply boundary conditions
+                            product_pos_struct_id = tx_.apply_boundary( product_pos_struct_id );
+                            // Particle is allowed to move after dissociation from surface. TODO Isn't it allways allowed to move?
+                            product_pos_struct_id = make_move(product_species, product_pos_struct_id, pp.first);
+                        }
+                        /* OLD VERSION
                         // If the product particle does NOT live on the same structure type as the reactant => structure -> superstructure dissociation.
                         // TODO TODO TODO Rework this using structure functions! TODO TODO TODO
                         if( product_species.structure_type_id() != reactant_structure->sid() )
@@ -422,12 +445,13 @@ private:
                             const position_type displacement( reactant_structure->surface_dissociation_vector(rng_, product_species.radius(), reaction_length_ ) );
                             const position_type product_pos (tx_.apply_boundary( add( reactant_pos, displacement ) ));
                             // When dissociating, the new structure is the parent structure (is this always true?)
-                            const structure_id_type product_structure_id (reactant_structure->structure_id()); // TODO WHY IS THAT NOT parent_structure_id() ?
+                            const structure_id_type product_structure_id (reactant_structure->structure_id());
 
                             product_pos_struct_id = std::make_pair(product_pos, product_structure_id);
                             // Particle is allowed to move after dissociation from surface. TODO Isn't it allways allowed to move?
                             product_pos_struct_id = make_move(product_species, product_pos_struct_id, pp.first);
                         }
+                        */
 
                         //// 2- CHECK FOR OVERLAPS
                         const particle_shape_type new_shape(product_pos_struct_id.first, product_species.radius());
