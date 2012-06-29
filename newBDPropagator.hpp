@@ -19,7 +19,6 @@
 #include "utils/random.hpp"
 #include "utils/get_default_impl.hpp"
 #include "Logger.hpp"
-#include "StructureFunctions.hpp"
 
 #include <iostream>
 
@@ -29,6 +28,7 @@ class newBDPropagator
 public:
     typedef Ttraits_ traits_type;
     typedef typename Ttraits_::world_type::particle_container_type  particle_container_type;
+    typedef typename Ttraits_::world_type::structure_container_type structure_container_type;
 
     // shorthand typedef that we use
     typedef typename particle_container_type::length_type           length_type;
