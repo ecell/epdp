@@ -133,9 +133,9 @@ public:
     virtual position_structid_pair_type cyclic_transpose(position_structid_pair_type const& pos_struct_id,
                                                          structure_container_type const& structure_container) const = 0;
     ///// TESTING TESTING TESTING TESTING TESTING
-    virtual position_structid_pair_type interaction_info(structure_type const& target_structure, position_type const& position) const = 0;
+    virtual position_structid_pair_type get_pos_sid_pair(structure_type const& target_structure, position_type const& position) const = 0;
     template <typename Tstruct_>
-    position_structid_pair_type interaction_info_helper(Tstruct_ const& origin_structure, position_type const& position) const;
+    position_structid_pair_type get_pos_sid_pair_helper(Tstruct_ const& origin_structure, position_type const& position) const;
     ///// END TESTING TESTING TESTING TESTING TESTING
 
 
