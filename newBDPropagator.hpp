@@ -126,6 +126,12 @@ public:
             ++rejected_move_count_;
             return true;
         }
+        catch (illegal_propagation_attempt const& reason)
+        {
+            log_.info("first-order reaction: illegal propagation attempt (reason: %s)", reason.what());
+            ++rejected_move_count_;
+            return true;
+        }
         
 
         /*** 3. COLLECT INFO ***/
@@ -418,13 +424,15 @@ private:
                         //// 1 - CREATE NEW POSITION AND STRUCTURE ID                                                
                         if( product_species.structure_type_id() != reactant_structure->sid() )
                         {
-                            // Get target structure id
+                            // Get target structure; if not staying on the origin structure, the particle is
+                            // assumed to go to its parent structure, which in most cases is the bulk;
+                            // For a disk bound particle it can be both the bulk and the cylinder
                             const structure_id_type product_structure_id(reactant_structure->structure_id()); // the parent structure
-                                  // TODO Allow for unbinding Disk->Cube; in that case the prod. structure is not the parent one!
+                            //const structure_id_type product_structure_id(tx_.get_def_structure_id());
                             const boost::shared_ptr<const structure_type> product_structure( tx_.get_structure(product_structure_id) );
-                            // Produce new position and structure id                            
-                            const position_structid_pair_type new_pos_sid_pair( reactant_structure->get_pos_sid_pair(*product_structure, reactant_pos) );
-                            // Care for exit point from structures, which depends on product radius; TODO This is ugly and corrupts the sense of StructureFunctions!
+                            // Produce new position and structure id
+                            const position_structid_pair_type new_pos_sid_pair( reactant_structure->get_pos_sid_pair(*product_structure, reactant_pos, 0.0) );
+                            // Care for exit point from structures, which depends on product radius
                             const position_type displacement( reactant_structure->surface_dissociation_vector(rng_, product_species.radius(), reaction_length_ ) );
                             const position_type product_pos( add(new_pos_sid_pair.first, displacement) );
                             
