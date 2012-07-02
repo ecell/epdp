@@ -33,6 +33,7 @@ public:
     typedef std::pair<position_type, structure_id_type> position_structid_pair_type;
 
 
+    /*** Simple structure-specific sampling functions ***/
     virtual position_type random_position(rng_type& rng) const
     {
         return position_type(); // TODO
@@ -48,23 +49,7 @@ public:
         return position_type(); // TODO
     }
 
-    virtual length_type drawR_gbd(Real const& rnd, length_type const& r01, Real const& dt, Real const& D01, Real const& v) const
-    {    
-        return length_type(); // TODO
-    }
-
-    virtual Real p_acceptance(Real const& k_a, Real const& dt, length_type const& r01, position_type const& ipv, 
-                                Real const& D0, Real const& D1, Real const& v0, Real const& v1) const
-    {    
-        return Real(); //TODO
-    }
-
-    virtual position_type dissociation_vector( rng_type& rng, length_type const& r01, Real const& dt, 
-                                                Real const& D01, Real const& v ) const
-    {
-        return position_type(); //TODO
-    }
-
+    /*** New BD scheme functions ***/
     virtual Real get_1D_rate_geminate( Real const& k, length_type const& r01) const
     {
         return Real(); //TODO
@@ -111,6 +96,7 @@ public:
     }
 */
 
+    /*** Boundary condition handling ***/
     virtual position_structid_pair_type apply_boundary(position_structid_pair_type const& pos_struct_id,
                                                        structure_container_type const& structure_container) const
     {
@@ -124,18 +110,36 @@ public:
         return pos_struct_id;       // Two spherical surface cannot be connected (there is no boundary!)
     }
 
-    ///// TESTING TESTING TESTING TESTING TESTING
+    /*** Despatch switchbox for the structure functions ***/
     virtual position_structid_pair_type get_pos_sid_pair(structure_type const& target_structure, position_type const& position) const
     {
         return target_structure.get_pos_sid_pair_helper(*this, position);
     }
-
+    // the associated helper function
     template <typename Tstruct_>
     position_structid_pair_type get_pos_sid_pair_helper(Tstruct_ const& origin_structure, position_type const& position) const
     {
         return ::get_pos_sid_pair(origin_structure, *this, position);
     }
-    ///// END TESTING TESTING TESTING TESTING TESTING
+    
+    /*** Formerly used functions of the Morelli scheme ***/
+    // DEPRECATED
+    virtual length_type drawR_gbd(Real const& rnd, length_type const& r01, Real const& dt, Real const& D01, Real const& v) const
+    {    
+        return length_type(); // TODO
+    }
+    // DEPRECATED
+    virtual Real p_acceptance(Real const& k_a, Real const& dt, length_type const& r01, position_type const& ipv, 
+                                Real const& D0, Real const& D1, Real const& v0, Real const& v1) const
+    {    
+        return Real(); //TODO
+    }
+    // DEPRECATED
+    virtual position_type dissociation_vector( rng_type& rng, length_type const& r01, Real const& dt, 
+                                                Real const& D01, Real const& v ) const
+    {
+        return position_type(); //TODO
+    }
     
     virtual void accept(ImmutativeStructureVisitor<traits_type> const& visitor) const
     {

@@ -97,7 +97,7 @@ public:
     virtual position_type random_vector(length_type const& r, rng_type& rng) const = 0;
 
 
-    // Methods used in the 'old' BDPropagator
+    // Methods used in the 'old' BDPropagator // DEPRECATED
     virtual position_type dissociation_vector(rng_type& rng, length_type const& r01, Real const& dt, Real const& D01, Real const& v) const = 0;
     virtual length_type drawR_gbd(Real const& rnd, length_type const& r01, Real const& dt, Real const& D01, Real const& v) const = 0;
     virtual Real p_acceptance(Real const& k_a, Real const& dt, length_type const& r01, position_type const& ipv, Real const& D0, Real const& D1, Real const& v0, Real const& v1) const = 0;
@@ -105,7 +105,6 @@ public:
     // Methods used in the 'new' BDPropagator
     virtual position_type bd_displacement(length_type const& mean, length_type const& r, rng_type& rng) const = 0;
     virtual length_type newBD_distance(position_type const& new_pos, length_type const& radius, position_type const& old_pos, length_type const& sigma) const = 0;
-
 
     // TODO this are just functions->move somewhere else
     virtual Real get_1D_rate_geminate( Real const& k, length_type const& r01) const = 0;
@@ -118,13 +117,13 @@ public:
     virtual position_pair_type geminate_dissociation_positions( rng_type& rng, species_type const& s0, species_type const& s1, position_type const& op, length_type const& rl ) const = 0;
     virtual position_pair_type special_geminate_dissociation_positions( rng_type& rng, species_type const& s_surf, species_type const& s_bulk, position_type const& op_surf, length_type const& rl ) const = 0;
     
-    // general method for getting some measures/info
+    // General method for getting some measures/info
     virtual projected_type project_point(position_type const& pos) const = 0;
     virtual projected_type project_point_on_surface(position_type const& pos) const = 0;
     virtual length_type distance(position_type const& pos) const = 0;
     virtual position_type const& position() const = 0;    
 
-    // Methods used for edge crossing (only for the planes so far)    
+    // Methods used for edge crossing (only for the planes so far)
     virtual position_flag_pair_type deflect(position_type const& pos0, position_type const& displacement) const = 0;
 //    virtual position_type deflect_back(position_type const& pos, position_type const& u_z) const = 0;
 
@@ -132,12 +131,10 @@ public:
                                                        structure_container_type const& structure_container) const = 0;
     virtual position_structid_pair_type cyclic_transpose(position_structid_pair_type const& pos_struct_id,
                                                          structure_container_type const& structure_container) const = 0;
-    ///// TESTING TESTING TESTING TESTING TESTING
+    // Structure functions despatch switchbox
     virtual position_structid_pair_type get_pos_sid_pair(structure_type const& target_structure, position_type const& position) const = 0;
     template <typename Tstruct_>
     position_structid_pair_type get_pos_sid_pair_helper(Tstruct_ const& origin_structure, position_type const& position) const;
-    ///// END TESTING TESTING TESTING TESTING TESTING
-
 
 
     virtual std::size_t hash() const

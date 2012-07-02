@@ -37,7 +37,7 @@ public:
     typedef std::pair<position_type, structure_id_type> position_structid_pair_type;
 
 
-
+    /*** Simple structure-specific sampling functions ***/
     virtual position_type random_position(rng_type& rng) const
     {
         return ::random_position(base_type::shape(),
@@ -60,35 +60,21 @@ public:
             rng.normal(0., r),
             rng.normal(0., r));
     }
-
-    virtual length_type drawR_gbd(Real const& rnd, length_type const& r01, Real const& dt, 
-                                    Real const& D01, Real const& v) const
-    {
-         return drawR_gbd_3D(rnd, r01, dt, D01);
-    }
-
-    virtual Real p_acceptance(Real const& k_a, Real const& dt, length_type const& r01, position_type const& ipv, 
-                                Real const& D0, Real const& D1, Real const& v0, Real const& v1) const
-    {
-         return k_a * dt / ((I_bd_3D(r01, dt, D0) + I_bd_3D(r01, dt, D1)) * 4.0 * M_PI);
-    }
-
-    virtual position_type dissociation_vector( rng_type& rng, length_type const& r01, Real const& dt, 
-                                                Real const& D01, Real const& v ) const
-    {
-        return random_vector( drawR_gbd(rng.uniform(0., 1.), r01, dt, D01, v ), rng );
-    }
     
+    /*** New BD scheme functions ***/
+    // Rate for binding to particle on the structure
     virtual Real get_1D_rate_geminate( Real const& k, length_type const& r01 ) const
     {
         return k / ( 4 * M_PI * r01 * r01 );    
     }
     
+    // Rate for binding to the structure
     virtual Real get_1D_rate_surface( Real const& k, length_type const& r0 ) const
     {
         return Real(); //No reaction rates with bulk;
     }
 
+    // Reaction volume for binding to particle in the structure
     virtual Real particle_reaction_volume( length_type const& r01, length_type const& rl ) const
     {
         length_type const r01l( r01 + rl );
@@ -98,16 +84,19 @@ public:
         return 4.0/3.0 * M_PI * ( r01l_cb - r01_cb );
     }
     
+    // Reaction volume for binding to the structure
     virtual Real surface_reaction_volume( length_type const& r0, length_type const& rl ) const
     {
         return Real(); //No surface interaction with the bulk
     }
 
+    // Vector of dissociation from the structure into the bulk
     virtual position_type surface_dissociation_vector( rng_type& rng, length_type const& r0, length_type const& rl ) const
     {
         return position_type(); //No surface dissociation 'from' the bulk
     }
 
+    // Positions created at dissociation of one particle on the structure into two particles on the structure
     virtual position_pair_type geminate_dissociation_positions( rng_type& rng, species_type const& s0, species_type const& s1, position_type const& op, 
         length_type const& rl ) const
     {
@@ -128,17 +117,20 @@ public:
                                     op + m * s1.D() / D01 );
     }
     
+    // Positions created at dissociation of one particle on the structure into two particles, one of which ends up in the bulk
     virtual position_pair_type special_geminate_dissociation_positions( rng_type& rng, species_type const& s_surf, species_type const& s_bulk, 
         position_type const& op_surf, length_type const& rl ) const
     {
         return position_pair_type(); //No special geminate dissociation 'from' the bulk
     }
     
+    // Used by newBDPropagator
     virtual length_type newBD_distance(position_type const& new_pos, length_type const& radius, position_type const& old_pos, length_type const& sigma) const
     {
         return base_type::distance(new_pos);
     }
 
+    /*** Boundary condition handling ***/
     // The apply boundary for the cuboidal structure doesn't have to do anything because we'll apply the world
     // boundary conditions later too.
     virtual position_structid_pair_type apply_boundary(position_structid_pair_type const& pos_struct_id,
@@ -153,18 +145,37 @@ public:
         return pos_struct_id;       // The cyclic_transpose does nothing because we'll apply world cyclic transpose later.
     }
     
-    ///// TESTING TESTING TESTING TESTING TESTING
+    /*** Despatch switchbox for structure functions ***/
     virtual position_structid_pair_type get_pos_sid_pair(structure_type const& target_structure, position_type const& position) const
     {
         return target_structure.get_pos_sid_pair_helper(*this, position);
     }
-
+    // the associated helper function
     template <typename Tstruct_>
     position_structid_pair_type get_pos_sid_pair_helper(Tstruct_ const& origin_structure, position_type const& position) const
     {
         return ::get_pos_sid_pair(origin_structure, *this, position);
     }
-    ///// END TESTING TESTING TESTING TESTING TESTING
+    
+    /*** Formerly used functions of the Morelli scheme ***/
+    // DEPRECATED
+    virtual length_type drawR_gbd(Real const& rnd, length_type const& r01, Real const& dt, 
+                                    Real const& D01, Real const& v) const
+    {
+         return drawR_gbd_3D(rnd, r01, dt, D01);
+    }
+    // DEPRECATED
+    virtual Real p_acceptance(Real const& k_a, Real const& dt, length_type const& r01, position_type const& ipv, 
+                                Real const& D0, Real const& D1, Real const& v0, Real const& v1) const
+    {
+         return k_a * dt / ((I_bd_3D(r01, dt, D0) + I_bd_3D(r01, dt, D1)) * 4.0 * M_PI);
+    }
+    // DEPRECATED
+    virtual position_type dissociation_vector( rng_type& rng, length_type const& r01, Real const& dt, 
+                                                Real const& D01, Real const& v ) const
+    {
+        return random_vector( drawR_gbd(rng.uniform(0., 1.), r01, dt, D01, v ), rng );
+    }
 
     virtual void accept(ImmutativeStructureVisitor<traits_type> const& visitor) const
     {
