@@ -94,7 +94,7 @@ public:
     {
         // This function produces a position for a particle unbinding from the disk onto the rod.
         // It should lie within the reaction volume around the disk.
-        // TODO: We have to make a distinction between sink and cap already here!
+        // TODO: THIS IS THE CODE COPIED FROM CylindricalSurface
         // FIXME WTF is all this calculation!! The dissociation vector is supposed to be super simple!
         Real X( rng.uniform(0.,1.) );
         length_type const rod_radius = base_type::shape().radius();
@@ -110,6 +110,12 @@ public:
         v = normalize( subtract(v, multiply( unit_z, dot_product( unit_z, v ) ) ) );
          
         return multiply( v, diss_vec_length); 
+    }
+    
+    // Normed direction of dissociation from the structure to parent structure
+    virtual position_type surface_dissociation_unit_vector( rng_type& rng ) const
+    {
+        return base_type::shape().unit_z();
     }
 
     // Positions created at dissociation of one particle on the structure into two particles on the structure

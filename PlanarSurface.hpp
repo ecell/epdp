@@ -95,13 +95,19 @@ public:
         return 2*rl; // FIXME because we reject the above constraint at some point
     }
     
-    // Vector of dissociation from the structure into the bulk
+    // Vector of dissociation from the structure to parent structure
     virtual position_type surface_dissociation_vector( rng_type& rng, length_type const& r0, length_type const& rl ) const
     {
         Real X( rng.uniform(0.,1.) );
         length_type diss_vec_length( X*rl );
 
         return multiply( base_type::shape().unit_z(), (rng.uniform_int(0, 1) * 2 - 1) * diss_vec_length );
+    }
+    
+    // Normed direction of dissociation from the structure to parent structure
+    virtual position_type surface_dissociation_unit_vector( rng_type& rng ) const
+    {
+        return base_type::shape().unit_z();
     }
 
     // Positions created at dissociation of one particle on the structure into two particles on the structure

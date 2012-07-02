@@ -95,6 +95,12 @@ public:
     {
         return position_type(); //No surface dissociation 'from' the bulk
     }
+    
+    // Normed direction of dissociation from the structure to parent structure
+    virtual position_type surface_dissociation_unit_vector( rng_type& rng ) const
+    {
+        return position_type(); //No surface dissociation 'from' the bulk
+    }
 
     // Positions created at dissociation of one particle on the structure into two particles on the structure
     virtual position_pair_type geminate_dissociation_positions( rng_type& rng, species_type const& s0, species_type const& s1, position_type const& op, 

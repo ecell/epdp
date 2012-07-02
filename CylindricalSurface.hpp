@@ -97,16 +97,34 @@ public:
         length_type const rod_radius = base_type::shape().radius();
         position_type const unit_z = base_type::shape().unit_z();
 
+        // Calculate the length of the vector first
         length_type const rrl( rod_radius + r0 + rl );
         length_type const rrl_sq( gsl_pow_2(rrl) );
         length_type const rr_sq( gsl_pow_2(rod_radius + r0) );
         
         length_type const diss_vec_length( sqrt( X * (rrl_sq - rr_sq) + rr_sq ) );
 
-        position_type v(rng.uniform(0.,1.) - .5, rng.uniform(0.,1.) - .5, rng.uniform(0.,1.) - .5);        
+        // Create a 3D vector with totally random orientation
+        position_type v(rng.uniform(0.,1.) - .5, rng.uniform(0.,1.) - .5, rng.uniform(0.,1.) - .5);
+        // Subtract the part parallel to the axis to get the orthogonal components and normalize
+        // This creates a normed random vector orthogonal to the cylinder axis
         v = normalize( subtract(v, multiply( unit_z, dot_product( unit_z, v ) ) ) );
          
+        // Return the created vector with the right length
         return multiply( v, diss_vec_length); 
+    }
+    
+    // Normed direction of dissociation from the structure to parent structure
+    virtual position_type surface_dissociation_unit_vector( rng_type& rng ) const
+    {
+        position_type const unit_z = base_type::shape().unit_z();
+        // Create a 3D vector with totally random orientation
+        position_type v(rng.uniform(0.,1.) - .5, rng.uniform(0.,1.) - .5, rng.uniform(0.,1.) - .5);
+        // Subtract the part parallel to the axis to get the orthogonal components and normalize
+        // This creates a normed random vector orthogonal to the cylinder axis
+        v = normalize( subtract(v, multiply( unit_z, dot_product( unit_z, v ) ) ) );
+        
+        return v;
     }
 
     // Positions created at dissociation of one particle on the structure into two particles on the structure
