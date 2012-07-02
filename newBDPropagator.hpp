@@ -431,8 +431,8 @@ private:
                             //const structure_id_type product_structure_id(tx_.get_def_structure_id());
                             const boost::shared_ptr<const structure_type> product_structure( tx_.get_structure(product_structure_id) );
                             // Produce new position and structure id
-                            const length_type dissoc_offset = product_species.radius();
-                            const position_structid_pair_type new_pos_sid_pair( reactant_structure->get_pos_sid_pair(*product_structure, reactant_pos, dissoc_offset, rng_, reaction_length_) );
+                            const length_type dissoc_offset( product_species.radius() );
+                            const position_structid_pair_type new_pos_sid_pair( reactant_structure->get_pos_sid_pair(*product_structure, reactant_pos, dissoc_offset, reaction_length_, rng_) );
                             
                             // Apply boundary conditions
                             product_pos_struct_id = tx_.apply_boundary( product_pos_struct_id );

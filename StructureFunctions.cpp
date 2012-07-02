@@ -7,6 +7,7 @@
 #include "CylindricalSurface.hpp"
 #include "DiskSurface.hpp"
 #include "PlanarSurface.hpp"
+#include "linear_algebra.hpp"
 #include "exceptions.hpp"
 
 
@@ -275,10 +276,11 @@ get_pos_sid_pair( CylindricalSurface<Ttraits_>          const& origin_structure,
     typedef typename Ttraits_::position_type            position_type;
     typedef typename Ttraits_::length_type              length_type;
     
-    // Return trivial data, i.e. the position at which the single reaction happens
-    // and the id of the target structure; the position still has to be post-processed
-    // via target_structure functions making use of the species radius etc.
-    return std::make_pair(old_pos, target_structure.id);
+    position_type displacement( origin_structure->surface_dissociation_vector(rng, offset, reaction_length) );
+    position_type new_pos( add(old_pos, displacement) );    
+    // TODO assert that new_pos is in target_structure
+    
+    return std::make_pair(new_pos, target_structure.id);
 };
 
 // CylindricalSurface -> CylindricalSurface
@@ -391,10 +393,11 @@ get_pos_sid_pair( DiskSurface<Ttraits_>                 const& origin_structure,
     typedef typename Ttraits_::position_type            position_type;
     typedef typename Ttraits_::length_type              length_type;
 
-    // Return trivial data, i.e. the position at which the single reaction happens
-    // and the id of the target structure; the position still has to be post-processed
-    // via target_structure functions making use of the species radius etc.
-    return std::make_pair(old_pos, target_structure.id);
+    position_type displacement( origin_structure->surface_dissociation_vector(rng, offset, reaction_length) );
+    position_type new_pos( add(old_pos, displacement) );
+    // TODO assert that new_pos is in target_structure
+    
+    return std::make_pair(new_pos, target_structure.id);
 };
 
 // DiskSurface -> SphericalSurface
@@ -431,10 +434,15 @@ get_pos_sid_pair( DiskSurface<Ttraits_>                 const& origin_structure,
     typedef typename Ttraits_::position_type            position_type;
     typedef typename Ttraits_::length_type              length_type;
 
-    /*** COMBINATION NOT SUPPORTED ***/
-    throw illegal_propagation_attempt("Structure transition between combination of origin structure and target structure not supported.");
+    position_type displacement( origin_structure->surface_dissociation_vector(rng, offset, reaction_length) );
     
-    return std::make_pair(position_type(), structure_id_type());
+    // When a particle is dissociation from a disk to the cylinder, the direction is randomized
+    Real r( rng.uniform(0.,1.));    
+    Real rs( r < 0.5 ? -1.0 : +1.0 );
+    position_type new_pos( add(old_pos, multiply(rs, displacement)) );
+    // TODO assert that new_pos is in target_structure
+    
+    return std::make_pair(new_pos, target_structure.id);
 };
 
 // DiskSurface -> DiskSurface
@@ -498,10 +506,11 @@ get_pos_sid_pair( PlanarSurface<Ttraits_>               const& origin_structure,
     typedef typename Ttraits_::position_type            position_type;
     typedef typename Ttraits_::length_type              length_type;
 
-    // Return trivial data, i.e. the position at which the single reaction happens
-    // and the id of the target structure; the position still has to be post-processed
-    // via target_structure functions making use of the species radius etc.
-    return std::make_pair(old_pos, target_structure.id);
+    position_type displacement( origin_structure->surface_dissociation_vector(rng, offset, reaction_length) );
+    position_type new_pos( add(old_pos, displacement) );
+    // TODO assert that new_pos is in target_structure
+    
+    return std::make_pair(new_pos, target_structure.id);
 };
 
 // PlanarSurface -> SphericalSurface
@@ -579,7 +588,6 @@ get_pos_sid_pair( PlanarSurface<Ttraits_>               const& origin_structure,
     typedef typename Ttraits_::length_type              length_type;
 
     // Currently only species change and decay are supported
-    // TODO Implement transitions from one plane to another
     if(origin_structure.id == target_structure.id){
      
           return std::make_pair( old_pos, origin_structure.id );
