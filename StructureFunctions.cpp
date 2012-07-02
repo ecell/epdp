@@ -31,7 +31,8 @@ template <typename Ttraits_>
 inline std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type>
 get_pos_sid_pair( CuboidalRegion<Ttraits_>              const& origin_structure,
                   CuboidalRegion<Ttraits_>              const& target_structure,
-                  typename Ttraits_::position_type      const& old_pos          )
+                  typename Ttraits_::position_type      const& old_pos,
+                  typename Ttraits_::length_type        const& offset           )
 {
     typedef typename Ttraits_::structure_id_type        structure_id_type;
     typedef typename Ttraits_::position_type            position_type;
@@ -52,7 +53,8 @@ template <typename Ttraits_>
 inline std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type>
 get_pos_sid_pair( CuboidalRegion<Ttraits_>              const& origin_structure,
                   SphericalSurface<Ttraits_>            const& target_structure,
-                  typename Ttraits_::position_type      const& old_pos          )
+                  typename Ttraits_::position_type      const& old_pos,
+                  typename Ttraits_::length_type        const& offset           )
 {
     typedef typename Ttraits_::structure_id_type        structure_id_type;
     typedef typename Ttraits_::position_type            position_type;
@@ -69,7 +71,8 @@ template <typename Ttraits_>
 inline std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type>
 get_pos_sid_pair( CuboidalRegion<Ttraits_>              const& origin_structure,
                   CylindricalSurface<Ttraits_>          const& target_structure,
-                  typename Ttraits_::position_type      const& old_pos          )
+                  typename Ttraits_::position_type      const& old_pos,
+                  typename Ttraits_::length_type        const& offset           )
 {
     typedef typename Ttraits_::structure_id_type        structure_id_type;
     typedef typename Ttraits_::position_type            position_type;
@@ -95,7 +98,8 @@ template <typename Ttraits_>
 inline std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type>
 get_pos_sid_pair( CuboidalRegion<Ttraits_>              const& origin_structure,
                   DiskSurface<Ttraits_>                 const& target_structure,
-                  typename Ttraits_::position_type      const& old_pos          )
+                  typename Ttraits_::position_type      const& old_pos,
+                  typename Ttraits_::length_type        const& offset           )
 {
     typedef typename Ttraits_::structure_id_type        structure_id_type;
     typedef typename Ttraits_::position_type            position_type;
@@ -120,7 +124,8 @@ template <typename Ttraits_>
 inline std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type>
 get_pos_sid_pair( CuboidalRegion<Ttraits_>              const& origin_structure,
                   PlanarSurface<Ttraits_>               const& target_structure,
-                  typename Ttraits_::position_type      const& old_pos          )
+                  typename Ttraits_::position_type      const& old_pos,
+                  typename Ttraits_::length_type        const& offset           )
 {
     typedef typename Ttraits_::structure_id_type        structure_id_type;
     typedef typename Ttraits_::position_type            position_type;
@@ -148,7 +153,8 @@ template <typename Ttraits_>
 inline std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type>
 get_pos_sid_pair( SphericalSurface<Ttraits_>            const& origin_structure,
                   CuboidalRegion<Ttraits_>              const& target_structure,
-                  typename Ttraits_::position_type      const& old_pos          )
+                  typename Ttraits_::position_type      const& old_pos,
+                  typename Ttraits_::length_type        const& offset           )
 {
     typedef typename Ttraits_::structure_id_type        structure_id_type;
     typedef typename Ttraits_::position_type            position_type;
@@ -165,7 +171,8 @@ template <typename Ttraits_>
 inline std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type>
 get_pos_sid_pair( SphericalSurface<Ttraits_>            const& origin_structure,
                   SphericalSurface<Ttraits_>            const& target_structure,
-                  typename Ttraits_::position_type      const& old_pos          )
+                  typename Ttraits_::position_type      const& old_pos,
+                  typename Ttraits_::length_type        const& offset           )
 {
     typedef typename Ttraits_::structure_id_type        structure_id_type;
     typedef typename Ttraits_::position_type            position_type;
@@ -182,7 +189,8 @@ template <typename Ttraits_>
 inline std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type>
 get_pos_sid_pair( SphericalSurface<Ttraits_>            const& origin_structure,
                   CylindricalSurface<Ttraits_>          const& target_structure,
-                  typename Ttraits_::position_type      const& old_pos          )
+                  typename Ttraits_::position_type      const& old_pos,
+                  typename Ttraits_::length_type        const& offset           )
 {
     typedef typename Ttraits_::structure_id_type        structure_id_type;
     typedef typename Ttraits_::position_type            position_type;
@@ -199,7 +207,8 @@ template <typename Ttraits_>
 inline std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type>
 get_pos_sid_pair( SphericalSurface<Ttraits_>            const& origin_structure,
                   DiskSurface<Ttraits_>                 const& target_structure,
-                  typename Ttraits_::position_type      const& old_pos          )
+                  typename Ttraits_::position_type      const& old_pos,
+                  typename Ttraits_::length_type        const& offset           )
 {
     typedef typename Ttraits_::structure_id_type        structure_id_type;
     typedef typename Ttraits_::position_type            position_type;
@@ -216,7 +225,8 @@ template <typename Ttraits_>
 inline std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type>
 get_pos_sid_pair( SphericalSurface<Ttraits_>            const& origin_structure,
                   PlanarSurface<Ttraits_>               const& target_structure,
-                  typename Ttraits_::position_type      const& old_pos          )
+                  typename Ttraits_::position_type      const& old_pos,
+                  typename Ttraits_::length_type        const& offset           )
 {
     typedef typename Ttraits_::structure_id_type        structure_id_type;
     typedef typename Ttraits_::position_type            position_type;
@@ -236,7 +246,8 @@ template <typename Ttraits_>
 inline std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type>
 get_pos_sid_pair( CylindricalSurface<Ttraits_>          const& origin_structure,
                   CuboidalRegion<Ttraits_>              const& target_structure,
-                  typename Ttraits_::position_type      const& old_pos          )
+                  typename Ttraits_::position_type      const& old_pos,
+                  typename Ttraits_::length_type        const& offset           )
 {
     typedef typename Ttraits_::structure_id_type        structure_id_type;
     typedef typename Ttraits_::position_type            position_type;
@@ -253,7 +264,8 @@ template <typename Ttraits_>
 inline std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type>
 get_pos_sid_pair( CylindricalSurface<Ttraits_>          const& origin_structure,
                   CylindricalSurface<Ttraits_>          const& target_structure,
-                  typename Ttraits_::position_type      const& old_pos          )
+                  typename Ttraits_::position_type      const& old_pos,
+                  typename Ttraits_::length_type        const& offset           )
 {
     typedef typename Ttraits_::structure_id_type        structure_id_type;
     typedef typename Ttraits_::position_type            position_type;
@@ -274,7 +286,8 @@ template <typename Ttraits_>
 inline std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type>
 get_pos_sid_pair( CylindricalSurface<Ttraits_>          const& origin_structure,
                   SphericalSurface<Ttraits_>            const& target_structure,
-                  typename Ttraits_::position_type      const& old_pos          )
+                  typename Ttraits_::position_type      const& old_pos,
+                  typename Ttraits_::length_type        const& offset           )
 {
     typedef typename Ttraits_::structure_id_type        structure_id_type;
     typedef typename Ttraits_::position_type            position_type;
@@ -291,7 +304,8 @@ template <typename Ttraits_>
 inline std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type>
 get_pos_sid_pair( CylindricalSurface<Ttraits_>          const& origin_structure,
                   DiskSurface<Ttraits_>                 const& target_structure,
-                  typename Ttraits_::position_type      const& old_pos          )
+                  typename Ttraits_::position_type      const& old_pos,
+                  typename Ttraits_::length_type        const& offset           )
 {
     typedef typename Ttraits_::structure_id_type        structure_id_type;
     typedef typename Ttraits_::position_type            position_type;
@@ -317,7 +331,8 @@ template <typename Ttraits_>
 inline std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type>
 get_pos_sid_pair( CylindricalSurface<Ttraits_>          const& origin_structure,
                   PlanarSurface<Ttraits_>               const& target_structure,
-                  typename Ttraits_::position_type      const& old_pos          )
+                  typename Ttraits_::position_type      const& old_pos,
+                  typename Ttraits_::length_type        const& offset           )
 {
     typedef typename Ttraits_::structure_id_type        structure_id_type;
     typedef typename Ttraits_::position_type            position_type;
@@ -337,7 +352,8 @@ template <typename Ttraits_>
 inline std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type>
 get_pos_sid_pair( DiskSurface<Ttraits_>                 const& origin_structure,
                   CuboidalRegion<Ttraits_>              const& target_structure,
-                  typename Ttraits_::position_type      const& old_pos          )
+                  typename Ttraits_::position_type      const& old_pos,
+                  typename Ttraits_::length_type        const& offset           )
 {
     typedef typename Ttraits_::structure_id_type        structure_id_type;
     typedef typename Ttraits_::position_type            position_type;
@@ -354,7 +370,8 @@ template <typename Ttraits_>
 inline std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type>
 get_pos_sid_pair( DiskSurface<Ttraits_>                 const& origin_structure,
                   SphericalSurface<Ttraits_>            const& target_structure,
-                  typename Ttraits_::position_type      const& old_pos          )
+                  typename Ttraits_::position_type      const& old_pos,
+                  typename Ttraits_::length_type        const& offset           )
 {
     typedef typename Ttraits_::structure_id_type        structure_id_type;
     typedef typename Ttraits_::position_type            position_type;
@@ -371,7 +388,8 @@ template <typename Ttraits_>
 inline std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type>
 get_pos_sid_pair( DiskSurface<Ttraits_>                 const& origin_structure,
                   CylindricalSurface<Ttraits_>          const& target_structure,
-                  typename Ttraits_::position_type      const& old_pos          )
+                  typename Ttraits_::position_type      const& old_pos,
+                  typename Ttraits_::length_type        const& offset           )
 {
     typedef typename Ttraits_::structure_id_type        structure_id_type;
     typedef typename Ttraits_::position_type            position_type;
@@ -388,7 +406,8 @@ template <typename Ttraits_>
 inline std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type>
 get_pos_sid_pair( DiskSurface<Ttraits_>                 const& origin_structure,
                   DiskSurface<Ttraits_>                 const& target_structure,
-                  typename Ttraits_::position_type      const& old_pos          )
+                  typename Ttraits_::position_type      const& old_pos,
+                  typename Ttraits_::length_type        const& offset           )
 {
     typedef typename Ttraits_::structure_id_type        structure_id_type;
     typedef typename Ttraits_::position_type            position_type;
@@ -409,7 +428,8 @@ template <typename Ttraits_>
 inline std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type>
 get_pos_sid_pair( DiskSurface<Ttraits_>                 const& origin_structure,
                   PlanarSurface<Ttraits_>               const& target_structure,
-                  typename Ttraits_::position_type      const& old_pos          )
+                  typename Ttraits_::position_type      const& old_pos,
+                  typename Ttraits_::length_type        const& offset           )
 {
     typedef typename Ttraits_::structure_id_type        structure_id_type;
     typedef typename Ttraits_::position_type            position_type;
@@ -429,7 +449,8 @@ template <typename Ttraits_>
 inline std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type>
 get_pos_sid_pair( PlanarSurface<Ttraits_>               const& origin_structure,
                   CuboidalRegion<Ttraits_>              const& target_structure,
-                  typename Ttraits_::position_type      const& old_pos          )
+                  typename Ttraits_::position_type      const& old_pos,
+                  typename Ttraits_::length_type        const& offset           )
 {
     typedef typename Ttraits_::structure_id_type        structure_id_type;
     typedef typename Ttraits_::position_type            position_type;
@@ -446,7 +467,8 @@ template <typename Ttraits_>
 inline std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type>
 get_pos_sid_pair( PlanarSurface<Ttraits_>               const& origin_structure,
                   SphericalSurface<Ttraits_>            const& target_structure,
-                  typename Ttraits_::position_type      const& old_pos          )
+                  typename Ttraits_::position_type      const& old_pos,
+                  typename Ttraits_::length_type        const& offset           )
 {
     typedef typename Ttraits_::structure_id_type        structure_id_type;
     typedef typename Ttraits_::position_type            position_type;
@@ -463,7 +485,8 @@ template <typename Ttraits_>
 inline std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type>
 get_pos_sid_pair( PlanarSurface<Ttraits_>               const& origin_structure,
                   CylindricalSurface<Ttraits_>          const& target_structure,
-                  typename Ttraits_::position_type      const& old_pos          )
+                  typename Ttraits_::position_type      const& old_pos,
+                  typename Ttraits_::length_type        const& offset           )
 {
     typedef typename Ttraits_::structure_id_type        structure_id_type;
     typedef typename Ttraits_::position_type            position_type;
@@ -480,7 +503,8 @@ template <typename Ttraits_>
 inline std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type>
 get_pos_sid_pair( PlanarSurface<Ttraits_>               const& origin_structure,
                   DiskSurface<Ttraits_>                 const& target_structure,
-                  typename Ttraits_::position_type      const& old_pos          )
+                  typename Ttraits_::position_type      const& old_pos,
+                  typename Ttraits_::length_type        const& offset           )
 {
     typedef typename Ttraits_::structure_id_type        structure_id_type;
     typedef typename Ttraits_::position_type            position_type;
@@ -497,7 +521,8 @@ template <typename Ttraits_>
 inline std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type>
 get_pos_sid_pair( PlanarSurface<Ttraits_>               const& origin_structure,
                   PlanarSurface<Ttraits_>               const& target_structure,
-                  typename Ttraits_::position_type      const& old_pos          )
+                  typename Ttraits_::position_type      const& old_pos,
+                  typename Ttraits_::length_type        const& offset           )
 {
     typedef typename Ttraits_::structure_id_type        structure_id_type;
     typedef typename Ttraits_::position_type            position_type;
@@ -529,9 +554,10 @@ get_pos_sid_pair( PlanarSurface<Ttraits_>               const& origin_structure,
 template <typename Ttraits_>
 inline std::pair< std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type>, 
                   std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type> >
-get_pos_sid_pair_pair( CuboidalRegion<Ttraits_>              const& origin_structure,
-                       CuboidalRegion<Ttraits_>              const& target_structure,
-                       typename Ttraits_::position_type      const& old_pos          )
+get_pos_sid_pair_pair( CuboidalRegion<Ttraits_>               const& origin_structure,
+                       CuboidalRegion<Ttraits_>               const& target_structure,
+                       typename Ttraits_::position_type       const& old_pos,
+                       typename Ttraits_::length_type         const& offset              )
 {
     typedef typename Ttraits_::structure_id_type        structure_id_type;
     typedef typename Ttraits_::position_type            position_type;
@@ -548,9 +574,10 @@ get_pos_sid_pair_pair( CuboidalRegion<Ttraits_>              const& origin_struc
 template <typename Ttraits_>
 inline std::pair< std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type>, 
                   std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type> >
-get_pos_sid_pair_pair( CuboidalRegion<Ttraits_>              const& origin_structure,
-                       SphericalSurface<Ttraits_>            const& target_structure,
-                       typename Ttraits_::position_type      const& old_pos          )
+get_pos_sid_pair_pair( CuboidalRegion<Ttraits_>               const& origin_structure,
+                       SphericalSurface<Ttraits_>             const& target_structure,
+                       typename Ttraits_::position_type       const& old_pos,
+                       typename Ttraits_::length_type         const& offset              )
 {
     typedef typename Ttraits_::structure_id_type        structure_id_type;
     typedef typename Ttraits_::position_type            position_type;
@@ -567,9 +594,10 @@ get_pos_sid_pair_pair( CuboidalRegion<Ttraits_>              const& origin_struc
 template <typename Ttraits_>
 inline std::pair< std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type>, 
                   std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type> >
-get_pos_sid_pair_pair( CuboidalRegion<Ttraits_>              const& origin_structure,
-                       CylindricalSurface<Ttraits_>          const& target_structure,
-                       typename Ttraits_::position_type      const& old_pos          )
+get_pos_sid_pair_pair( CuboidalRegion<Ttraits_>               const& origin_structure,
+                       CylindricalSurface<Ttraits_>           const& target_structure,
+                       typename Ttraits_::position_type       const& old_pos,
+                       typename Ttraits_::length_type         const& offset              )
 {
     typedef typename Ttraits_::structure_id_type        structure_id_type;
     typedef typename Ttraits_::position_type            position_type;
@@ -587,9 +615,10 @@ get_pos_sid_pair_pair( CuboidalRegion<Ttraits_>              const& origin_struc
 template <typename Ttraits_>
 inline std::pair< std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type>, 
                   std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type> >
-get_pos_sid_pair_pair( CuboidalRegion<Ttraits_>              const& origin_structure,
-                       DiskSurface<Ttraits_>                 const& target_structure,
-                       typename Ttraits_::position_type      const& old_pos          )
+get_pos_sid_pair_pair( CuboidalRegion<Ttraits_>               const& origin_structure,
+                       DiskSurface<Ttraits_>                  const& target_structure,
+                       typename Ttraits_::position_type       const& old_pos,
+                       typename Ttraits_::length_type         const& offset              )
 {
     typedef typename Ttraits_::structure_id_type        structure_id_type;
     typedef typename Ttraits_::position_type            position_type;
@@ -606,9 +635,10 @@ get_pos_sid_pair_pair( CuboidalRegion<Ttraits_>              const& origin_struc
 template <typename Ttraits_>
 inline std::pair< std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type>, 
                   std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type> >
-get_pos_sid_pair_pair( CuboidalRegion<Ttraits_>              const& origin_structure,
-                       PlanarSurface<Ttraits_>               const& target_structure,
-                       typename Ttraits_::position_type      const& old_pos          )
+get_pos_sid_pair_pair( CuboidalRegion<Ttraits_>               const& origin_structure,
+                       PlanarSurface<Ttraits_>                const& target_structure,
+                       typename Ttraits_::position_type       const& old_pos,
+                       typename Ttraits_::length_type         const& offset              )
 {
     typedef typename Ttraits_::structure_id_type        structure_id_type;
     typedef typename Ttraits_::position_type            position_type;
@@ -628,9 +658,10 @@ get_pos_sid_pair_pair( CuboidalRegion<Ttraits_>              const& origin_struc
 template <typename Ttraits_>
 inline std::pair< std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type>, 
                   std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type> >
-get_pos_sid_pair_pair( SphericalSurface<Ttraits_>            const& origin_structure,
-                       CuboidalRegion<Ttraits_>              const& target_structure,
-                       typename Ttraits_::position_type      const& old_pos          )
+get_pos_sid_pair_pair( SphericalSurface<Ttraits_>             const& origin_structure,
+                       CuboidalRegion<Ttraits_>               const& target_structure,
+                       typename Ttraits_::position_type       const& old_pos,
+                       typename Ttraits_::length_type         const& offset              )
 {
     typedef typename Ttraits_::structure_id_type        structure_id_type;
     typedef typename Ttraits_::position_type            position_type;
@@ -647,9 +678,10 @@ get_pos_sid_pair_pair( SphericalSurface<Ttraits_>            const& origin_struc
 template <typename Ttraits_>
 inline std::pair< std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type>, 
                   std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type> >
-get_pos_sid_pair_pair( SphericalSurface<Ttraits_>            const& origin_structure,
-                       SphericalSurface<Ttraits_>            const& target_structure,
-                       typename Ttraits_::position_type      const& old_pos          )
+get_pos_sid_pair_pair( SphericalSurface<Ttraits_>             const& origin_structure,
+                       SphericalSurface<Ttraits_>             const& target_structure,
+                       typename Ttraits_::position_type       const& old_pos,
+                       typename Ttraits_::length_type         const& offset              )
 {
     typedef typename Ttraits_::structure_id_type        structure_id_type;
     typedef typename Ttraits_::position_type            position_type;
@@ -666,9 +698,10 @@ get_pos_sid_pair_pair( SphericalSurface<Ttraits_>            const& origin_struc
 template <typename Ttraits_>
 inline std::pair< std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type>, 
                   std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type> >
-get_pos_sid_pair_pair( SphericalSurface<Ttraits_>            const& origin_structure,
-                       CylindricalSurface<Ttraits_>          const& target_structure,
-                       typename Ttraits_::position_type      const& old_pos          )
+get_pos_sid_pair_pair( SphericalSurface<Ttraits_>             const& origin_structure,
+                       CylindricalSurface<Ttraits_>           const& target_structure,
+                       typename Ttraits_::position_type       const& old_pos,
+                       typename Ttraits_::length_type         const& offset              )
 {
     typedef typename Ttraits_::structure_id_type        structure_id_type;
     typedef typename Ttraits_::position_type            position_type;
@@ -685,9 +718,10 @@ get_pos_sid_pair_pair( SphericalSurface<Ttraits_>            const& origin_struc
 template <typename Ttraits_>
 inline std::pair< std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type>, 
                   std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type> >
-get_pos_sid_pair_pair( SphericalSurface<Ttraits_>            const& origin_structure,
-                       DiskSurface<Ttraits_>                 const& target_structure,
-                       typename Ttraits_::position_type      const& old_pos          )
+get_pos_sid_pair_pair( SphericalSurface<Ttraits_>             const& origin_structure,
+                       DiskSurface<Ttraits_>                  const& target_structure,
+                       typename Ttraits_::position_type       const& old_pos,
+                       typename Ttraits_::length_type         const& offset              )
 {
     typedef typename Ttraits_::structure_id_type        structure_id_type;
     typedef typename Ttraits_::position_type            position_type;
@@ -704,9 +738,10 @@ get_pos_sid_pair_pair( SphericalSurface<Ttraits_>            const& origin_struc
 template <typename Ttraits_>
 inline std::pair< std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type>, 
                   std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type> >
-get_pos_sid_pair_pair( SphericalSurface<Ttraits_>            const& origin_structure,
-                       PlanarSurface<Ttraits_>               const& target_structure,
-                       typename Ttraits_::position_type      const& old_pos          )
+get_pos_sid_pair_pair( SphericalSurface<Ttraits_>             const& origin_structure,
+                       PlanarSurface<Ttraits_>                const& target_structure,
+                       typename Ttraits_::position_type       const& old_pos,
+                       typename Ttraits_::length_type         const& offset              )
 {
     typedef typename Ttraits_::structure_id_type        structure_id_type;
     typedef typename Ttraits_::position_type            position_type;
@@ -726,9 +761,10 @@ get_pos_sid_pair_pair( SphericalSurface<Ttraits_>            const& origin_struc
 template <typename Ttraits_>
 inline std::pair< std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type>, 
                   std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type> >
-get_pos_sid_pair_pair( CylindricalSurface<Ttraits_>          const& origin_structure,
-                       CuboidalRegion<Ttraits_>              const& target_structure,
-                       typename Ttraits_::position_type      const& old_pos          )
+get_pos_sid_pair_pair( CylindricalSurface<Ttraits_>           const& origin_structure,
+                       CuboidalRegion<Ttraits_>               const& target_structure,
+                       typename Ttraits_::position_type       const& old_pos,
+                       typename Ttraits_::length_type         const& offset              )
 {
     typedef typename Ttraits_::structure_id_type        structure_id_type;
     typedef typename Ttraits_::position_type            position_type;
@@ -745,9 +781,10 @@ get_pos_sid_pair_pair( CylindricalSurface<Ttraits_>          const& origin_struc
 template <typename Ttraits_>
 inline std::pair< std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type>, 
                   std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type> >
-get_pos_sid_pair_pair( CylindricalSurface<Ttraits_>          const& origin_structure,
-                       CylindricalSurface<Ttraits_>          const& target_structure,
-                       typename Ttraits_::position_type      const& old_pos          )
+get_pos_sid_pair_pair( CylindricalSurface<Ttraits_>           const& origin_structure,
+                       CylindricalSurface<Ttraits_>           const& target_structure,
+                       typename Ttraits_::position_type       const& old_pos,
+                       typename Ttraits_::length_type         const& offset              )
 {
     typedef typename Ttraits_::structure_id_type        structure_id_type;
     typedef typename Ttraits_::position_type            position_type;
@@ -764,9 +801,10 @@ get_pos_sid_pair_pair( CylindricalSurface<Ttraits_>          const& origin_struc
 template <typename Ttraits_>
 inline std::pair< std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type>, 
                   std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type> >
-get_pos_sid_pair_pair( CylindricalSurface<Ttraits_>          const& origin_structure,
-                       SphericalSurface<Ttraits_>            const& target_structure,
-                       typename Ttraits_::position_type      const& old_pos          )
+get_pos_sid_pair_pair( CylindricalSurface<Ttraits_>           const& origin_structure,
+                       SphericalSurface<Ttraits_>             const& target_structure,
+                       typename Ttraits_::position_type       const& old_pos,
+                       typename Ttraits_::length_type         const& offset              )
 {
     typedef typename Ttraits_::structure_id_type        structure_id_type;
     typedef typename Ttraits_::position_type            position_type;
@@ -783,9 +821,10 @@ get_pos_sid_pair_pair( CylindricalSurface<Ttraits_>          const& origin_struc
 template <typename Ttraits_>
 inline std::pair< std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type>, 
                   std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type> >
-get_pos_sid_pair_pair( CylindricalSurface<Ttraits_>          const& origin_structure,
-                       DiskSurface<Ttraits_>                 const& target_structure,
-                       typename Ttraits_::position_type      const& old_pos          )
+get_pos_sid_pair_pair( CylindricalSurface<Ttraits_>           const& origin_structure,
+                       DiskSurface<Ttraits_>                  const& target_structure,
+                       typename Ttraits_::position_type       const& old_pos,
+                       typename Ttraits_::length_type         const& offset              )
 {
     typedef typename Ttraits_::structure_id_type        structure_id_type;
     typedef typename Ttraits_::position_type            position_type;
@@ -802,9 +841,10 @@ get_pos_sid_pair_pair( CylindricalSurface<Ttraits_>          const& origin_struc
 template <typename Ttraits_>
 inline std::pair< std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type>, 
                   std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type> >
-get_pos_sid_pair_pair( CylindricalSurface<Ttraits_>          const& origin_structure,
-                       PlanarSurface<Ttraits_>               const& target_structure,
-                       typename Ttraits_::position_type      const& old_pos          )
+get_pos_sid_pair_pair( CylindricalSurface<Ttraits_>           const& origin_structure,
+                       PlanarSurface<Ttraits_>                const& target_structure,
+                       typename Ttraits_::position_type       const& old_pos,
+                       typename Ttraits_::length_type         const& offset              )
 {
     typedef typename Ttraits_::structure_id_type        structure_id_type;
     typedef typename Ttraits_::position_type            position_type;
@@ -824,9 +864,10 @@ get_pos_sid_pair_pair( CylindricalSurface<Ttraits_>          const& origin_struc
 template <typename Ttraits_>
 inline std::pair< std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type>, 
                   std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type> >
-get_pos_sid_pair_pair( DiskSurface<Ttraits_>                 const& origin_structure,
-                       CuboidalRegion<Ttraits_>              const& target_structure,
-                       typename Ttraits_::position_type      const& old_pos          )
+get_pos_sid_pair_pair( DiskSurface<Ttraits_>                  const& origin_structure,
+                       CuboidalRegion<Ttraits_>               const& target_structure,
+                       typename Ttraits_::position_type       const& old_pos,
+                       typename Ttraits_::length_type         const& offset              )
 {
     typedef typename Ttraits_::structure_id_type        structure_id_type;
     typedef typename Ttraits_::position_type            position_type;
@@ -843,9 +884,10 @@ get_pos_sid_pair_pair( DiskSurface<Ttraits_>                 const& origin_struc
 template <typename Ttraits_>
 inline std::pair< std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type>, 
                   std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type> >
-get_pos_sid_pair_pair( DiskSurface<Ttraits_>                 const& origin_structure,
-                       SphericalSurface<Ttraits_>            const& target_structure,
-                       typename Ttraits_::position_type      const& old_pos          )
+get_pos_sid_pair_pair( DiskSurface<Ttraits_>                  const& origin_structure,
+                       SphericalSurface<Ttraits_>             const& target_structure,
+                       typename Ttraits_::position_type       const& old_pos,
+                       typename Ttraits_::length_type         const& offset              )
 {
     typedef typename Ttraits_::structure_id_type        structure_id_type;
     typedef typename Ttraits_::position_type            position_type;
@@ -862,9 +904,10 @@ get_pos_sid_pair_pair( DiskSurface<Ttraits_>                 const& origin_struc
 template <typename Ttraits_>
 inline std::pair< std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type>, 
                   std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type> >
-get_pos_sid_pair_pair( DiskSurface<Ttraits_>                 const& origin_structure,
-                       CylindricalSurface<Ttraits_>          const& target_structure,
-                       typename Ttraits_::position_type      const& old_pos          )
+get_pos_sid_pair_pair( DiskSurface<Ttraits_>                  const& origin_structure,
+                       CylindricalSurface<Ttraits_>           const& target_structure,
+                       typename Ttraits_::position_type       const& old_pos,
+                       typename Ttraits_::length_type         const& offset              )
 {
     typedef typename Ttraits_::structure_id_type        structure_id_type;
     typedef typename Ttraits_::position_type            position_type;
@@ -881,9 +924,10 @@ get_pos_sid_pair_pair( DiskSurface<Ttraits_>                 const& origin_struc
 template <typename Ttraits_>
 inline std::pair< std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type>, 
                   std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type> >
-get_pos_sid_pair_pair( DiskSurface<Ttraits_>                 const& origin_structure,
-                       DiskSurface<Ttraits_>                 const& target_structure,
-                       typename Ttraits_::position_type      const& old_pos          )
+get_pos_sid_pair_pair( DiskSurface<Ttraits_>                  const& origin_structure,
+                       DiskSurface<Ttraits_>                  const& target_structure,
+                       typename Ttraits_::position_type       const& old_pos,
+                       typename Ttraits_::length_type         const& offset              )
 {
     typedef typename Ttraits_::structure_id_type        structure_id_type;
     typedef typename Ttraits_::position_type            position_type;
@@ -900,9 +944,10 @@ get_pos_sid_pair_pair( DiskSurface<Ttraits_>                 const& origin_struc
 template <typename Ttraits_>
 inline std::pair< std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type>, 
                   std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type> >
-get_pos_sid_pair_pair( DiskSurface<Ttraits_>                 const& origin_structure,
-                       PlanarSurface<Ttraits_>               const& target_structure,
-                       typename Ttraits_::position_type      const& old_pos          )
+get_pos_sid_pair_pair( DiskSurface<Ttraits_>                  const& origin_structure,
+                       PlanarSurface<Ttraits_>                const& target_structure,
+                       typename Ttraits_::position_type       const& old_pos,
+                       typename Ttraits_::length_type         const& offset              )
 {
     typedef typename Ttraits_::structure_id_type        structure_id_type;
     typedef typename Ttraits_::position_type            position_type;
@@ -922,9 +967,10 @@ get_pos_sid_pair_pair( DiskSurface<Ttraits_>                 const& origin_struc
 template <typename Ttraits_>
 inline std::pair< std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type>, 
                   std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type> >
-get_pos_sid_pair_pair( PlanarSurface<Ttraits_>               const& origin_structure,
-                       CuboidalRegion<Ttraits_>              const& target_structure,
-                       typename Ttraits_::position_type      const& old_pos          )
+get_pos_sid_pair_pair( PlanarSurface<Ttraits_>                const& origin_structure,
+                       CuboidalRegion<Ttraits_>               const& target_structure,
+                       typename Ttraits_::position_type       const& old_pos,
+                       typename Ttraits_::length_type         const& offset              )
 {
     typedef typename Ttraits_::structure_id_type        structure_id_type;
     typedef typename Ttraits_::position_type            position_type;
@@ -941,9 +987,10 @@ get_pos_sid_pair_pair( PlanarSurface<Ttraits_>               const& origin_struc
 template <typename Ttraits_>
 inline std::pair< std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type>, 
                   std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type> >
-get_pos_sid_pair_pair( PlanarSurface<Ttraits_>               const& origin_structure,
-                       SphericalSurface<Ttraits_>            const& target_structure,
-                       typename Ttraits_::position_type      const& old_pos          )
+get_pos_sid_pair_pair( PlanarSurface<Ttraits_>                const& origin_structure,
+                       SphericalSurface<Ttraits_>             const& target_structure,
+                       typename Ttraits_::position_type       const& old_pos,
+                       typename Ttraits_::length_type         const& offset              )
 {
     typedef typename Ttraits_::structure_id_type        structure_id_type;
     typedef typename Ttraits_::position_type            position_type;
@@ -960,9 +1007,10 @@ get_pos_sid_pair_pair( PlanarSurface<Ttraits_>               const& origin_struc
 template <typename Ttraits_>
 inline std::pair< std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type>, 
                   std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type> >
-get_pos_sid_pair_pair( PlanarSurface<Ttraits_>               const& origin_structure,
-                       CylindricalSurface<Ttraits_>          const& target_structure,
-                       typename Ttraits_::position_type      const& old_pos          )
+get_pos_sid_pair_pair( PlanarSurface<Ttraits_>                const& origin_structure,
+                       CylindricalSurface<Ttraits_>           const& target_structure,
+                       typename Ttraits_::position_type       const& old_pos,
+                       typename Ttraits_::length_type         const& offset              )
 {
     typedef typename Ttraits_::structure_id_type        structure_id_type;
     typedef typename Ttraits_::position_type            position_type;
@@ -979,9 +1027,10 @@ get_pos_sid_pair_pair( PlanarSurface<Ttraits_>               const& origin_struc
 template <typename Ttraits_>
 inline std::pair< std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type>, 
                   std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type> >
-get_pos_sid_pair_pair( PlanarSurface<Ttraits_>               const& origin_structure,
-                       DiskSurface<Ttraits_>                 const& target_structure,
-                       typename Ttraits_::position_type      const& old_pos          )
+get_pos_sid_pair_pair( PlanarSurface<Ttraits_>                const& origin_structure,
+                       DiskSurface<Ttraits_>                  const& target_structure,
+                       typename Ttraits_::position_type       const& old_pos,
+                       typename Ttraits_::length_type         const& offset              )
 {
     typedef typename Ttraits_::structure_id_type        structure_id_type;
     typedef typename Ttraits_::position_type            position_type;
@@ -998,9 +1047,10 @@ get_pos_sid_pair_pair( PlanarSurface<Ttraits_>               const& origin_struc
 template <typename Ttraits_>
 inline std::pair< std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type>, 
                   std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type> >
-get_pos_sid_pair_pair( PlanarSurface<Ttraits_>               const& origin_structure,
-                       PlanarSurface<Ttraits_>               const& target_structure,
-                       typename Ttraits_::position_type      const& old_pos          )
+get_pos_sid_pair_pair( PlanarSurface<Ttraits_>                const& origin_structure,
+                       PlanarSurface<Ttraits_>                const& target_structure,
+                       typename Ttraits_::position_type       const& old_pos,
+                       typename Ttraits_::length_type         const& offset              )
 {
     typedef typename Ttraits_::structure_id_type        structure_id_type;
     typedef typename Ttraits_::position_type            position_type;
