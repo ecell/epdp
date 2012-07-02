@@ -153,16 +153,16 @@ public:
     
     /*** Despatch switchbox for structure functions ***/
     virtual position_structid_pair_type get_pos_sid_pair(structure_type const& target_structure, position_type const& position,
-                                                         length_type const& offset, rng_type const& rng) const
+                                                         length_type const& offset, length_type const& reaction_length, rng_type const& rng) const
     {
-        return target_structure.get_pos_sid_pair_helper(*this, position, offset, rng);
+        return target_structure.get_pos_sid_pair_helper(*this, position, offset, reaction_length, rng);
     }
     // the associated helper function
     template <typename Tstruct_>
     position_structid_pair_type get_pos_sid_pair_helper(Tstruct_ const& origin_structure, position_type const& position,
-                                                        length_type const& offset, rng_type const& rng) const
+                                                        length_type const& offset, length_type const& reaction_length, rng_type const& rng) const
     {
-        return ::get_pos_sid_pair(origin_structure, *this, position, offset, rng);
+        return ::get_pos_sid_pair(origin_structure, *this, position, offset, reaction_length, rng);
     }
     
     /*** Formerly used functions of the Morelli scheme ***/

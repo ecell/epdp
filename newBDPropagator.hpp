@@ -431,12 +431,9 @@ private:
                             //const structure_id_type product_structure_id(tx_.get_def_structure_id());
                             const boost::shared_ptr<const structure_type> product_structure( tx_.get_structure(product_structure_id) );
                             // Produce new position and structure id
-                            const position_structid_pair_type new_pos_sid_pair( reactant_structure->get_pos_sid_pair(*product_structure, reactant_pos, 0.0, rng_) );
-                            // Care for exit point from structures, which depends on product radius
-                            const position_type displacement( reactant_structure->surface_dissociation_vector(rng_, product_species.radius(), reaction_length_ ) );
-                            const position_type product_pos( add(new_pos_sid_pair.first, displacement) );
+                            const length_type dissoc_offset = product_species.radius();
+                            const position_structid_pair_type new_pos_sid_pair( reactant_structure->get_pos_sid_pair(*product_structure, reactant_pos, dissoc_offset, rng_, reaction_length_) );
                             
-                            product_pos_struct_id = std::make_pair(product_pos, new_pos_sid_pair.second);
                             // Apply boundary conditions
                             product_pos_struct_id = tx_.apply_boundary( product_pos_struct_id );
                             // Particle is allowed to move after dissociation from surface. TODO Isn't it allways allowed to move?
