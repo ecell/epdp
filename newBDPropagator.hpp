@@ -428,35 +428,15 @@ private:
                             // assumed to go to its parent structure, which in most cases is the bulk;
                             // For a disk bound particle it can be both the bulk and the cylinder
                             const structure_id_type product_structure_id(reactant_structure->structure_id()); // the parent structure
-                            //const structure_id_type product_structure_id(tx_.get_def_structure_id());
                             const boost::shared_ptr<const structure_type> product_structure( tx_.get_structure(product_structure_id) );
                             // Produce new position and structure id
-                            const length_type dissoc_offset( product_species.radius() );
-                            const position_structid_pair_type new_pos_sid_pair( reactant_structure->get_pos_sid_pair(*product_structure, reactant_pos, dissoc_offset, reaction_length_, rng_) );
-                            
+                            const position_structid_pair_type new_pos_sid_pair( reactant_structure->get_pos_sid_pair(*product_structure, reactant_pos,
+                                                                                                                      product_species.radius(), reaction_length_, rng_) );                            
                             // Apply boundary conditions
                             product_pos_struct_id = tx_.apply_boundary( product_pos_struct_id );
                             // Particle is allowed to move after dissociation from surface. TODO Isn't it allways allowed to move?
                             product_pos_struct_id = make_move(product_species, product_pos_struct_id, pp.first);
                         }
-                        /* OLD VERSION
-                        // If the product particle does NOT live on the same structure type as the reactant => structure -> superstructure dissociation.
-                        // TODO TODO TODO Rework this using structure functions! TODO TODO TODO
-                        if( product_species.structure_type_id() != reactant_structure->sid() )
-                        {
-                            // get dissociation position and structure
-                            // TODO merge the structure_id thing into the 'surface_dissociation_vector' method.
-                            // TODO when dissociating from the 'cap' structure, we go up two levels instead of one.
-                            const position_type displacement( reactant_structure->surface_dissociation_vector(rng_, product_species.radius(), reaction_length_ ) );
-                            const position_type product_pos (tx_.apply_boundary( add( reactant_pos, displacement ) ));
-                            // When dissociating, the new structure is the parent structure (is this always true?)
-                            const structure_id_type product_structure_id (reactant_structure->structure_id());
-
-                            product_pos_struct_id = std::make_pair(product_pos, product_structure_id);
-                            // Particle is allowed to move after dissociation from surface. TODO Isn't it allways allowed to move?
-                            product_pos_struct_id = make_move(product_species, product_pos_struct_id, pp.first);
-                        }
-                        */
 
                         //// 2- CHECK FOR OVERLAPS
                         const particle_shape_type new_shape(product_pos_struct_id.first, product_species.radius());
