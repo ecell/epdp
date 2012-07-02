@@ -133,9 +133,9 @@ public:
     virtual position_structid_pair_type cyclic_transpose(position_structid_pair_type const& pos_struct_id,
                                                          structure_container_type const& structure_container) const = 0;
     // Structure functions despatch switchbox
-    virtual position_structid_pair_type get_pos_sid_pair(structure_type const& target_structure, position_type const& position, length_type const& offset) const = 0;
+    virtual position_structid_pair_type get_pos_sid_pair(structure_type const& target_structure, position_type const& position, length_type const& offset, rng_type const& rng) const = 0;
     template <typename Tstruct_>
-    position_structid_pair_type get_pos_sid_pair_helper(Tstruct_ const& origin_structure, position_type const& position, length_type const& offset) const;
+    position_structid_pair_type get_pos_sid_pair_helper(Tstruct_ const& origin_structure, position_type const& position, length_type const& offset, rng_type const& rng) const;
 
 
     virtual std::size_t hash() const
