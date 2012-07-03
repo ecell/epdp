@@ -33,8 +33,9 @@ public:
 
     typedef StructureContainer<typename traits_type::structure_type, structure_id_type, traits_type>    structure_container_type;
 
-    typedef std::pair<position_type, position_type>     position_pair_type;
-    typedef std::pair<position_type, structure_id_type> position_structid_pair_type;
+    typedef std::pair<position_type, position_type>                               position_pair_type;
+    typedef std::pair<position_type, structure_id_type>                           position_structid_pair_type;
+    typedef std::pair<position_structid_pair_type, position_structid_pair_type>   position_structid_pair_pair_type;
 
 
     /*** Simple structure-specific sampling functions ***/
@@ -151,7 +152,8 @@ public:
         return pos_struct_id;       // The cyclic_transpose does nothing because we'll apply world cyclic transpose later.
     }
     
-    /*** Despatch switchbox for structure functions ***/
+    /*** Despatch switchbox for the structure functions ***/
+    // 1 - One new position
     virtual position_structid_pair_type get_pos_sid_pair(structure_type const& target_structure, position_type const& position,
                                                          length_type const& offset, length_type const& reaction_length, rng_type const& rng) const
     {
@@ -163,6 +165,19 @@ public:
                                                         length_type const& offset, length_type const& reaction_length, rng_type const& rng) const
     {
         return ::get_pos_sid_pair(origin_structure, *this, position, offset, reaction_length, rng);
+    }
+    // 2 - Two new positions
+    virtual position_structid_pair_pair_type get_pos_sid_pair_pair(structure_type const& target_structure, position_type const& position,
+                                                                   length_type const& offset, length_type const& reaction_length, rng_type const& rng) const
+    {
+        return target_structure.get_pos_sid_pair_pair_helper(*this, position, offset, reaction_length, rng);
+    }
+    // the associated helper function
+    template <typename Tstruct_>
+    position_structid_pair_pair_type get_pos_sid_pair_pair_helper(Tstruct_ const& origin_structure, position_type const& position,
+                                                                  length_type const& offset, length_type const& reaction_length, rng_type const& rng) const
+    {
+        return ::get_pos_sid_pair_pair(origin_structure, *this, position, offset, reaction_length, rng);
     }
     
     /*** Formerly used functions of the Morelli scheme ***/
