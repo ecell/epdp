@@ -615,8 +615,8 @@ inline std::pair< std::pair<typename Ttraits_::position_type, typename Ttraits_:
 get_pos_sid_pair_pair( CuboidalRegion<Ttraits_>               const& origin_structure,
                        CuboidalRegion<Ttraits_>               const& target_structure,
                        typename Ttraits_::position_type       const& old_pos,
-                       typename Ttraits_::species_type        const& s1,
-                       typename Ttraits_::species_type        const& s2,
+                       typename Ttraits_::species_type        const& s_orig,
+                       typename Ttraits_::species_type        const& s_targ,
                        typename Ttraits_::length_type         const& reaction_length,
                        typename Ttraits_::rng_type            const& rng                )
 {
@@ -628,7 +628,7 @@ get_pos_sid_pair_pair( CuboidalRegion<Ttraits_>               const& origin_stru
     if(origin_structure.id == target_structure.id){
      
         structure_id_type new_sid( origin_structure.id );
-        std::pair<position_type, position_type> new_positions( origin_structure->geminate_dissociation_positions(rng, s1, s2, old_pos, reaction_length) );
+        std::pair<position_type, position_type> new_positions( origin_structure->geminate_dissociation_positions(rng, s_orig, s_targ, old_pos, reaction_length) );
         // geminate_dissociation_positions will produce two new positions close to old_pos taking into account
         // the type of origin_structure and the properties of the two product species
         // (the displacements from old_pos are weighted by the diffusion constants)
@@ -648,8 +648,8 @@ inline std::pair< std::pair<typename Ttraits_::position_type, typename Ttraits_:
 get_pos_sid_pair_pair( CuboidalRegion<Ttraits_>               const& origin_structure,
                        SphericalSurface<Ttraits_>             const& target_structure,
                        typename Ttraits_::position_type       const& old_pos,
-                       typename Ttraits_::species_type        const& s1,
-                       typename Ttraits_::species_type        const& s2,
+                       typename Ttraits_::species_type        const& s_orig,
+                       typename Ttraits_::species_type        const& s_targ,
                        typename Ttraits_::length_type         const& reaction_length,
                        typename Ttraits_::rng_type            const& rng                )
 {
@@ -671,8 +671,8 @@ inline std::pair< std::pair<typename Ttraits_::position_type, typename Ttraits_:
 get_pos_sid_pair_pair( CuboidalRegion<Ttraits_>               const& origin_structure,
                        CylindricalSurface<Ttraits_>           const& target_structure,
                        typename Ttraits_::position_type       const& old_pos,
-                       typename Ttraits_::species_type        const& s1,
-                       typename Ttraits_::species_type        const& s2,
+                       typename Ttraits_::species_type        const& s_orig,
+                       typename Ttraits_::species_type        const& s_targ,
                        typename Ttraits_::length_type         const& reaction_length,
                        typename Ttraits_::rng_type            const& rng                )
 {
@@ -695,8 +695,8 @@ inline std::pair< std::pair<typename Ttraits_::position_type, typename Ttraits_:
 get_pos_sid_pair_pair( CuboidalRegion<Ttraits_>               const& origin_structure,
                        DiskSurface<Ttraits_>                  const& target_structure,
                        typename Ttraits_::position_type       const& old_pos,
-                       typename Ttraits_::species_type        const& s1,
-                       typename Ttraits_::species_type        const& s2,
+                       typename Ttraits_::species_type        const& s_orig,
+                       typename Ttraits_::species_type        const& s_targ,
                        typename Ttraits_::length_type         const& reaction_length,
                        typename Ttraits_::rng_type            const& rng                )
 {
@@ -718,8 +718,8 @@ inline std::pair< std::pair<typename Ttraits_::position_type, typename Ttraits_:
 get_pos_sid_pair_pair( CuboidalRegion<Ttraits_>               const& origin_structure,
                        PlanarSurface<Ttraits_>                const& target_structure,
                        typename Ttraits_::position_type       const& old_pos,
-                       typename Ttraits_::species_type        const& s1,
-                       typename Ttraits_::species_type        const& s2,
+                       typename Ttraits_::species_type        const& s_orig,
+                       typename Ttraits_::species_type        const& s_targ,
                        typename Ttraits_::length_type         const& reaction_length,
                        typename Ttraits_::rng_type            const& rng                )
 {
@@ -744,8 +744,8 @@ inline std::pair< std::pair<typename Ttraits_::position_type, typename Ttraits_:
 get_pos_sid_pair_pair( SphericalSurface<Ttraits_>             const& origin_structure,
                        CuboidalRegion<Ttraits_>               const& target_structure,
                        typename Ttraits_::position_type       const& old_pos,
-                       typename Ttraits_::species_type        const& s1,
-                       typename Ttraits_::species_type        const& s2,
+                       typename Ttraits_::species_type        const& s_orig,
+                       typename Ttraits_::species_type        const& s_targ,
                        typename Ttraits_::length_type         const& reaction_length,
                        typename Ttraits_::rng_type            const& rng                )
 {
@@ -767,8 +767,8 @@ inline std::pair< std::pair<typename Ttraits_::position_type, typename Ttraits_:
 get_pos_sid_pair_pair( SphericalSurface<Ttraits_>             const& origin_structure,
                        SphericalSurface<Ttraits_>             const& target_structure,
                        typename Ttraits_::position_type       const& old_pos,
-                       typename Ttraits_::species_type        const& s1,
-                       typename Ttraits_::species_type        const& s2,
+                       typename Ttraits_::species_type        const& s_orig,
+                       typename Ttraits_::species_type        const& s_targ,
                        typename Ttraits_::length_type         const& reaction_length,
                        typename Ttraits_::rng_type            const& rng                )
 {
@@ -790,8 +790,8 @@ inline std::pair< std::pair<typename Ttraits_::position_type, typename Ttraits_:
 get_pos_sid_pair_pair( SphericalSurface<Ttraits_>             const& origin_structure,
                        CylindricalSurface<Ttraits_>           const& target_structure,
                        typename Ttraits_::position_type       const& old_pos,
-                       typename Ttraits_::species_type        const& s1,
-                       typename Ttraits_::species_type        const& s2,
+                       typename Ttraits_::species_type        const& s_orig,
+                       typename Ttraits_::species_type        const& s_targ,
                        typename Ttraits_::length_type         const& reaction_length,
                        typename Ttraits_::rng_type            const& rng                )
 {
@@ -813,8 +813,8 @@ inline std::pair< std::pair<typename Ttraits_::position_type, typename Ttraits_:
 get_pos_sid_pair_pair( SphericalSurface<Ttraits_>             const& origin_structure,
                        DiskSurface<Ttraits_>                  const& target_structure,
                        typename Ttraits_::position_type       const& old_pos,
-                       typename Ttraits_::species_type        const& s1,
-                       typename Ttraits_::species_type        const& s2,
+                       typename Ttraits_::species_type        const& s_orig,
+                       typename Ttraits_::species_type        const& s_targ,
                        typename Ttraits_::length_type         const& reaction_length,
                        typename Ttraits_::rng_type            const& rng                )
 {
@@ -836,8 +836,8 @@ inline std::pair< std::pair<typename Ttraits_::position_type, typename Ttraits_:
 get_pos_sid_pair_pair( SphericalSurface<Ttraits_>             const& origin_structure,
                        PlanarSurface<Ttraits_>                const& target_structure,
                        typename Ttraits_::position_type       const& old_pos,
-                       typename Ttraits_::species_type        const& s1,
-                       typename Ttraits_::species_type        const& s2,
+                       typename Ttraits_::species_type        const& s_orig,
+                       typename Ttraits_::species_type        const& s_targ,
                        typename Ttraits_::length_type         const& reaction_length,
                        typename Ttraits_::rng_type            const& rng                )
 {
@@ -862,8 +862,8 @@ inline std::pair< std::pair<typename Ttraits_::position_type, typename Ttraits_:
 get_pos_sid_pair_pair( CylindricalSurface<Ttraits_>           const& origin_structure,
                        CuboidalRegion<Ttraits_>               const& target_structure,
                        typename Ttraits_::position_type       const& old_pos,
-                       typename Ttraits_::species_type        const& s1,
-                       typename Ttraits_::species_type        const& s2,
+                       typename Ttraits_::species_type        const& s_orig,
+                       typename Ttraits_::species_type        const& s_targ,
                        typename Ttraits_::length_type         const& reaction_length,
                        typename Ttraits_::rng_type            const& rng                )
 {
@@ -871,11 +871,15 @@ get_pos_sid_pair_pair( CylindricalSurface<Ttraits_>           const& origin_stru
     typedef typename Ttraits_::position_type            position_type;
     typedef typename Ttraits_::length_type              length_type;
 
-    /*** COMBINATION NOT SUPPORTED ***/
-    throw illegal_propagation_attempt("Structure transition between combination of origin structure and target structure not supported.");
-    
-    return std::make_pair(      std::make_pair(position_type(), structure_id_type()),
-                                std::make_pair(position_type(), structure_id_type())    );
+    std::pair<position_type, position_type> new_positions( origin_structure->special_geminate_dissociation_positions(rng, s_orig, s_targ, old_pos, reaction_length) );
+    // special_geminate_dissociation_positions will produce two new positions close to old_pos taking into account
+    // the types of origin_structure and target_structure and the properties of the two product species
+    // (the displacements from old_pos are weighted by the diffusion constants);
+    // the first pair entry is the particle staying on the surface, the second entry the particle
+    // that goes into the bulk
+            
+    return std::make_pair(      std::make_pair(new_positions.first,  origin_structure.id),
+                                std::make_pair(new_positions.second, target_structure.id)    );  
 };
 
 // CylindricalSurface -> CylindricalSurface
@@ -885,8 +889,8 @@ inline std::pair< std::pair<typename Ttraits_::position_type, typename Ttraits_:
 get_pos_sid_pair_pair( CylindricalSurface<Ttraits_>           const& origin_structure,
                        CylindricalSurface<Ttraits_>           const& target_structure,
                        typename Ttraits_::position_type       const& old_pos,
-                       typename Ttraits_::species_type        const& s1,
-                       typename Ttraits_::species_type        const& s2,
+                       typename Ttraits_::species_type        const& s_orig,
+                       typename Ttraits_::species_type        const& s_targ,
                        typename Ttraits_::length_type         const& reaction_length,
                        typename Ttraits_::rng_type            const& rng                )
 {
@@ -898,7 +902,7 @@ get_pos_sid_pair_pair( CylindricalSurface<Ttraits_>           const& origin_stru
     if(origin_structure.id == target_structure.id){
      
         structure_id_type new_sid( origin_structure.id );
-        std::pair<position_type, position_type> new_positions( origin_structure->geminate_dissociation_positions(rng, s1, s2, old_pos, reaction_length) );
+        std::pair<position_type, position_type> new_positions( origin_structure->geminate_dissociation_positions(rng, s_orig, s_targ, old_pos, reaction_length) );
         // geminate_dissociation_positions will produce two new positions close to old_pos taking into account
         // the type of origin_structure and the properties of the two product species
         // (the displacements from old_pos are weighted by the diffusion constants)
@@ -918,8 +922,8 @@ inline std::pair< std::pair<typename Ttraits_::position_type, typename Ttraits_:
 get_pos_sid_pair_pair( CylindricalSurface<Ttraits_>           const& origin_structure,
                        SphericalSurface<Ttraits_>             const& target_structure,
                        typename Ttraits_::position_type       const& old_pos,
-                       typename Ttraits_::species_type        const& s1,
-                       typename Ttraits_::species_type        const& s2,
+                       typename Ttraits_::species_type        const& s_orig,
+                       typename Ttraits_::species_type        const& s_targ,
                        typename Ttraits_::length_type         const& reaction_length,
                        typename Ttraits_::rng_type            const& rng                )
 {
@@ -941,8 +945,8 @@ inline std::pair< std::pair<typename Ttraits_::position_type, typename Ttraits_:
 get_pos_sid_pair_pair( CylindricalSurface<Ttraits_>           const& origin_structure,
                        DiskSurface<Ttraits_>                  const& target_structure,
                        typename Ttraits_::position_type       const& old_pos,
-                       typename Ttraits_::species_type        const& s1,
-                       typename Ttraits_::species_type        const& s2,
+                       typename Ttraits_::species_type        const& s_orig,
+                       typename Ttraits_::species_type        const& s_targ,
                        typename Ttraits_::length_type         const& reaction_length,
                        typename Ttraits_::rng_type            const& rng                )
 {
@@ -964,8 +968,8 @@ inline std::pair< std::pair<typename Ttraits_::position_type, typename Ttraits_:
 get_pos_sid_pair_pair( CylindricalSurface<Ttraits_>           const& origin_structure,
                        PlanarSurface<Ttraits_>                const& target_structure,
                        typename Ttraits_::position_type       const& old_pos,
-                       typename Ttraits_::species_type        const& s1,
-                       typename Ttraits_::species_type        const& s2,
+                       typename Ttraits_::species_type        const& s_orig,
+                       typename Ttraits_::species_type        const& s_targ,
                        typename Ttraits_::length_type         const& reaction_length,
                        typename Ttraits_::rng_type            const& rng                )
 {
@@ -990,8 +994,8 @@ inline std::pair< std::pair<typename Ttraits_::position_type, typename Ttraits_:
 get_pos_sid_pair_pair( DiskSurface<Ttraits_>                  const& origin_structure,
                        CuboidalRegion<Ttraits_>               const& target_structure,
                        typename Ttraits_::position_type       const& old_pos,
-                       typename Ttraits_::species_type        const& s1,
-                       typename Ttraits_::species_type        const& s2,
+                       typename Ttraits_::species_type        const& s_orig,
+                       typename Ttraits_::species_type        const& s_targ,
                        typename Ttraits_::length_type         const& reaction_length,
                        typename Ttraits_::rng_type            const& rng                )
 {
@@ -999,11 +1003,15 @@ get_pos_sid_pair_pair( DiskSurface<Ttraits_>                  const& origin_stru
     typedef typename Ttraits_::position_type            position_type;
     typedef typename Ttraits_::length_type              length_type;
 
-    /*** COMBINATION NOT SUPPORTED ***/
-    throw illegal_propagation_attempt("Structure transition between combination of origin structure and target structure not supported.");
-    
-    return std::make_pair(      std::make_pair(position_type(), structure_id_type()),
-                                std::make_pair(position_type(), structure_id_type())    );
+    std::pair<position_type, position_type> new_positions( origin_structure->special_geminate_dissociation_positions(rng, s_orig, s_targ, old_pos, reaction_length) );
+    // special_geminate_dissociation_positions will produce two new positions close to old_pos taking into account
+    // the types of origin_structure and target_structure and the properties of the two product species
+    // (the displacements from old_pos are weighted by the diffusion constants);
+    // the first pair entry is the particle staying on the surface, the second entry the particle
+    // that goes into the bulk
+            
+    return std::make_pair(      std::make_pair(new_positions.first,  origin_structure.id),
+                                std::make_pair(new_positions.second, target_structure.id)    );
 };
 
 // DiskSurface -> SphericalSurface
@@ -1013,8 +1021,8 @@ inline std::pair< std::pair<typename Ttraits_::position_type, typename Ttraits_:
 get_pos_sid_pair_pair( DiskSurface<Ttraits_>                  const& origin_structure,
                        SphericalSurface<Ttraits_>             const& target_structure,
                        typename Ttraits_::position_type       const& old_pos,
-                       typename Ttraits_::species_type        const& s1,
-                       typename Ttraits_::species_type        const& s2,
+                       typename Ttraits_::species_type        const& s_orig,
+                       typename Ttraits_::species_type        const& s_targ,
                        typename Ttraits_::length_type         const& reaction_length,
                        typename Ttraits_::rng_type            const& rng                )
 {
@@ -1036,8 +1044,8 @@ inline std::pair< std::pair<typename Ttraits_::position_type, typename Ttraits_:
 get_pos_sid_pair_pair( DiskSurface<Ttraits_>                  const& origin_structure,
                        CylindricalSurface<Ttraits_>           const& target_structure,
                        typename Ttraits_::position_type       const& old_pos,
-                       typename Ttraits_::species_type        const& s1,
-                       typename Ttraits_::species_type        const& s2,
+                       typename Ttraits_::species_type        const& s_orig,
+                       typename Ttraits_::species_type        const& s_targ,
                        typename Ttraits_::length_type         const& reaction_length,
                        typename Ttraits_::rng_type            const& rng                )
 {
@@ -1045,6 +1053,9 @@ get_pos_sid_pair_pair( DiskSurface<Ttraits_>                  const& origin_stru
     typedef typename Ttraits_::position_type            position_type;
     typedef typename Ttraits_::length_type              length_type;
 
+    // TODO TODO TODO
+    // IMPLEMENT THE UNBINDING FROM THE DISK ACTING AS A SINK!
+    
     /*** COMBINATION NOT SUPPORTED ***/
     throw illegal_propagation_attempt("Structure transition between combination of origin structure and target structure not supported.");
     
@@ -1059,8 +1070,8 @@ inline std::pair< std::pair<typename Ttraits_::position_type, typename Ttraits_:
 get_pos_sid_pair_pair( DiskSurface<Ttraits_>                  const& origin_structure,
                        DiskSurface<Ttraits_>                  const& target_structure,
                        typename Ttraits_::position_type       const& old_pos,
-                       typename Ttraits_::species_type        const& s1,
-                       typename Ttraits_::species_type        const& s2,
+                       typename Ttraits_::species_type        const& s_orig,
+                       typename Ttraits_::species_type        const& s_targ,
                        typename Ttraits_::length_type         const& reaction_length,
                        typename Ttraits_::rng_type            const& rng                )
 {
@@ -1082,8 +1093,8 @@ inline std::pair< std::pair<typename Ttraits_::position_type, typename Ttraits_:
 get_pos_sid_pair_pair( DiskSurface<Ttraits_>                  const& origin_structure,
                        PlanarSurface<Ttraits_>                const& target_structure,
                        typename Ttraits_::position_type       const& old_pos,
-                       typename Ttraits_::species_type        const& s1,
-                       typename Ttraits_::species_type        const& s2,
+                       typename Ttraits_::species_type        const& s_orig,
+                       typename Ttraits_::species_type        const& s_targ,
                        typename Ttraits_::length_type         const& reaction_length,
                        typename Ttraits_::rng_type            const& rng                )
 {
@@ -1108,20 +1119,24 @@ inline std::pair< std::pair<typename Ttraits_::position_type, typename Ttraits_:
 get_pos_sid_pair_pair( PlanarSurface<Ttraits_>                const& origin_structure,
                        CuboidalRegion<Ttraits_>               const& target_structure,
                        typename Ttraits_::position_type       const& old_pos,
-                       typename Ttraits_::species_type        const& s1,
-                       typename Ttraits_::species_type        const& s2,
+                       typename Ttraits_::species_type        const& s_orig,
+                       typename Ttraits_::species_type        const& s_targ,
                        typename Ttraits_::length_type         const& reaction_length,
                        typename Ttraits_::rng_type            const& rng                )
 {
     typedef typename Ttraits_::structure_id_type        structure_id_type;
     typedef typename Ttraits_::position_type            position_type;
     typedef typename Ttraits_::length_type              length_type;
-
-    /*** COMBINATION NOT SUPPORTED ***/
-    throw illegal_propagation_attempt("Structure transition between combination of origin structure and target structure not supported.");
     
-    return std::make_pair(      std::make_pair(position_type(), structure_id_type()),
-                                std::make_pair(position_type(), structure_id_type())    );
+    std::pair<position_type, position_type> new_positions( origin_structure->special_geminate_dissociation_positions(rng, s_orig, s_targ, old_pos, reaction_length) );
+    // special_geminate_dissociation_positions will produce two new positions close to old_pos taking into account
+    // the types of origin_structure and target_structure and the properties of the two product species
+    // (the displacements from old_pos are weighted by the diffusion constants);
+    // the first pair entry is the particle staying on the surface, the second entry the particle
+    // that goes into the bulk
+            
+    return std::make_pair(      std::make_pair(new_positions.first,  origin_structure.id),
+                                std::make_pair(new_positions.second, target_structure.id)    );    
 };
 
 // PlanarSurface -> SphericalSurface
@@ -1131,8 +1146,8 @@ inline std::pair< std::pair<typename Ttraits_::position_type, typename Ttraits_:
 get_pos_sid_pair_pair( PlanarSurface<Ttraits_>                const& origin_structure,
                        SphericalSurface<Ttraits_>             const& target_structure,
                        typename Ttraits_::position_type       const& old_pos,
-                       typename Ttraits_::species_type        const& s1,
-                       typename Ttraits_::species_type        const& s2,
+                       typename Ttraits_::species_type        const& s_orig,
+                       typename Ttraits_::species_type        const& s_targ,
                        typename Ttraits_::length_type         const& reaction_length,
                        typename Ttraits_::rng_type            const& rng                )
 {
@@ -1154,8 +1169,8 @@ inline std::pair< std::pair<typename Ttraits_::position_type, typename Ttraits_:
 get_pos_sid_pair_pair( PlanarSurface<Ttraits_>                const& origin_structure,
                        CylindricalSurface<Ttraits_>           const& target_structure,
                        typename Ttraits_::position_type       const& old_pos,
-                       typename Ttraits_::species_type        const& s1,
-                       typename Ttraits_::species_type        const& s2,
+                       typename Ttraits_::species_type        const& s_orig,
+                       typename Ttraits_::species_type        const& s_targ,
                        typename Ttraits_::length_type         const& reaction_length,
                        typename Ttraits_::rng_type            const& rng                )
 {
@@ -1177,8 +1192,8 @@ inline std::pair< std::pair<typename Ttraits_::position_type, typename Ttraits_:
 get_pos_sid_pair_pair( PlanarSurface<Ttraits_>                const& origin_structure,
                        DiskSurface<Ttraits_>                  const& target_structure,
                        typename Ttraits_::position_type       const& old_pos,
-                       typename Ttraits_::species_type        const& s1,
-                       typename Ttraits_::species_type        const& s2,
+                       typename Ttraits_::species_type        const& s_orig,
+                       typename Ttraits_::species_type        const& s_targ,
                        typename Ttraits_::length_type         const& reaction_length,
                        typename Ttraits_::rng_type            const& rng                )
 {
@@ -1200,8 +1215,8 @@ inline std::pair< std::pair<typename Ttraits_::position_type, typename Ttraits_:
 get_pos_sid_pair_pair( PlanarSurface<Ttraits_>                const& origin_structure,
                        PlanarSurface<Ttraits_>                const& target_structure,
                        typename Ttraits_::position_type       const& old_pos,
-                       typename Ttraits_::species_type        const& s1,
-                       typename Ttraits_::species_type        const& s2,
+                       typename Ttraits_::species_type        const& s_orig,
+                       typename Ttraits_::species_type        const& s_targ,
                        typename Ttraits_::length_type         const& reaction_length,
                        typename Ttraits_::rng_type            const& rng                )
 {
@@ -1215,7 +1230,7 @@ get_pos_sid_pair_pair( PlanarSurface<Ttraits_>                const& origin_stru
     if(origin_structure.id == target_structure.id){
      
         structure_id_type new_sid( origin_structure.id );
-        std::pair<position_type, position_type> new_positions( origin_structure->geminate_dissociation_positions(rng, s1, s2, old_pos, reaction_length) );
+        std::pair<position_type, position_type> new_positions( origin_structure->geminate_dissociation_positions(rng, s_orig, s_targ, old_pos, reaction_length) );
         // geminate_dissociation_positions will produce two new positions close to old_pos taking into account
         // the type of origin_structure and the properties of the two product species
         // (the displacements from old_pos are weighted by the diffusion constants)

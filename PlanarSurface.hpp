@@ -165,10 +165,12 @@ public:
         
         position_pair_type pp01;
         
+        // This is the particle that will end up on the surface
         pp01.first = subtract( op_surf, 
                        add( base_type::shape().unit_x() * (x * D_surf_D01),
                               base_type::shape().unit_y() * (y * D_surf_D01) ) );
         
+        // This is the particle that will end up in the bulk
         pp01.second = add( op_surf, 
                        add( base_type::shape().unit_x() * (x * D_bulk_D01),
                          add( base_type::shape().unit_y() * (y * D_bulk_D01),

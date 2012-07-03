@@ -186,8 +186,10 @@ public:
                                 
         position_pair_type pp01;
         
+        // This is the particle that ends up on the structure
         pp01.first = subtract( op_surf, unit_z * (z * D_surf_D01) );
         
+        // This is the particle that ends up in the bulk
         pp01.second = add( op_surf, 
                         add( unit_x * x,
                           add( unit_y * y, 
