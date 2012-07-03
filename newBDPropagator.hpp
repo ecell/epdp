@@ -487,7 +487,6 @@ private:
                         const boost::shared_ptr<const structure_type>   parent_structure( tx_.get_structure( reactant_structure->structure_id() ) );
                         
                         // The following will store the new positions and structure IDs
-                        position_pair_type                              pos0pos1;
                         structure_id_type                               prod0_struct_id;
                         structure_id_type                               prod1_struct_id;
                         posstructid_posstructid_pair_type               pos0pos1_pair;
@@ -543,8 +542,8 @@ private:
                             prod0_struct_id = pos0pos1_pair.first.second;
                             prod1_struct_id = pos0pos1_pair.second.second;
                             // Apply the boundary conditions
-                            const position_structid_pair_type pos_structid0 (tx_.apply_boundary( pos0pos1_pair.second ));
-                            const position_structid_pair_type pos_structid1 (tx_.apply_boundary( pos0pos1_pair.first  ));
+                            const position_structid_pair_type pos_structid0 (tx_.apply_boundary( pos0pos1_pair.first  ));
+                            const position_structid_pair_type pos_structid1 (tx_.apply_boundary( pos0pos1_pair.second ));
                             pos0pos1_pair = std::make_pair(pos_structid0, pos_structid1);
 
 
