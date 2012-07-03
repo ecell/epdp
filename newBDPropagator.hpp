@@ -480,30 +480,42 @@ private:
 
                     /*** TWO PRODUCTS ***/
                     case 2:
-                    {
+                    {                        
+                        //// 0 - SOME NECESSARY DEFINITONS
                         const position_type                             reactant_pos(pp.second.position());
                         const boost::shared_ptr<const structure_type>   reactant_structure( tx_.get_structure( pp.second.structure_id() ) );
                         const boost::shared_ptr<const structure_type>   parent_structure( tx_.get_structure( reactant_structure->structure_id() ) );
                         
-                        //// 0 - SOME NECESSARY DEFINITONS
-                        // We set: species 0 lives on the current structure; species 1 lives in the parent structure (if applicable).
-                        // TODO TODO TODO Rework this using structure functions! TODO TODO TODO
+                        // The following will store the new positions and structure IDs
+                        position_pair_type                              pos0pos1;
+                        structure_id_type                               prod0_struct_id;
+                        structure_id_type                               prod1_struct_id;
+                        posstructid_posstructid_pair_type               pos0pos1_pair;
+                        
+                        // Determine the structures on which the products will end up.
+                        // By default we set both product structure to reactant_structure.
+                        const boost::shared_ptr<const structure_type> prod0_structure(reactant_structure);
+                        const boost::shared_ptr<const structure_type> prod1_structure(reactant_structure);
+                        // Now check whether one of the products actually leaves reactant_structure according to the reaction rules.
                         species_type product0_species(tx_.get_species(products[0]));
                         species_type product1_species(tx_.get_species(products[1]));
+                        // If the products live on different structures, one must be the parent of the other.
+                        // In the latter case we have to bring them into the right order.
+                        // We set: species 0 lives on the current structure; species 1 lives in the parent structure (if applicable).
+                        // Compare the structure type IDs of the product species to determine where products will end up:
                         if( product0_species.structure_type_id() != product1_species.structure_type_id() )
                         {
                             if( !(product0_species.structure_type_id() == parent_structure->sid() || 
                                   product1_species.structure_type_id() == parent_structure->sid())  )
-                                throw not_implemented("One of product species should live on parent structure.");
+                                throw not_implemented("One of the product species should live on parent structure.");
                                              
                             if ( !(product0_species.structure_type_id() == reactant_structure->sid()) )
                                 std::swap(product0_species, product1_species);
+                            
+                            // If the exception was not thrown, everything should be OK now.
+                            // Change the default setting for product1
+                            const boost::shared_ptr<const structure_type> prod1_structure(parent_structure);
                         }
-
-                        position_pair_type pos0pos1;
-                        structure_id_type prod0_struct_id;
-                        structure_id_type prod1_struct_id;
-                        posstructid_posstructid_pair_type pos0pos1_pair;
 
                         //// 1 - GENERATE POSITIONS AND STRUCTURE IDs & CHECK FOR OVERLAPS
                         /* Create positions (np0, np1) for the reaction products. 
@@ -519,30 +531,20 @@ private:
                         
                             //// 1a - GENERATE POSITIONS AND STRUCTURE IDs FOR PRODUCT PARTICLES AFTER REACTION
                             // If the product particles do NOT live on the same structure => structure -> structure + parent_structure dissociation.
-                            // Else, the products live on the same structure AND on the same structure as the reactant. 
-                            // => standard geminate dissociation.
-                            // TODO TODO TODO Rework this using structure functions! TODO TODO TODO
-                            if( product0_species.structure_type_id() != product1_species.structure_type_id() )
-                            {
-                                // TODO include structure_id in return_type of dissociation_positions
-                                pos0pos1 = reactant_structure-> special_geminate_dissociation_positions( rng_, product0_species, product1_species,
-                                                                                                         reactant_pos, reaction_length_ );
-                                prod0_struct_id = pp.second.structure_id();             // The 'original' structure
-                                prod1_struct_id = reactant_structure->structure_id();   // The parent structure
-                            }
-                            else
-                            {
-                                // TODO include structure_id in return_type of dissociation_positions
-                                pos0pos1 = reactant_structure-> geminate_dissociation_positions( rng_, product0_species, product1_species,
-                                                                                                 reactant_pos, reaction_length_ );
-                                prod0_struct_id = pp.second.structure_id();         // same structure as the reactant
-                                prod1_struct_id = pp.second.structure_id();         // ditto
-                            }
-                            // TODO clean this up
-                            const boost::shared_ptr<const structure_type> prod0_structure(reactant_structure);
-                            const boost::shared_ptr<const structure_type> prod1_structure(tx_.get_structure(prod1_struct_id));
-                            const position_structid_pair_type pos_structid0 (tx_.apply_boundary( std::make_pair(pos0pos1.second, prod1_struct_id) ));
-                            const position_structid_pair_type pos_structid1 (tx_.apply_boundary( std::make_pair(pos0pos1.first,  prod0_struct_id) ));
+                            // Else, the products live on the same structure AND on the same structure as the reactant.
+                            // This is all taken care of by the structure functions get_pos_sid_pair_pair; the latter has to be called
+                            // with the right order of parameters, i.e. passing first the species of the particle staying on the reactant_structure,
+                            // then the species of the particle staying on the parent_structure.
+                            
+                            // Produce two new positions and structure IDs
+                            // Note that reactant_structure = prod0_structure here.
+                            pos0pos1_pair = reactant_structure->get_pos_sid_pair_pair(*prod1_structure, reactant_pos, product0_species, product1_species, reaction_length_, rng_ );
+                            // Remember the new structure IDs
+                            prod0_struct_id = pos0pos1_pair.first.second;
+                            prod1_struct_id = pos0pos1_pair.second.second;
+                            // Apply the boundary conditions
+                            const position_structid_pair_type pos_structid0 (tx_.apply_boundary( pos0pos1_pair.second ));
+                            const position_structid_pair_type pos_structid1 (tx_.apply_boundary( pos0pos1_pair.first  ));
                             pos0pos1_pair = std::make_pair(pos_structid0, pos_structid1);
 
 

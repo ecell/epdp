@@ -142,10 +142,10 @@ public:
                                                         length_type const& offset, length_type const& rl, rng_type const& rng) const;
     // 2 - Producing two new positions
     virtual position_structid_pair_pair_type get_pos_sid_pair_pair(structure_type const& target_structure, position_type const& position,
-                                                                   species_type const& s1, species_type const& s2, length_type const& rl, rng_type const& rng) const = 0;
+                                                                   species_type const& s_orig, species_type const& s_targ, length_type const& rl, rng_type const& rng) const = 0;
     template <typename Tstruct_>
     position_structid_pair_pair_type get_pos_sid_pair_pair_helper(Tstruct_ const& origin_structure, position_type const& position,
-                                                                   species_type const& s1, species_type const& s2, length_type const& rl, rng_type const& rng) const;
+                                                                   species_type const& s_orig, species_type const& s_targ, length_type const& rl, rng_type const& rng) const;
 
 
     virtual std::size_t hash() const
