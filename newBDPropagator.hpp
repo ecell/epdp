@@ -150,7 +150,9 @@ public:
         /*** 2. DISPLACEMENT TRIAL ***/
         /* Sample a potential move, and check if the particle _core_ has overlapped with another 
            particle or surface. If this is the case the particle bounces, and is returned
-           to it's original position. For a particle with D = 0, new_pos = old_pos */        
+           to it's original position. For a particle with D = 0, new_pos = old_pos 
+           Note that apply_boundary takes care of instant transitions between structures of the same
+           structure_type. */        
         if (pp_species.D() != 0.0)
         {
             // get a new position, dependent on the structure the particle lives on.
@@ -230,9 +232,9 @@ public:
         const boost::shared_ptr<const structure_type> current_struct( tx_.get_structure( new_structure_id) );
         //// 5.1 INTERACTIONS WITH STRUCTURES
         // First, if a surface is inside the reaction volume, and the particle is in the 3D attempt an interaction.
-        // TODO TODO TODO THIS SHOULD BE REWORKED USING THE NEW STRUCTURE FUNCTIONS! TODO TODO TODO
-        // TODO also interaction should be allowed when a particle is on a cylinder.
-        // TODO don't check only the closest but check all overlapping surfaces.
+        // TODO Rework this using the new structure functions?
+        // TODO Also an interaction should be allowed when a particle is on a cylinder. // Is that not yet the case???
+        // TODO Don't check only the closest but check all overlapping surfaces.
         j = 0;
         while(j < structures_in_overlap)
         {
@@ -249,7 +251,7 @@ public:
         
                 if(accumulated_prob >= 1.) // sth. is wrong in this case
                 {
-                    LOG_WARNING(("the acceptance probability of an interaction/reaction exeeded one; %f.",
+                    LOG_WARNING(("the acceptance probability of an interaction/reaction exceeded one; %f.",
                                  accumulated_prob));
                 } 
                 
