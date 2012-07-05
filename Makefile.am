@@ -47,11 +47,11 @@ noinst_HEADERS = \
 	BasicNetworkRulesImpl.hpp\
 	GreensFunction3DRadInf.hpp\
 	BDPropagator.hpp\
-    newBDPropagator.hpp\
+	newBDPropagator.hpp\
 	BDSimulator.hpp\
 	bessel.hpp\
 	Box.hpp\
-    ConnectivityContainer.hpp\
+	ConnectivityContainer.hpp\
 	ConsoleAppender.hpp\
 	Cylinder.hpp\
 	Disk.hpp\
@@ -119,10 +119,9 @@ noinst_HEADERS = \
 	SphericalBesselGenerator.hpp\
 	SphericalBesselTable.hpp\
 	Structure.hpp\
-    StructureFunctions.cpp\
-    StructureFunctions.hpp\
-    StructureID.hpp\
-    StructureContainer.hpp\
+	StructureFunctions.hpp\
+	StructureID.hpp\
+	StructureContainer.hpp\
 	StructureUtils.hpp\
 	StructureType.hpp\
 	Surface.hpp\
@@ -195,7 +194,7 @@ _gfrd_la_SOURCES=\
 	SpeciesType.cpp\
 	SphericalBesselGenerator.cpp\
 	StructureType.cpp\
-    StructureFunctions.cpp\
+	StructureFunctions.cpp\
 	utils.cpp
 
 _greens_functions_la_SOURCES=\

@@ -149,7 +149,7 @@ public:
     // 3 - Pair reactions => two origin structures
     // Overloading method call structure.get_pos_sid_pair
     virtual position_structid_pair_type get_pos_sid_pair(structure_type const& origin_structure2, structure_type_id_type const& target_sid, position_type const& CoM,
-                                                         length_type const& offset, length_type const& reaction_length, rng_type const& rng) const;
+                                                         length_type const& offset, length_type const& reaction_length, rng_type const& rng) const = 0;
     template <typename Tstruct_>
     position_structid_pair_type get_pos_sid_pair_helper_two_origins(Tstruct_ const& origin_structure1, structure_type_id_type const& target_sid, position_type const& CoM,
                                                                     length_type const& offset, length_type const& reaction_length, rng_type const& rng) const;                                                                    
@@ -157,12 +157,12 @@ public:
     // This introduces a triple dynamic dispatch, overloading method call structure.get_pos_sid_pair once more.
     // NOTE: As yet these methods are unused but might prove useful in the future.
     virtual position_structid_pair_type get_pos_sid_pair(structure_type const& origin_structure2, structure_type const& target_structure, position_type const& position,
-                                                         length_type const& offset, length_type const& reaction_length, rng_type const& rng) const;
+                                                         length_type const& offset, length_type const& reaction_length, rng_type const& rng) const = 0;
     template <typename Tstruct1_>
     position_structid_pair_type get_pos_sid_pair_helper1(Tstruct1_ const& origin_structure1, structure_type const& target_structure, position_type const& position,
                                                          length_type const& offset, length_type const& reaction_length, rng_type const& rng) const;
     template <typename Tstruct1_, typename Tstruct2_>
-    position_structid_pair_type get_pos_sid_pair_helper2(Tstruct1_ const& origin_structure1, Tstruct2_ origin_structure2, position_type const& position,
+    position_structid_pair_type get_pos_sid_pair_helper2(Tstruct1_ const& origin_structure1, Tstruct2_ const& origin_structure2, position_type const& position,
                                                          length_type const& offset, length_type const& reaction_length, rng_type const& rng) const;
 
 

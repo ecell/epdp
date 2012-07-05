@@ -330,7 +330,7 @@ public:
         return target_structure.get_pos_sid_pair_helper2(origin_structure1, *this, position, offset, reaction_length, rng);
     }
     template <typename Tstruct1_, typename Tstruct2_>
-    position_structid_pair_type get_pos_sid_pair_helper2(Tstruct1_ const& origin_structure1, Tstruct2_ origin_structure2, position_type const& position,
+    position_structid_pair_type get_pos_sid_pair_helper2(Tstruct1_ const& origin_structure1, Tstruct2_ const& origin_structure2, position_type const& position,
                                                          length_type const& offset, length_type const& reaction_length, rng_type const& rng) const
     {
         if(origin_structure1.id == *this->id)
