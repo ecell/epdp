@@ -123,7 +123,7 @@ public:
     virtual projected_type project_point(position_type const& pos) const = 0;
     virtual projected_type project_point_on_surface(position_type const& pos) const = 0;
     virtual length_type distance(position_type const& pos) const = 0;
-    virtual position_type const& position() const = 0;    
+    virtual position_type const& position() const = 0;
 
     // Methods used for edge crossing (only for the planes so far)
     virtual position_flag_pair_type deflect(position_type const& pos0, position_type const& displacement) const = 0;
@@ -146,6 +146,16 @@ public:
     template <typename Tstruct_>
     position_structid_pair_pair_type get_pos_sid_pair_pair_helper(Tstruct_ const& origin_structure, position_type const& position,
                                                                    species_type const& s_orig, species_type const& s_targ, length_type const& rl, rng_type const& rng) const;
+    // 3 - Pair reactions => two origin structures => triple switchbox
+    // Overloading method call structure.get_pos_sid_pair
+    virtual position_structid_pair_type get_pos_sid_pair(structure_type const& origin_structure2, structure_type const& target_structure, position_type const& position,
+                                                         length_type const& offset, length_type const& reaction_length, rng_type const& rng) const;
+    template <typename Tstruct1_>
+    position_structid_pair_type get_pos_sid_pair_helper1(Tstruct1_ const& origin_structure1, structure_type const& target_structure, position_type const& position,
+                                                         length_type const& offset, length_type const& reaction_length, rng_type const& rng) const;    
+    template <typename Tstruct1_, typename Tstruct2_>
+    position_structid_pair_type get_pos_sid_pair_helper2(Tstruct1_ const& origin_structure1, Tstruct2_ origin_structure2, position_type const& position,
+                                                         length_type const& offset, length_type const& reaction_length, rng_type const& rng) const;
 
 
     virtual std::size_t hash() const

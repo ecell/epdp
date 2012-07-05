@@ -219,7 +219,7 @@ public:
     }
 
     /*** Despatch switchbox for the structure functions ***/
-    // 1 - One new position
+    // *** 1 *** - One new position
     virtual position_structid_pair_type get_pos_sid_pair(structure_type const& target_structure, position_type const& position,
                                                          length_type const& offset, length_type const& reaction_length, rng_type const& rng) const
     {
@@ -230,9 +230,10 @@ public:
     position_structid_pair_type get_pos_sid_pair_helper(Tstruct_ const& origin_structure, position_type const& position,
                                                         length_type const& offset, length_type const& reaction_length, rng_type const& rng) const
     {
+        // Despatch to function with well-defined typing
         return ::get_pos_sid_pair(origin_structure, *this, position, offset, reaction_length, rng);
     }
-    // 2 - Two new positions
+    // *** 2 *** - Two new positions
     virtual position_structid_pair_pair_type get_pos_sid_pair_pair(structure_type const& target_structure, position_type const& position,
                                                                    species_type const& s1, species_type const& s2, length_type const& reaction_length, rng_type const& rng) const
     {
@@ -243,9 +244,39 @@ public:
     position_structid_pair_pair_type get_pos_sid_pair_pair_helper(Tstruct_ const& origin_structure, position_type const& position,
                                                                   species_type const& s1, species_type const& s2, length_type const& reaction_length, rng_type const& rng) const
     {
+        // Despatch to function with well-defined typing
         return ::get_pos_sid_pair_pair(origin_structure, *this, position, s1, s2, reaction_length, rng);
     }
+    // *** 3 *** - Pair reactions => two origin structures => triple switchbox
+    virtual position_structid_pair_type get_pos_sid_pair(structure_type const& origin_structure2, structure_type const& target_structure, position_type const& position,
+                                                         length_type const& offset, length_type const& reaction_length, rng_type const& rng) const
+    {
+        return origin_structure2.get_pos_sid_pair_helper1(*this, target_structure, position, offset, reaction_length, rng);
+    }
+    // two associated helper functions this time
+    template <typename Tstruct1_>
+    position_structid_pair_type get_pos_sid_pair_helper1(Tstruct1_ const& origin_structure1, structure_type const& target_structure, position_type const& position,
+                                                         length_type const& offset, length_type const& reaction_length, rng_type const& rng) const
+    {
+        return target_structure.get_pos_sid_pair_helper2(origin_structure1, *this, position, offset, reaction_length, rng);
+    }
+    template <typename Tstruct1_, typename Tstruct2_>
+    position_structid_pair_type get_pos_sid_pair_helper2(Tstruct1_ const& origin_structure1, Tstruct2_ origin_structure2, position_type const& position,
+                                                         length_type const& offset, length_type const& reaction_length, rng_type const& rng) const
+    {
+        if(origin_structure1.id == *this->id)
+            // Despatch to function with well-defined typing
+            return ::get_pos_sid_pair(origin_structure2, *this, position, offset, reaction_length, rng);
+        
+        else if(origin_structure2.id == *this->id)
+            // Despatch to function with well-defined typing
+            return ::get_pos_sid_pair(origin_structure1, *this, position, offset, reaction_length, rng);
+        
+        else
+            throw propagation_error("Target structure must be one of the origin structures for pair reaction.");
+    }
     
+
     /*** Formerly used functions of the Morelli scheme ***/
     // DEPRECATED
     virtual length_type drawR_gbd(Real const& rnd, length_type const& r01, Real const& dt, Real const& D01, Real const& v) const
