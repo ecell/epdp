@@ -689,13 +689,14 @@ private:
                         position_type                       reactant1_pos (pp1.second.position());
 
                         const species_type                  product_species(tx_.get_species(products[0]));
-                        const structure_type_id_type        product_sid( product_species.structure_type_id() );
+                        const structure_type_id_type        product_structure_type_id(product_species.structure_type_id());
                         structure_id_type                   product_structure_id(reactant0_structure_id);
+                        position_type                       product_pos(reactant0_pos);
 
                         
                         //// 1 - GENERATE NEW POSITION AND STRUCTURE ID
                         // If the reactants live on adjacent structures of the same type
-                        // TODO TODO TODO Rework this using structure functions! TODO TODO TODO
+                        // TODO Can we outsource this also into the structure functions?
                         if ((s0.structure_type_id() == s1.structure_type_id()) &&
                             (reactant0_structure_id != reactant1_structure_id))
                         {
@@ -705,26 +706,31 @@ private:
                         }
 
                         // calculate the product position (CoM of the two particles)
-                        position_type product_pos( tx_.apply_boundary(
+                        position_type reactants_CoM( tx_.apply_boundary(
                                                     divide(
                                                     add(multiply(reactant0_pos, s1.D()),
                                                         multiply(tx_.cyclic_transpose(
                                                             reactant1_pos,
                                                             reactant0_pos), s0.D())),
                                                     (s0.D() + s1.D()))) );
-//                        position_type product_pos (tx_.calculate_pair_CoM(pp0.second.position(), pp1.second.position()), s0.D(), s1.D());
+//                        position_type reactants_CoM (tx_.calculate_pair_CoM(pp0.second.position(), pp1.second.position()), s0.D(), s1.D()); // TODO What is that?
 
                         // Create a new position and structure_id for the center of mass.
                         // This function automatically checks which of the two reactant structures is lower in hierarchy and makes this the
                         // target structure. It also checks whether that structure has the right structure_type_id as queried from the reaction
                         // rules before and passed via product_sid.
                         const length_type offset(0.0);
-                        const position_structid_pair_type product_pos_struct_id( reactant0_structure->get_pos_sid_pair(*reactant1_structure, product_sid, product_pos, offset, reaction_length_, rng_ ) );
+                        const position_structid_pair_type product_pos_struct_id( reactant0_structure->get_pos_sid_pair(*reactant1_structure, product_structure_type_id,
+                                                                                                                       reactants_CoM, offset, reaction_length_, rng_ ) );
                         // Apply the boundary conditions; this is particularly important here because the CoM projection as produced by the function above
                         // in some cases might end up out of the target_structure (e.g. in case the two reactants are coming from adjacent planes
                         tx_.apply_boundary(product_pos_struct_id);
-                          // TODO cyclic_transpose ?
+                          // TODO cyclic_transpose ?                          
 
+                        // Store the newly created particle info
+                        product_pos          = product_pos_struct_id.first;
+                        product_structure_id = product_pos_struct_id.second;
+                        
                         
                         /* OLD VERSION
                         // For unequal structure types, project product_pos on the 'lesser' structure.
