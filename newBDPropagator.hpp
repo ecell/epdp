@@ -517,6 +517,7 @@ private:
                             // Change the default setting for product1
                             const boost::shared_ptr<const structure_type> prod1_structure(parent_structure);
                         }
+                        // TODO Can we not outsource this part to the structure functions, too?
 
                         //// 1 - GENERATE POSITIONS AND STRUCTURE IDs & CHECK FOR OVERLAPS
                         /* Create positions (np0, np1) for the reaction products. 
