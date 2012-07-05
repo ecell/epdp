@@ -716,17 +716,21 @@ private:
 //                        position_type reactants_CoM (tx_.calculate_pair_CoM(pp0.second.position(), pp1.second.position()), s0.D(), s1.D()); // TODO What is that?
 
                         // Create a new position and structure_id for the center of mass.
-                        // This function automatically checks which of the two reactant structures is lower in hierarchy and makes this the
-                        // target structure. It also checks whether that structure has the right structure_type_id as queried from the reaction
+                        // The function get_pos_sid_pair here automatically checks which of the two reactant structures is lower in hierarchy and makes
+                        // this the target structure. It also checks whether that structure has the right structure_type_id as queried from the reaction
                         // rules before and passed via product_sid.
+                        // get_pos_sid_pair should result in projecting the CoM onto the lower level origin structure in this case. If both reactant
+                        // structures are the same, no projection should occur. This is handled correctly by the structure functions defined for equal
+                        // origin_structure types.
                         const length_type offset(0.0);
                         const position_structid_pair_type product_pos_struct_id( reactant0_structure->get_pos_sid_pair(*reactant1_structure, product_structure_type_id,
                                                                                                                        reactants_CoM, offset, reaction_length_, rng_ ) );
                         // Apply the boundary conditions; this is particularly important here because the CoM projection as produced by the function above
                         // in some cases might end up out of the target_structure (e.g. in case the two reactants are coming from adjacent planes
                         tx_.apply_boundary(product_pos_struct_id);
-                          // TODO cyclic_transpose ?                          
-
+                          // TODO cyclic_transpose ?
+                          // TODO check whether the new position is in the target structure?
+                          
                         // Store the newly created particle info
                         product_pos          = product_pos_struct_id.first;
                         product_structure_id = product_pos_struct_id.second;
