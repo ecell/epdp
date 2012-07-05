@@ -735,52 +735,6 @@ private:
                         product_pos          = product_pos_struct_id.first;
                         product_structure_id = product_pos_struct_id.second;
                         
-                        
-                        /* OLD VERSION
-                        // For unequal structure types, project product_pos on the 'lesser' structure.
-                        // The 'lesser' structure is the structure that is the lowest in the hierarchy of the two.
-                        // Note that this means that a reaction can only cross ONE hierarchical level of structures.
-                        if( s0.structure_type_id() != s1.structure_type_id() )
-                        {
-
-                            boost::shared_ptr<structure_type> product_structure;
-                            if ( reactant0_structure->structure_id() == reactant1_structure_id )        // if pp1 lives on the parent structure of pp0
-                            {
-                                product_structure_id = reactant0_structure_id;                          // -> lesser structure is structure0
-                                product_structure = reactant0_structure;
-                            }
-                            else if ( reactant1_structure->structure_id() == reactant0_structure_id )   // pp0 lives on the parent structure of pp1
-                            {
-                                product_structure_id = reactant1_structure_id;                          // -> lesser structure is structure1
-                                product_structure = reactant1_structure;
-                            }
-                            else
-                            {
-                                throw propagation_error("Particles can only be one hierarchical level apart.");
-                            }
-
-                            projected_type const position_on_surface( product_structure-> project_point(
-                                    tx_.cyclic_transpose( product_pos, product_structure->position() )));       // TODO check of cyclic transpose is still needed.
-
-                            // check that the projected point is not outside of the product surface.
-                            if ( position_on_surface.second.second > 0 )
-                                throw propagation_error("position product particle was not in surface.");
-
-                            product_pos = tx_.apply_boundary( position_on_surface.first );
-                        }
-                        else
-                        // The structure_types are the same
-                        {
-                            if (reactant0_structure_id != reactant1_structure_id)
-                            {
-                                const position_structid_pair_type bla (tx_.apply_boundary(std::make_pair(product_pos, reactant0_structure_id)));
-                                // deflect the product coordinate and get right structure_id.
-                                product_pos = bla.first;
-                                product_structure_id = bla.second;
-
-                            }
-                        }
-                        */                        
 
                         //// 2 - CHECK FOR OVERLAPS
                         const particle_shape_type new_shape(product_pos, product_species.radius());
