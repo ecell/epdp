@@ -31,30 +31,32 @@ public:
     typedef typename Ttraits_::world_type::structure_container_type structure_container_type;
 
     // shorthand typedef that we use
-    typedef typename particle_container_type::length_type           length_type;
-    typedef typename particle_container_type::position_type         position_type;
-    typedef typename particle_container_type::species_type          species_type;
-    typedef typename particle_container_type::species_id_type       species_id_type;
-    typedef typename particle_container_type::particle_id_type      particle_id_type;
-    typedef typename particle_container_type::particle_type         particle_type;
-    typedef typename particle_container_type::particle_id_pair      particle_id_pair;
-    typedef typename particle_container_type::particle_shape_type   particle_shape_type;
-    typedef typename particle_container_type::structure_type        structure_type;
-    typedef typename particle_container_type::structure_id_type     structure_id_type;    
+    typedef typename particle_container_type::length_type               length_type;
+    typedef typename particle_container_type::position_type             position_type;
+    typedef typename particle_container_type::species_type              species_type;
+    typedef typename particle_container_type::species_id_type           species_id_type;
+    typedef typename particle_container_type::particle_id_type          particle_id_type;
+    typedef typename particle_container_type::particle_type             particle_type;
+    typedef typename particle_container_type::particle_id_pair          particle_id_pair;
+    typedef typename particle_container_type::particle_shape_type       particle_shape_type;
+    typedef typename particle_container_type::structure_type            structure_type;
+    typedef typename particle_container_type::structure_id_type         structure_id_type;
+    typedef typename particle_container_type::structure_type_id_type    structure_type_id_type;
 
     typedef typename particle_container_type::particle_id_pair_generator          particle_id_pair_generator;
     typedef typename particle_container_type::particle_id_pair_and_distance       particle_id_pair_and_distance;
     typedef typename particle_container_type::particle_id_pair_and_distance_list  particle_id_pair_and_distance_list;
     typedef typename particle_container_type::structure_id_pair_and_distance      structure_id_pair_and_distance;
     typedef typename particle_container_type::structure_id_pair_and_distance_list structure_id_pair_and_distance_list;
-    typedef typename traits_type::world_type::traits_type::rng_type rng_type;
-    typedef typename traits_type::time_type                         time_type;
-    typedef typename traits_type::network_rules_type                network_rules_type;
-    typedef typename network_rules_type::reaction_rules             reaction_rules;
-    typedef typename network_rules_type::reaction_rule_type         reaction_rule_type;
-    typedef typename traits_type::reaction_record_type              reaction_record_type;
-    typedef typename traits_type::reaction_recorder_type            reaction_recorder_type;
-    typedef typename traits_type::volume_clearer_type               volume_clearer_type;
+    
+    typedef typename traits_type::world_type::traits_type::rng_type     rng_type;
+    typedef typename traits_type::time_type                             time_type;
+    typedef typename traits_type::network_rules_type                    network_rules_type;
+    typedef typename network_rules_type::reaction_rules                 reaction_rules;
+    typedef typename network_rules_type::reaction_rule_type             reaction_rule_type;
+    typedef typename traits_type::reaction_record_type                  reaction_record_type;
+    typedef typename traits_type::reaction_recorder_type                reaction_recorder_type;
+    typedef typename traits_type::volume_clearer_type                   volume_clearer_type;
 
     typedef std::vector<particle_id_type>                                       particle_id_vector_type;
     typedef std::pair<position_type, position_type>                             position_pair_type;
@@ -687,11 +689,12 @@ private:
                         position_type                       reactant1_pos (pp1.second.position());
 
                         const species_type                  product_species(tx_.get_species(products[0]));
+                        const structure_type_id_type        product_sid( product_species.structure_type_id() );
                         structure_id_type                   product_structure_id(reactant0_structure_id);
 
                         
                         //// 1 - GENERATE NEW POSITION AND STRUCTURE ID
-                        // If the particles lived on adjacent structures of the same type
+                        // If the reactants live on adjacent structures of the same type
                         // TODO TODO TODO Rework this using structure functions! TODO TODO TODO
                         if ((s0.structure_type_id() == s1.structure_type_id()) &&
                             (reactant0_structure_id != reactant1_structure_id))
@@ -711,10 +714,22 @@ private:
                                                     (s0.D() + s1.D()))) );
 //                        position_type product_pos (tx_.calculate_pair_CoM(pp0.second.position(), pp1.second.position()), s0.D(), s1.D());
 
+                        // Create a new position and structure_id for the center of mass.
+                        // This function automatically checks which of the two reactant structures is lower in hierarchy and makes this the
+                        // target structure. It also checks whether that structure has the right structure_type_id as queried from the reaction
+                        // rules before and passed via product_sid.
+                        const length_type offset(0.0);
+                        const position_structid_pair_type product_pos_struct_id( reactant0_structure->get_pos_sid_pair(*reactant1_structure, product_sid, product_pos, offset, reaction_length_, rng_ ) );
+                        // Apply the boundary conditions; this is particularly important here because the CoM projection as produced by the function above
+                        // in some cases might end up out of the target_structure (e.g. in case the two reactants are coming from adjacent planes
+                        tx_.apply_boundary(product_pos_struct_id);
+                          // TODO cyclic_transpose ?
+
+                        
+                        /* OLD VERSION
                         // For unequal structure types, project product_pos on the 'lesser' structure.
                         // The 'lesser' structure is the structure that is the lowest in the hierarchy of the two.
                         // Note that this means that a reaction can only cross ONE hierarchical level of structures.
-                        // TODO TODO TODO Rework this using structure functions! TODO TODO TODO
                         if( s0.structure_type_id() != s1.structure_type_id() )
                         {
 
@@ -755,6 +770,7 @@ private:
 
                             }
                         }
+                        */                        
 
                         //// 2 - CHECK FOR OVERLAPS
                         const particle_shape_type new_shape(product_pos, product_species.radius());

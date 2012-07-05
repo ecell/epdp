@@ -133,7 +133,7 @@ public:
                                                        structure_container_type const& structure_container) const = 0;
     virtual position_structid_pair_type cyclic_transpose(position_structid_pair_type const& pos_struct_id,
                                                          structure_container_type const& structure_container) const = 0;
-    // Structure functions despatch switchbox
+    // Structure functions dynamic dispatch
     // 1 - Producing one new position
     virtual position_structid_pair_type get_pos_sid_pair(structure_type const& target_structure, position_type const& position,
                                                          length_type const& offset, length_type const& rl, rng_type const& rng) const = 0;
@@ -146,16 +146,26 @@ public:
     template <typename Tstruct_>
     position_structid_pair_pair_type get_pos_sid_pair_pair_helper(Tstruct_ const& origin_structure, position_type const& position,
                                                                    species_type const& s_orig, species_type const& s_targ, length_type const& rl, rng_type const& rng) const;
-    // 3 - Pair reactions => two origin structures => triple switchbox
+    // 3 - Pair reactions => two origin structures
     // Overloading method call structure.get_pos_sid_pair
+    virtual position_structid_pair_type get_pos_sid_pair(structure_type const& origin_structure2, structure_type_id_type const& target_sid, position_type const& CoM,
+                                                         length_type const& offset, length_type const& reaction_length, rng_type const& rng) const;
+    template <typename Tstruct_>
+    position_structid_pair_type get_pos_sid_pair_helper_two_origins(Tstruct_ const& origin_structure1, structure_type_id_type const& target_sid, position_type const& CoM,
+                                                                    length_type const& offset, length_type const& reaction_length, rng_type const& rng) const;                                                                    
+    // 4 - Generalized functions for pair reactions => two origin structures and one target_structure
+    // This introduces a triple dynamic dispatch, overloading method call structure.get_pos_sid_pair once more.
+    // NOTE: As yet these methods are unused but might prove useful in the future.
     virtual position_structid_pair_type get_pos_sid_pair(structure_type const& origin_structure2, structure_type const& target_structure, position_type const& position,
                                                          length_type const& offset, length_type const& reaction_length, rng_type const& rng) const;
     template <typename Tstruct1_>
     position_structid_pair_type get_pos_sid_pair_helper1(Tstruct1_ const& origin_structure1, structure_type const& target_structure, position_type const& position,
-                                                         length_type const& offset, length_type const& reaction_length, rng_type const& rng) const;    
+                                                         length_type const& offset, length_type const& reaction_length, rng_type const& rng) const;
     template <typename Tstruct1_, typename Tstruct2_>
     position_structid_pair_type get_pos_sid_pair_helper2(Tstruct1_ const& origin_structure1, Tstruct2_ origin_structure2, position_type const& position,
                                                          length_type const& offset, length_type const& reaction_length, rng_type const& rng) const;
+
+
 
 
     virtual std::size_t hash() const
