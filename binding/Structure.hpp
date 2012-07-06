@@ -48,6 +48,12 @@ inline boost::python::objects::class_base register_structure_class(char const *n
         .def("bd_displacement", &impl_type::bd_displacement)
         .def("project_point", &impl_type::project_point)
         .def("deflect", &impl_type::deflect)
+        .def("get_pos_sid_pair_helper", &impl_type::template get_pos_sid_pair_helper<typename impl_type::structure_type>)
+        .def("get_pos_sid_pair_pair_helper", &impl_type::template get_pos_sid_pair_pair_helper<typename impl_type::structure_type>)
+        .def("get_pos_sid_pair_helper_two_origins", &impl_type::template get_pos_sid_pair_helper_two_origins<typename impl_type::structure_type>)
+        .def("get_pos_sid_pair_helper1", &impl_type::template get_pos_sid_pair_helper1<typename impl_type::structure_type>)
+        .def("get_pos_sid_pair_helper2", &impl_type::template get_pos_sid_pair_helper2<typename impl_type::structure_type, typename impl_type::structure_type>)
+
 //        .def("deflect_back", &impl_type::deflect_back)
         ;
 }
