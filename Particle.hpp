@@ -63,7 +63,7 @@ struct Particle
         return shape_.velocity();
     }
 
-    position_type const& absolute_position() const
+    position_type const absolute_position() const
     {
         return add(position(), stride());
     }
