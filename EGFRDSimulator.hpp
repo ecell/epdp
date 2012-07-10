@@ -1042,12 +1042,20 @@ public:
 
     virtual void step()
     {
+        if (dirty_)
+        {
+            initialize();
+        }
+
         _step();
     }
 
     virtual bool step(time_type upto)
     {
-        LOG_INFO(("stop at %.16g", upto));
+        if (dirty_)
+        {
+            initialize();
+        }
 
         if (upto <= base_type::t_)
         {
@@ -1059,6 +1067,8 @@ public:
             _step();
             return true;
         }
+
+        LOG_INFO(("stop at %.16g", upto));
 
         base_type::t_ = upto;
 
@@ -3343,9 +3353,6 @@ protected:
 
     void _step()
     {
-        if (dirty_)
-            initialize();
-
         if (base_type::paranoiac_)
             BOOST_ASSERT(check());
 
