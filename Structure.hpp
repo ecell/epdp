@@ -15,9 +15,28 @@
 #include "exceptions.hpp"
 #include "freeFunctions.hpp"
 #include "SpeciesTypeID.hpp"
+#include "StructureFunctions.hpp"
 
+// Forward declarations
 template <typename Tobj_, typename Tid, typename Ttraits_>
 class StructureContainer;
+
+template<typename T_>
+class CuboidalRegion;
+
+template<typename T_>
+class CylindricalSurface;
+
+template<typename T_>
+class SphericalSurface;
+
+template<typename T_>
+class DiskSurface;
+
+template<typename T_>
+class PlanarSurface;
+
+
 
 template<typename Ttraits_>
 class Structure
@@ -136,34 +155,308 @@ public:
     // Structure functions dynamic dispatch
     // 1 - Producing one new position
     virtual position_structid_pair_type get_pos_sid_pair(structure_type const& target_structure, position_type const& position,
-                                                         length_type const& offset, length_type const& rl, rng_type const& rng) const = 0;
-    template <typename Tstruct_>
-    position_structid_pair_type get_pos_sid_pair_helper(Tstruct_ const& origin_structure, position_type const& position,
-                                                        length_type const& offset, length_type const& rl, rng_type const& rng) const;
+                                                         length_type const& offset, length_type const& rl, rng_type const& rng) const = 0;                                                         
+    position_structid_pair_type get_pos_sid_pair_helper(CuboidalRegion<traits_type> const& origin_structure, position_type const& position,
+                                                        length_type const& offset, length_type const& rl, rng_type const& rng) const
+                                                        { return ::get_pos_sid_pair(origin_structure, *this, position, offset, rl, rng); };    
+    position_structid_pair_type get_pos_sid_pair_helper(SphericalSurface<traits_type> const& origin_structure, position_type const& position,
+                                                        length_type const& offset, length_type const& rl, rng_type const& rng) const
+                                                        { return ::get_pos_sid_pair(origin_structure, *this, position, offset, rl, rng); };    
+    position_structid_pair_type get_pos_sid_pair_helper(CylindricalSurface<traits_type> const& origin_structure, position_type const& position,
+                                                        length_type const& offset, length_type const& rl, rng_type const& rng) const
+                                                        { return ::get_pos_sid_pair(origin_structure, *this, position, offset, rl, rng); };    
+    position_structid_pair_type get_pos_sid_pair_helper(DiskSurface<traits_type> const& origin_structure, position_type const& position,
+                                                        length_type const& offset, length_type const& rl, rng_type const& rng) const
+                                                        { return ::get_pos_sid_pair(origin_structure, *this, position, offset, rl, rng); };    
+    position_structid_pair_type get_pos_sid_pair_helper(PlanarSurface<traits_type> const& origin_structure, position_type const& position,
+                                                        length_type const& offset, length_type const& rl, rng_type const& rng) const
+                                                        { return ::get_pos_sid_pair(origin_structure, *this, position, offset, rl, rng); };
+    
     // 2 - Producing two new positions
     virtual position_structid_pair_pair_type get_pos_sid_pair_pair(structure_type const& target_structure, position_type const& position,
                                                                    species_type const& s_orig, species_type const& s_targ, length_type const& rl, rng_type const& rng) const = 0;
-    template <typename Tstruct_>
-    position_structid_pair_pair_type get_pos_sid_pair_pair_helper(Tstruct_ const& origin_structure, position_type const& position,
-                                                                   species_type const& s_orig, species_type const& s_targ, length_type const& rl, rng_type const& rng) const;
+        
+    position_structid_pair_pair_type get_pos_sid_pair_pair_helper(CuboidalRegion<traits_type> const& origin_structure, position_type const& position,
+                                                                  species_type const& s_orig, species_type const& s_targ, length_type const& rl, rng_type const& rng) const
+                                                                  { return ::get_pos_sid_pair_pair(origin_structure, *this, position, s_orig, s_targ, rl, rng); };
+    position_structid_pair_pair_type get_pos_sid_pair_pair_helper(SphericalSurface<traits_type> const& origin_structure, position_type const& position,
+                                                                  species_type const& s_orig, species_type const& s_targ, length_type const& rl, rng_type const& rng) const
+                                                                  { return ::get_pos_sid_pair_pair(origin_structure, *this, position, s_orig, s_targ, rl, rng); };
+    position_structid_pair_pair_type get_pos_sid_pair_pair_helper(CylindricalSurface<traits_type> const& origin_structure, position_type const& position,
+                                                                  species_type const& s_orig, species_type const& s_targ, length_type const& rl, rng_type const& rng) const
+                                                                  { return ::get_pos_sid_pair_pair(origin_structure, *this, position, s_orig, s_targ, rl, rng); };
+    position_structid_pair_pair_type get_pos_sid_pair_pair_helper(DiskSurface<traits_type> const& origin_structure, position_type const& position,
+                                                                  species_type const& s_orig, species_type const& s_targ, length_type const& rl, rng_type const& rng) const
+                                                                  { return ::get_pos_sid_pair_pair(origin_structure, *this, position, s_orig, s_targ, rl, rng); };
+    position_structid_pair_pair_type get_pos_sid_pair_pair_helper(PlanarSurface<traits_type> const& origin_structure, position_type const& position,
+                                                                  species_type const& s_orig, species_type const& s_targ, length_type const& rl, rng_type const& rng) const
+                                                                  { return ::get_pos_sid_pair_pair(origin_structure, *this, position, s_orig, s_targ, rl, rng); };
+        
     // 3 - Pair reactions => two origin structures
     // Overloading method call structure.get_pos_sid_pair
     virtual position_structid_pair_type get_pos_sid_pair(structure_type const& origin_structure2, structure_type_id_type const& target_sid, position_type const& CoM,
                                                          length_type const& offset, length_type const& reaction_length, rng_type const& rng) const = 0;
-    template <typename Tstruct_>
-    position_structid_pair_type get_pos_sid_pair_helper_two_origins(Tstruct_ const& origin_structure1, structure_type_id_type const& target_sid, position_type const& CoM,
-                                                                    length_type const& offset, length_type const& reaction_length, rng_type const& rng) const;                                                                    
+    
+    // TODO This is just so ugly, outsource this somehow!
+    position_structid_pair_type get_pos_sid_pair_helper_two_origins(CuboidalRegion<traits_type> const& origin_structure1, structure_type_id_type const& target_sid, position_type const& CoM,
+                                                                    length_type const& offset, length_type const& reaction_length, rng_type const& rng) const
+    {          
+          // The types of both origin structures now are determined.
+          // As a next step, determine which one is the target structure and call the right
+          // structure function with the other one as origin structure.          
+          
+          structure_id_type      os1_id( origin_structure1.id() );
+          structure_id_type      os1_parent_id( origin_structure1.structure_id() );
+          structure_type_id_type os1_sid( origin_structure1.sid() );
+          
+          structure_id_type      this_id( this->id() );
+          structure_id_type      this_parent_id( this->structure_id() );
+          structure_type_id_type this_sid( this->sid() );
+          
+          if( this->sid() != os1_sid )
+          // if the two pair reactants come from different types of structure
+          {
+
+              if ( (os1_parent_id == this_id) && (os1_sid == target_sid) )
+              // *this is the parent of origin_structure1, i.e. target_structure is origin_structure1
+              {
+                  // Call transition function with *this as origin_structure and origin_structure1 as target_structure
+                  return ::get_pos_sid_pair(*this, origin_structure1, CoM, offset, reaction_length, rng);
+              }
+              else if ( (this_parent_id == os1_id) && (this_sid == target_sid) )
+              // origin_structure1 is the parent of *this, i.e. target_structure is *this (= origin_structure2)
+              {
+                  // Call transition function with origin_structure1 as origin_structure and *this as target_structure
+                  return ::get_pos_sid_pair(origin_structure1, *this, CoM, offset, reaction_length, rng);
+              }
+              else
+              {
+                  throw propagation_error("Particles can be at most one hierarchical level apart for a pair reaction.");
+                  // TODO In principle this constraint could be dropped; the target structure should be determined
+                  // already by comparing structure_type_id's with target_sid (which is fed in from the reaction rules).
+              }  
+        }
+        else
+        // the reactants live on the same structure type, i.e. the product will also end up on 
+        {
+            // Call transition function with origin_structure = target_structure = *this
+            return ::get_pos_sid_pair(origin_structure1, *this, CoM, offset, reaction_length, rng);
+            // Note that apply_boundary should place the product particle on the right one of the two structures
+            // afterwards in case that *this->id != origin_structure1->id (right now we postulate only that the
+            // structure_type_id's are the same!).
+        }
+    } 
+    position_structid_pair_type get_pos_sid_pair_helper_two_origins(SphericalSurface<traits_type> const& origin_structure1, structure_type_id_type const& target_sid, position_type const& CoM,
+                                                                    length_type const& offset, length_type const& reaction_length, rng_type const& rng) const
+    {          
+          // The types of both origin structures now are determined.
+          // As a next step, determine which one is the target structure and call the right
+          // structure function with the other one as origin structure.          
+          
+          structure_id_type      os1_id( origin_structure1.id() );
+          structure_id_type      os1_parent_id( origin_structure1.structure_id() );
+          structure_type_id_type os1_sid( origin_structure1.sid() );
+          
+          structure_id_type      this_id( this->id() );
+          structure_id_type      this_parent_id( this->structure_id() );
+          structure_type_id_type this_sid( this->sid() );
+          
+          if( this->sid() != os1_sid )
+          // if the two pair reactants come from different types of structure
+          {
+
+              if ( (os1_parent_id == this_id) && (os1_sid == target_sid) )
+              // *this is the parent of origin_structure1, i.e. target_structure is origin_structure1
+              {
+                  // Call transition function with *this as origin_structure and origin_structure1 as target_structure
+                  return ::get_pos_sid_pair(*this, origin_structure1, CoM, offset, reaction_length, rng);
+              }
+              else if ( (this_parent_id == os1_id) && (this_sid == target_sid) )
+              // origin_structure1 is the parent of *this, i.e. target_structure is *this (= origin_structure2)
+              {
+                  // Call transition function with origin_structure1 as origin_structure and *this as target_structure
+                  return ::get_pos_sid_pair(origin_structure1, *this, CoM, offset, reaction_length, rng);
+              }
+              else
+              {
+                  throw propagation_error("Particles can be at most one hierarchical level apart for a pair reaction.");
+                  // TODO In principle this constraint could be dropped; the target structure should be determined
+                  // already by comparing structure_type_id's with target_sid (which is fed in from the reaction rules).
+              }  
+        }
+        else
+        // the reactants live on the same structure type, i.e. the product will also end up on 
+        {
+            // Call transition function with origin_structure = target_structure = *this
+            return ::get_pos_sid_pair(origin_structure1, *this, CoM, offset, reaction_length, rng);
+            // Note that apply_boundary should place the product particle on the right one of the two structures
+            // afterwards in case that *this->id != origin_structure1->id (right now we postulate only that the
+            // structure_type_id's are the same!).
+        }
+    } 
+    position_structid_pair_type get_pos_sid_pair_helper_two_origins(CylindricalSurface<traits_type> const& origin_structure1, structure_type_id_type const& target_sid, position_type const& CoM,
+                                                                    length_type const& offset, length_type const& reaction_length, rng_type const& rng) const
+    {          
+          // The types of both origin structures now are determined.
+          // As a next step, determine which one is the target structure and call the right
+          // structure function with the other one as origin structure.          
+          
+          structure_id_type      os1_id( origin_structure1.id() );
+          structure_id_type      os1_parent_id( origin_structure1.structure_id() );
+          structure_type_id_type os1_sid( origin_structure1.sid() );
+          
+          structure_id_type      this_id( this->id() );
+          structure_id_type      this_parent_id( this->structure_id() );
+          structure_type_id_type this_sid( this->sid() );
+          
+          if( this->sid() != os1_sid )
+          // if the two pair reactants come from different types of structure
+          {
+
+              if ( (os1_parent_id == this_id) && (os1_sid == target_sid) )
+              // *this is the parent of origin_structure1, i.e. target_structure is origin_structure1
+              {
+                  // Call transition function with *this as origin_structure and origin_structure1 as target_structure
+                  return ::get_pos_sid_pair(*this, origin_structure1, CoM, offset, reaction_length, rng);
+              }
+              else if ( (this_parent_id == os1_id) && (this_sid == target_sid) )
+              // origin_structure1 is the parent of *this, i.e. target_structure is *this (= origin_structure2)
+              {
+                  // Call transition function with origin_structure1 as origin_structure and *this as target_structure
+                  return ::get_pos_sid_pair(origin_structure1, *this, CoM, offset, reaction_length, rng);
+              }
+              else
+              {
+                  throw propagation_error("Particles can be at most one hierarchical level apart for a pair reaction.");
+                  // TODO In principle this constraint could be dropped; the target structure should be determined
+                  // already by comparing structure_type_id's with target_sid (which is fed in from the reaction rules).
+              }  
+        }
+        else
+        // the reactants live on the same structure type, i.e. the product will also end up on 
+        {
+            // Call transition function with origin_structure = target_structure = *this
+            return ::get_pos_sid_pair(origin_structure1, *this, CoM, offset, reaction_length, rng);
+            // Note that apply_boundary should place the product particle on the right one of the two structures
+            // afterwards in case that *this->id != origin_structure1->id (right now we postulate only that the
+            // structure_type_id's are the same!).
+        }
+    } 
+    position_structid_pair_type get_pos_sid_pair_helper_two_origins(DiskSurface<traits_type> const& origin_structure1, structure_type_id_type const& target_sid, position_type const& CoM,
+                                                                    length_type const& offset, length_type const& reaction_length, rng_type const& rng) const
+    {          
+          // The types of both origin structures now are determined.
+          // As a next step, determine which one is the target structure and call the right
+          // structure function with the other one as origin structure.          
+          
+          structure_id_type      os1_id( origin_structure1.id() );
+          structure_id_type      os1_parent_id( origin_structure1.structure_id() );
+          structure_type_id_type os1_sid( origin_structure1.sid() );
+          
+          structure_id_type      this_id( this->id() );
+          structure_id_type      this_parent_id( this->structure_id() );
+          structure_type_id_type this_sid( this->sid() );
+          
+          if( this->sid() != os1_sid )
+          // if the two pair reactants come from different types of structure
+          {
+
+              if ( (os1_parent_id == this_id) && (os1_sid == target_sid) )
+              // *this is the parent of origin_structure1, i.e. target_structure is origin_structure1
+              {
+                  // Call transition function with *this as origin_structure and origin_structure1 as target_structure
+                  return ::get_pos_sid_pair(*this, origin_structure1, CoM, offset, reaction_length, rng);
+              }
+              else if ( (this_parent_id == os1_id) && (this_sid == target_sid) )
+              // origin_structure1 is the parent of *this, i.e. target_structure is *this (= origin_structure2)
+              {
+                  // Call transition function with origin_structure1 as origin_structure and *this as target_structure
+                  return ::get_pos_sid_pair(origin_structure1, *this, CoM, offset, reaction_length, rng);
+              }
+              else
+              {
+                  throw propagation_error("Particles can be at most one hierarchical level apart for a pair reaction.");
+                  // TODO In principle this constraint could be dropped; the target structure should be determined
+                  // already by comparing structure_type_id's with target_sid (which is fed in from the reaction rules).
+              }  
+        }
+        else
+        // the reactants live on the same structure type, i.e. the product will also end up on 
+        {
+            // Call transition function with origin_structure = target_structure = *this
+            return ::get_pos_sid_pair(origin_structure1, *this, CoM, offset, reaction_length, rng);
+            // Note that apply_boundary should place the product particle on the right one of the two structures
+            // afterwards in case that *this->id != origin_structure1->id (right now we postulate only that the
+            // structure_type_id's are the same!).
+        }
+    } 
+    position_structid_pair_type get_pos_sid_pair_helper_two_origins(PlanarSurface<traits_type> const& origin_structure1, structure_type_id_type const& target_sid, position_type const& CoM,
+                                                                    length_type const& offset, length_type const& reaction_length, rng_type const& rng) const
+    {          
+          // The types of both origin structures now are determined.
+          // As a next step, determine which one is the target structure and call the right
+          // structure function with the other one as origin structure.          
+          
+          structure_id_type      os1_id( origin_structure1.id() );
+          structure_id_type      os1_parent_id( origin_structure1.structure_id() );
+          structure_type_id_type os1_sid( origin_structure1.sid() );
+          
+          structure_id_type      this_id( this->id() );
+          structure_id_type      this_parent_id( this->structure_id() );
+          structure_type_id_type this_sid( this->sid() );
+          
+          if( this->sid() != os1_sid )
+          // if the two pair reactants come from different types of structure
+          {
+
+              if ( (os1_parent_id == this_id) && (os1_sid == target_sid) )
+              // *this is the parent of origin_structure1, i.e. target_structure is origin_structure1
+              {
+                  // Call transition function with *this as origin_structure and origin_structure1 as target_structure
+                  return ::get_pos_sid_pair(*this, origin_structure1, CoM, offset, reaction_length, rng);
+              }
+              else if ( (this_parent_id == os1_id) && (this_sid == target_sid) )
+              // origin_structure1 is the parent of *this, i.e. target_structure is *this (= origin_structure2)
+              {
+                  // Call transition function with origin_structure1 as origin_structure and *this as target_structure
+                  return ::get_pos_sid_pair(origin_structure1, *this, CoM, offset, reaction_length, rng);
+              }
+              else
+              {
+                  throw propagation_error("Particles can be at most one hierarchical level apart for a pair reaction.");
+                  // TODO In principle this constraint could be dropped; the target structure should be determined
+                  // already by comparing structure_type_id's with target_sid (which is fed in from the reaction rules).
+              }  
+        }
+        else
+        // the reactants live on the same structure type, i.e. the product will also end up on 
+        {
+            // Call transition function with origin_structure = target_structure = *this
+            return ::get_pos_sid_pair(origin_structure1, *this, CoM, offset, reaction_length, rng);
+            // Note that apply_boundary should place the product particle on the right one of the two structures
+            // afterwards in case that *this->id != origin_structure1->id (right now we postulate only that the
+            // structure_type_id's are the same!).
+        }
+    } 
+    
+    
+    // TODO Outsource the ugly stuff above at least partly into this!
+    bool is_parent_of_or_same_as(structure_type s)
+    {    
+        return true;
+    }
+                                                                    
     // 4 - Generalized functions for pair reactions => two origin structures and one target_structure
     // This introduces a triple dynamic dispatch, overloading method call structure.get_pos_sid_pair once more.
     // NOTE: As yet these methods are unused but might prove useful in the future.
-    virtual position_structid_pair_type get_pos_sid_pair(structure_type const& origin_structure2, structure_type const& target_structure, position_type const& position,
-                                                         length_type const& offset, length_type const& reaction_length, rng_type const& rng) const = 0;
-    template <typename Tstruct1_>
-    position_structid_pair_type get_pos_sid_pair_helper1(Tstruct1_ const& origin_structure1, structure_type const& target_structure, position_type const& position,
-                                                         length_type const& offset, length_type const& reaction_length, rng_type const& rng) const;
-    template <typename Tstruct1_, typename Tstruct2_>
-    position_structid_pair_type get_pos_sid_pair_helper2(Tstruct1_ const& origin_structure1, Tstruct2_ const& origin_structure2, position_type const& position,
-                                                         length_type const& offset, length_type const& reaction_length, rng_type const& rng) const;
+//     virtual position_structid_pair_type get_pos_sid_pair(structure_type const& origin_structure2, structure_type const& target_structure, position_type const& position,
+//                                                          length_type const& offset, length_type const& reaction_length, rng_type const& rng) const = 0;
+//     template <typename Tstruct1_>
+//     position_structid_pair_type get_pos_sid_pair_helper1(Tstruct1_ const& origin_structure1, structure_type const& target_structure, position_type const& position,
+//                                                          length_type const& offset, length_type const& reaction_length, rng_type const& rng) const;
+//     template <typename Tstruct1_, typename Tstruct2_>
+//     position_structid_pair_type get_pos_sid_pair_helper2(Tstruct1_ const& origin_structure1, Tstruct2_ const& origin_structure2, position_type const& position,
+//                                                          length_type const& offset, length_type const& reaction_length, rng_type const& rng) const;
 
 
 
