@@ -157,7 +157,7 @@ public:
     // 
     // FIXME For now the second dispatch requires the helper functions to be defined here for each structure type separately.
     // This is because C++ does not allow virtual templates. The current solution is functional, but ugly, and may be replaced
-    // by a more elegant solution in the future.
+    // by a more elegant solution in the future, by defining a template here and correctly performing instantiation elsewhere.
     
     // 1 - Producing one new position
     // First dispatch
