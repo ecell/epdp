@@ -287,14 +287,31 @@ public:
 //                                                          length_type const& offset, length_type const& reaction_length, rng_type const& rng) const = 0;
 //     template <typename Tstruct1_>
 //     position_structid_pair_type get_pos_sid_pair_helper1(Tstruct1_ const& origin_structure1, structure_type const& target_structure, position_type const& position,
-//                                                          length_type const& offset, length_type const& reaction_length, rng_type const& rng) const;
+//                                                          length_type const& offset, length_type const& reaction_length, rng_type const& rng) const
+//     {
+//         return target_structure.get_pos_sid_pair_helper2(origin_structure1, *this, position, offset, reaction_length, rng);
+//     }
 //     template <typename Tstruct1_, typename Tstruct2_>
 //     position_structid_pair_type get_pos_sid_pair_helper2(Tstruct1_ const& origin_structure1, Tstruct2_ const& origin_structure2, position_type const& position,
-//                                                          length_type const& offset, length_type const& reaction_length, rng_type const& rng) const;
+//                                                          length_type const& offset, length_type const& reaction_length, rng_type const& rng) const
+//     {
+//         structure_id_type    this_id( this->id );
+//         structure_id_type    os1_id( origin_structure1.id );
+//         structure_id_type    os2_id( origin_structure2.id );
+//
+//         if(os1_id == this_id)
+//             // Dispatch to function with well-defined typing
+//             return ::get_pos_sid_pair(origin_structure2, *this, position, offset, reaction_length, rng);
+//         
+//         else if(os2_id == this_id)
+//             // Dispatch to function with well-defined typing
+//             return ::get_pos_sid_pair(origin_structure1, *this, position, offset, reaction_length, rng);
+//         
+//         else
+//             throw propagation_error("Target structure must be one of the origin structures for pair reaction.");
+//     }
 //     
-//     NOTE: The template based variant will not work! The helper methods have to be defined for each structure type separately
-
-
+//     NOTE: The template based variant will not work! The helper methods have to be defined for each structure type separately or in a smarter way!
 
 
     virtual std::size_t hash() const
