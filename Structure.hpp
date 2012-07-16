@@ -262,7 +262,7 @@ public:
     }
     
     // Some further helper functions used by get_pos_sid_pair_helper_two_origins
-    bool is_parent_of_or_has_same_sid_as(structure_type const& s) const
+    inline bool is_parent_of_or_has_same_sid_as(structure_type const& s) const
     {    
           structure_id_type       s_parent_id( s.structure_id() );
           structure_type_id_type  s_sid( s.sid() );
@@ -272,7 +272,7 @@ public:
           return ( s_parent_id == this_id || s_sid == this_sid );          
     }
     
-    bool has_valid_target_sid(structure_type_id_type const& target_sid) const
+    inline bool has_valid_target_sid(structure_type_id_type const& target_sid) const
     {
           structure_type_id_type this_sid( this->sid() );
           
