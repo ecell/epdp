@@ -225,7 +225,10 @@ class EGFRDSimulator(ParticleSimulatorBase):
         
         self.DEFAULT_STEP_SIZE_FACTOR = 0.05    # The maximum step size in the newBD algorithm is determined as DSSF * sigma_min.
                                                 # Make sure that DEFAULT_STEP_SIZE_FACTOR < MULTI_SHELL_FACTOR, or else the 
-                                                # reaction volume sticks out of the multi.
+                                                # reaction volume sticks out of the multi. 
+
+        self.BD_ONLY_FLAG = True                # Will force the algorithm into Multi-creation, i.e. always to use BD
+                                                # This is for testing only! Keep this 'False' for normal sims!
 
         # used datastructrures
         self.scheduler = EventScheduler()       # contains the events. Note that every domains has exactly one event
@@ -1574,9 +1577,10 @@ class EGFRDSimulator(ParticleSimulatorBase):
         domain = None
         for obj, hor_overlap in pair_interaction_partners:
 
-            if hor_overlap > 0.0 or domain:
+            if hor_overlap > 0.0 or domain or self.BD_ONLY_FLAG :
                 # there are no more potential partners (everything is out of range)
                 # or a domain was formed successfully previously
+                # or the user wants to force the system into BD mode = Multi creation
                 break
 
             if isinstance(obj, NonInteractionSingle):
@@ -1636,7 +1640,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
                 log.debug('Single or Multi: closest_overlap: %s' % (FORMAT_DOUBLE % closest_overlap))
 
             # If the closest partner is within the multi horizon we do Multi, otherwise Single
-            if closest_overlap > 0.0: 
+            if closest_overlap > 0.0 and not self.BD_ONLY_FLAG : 
                 # just make a normal NonInteractionSingle
                 self.update_single(single)
             else:
