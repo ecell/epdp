@@ -214,53 +214,33 @@ public:
     // First dispatch, overloading method call structure.get_pos_sid_pair
     virtual position_structid_pair_type get_pos_sid_pair(structure_type const& origin_structure2, structure_type_id_type const& target_sid, position_type const& CoM,
                                                          length_type const& offset, length_type const& reaction_length, rng_type const& rng) const = 0;    
-    // Second dispatch; FIXME Can this be beautified somehow?
-    position_structid_pair_type get_pos_sid_pair_helper_two_origins(CuboidalRegion<traits_type> const& other_origin_structure, structure_type_id_type const& target_sid, position_type const& CoM,
-                                                                    length_type const& offset, length_type const& reaction_length, rng_type const& rng) const
-    {                          
+    // Second dispatch; the helper function has to be declared for each derived structure class because C++ does not support virtual templates (yet).
+    virtual position_structid_pair_type get_pos_sid_pair_helper_two_origins(CuboidalRegion<traits_type> const& other_origin_structure, structure_type_id_type const& target_sid, position_type const& CoM,
+                                                                            length_type const& offset, length_type const& reaction_length, rng_type const& rng) const = 0;
+    virtual position_structid_pair_type get_pos_sid_pair_helper_two_origins(SphericalSurface<traits_type> const& other_origin_structure, structure_type_id_type const& target_sid, position_type const& CoM,
+                                                                            length_type const& offset, length_type const& reaction_length, rng_type const& rng) const = 0;
+    virtual position_structid_pair_type get_pos_sid_pair_helper_two_origins(CylindricalSurface<traits_type> const& other_origin_structure, structure_type_id_type const& target_sid, position_type const& CoM,
+                                                                            length_type const& offset, length_type const& reaction_length, rng_type const& rng) const = 0;
+    virtual position_structid_pair_type get_pos_sid_pair_helper_two_origins(DiskSurface<traits_type> const& other_origin_structure, structure_type_id_type const& target_sid, position_type const& CoM,
+                                                                            length_type const& offset, length_type const& reaction_length, rng_type const& rng) const = 0;
+    virtual position_structid_pair_type get_pos_sid_pair_helper_two_origins(PlanarSurface<traits_type> const& other_origin_structure, structure_type_id_type const& target_sid, position_type const& CoM,
+                                                                            length_type const& offset, length_type const& reaction_length, rng_type const& rng) const = 0;
+    // The template function that defines the actual final dispatch procedure.
+    // Note that this is not virtual + overriden, but inherited by each derived structure class.
+    template<typename Tstruct_>
+    position_structid_pair_type get_pos_sid_pair_helper_two_origins_any(Tstruct_ const& other_origin_structure, structure_type_id_type const& target_sid, position_type const& CoM,
+                                                                        length_type const& offset, length_type const& reaction_length, rng_type const& rng) const
+    {
         if( this->is_parent_of_or_has_same_sid_as(other_origin_structure) && other_origin_structure.has_valid_target_sid(target_sid) )
-            return ::get_pos_sid_pair(*this, other_origin_structure, CoM, offset, reaction_length, rng); // other_origin_structure is target        
+            // other_origin_structure is target
+            return ::get_pos_sid_pair(*this, other_origin_structure, CoM, offset, reaction_length, rng);
+            
         else if( other_origin_structure.is_parent_of_or_has_same_sid_as(*this) && this->has_valid_target_sid(target_sid) )
-            return ::get_pos_sid_pair(other_origin_structure, *this, CoM, offset, reaction_length, rng); // this (other_origin_structure) is target
+            // this structure is target
+            return ::get_pos_sid_pair(other_origin_structure, *this, CoM, offset, reaction_length, rng);
+            
         else throw propagation_error("Invalid target structure type / particles can be at most one hierarchical level apart for a pair reaction.");
-    }
-    position_structid_pair_type get_pos_sid_pair_helper_two_origins(SphericalSurface<traits_type> const& other_origin_structure, structure_type_id_type const& target_sid, position_type const& CoM,
-                                                                    length_type const& offset, length_type const& reaction_length, rng_type const& rng) const
-    {                          
-        if( this->is_parent_of_or_has_same_sid_as(other_origin_structure) && other_origin_structure.has_valid_target_sid(target_sid) )
-            return ::get_pos_sid_pair(*this, other_origin_structure, CoM, offset, reaction_length, rng); // other_origin_structure is target        
-        else if( other_origin_structure.is_parent_of_or_has_same_sid_as(*this) && this->has_valid_target_sid(target_sid) )
-            return ::get_pos_sid_pair(other_origin_structure, *this, CoM, offset, reaction_length, rng); // this (other_origin_structure) is target
-        else throw propagation_error("Invalid target structure type / particles can be at most one hierarchical level apart for a pair reaction.");
-    }
-    position_structid_pair_type get_pos_sid_pair_helper_two_origins(CylindricalSurface<traits_type> const& other_origin_structure, structure_type_id_type const& target_sid, position_type const& CoM,
-                                                                    length_type const& offset, length_type const& reaction_length, rng_type const& rng) const
-    {                          
-        if( this->is_parent_of_or_has_same_sid_as(other_origin_structure) && other_origin_structure.has_valid_target_sid(target_sid) )
-            return ::get_pos_sid_pair(*this, other_origin_structure, CoM, offset, reaction_length, rng); // other_origin_structure is target        
-        else if( other_origin_structure.is_parent_of_or_has_same_sid_as(*this) && this->has_valid_target_sid(target_sid) )
-            return ::get_pos_sid_pair(other_origin_structure, *this, CoM, offset, reaction_length, rng); // this (other_origin_structure) is target
-        else throw propagation_error("Invalid target structure type / particles can be at most one hierarchical level apart for a pair reaction.");
-    }
-    position_structid_pair_type get_pos_sid_pair_helper_two_origins(DiskSurface<traits_type> const& other_origin_structure, structure_type_id_type const& target_sid, position_type const& CoM,
-                                                                    length_type const& offset, length_type const& reaction_length, rng_type const& rng) const
-    {                          
-        if( this->is_parent_of_or_has_same_sid_as(other_origin_structure) && other_origin_structure.has_valid_target_sid(target_sid) )
-            return ::get_pos_sid_pair(*this, other_origin_structure, CoM, offset, reaction_length, rng); // other_origin_structure is target        
-        else if( other_origin_structure.is_parent_of_or_has_same_sid_as(*this) && this->has_valid_target_sid(target_sid) )
-            return ::get_pos_sid_pair(other_origin_structure, *this, CoM, offset, reaction_length, rng); // this (other_origin_structure) is target
-        else throw propagation_error("Invalid target structure type / particles can be at most one hierarchical level apart for a pair reaction.");
-    }
-    position_structid_pair_type get_pos_sid_pair_helper_two_origins(PlanarSurface<traits_type> const& other_origin_structure, structure_type_id_type const& target_sid, position_type const& CoM,
-                                                                    length_type const& offset, length_type const& reaction_length, rng_type const& rng) const
-    {                          
-        if( this->is_parent_of_or_has_same_sid_as(other_origin_structure) && other_origin_structure.has_valid_target_sid(target_sid) )
-            return ::get_pos_sid_pair(*this, other_origin_structure, CoM, offset, reaction_length, rng); // other_origin_structure is target        
-        else if( other_origin_structure.is_parent_of_or_has_same_sid_as(*this) && this->has_valid_target_sid(target_sid) )
-            return ::get_pos_sid_pair(other_origin_structure, *this, CoM, offset, reaction_length, rng); // this (other_origin_structure) is target
-        else throw propagation_error("Invalid target structure type / particles can be at most one hierarchical level apart for a pair reaction.");
-    }
-    
+    }    
     // Some further helper functions used by get_pos_sid_pair_helper_two_origins
     inline bool is_parent_of_or_has_same_sid_as(structure_type const& s) const
     {    
