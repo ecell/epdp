@@ -231,18 +231,74 @@ public:
     // *** Dynamic dispatch for the structure functions *** //
     // *** 1 *** - One new position
     // This requires a double dynamic dispatch.
+    // First dispatch
     virtual position_structid_pair_type get_pos_sid_pair(structure_type const& target_structure, position_type const& position,
                                                          length_type const& offset, length_type const& reaction_length, rng_type const& rng) const
     {
         return target_structure.get_pos_sid_pair_helper(*this, position, offset, reaction_length, rng);
     }
+    // Second dispatch
+    virtual position_structid_pair_type get_pos_sid_pair_helper(CuboidalRegion<traits_type> const& origin_structure, position_type const& position,
+                                                        length_type const& offset, length_type const& rl, rng_type const& rng) const
+    {
+        return this->get_pos_sid_pair_helper_any(origin_structure, position, offset, rl, rng);
+    }
+    virtual position_structid_pair_type get_pos_sid_pair_helper(SphericalSurface<traits_type> const& origin_structure, position_type const& position,
+                                                        length_type const& offset, length_type const& rl, rng_type const& rng) const
+    {
+        return this->get_pos_sid_pair_helper_any(origin_structure, position, offset, rl, rng);
+    }
+    virtual position_structid_pair_type get_pos_sid_pair_helper(CylindricalSurface<traits_type> const& origin_structure, position_type const& position,
+                                                        length_type const& offset, length_type const& rl, rng_type const& rng) const
+    {
+        return this->get_pos_sid_pair_helper_any(origin_structure, position, offset, rl, rng);
+    }
+    virtual position_structid_pair_type get_pos_sid_pair_helper(DiskSurface<traits_type> const& origin_structure, position_type const& position,
+                                                        length_type const& offset, length_type const& rl, rng_type const& rng) const
+    {
+        return this->get_pos_sid_pair_helper_any(origin_structure, position, offset, rl, rng);
+    }
+    virtual position_structid_pair_type get_pos_sid_pair_helper(PlanarSurface<traits_type> const& origin_structure, position_type const& position,
+                                                        length_type const& offset, length_type const& rl, rng_type const& rng) const
+    {
+        return this->get_pos_sid_pair_helper_any(origin_structure, position, offset, rl, rng);
+    }                                                                                                               
+                                                        
     // *** 2 *** - Two new positions
     // Same principle as above, but different return type
+    // First dispatch
     virtual position_structid_pair_pair_type get_pos_sid_pair_pair(structure_type const& target_structure, position_type const& position,
                                                                    species_type const& s1, species_type const& s2, length_type const& reaction_length, rng_type const& rng) const
     {
         return target_structure.get_pos_sid_pair_pair_helper(*this, position, s1, s2, reaction_length, rng);
-    }    
+    }
+    // Second dispatch
+    virtual position_structid_pair_pair_type get_pos_sid_pair_pair_helper(CuboidalRegion<traits_type> const& origin_structure, position_type const& position,
+                                                                          species_type const& s_orig, species_type const& s_targ, length_type const& rl, rng_type const& rng)
+    {
+        return this->get_pos_sid_pair_pair_helper_any(origin_structure, position, s_orig, s_targ, rl, rng);
+    }
+    virtual position_structid_pair_pair_type get_pos_sid_pair_pair_helper(SphericalSurface<traits_type> const& origin_structure, position_type const& position,
+                                                                          species_type const& s_orig, species_type const& s_targ, length_type const& rl, rng_type const& rng)
+    {
+        return this->get_pos_sid_pair_pair_helper_any(origin_structure, position, s_orig, s_targ, rl, rng);
+    }
+    virtual position_structid_pair_pair_type get_pos_sid_pair_pair_helper(CylindricalSurface<traits_type> const& origin_structure, position_type const& position,
+                                                                          species_type const& s_orig, species_type const& s_targ, length_type const& rl, rng_type const& rng)
+    {
+        return this->get_pos_sid_pair_pair_helper_any(origin_structure, position, s_orig, s_targ, rl, rng);
+    }
+    virtual position_structid_pair_pair_type get_pos_sid_pair_pair_helper(DiskSurface<traits_type> const& origin_structure, position_type const& position,
+                                                                          species_type const& s_orig, species_type const& s_targ, length_type const& rl, rng_type const& rng)
+    {
+        return this->get_pos_sid_pair_pair_helper_any(origin_structure, position, s_orig, s_targ, rl, rng);
+    }
+    virtual position_structid_pair_pair_type get_pos_sid_pair_pair_helper(PlanarSurface<traits_type> const& origin_structure, position_type const& position,
+                                                                          species_type const& s_orig, species_type const& s_targ, length_type const& rl, rng_type const& rng)
+    {
+        return this->get_pos_sid_pair_pair_helper_any(origin_structure, position, s_orig, s_targ, rl, rng);
+    }
+    
     // *** 3 *** - Pair reactions => two origin structures
     // Overloading get_pos_sid_pair with signature (origin_structure2, target_structure_type_id, ...)
     virtual position_structid_pair_type get_pos_sid_pair(structure_type const& origin_structure2, structure_type_id_type const& target_sid,
