@@ -153,13 +153,13 @@ public:
     virtual position_structid_pair_type cyclic_transpose(position_structid_pair_type const& pos_struct_id,
                                                          structure_container_type const& structure_container) const = 0;
                                                          
-    // Structure functions dynamic dispatch
+    // *** Structure functions dynamic dispatch ***
     // 
     // FIXME For now the second dispatch requires the helper functions to be defined here for each structure type separately.
     // This is because C++ does not allow virtual templates. The current solution is functional, but ugly, and may be replaced
     // by a more elegant solution in the future.
     
-    // 1 - Producing one new position
+    // *** 1 *** - Producing one new position
     // First dispatch
     virtual position_structid_pair_type get_pos_sid_pair(structure_type const& target_structure, position_type const& position,
                                                          length_type const& offset, length_type const& rl, rng_type const& rng) const = 0;
@@ -178,13 +178,13 @@ public:
     // The template function that defines the actual final dispatch procedure.
     // Note that this is not virtual + overriden, but inherited by each derived structure class.
     template<typename Tstruct_>
-    position_structid_pair_type get_pos_sid_pair_helper(Tstruct_ const& origin_structure, position_type const& position,
-                                                        length_type const& offset, length_type const& rl, rng_type const& rng) const
+    position_structid_pair_type get_pos_sid_pair_helper_any(Tstruct_ const& origin_structure, position_type const& position,
+                                                            length_type const& offset, length_type const& rl, rng_type const& rng) const
     {
-        // Redirect to structure function with well-defined typing
+        // redirect to structure function with well-defined typing
         return ::get_pos_sid_pair(origin_structure, *this, position, offset, rl, rng); 
     };
-    // 2 - Producing two new positions
+    // *** 2 *** - Producing two new positions
     // First dispatch
     virtual position_structid_pair_pair_type get_pos_sid_pair_pair(structure_type const& target_structure, position_type const& position,
                                                                    species_type const& s_orig, species_type const& s_targ, length_type const& rl, rng_type const& rng) const = 0;
@@ -203,14 +203,14 @@ public:
     // The template function that defines the actual final dispatch procedure.
     // Note that this is not virtual + overriden, but inherited by each derived structure class.
     template<typename Tstruct_>
-    position_structid_pair_pair_type get_pos_sid_pair_pair_helper(Tstruct_ const& origin_structure, position_type const& position,
-                                                                  species_type const& s_orig, species_type const& s_targ, length_type const& rl, rng_type const& rng) const
+    position_structid_pair_pair_type get_pos_sid_pair_pair_helper_any(Tstruct_ const& origin_structure, position_type const& position,
+                                                                      species_type const& s_orig, species_type const& s_targ, length_type const& rl, rng_type const& rng) const
     {
-        // Redirect to structure function with well-defined typing
+        // redirect to structure function with well-defined typing
         return ::get_pos_sid_pair_pair(origin_structure, *this, position, s_orig, s_targ, rl, rng); 
     };
     
-    // 3 - Pair reactions => two origin structures
+    // *** 3 *** - Pair reactions => two origin structures
     // The following functions handle the case of two origin structures.
     // First again the (C++) structure types have to be determined by a double dispatch.
     // As a next step, the helper function has to determine which of the two structures
@@ -271,7 +271,7 @@ public:
     }
 
 //     // TODO
-//     // 4 - Generalized functions for pair reactions => two origin structures and one target_structure
+//     // *** 4 *** - Generalized functions for pair reactions => two origin structures and one target_structure
 //     // This introduces a triple dynamic dispatch, overloading method call structure.get_pos_sid_pair once more.
 //     // NOTE: As yet these methods are unused but might prove useful in the future.
 //     virtual position_structid_pair_type get_pos_sid_pair(structure_type const& origin_structure2, structure_type const& target_structure, position_type const& position,
