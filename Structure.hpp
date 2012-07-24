@@ -158,7 +158,7 @@ public:
     // FIXME For now the second dispatch requires the helper functions to be defined here for each structure type separately.
     // This is because C++ does not allow virtual templates. The current solution is functional, but ugly, and may be replaced
     // by a more elegant solution in the future.
-    
+    // 
     // *** 1 *** - Producing one new position
     // First dispatch
     virtual position_structid_pair_type get_pos_sid_pair(structure_type const& target_structure, position_type const& position,
@@ -174,7 +174,7 @@ public:
     virtual position_structid_pair_type get_pos_sid_pair_helper(DiskSurface<traits_type> const& origin_structure, position_type const& position,
                                                         length_type const& offset, length_type const& rl, rng_type const& rng) const = 0;
     virtual position_structid_pair_type get_pos_sid_pair_helper(PlanarSurface<traits_type> const& origin_structure, position_type const& position,
-                                                        length_type const& offset, length_type const& rl, rng_type const& rng) const = 0;                                                  
+                                                        length_type const& offset, length_type const& rl, rng_type const& rng) const = 0;
     // The template function that defines the actual final dispatch procedure.
     // Note that this is not virtual + overriden, but inherited by each derived structure class.
     template<typename Tstruct_>
@@ -223,33 +223,35 @@ public:
     //     and apply_boundary will handle the right placement afterwards.
        
     // First dispatch, overloading method call structure.get_pos_sid_pair
+    // This is called as a method of origin_structure1 with origin_structure2 as an argument.
     virtual position_structid_pair_type get_pos_sid_pair(structure_type const& origin_structure2, structure_type_id_type const& target_sid, position_type const& CoM,
                                                          length_type const& offset, length_type const& reaction_length, rng_type const& rng) const = 0;    
     // Second dispatch
     // This helper function has to be declared for each derived structure class because C++ does not support virtual templates (yet).
-    virtual position_structid_pair_type get_pos_sid_pair_helper_two_origins(CuboidalRegion<traits_type> const& other_origin_structure, structure_type_id_type const& target_sid, position_type const& CoM,
+    // It is called as a method of origin_structure2 by origin_structure1 with origin_structure1 as an argument
+    virtual position_structid_pair_type get_pos_sid_pair_helper_two_origins(CuboidalRegion<traits_type> const& origin_structure1, structure_type_id_type const& target_sid, position_type const& CoM,
                                                                             length_type const& offset, length_type const& reaction_length, rng_type const& rng) const = 0;
-    virtual position_structid_pair_type get_pos_sid_pair_helper_two_origins(SphericalSurface<traits_type> const& other_origin_structure, structure_type_id_type const& target_sid, position_type const& CoM,
+    virtual position_structid_pair_type get_pos_sid_pair_helper_two_origins(SphericalSurface<traits_type> const& origin_structure1, structure_type_id_type const& target_sid, position_type const& CoM,
                                                                             length_type const& offset, length_type const& reaction_length, rng_type const& rng) const = 0;
-    virtual position_structid_pair_type get_pos_sid_pair_helper_two_origins(CylindricalSurface<traits_type> const& other_origin_structure, structure_type_id_type const& target_sid, position_type const& CoM,
+    virtual position_structid_pair_type get_pos_sid_pair_helper_two_origins(CylindricalSurface<traits_type> const& origin_structure1, structure_type_id_type const& target_sid, position_type const& CoM,
                                                                             length_type const& offset, length_type const& reaction_length, rng_type const& rng) const = 0;
-    virtual position_structid_pair_type get_pos_sid_pair_helper_two_origins(DiskSurface<traits_type> const& other_origin_structure, structure_type_id_type const& target_sid, position_type const& CoM,
+    virtual position_structid_pair_type get_pos_sid_pair_helper_two_origins(DiskSurface<traits_type> const& origin_structure1, structure_type_id_type const& target_sid, position_type const& CoM,
                                                                             length_type const& offset, length_type const& reaction_length, rng_type const& rng) const = 0;
-    virtual position_structid_pair_type get_pos_sid_pair_helper_two_origins(PlanarSurface<traits_type> const& other_origin_structure, structure_type_id_type const& target_sid, position_type const& CoM,
+    virtual position_structid_pair_type get_pos_sid_pair_helper_two_origins(PlanarSurface<traits_type> const& origin_structure1, structure_type_id_type const& target_sid, position_type const& CoM,
                                                                             length_type const& offset, length_type const& reaction_length, rng_type const& rng) const = 0;
     // The template function that defines the actual final dispatch procedure.
     // Note that this is not virtual + overriden, but inherited by each derived structure class.
     template<typename Tstruct_>
-    position_structid_pair_type get_pos_sid_pair_helper_two_origins_any(Tstruct_ const& other_origin_structure, structure_type_id_type const& target_sid, position_type const& CoM,
+    position_structid_pair_type get_pos_sid_pair_helper_two_origins_any(Tstruct_ const& origin_structure1, structure_type_id_type const& target_sid, position_type const& CoM,
                                                                         length_type const& offset, length_type const& reaction_length, rng_type const& rng) const
     {
-        if( this->is_parent_of_or_has_same_sid_as(other_origin_structure) && other_origin_structure.has_valid_target_sid(target_sid) )
-            // other_origin_structure is target
-            return ::get_pos_sid_pair(*this, other_origin_structure, CoM, offset, reaction_length, rng);
+        if( this->is_parent_of_or_has_same_sid_as(origin_structure1) && origin_structure1.has_valid_target_sid(target_sid) )
+            // origin_structure1 is target
+            return ::get_pos_sid_pair(*this, origin_structure1, CoM, offset, reaction_length, rng);
             
-        else if( other_origin_structure.is_parent_of_or_has_same_sid_as(*this) && this->has_valid_target_sid(target_sid) )
+        else if( origin_structure1.is_parent_of_or_has_same_sid_as(*this) && this->has_valid_target_sid(target_sid) )
             // this structure is target
-            return ::get_pos_sid_pair(other_origin_structure, *this, CoM, offset, reaction_length, rng);
+            return ::get_pos_sid_pair(origin_structure1, *this, CoM, offset, reaction_length, rng);
             
         else throw propagation_error("Invalid target structure type / particles can be at most one hierarchical level apart for a pair reaction.");
     }    
