@@ -274,27 +274,27 @@ public:
     }
     // Second dispatch
     virtual position_structid_pair_pair_type get_pos_sid_pair_pair_helper(CuboidalRegion<traits_type> const& origin_structure, position_type const& position,
-                                                                          species_type const& s_orig, species_type const& s_targ, length_type const& rl, rng_type const& rng)
+                                                                          species_type const& s_orig, species_type const& s_targ, length_type const& rl, rng_type const& rng) const
     {
         return this->get_pos_sid_pair_pair_helper_any(origin_structure, position, s_orig, s_targ, rl, rng);
     }
     virtual position_structid_pair_pair_type get_pos_sid_pair_pair_helper(SphericalSurface<traits_type> const& origin_structure, position_type const& position,
-                                                                          species_type const& s_orig, species_type const& s_targ, length_type const& rl, rng_type const& rng)
+                                                                          species_type const& s_orig, species_type const& s_targ, length_type const& rl, rng_type const& rng) const
     {
         return this->get_pos_sid_pair_pair_helper_any(origin_structure, position, s_orig, s_targ, rl, rng);
     }
     virtual position_structid_pair_pair_type get_pos_sid_pair_pair_helper(CylindricalSurface<traits_type> const& origin_structure, position_type const& position,
-                                                                          species_type const& s_orig, species_type const& s_targ, length_type const& rl, rng_type const& rng)
+                                                                          species_type const& s_orig, species_type const& s_targ, length_type const& rl, rng_type const& rng) const
     {
         return this->get_pos_sid_pair_pair_helper_any(origin_structure, position, s_orig, s_targ, rl, rng);
     }
     virtual position_structid_pair_pair_type get_pos_sid_pair_pair_helper(DiskSurface<traits_type> const& origin_structure, position_type const& position,
-                                                                          species_type const& s_orig, species_type const& s_targ, length_type const& rl, rng_type const& rng)
+                                                                          species_type const& s_orig, species_type const& s_targ, length_type const& rl, rng_type const& rng) const
     {
         return this->get_pos_sid_pair_pair_helper_any(origin_structure, position, s_orig, s_targ, rl, rng);
     }
     virtual position_structid_pair_pair_type get_pos_sid_pair_pair_helper(PlanarSurface<traits_type> const& origin_structure, position_type const& position,
-                                                                          species_type const& s_orig, species_type const& s_targ, length_type const& rl, rng_type const& rng)
+                                                                          species_type const& s_orig, species_type const& s_targ, length_type const& rl, rng_type const& rng) const
     {
         return this->get_pos_sid_pair_pair_helper_any(origin_structure, position, s_orig, s_targ, rl, rng);
     }
