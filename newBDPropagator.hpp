@@ -253,26 +253,27 @@ public:
                 {
                     LOG_WARNING(("the acceptance probability of an interaction/reaction exceeded one; %f.",
                                  accumulated_prob));
-                } 
+                }
                 
                 if( accumulated_prob > rnd ) // OK, try to fire the interaction
                 {            
                     try
                     {
-                        LOG_DEBUG(("fire surface interaction"));
+                        LOG_DEBUG( ("fire surface interaction with surface %s.",
+                                    boost::lexical_cast<std::string>(overlap_struct.first.first).c_str()) );
                         if(attempt_interaction(pp, new_pos_projected.first, overlap_struct.first.second ))
                             return true;
                     }   
                     catch (propagation_error const& reason)
                     {
-                        log_.info("surface interaction rejected (reason: %s)", reason.what());
+                        log_.info("surface interaction rejected (reason: %s).", reason.what());
                         ++rejected_move_count_;
                     }
                 }
-                else                
+                else
                 {
-                    LOG_DEBUG(("Particle attempted an interaction with the non-interactive surface %s.", 
-                               boost::lexical_cast<std::string>(overlap_struct.first.first).c_str()));
+                    LOG_DEBUG( ("Particle attempted an interaction with the non-interactive surface %s.", 
+                                boost::lexical_cast<std::string>(overlap_struct.first.first).c_str()) );
                 }
             }
 
