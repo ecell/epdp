@@ -187,7 +187,15 @@ public:
                                                         length_type const& offset, length_type const& rl, rng_type const& rng) const
     {
         return this->get_pos_sid_pair_helper_any(origin_structure, position, offset, rl, rng);
-    }                                                                                                               
+    }
+    // The template function that defines the actual final dispatch procedure.
+    template<typename Tstruct_>
+    position_structid_pair_type get_pos_sid_pair_helper_any(Tstruct_ const& origin_structure, position_type const& position,
+                                                            length_type const& offset, length_type const& rl, rng_type const& rng) const
+    {
+        // redirect to structure function with well-defined typing
+        return ::get_pos_sid_pair(origin_structure, *this, position, offset, rl, rng); 
+    };
                                                         
     // *** 2 *** - Two new positions
     // Same principle as above, but different return type
@@ -223,6 +231,14 @@ public:
     {
         return this->get_pos_sid_pair_pair_helper_any(origin_structure, position, s_orig, s_targ, rl, rng);
     }
+    // The template function that defines the actual final dispatch procedure.
+    template<typename Tstruct_>
+    position_structid_pair_pair_type get_pos_sid_pair_pair_helper_any(Tstruct_ const& origin_structure, position_type const& position,
+                                                                      species_type const& s_orig, species_type const& s_targ, length_type const& rl, rng_type const& rng) const
+    {
+        // redirect to structure function with well-defined typing
+        return ::get_pos_sid_pair_pair(origin_structure, *this, position, s_orig, s_targ, rl, rng); 
+    };
     
     // *** 3 *** - Pair reactions => two origin structures
     // Overloading get_pos_sid_pair with signature (origin_structure2, target_structure_type_id, ...)
@@ -256,6 +272,21 @@ public:
                                                                             position_type const& CoM, length_type const& offset, length_type const& rl, rng_type const& rng) const
     {                          
         return this->get_pos_sid_pair_helper_two_origins_any(origin_structure1, target_sid, CoM, offset, rl, rng);
+    }    
+    // The template function that defines the actual final dispatch procedure.
+    template<typename Tstruct_>
+    position_structid_pair_type get_pos_sid_pair_helper_two_origins_any(Tstruct_ const& origin_structure1, structure_type_id_type const& target_sid, position_type const& CoM,
+                                                                        length_type const& offset, length_type const& reaction_length, rng_type const& rng) const
+    {
+        if( this->is_parent_of_or_has_same_sid_as(origin_structure1) && origin_structure1.has_valid_target_sid(target_sid) )
+            // origin_structure1 is target
+            return ::get_pos_sid_pair(*this, origin_structure1, CoM, offset, reaction_length, rng);
+            
+        else if( origin_structure1.is_parent_of_or_has_same_sid_as(*this) && this->has_valid_target_sid(target_sid) )
+            // this structure is target
+            return ::get_pos_sid_pair(origin_structure1, *this, CoM, offset, reaction_length, rng);
+            
+        else throw propagation_error("Invalid target structure type / particles can be at most one hierarchical level apart for a pair reaction.");
     }
     
 //     // *** 4 *** - Generalized functions for pair reactions with two origin structures and one target structure

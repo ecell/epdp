@@ -175,15 +175,6 @@ public:
                                                         length_type const& offset, length_type const& rl, rng_type const& rng) const = 0;
     virtual position_structid_pair_type get_pos_sid_pair_helper(PlanarSurface<traits_type> const& origin_structure, position_type const& position,
                                                         length_type const& offset, length_type const& rl, rng_type const& rng) const = 0;
-    // The template function that defines the actual final dispatch procedure.
-    // Note that this is not virtual + overriden, but inherited by each derived structure class.
-    template<typename Tstruct_>
-    position_structid_pair_type get_pos_sid_pair_helper_any(Tstruct_ const& origin_structure, position_type const& position,
-                                                            length_type const& offset, length_type const& rl, rng_type const& rng) const
-    {
-        // redirect to structure function with well-defined typing
-        return ::get_pos_sid_pair(origin_structure, *this, position, offset, rl, rng); 
-    };
     // *** 2 *** - Producing two new positions
     // First dispatch
     virtual position_structid_pair_pair_type get_pos_sid_pair_pair(structure_type const& target_structure, position_type const& position,
@@ -200,15 +191,6 @@ public:
                                                                           species_type const& s_orig, species_type const& s_targ, length_type const& rl, rng_type const& rng) const = 0;
     virtual position_structid_pair_pair_type get_pos_sid_pair_pair_helper(PlanarSurface<traits_type> const& origin_structure, position_type const& position,
                                                                           species_type const& s_orig, species_type const& s_targ, length_type const& rl, rng_type const& rng) const = 0;
-    // The template function that defines the actual final dispatch procedure.
-    // Note that this is not virtual + overriden, but inherited by each derived structure class.
-    template<typename Tstruct_>
-    position_structid_pair_pair_type get_pos_sid_pair_pair_helper_any(Tstruct_ const& origin_structure, position_type const& position,
-                                                                      species_type const& s_orig, species_type const& s_targ, length_type const& rl, rng_type const& rng) const
-    {
-        // redirect to structure function with well-defined typing
-        return ::get_pos_sid_pair_pair(origin_structure, *this, position, s_orig, s_targ, rl, rng); 
-    };
     
     // *** 3 *** - Pair reactions => two origin structures
     // The following functions handle the case of two origin structures.
@@ -239,24 +221,11 @@ public:
                                                                             length_type const& offset, length_type const& reaction_length, rng_type const& rng) const = 0;
     virtual position_structid_pair_type get_pos_sid_pair_helper_two_origins(PlanarSurface<traits_type> const& origin_structure1, structure_type_id_type const& target_sid, position_type const& CoM,
                                                                             length_type const& offset, length_type const& reaction_length, rng_type const& rng) const = 0;
-    // The template function that defines the actual final dispatch procedure.
-    // Note that this is not virtual + overriden, but inherited by each derived structure class.
+    
+    // Some further helper functions used by template<typename Tstruct_> get_pos_sid_pair_helper_two_origins_any(...),
+    // which is the final dispatch template defined in each of the derived classes and makes use of the two following checker functions:
     template<typename Tstruct_>
-    position_structid_pair_type get_pos_sid_pair_helper_two_origins_any(Tstruct_ const& origin_structure1, structure_type_id_type const& target_sid, position_type const& CoM,
-                                                                        length_type const& offset, length_type const& reaction_length, rng_type const& rng) const
-    {
-        if( this->is_parent_of_or_has_same_sid_as(origin_structure1) && origin_structure1.has_valid_target_sid(target_sid) )
-            // origin_structure1 is target
-            return ::get_pos_sid_pair(*this, origin_structure1, CoM, offset, reaction_length, rng);
-            
-        else if( origin_structure1.is_parent_of_or_has_same_sid_as(*this) && this->has_valid_target_sid(target_sid) )
-            // this structure is target
-            return ::get_pos_sid_pair(origin_structure1, *this, CoM, offset, reaction_length, rng);
-            
-        else throw propagation_error("Invalid target structure type / particles can be at most one hierarchical level apart for a pair reaction.");
-    }    
-    // Some further helper functions used by get_pos_sid_pair_helper_two_origins
-    inline bool is_parent_of_or_has_same_sid_as(structure_type const& s) const
+    inline bool is_parent_of_or_has_same_sid_as(Tstruct_ const& s) const
     {    
           structure_id_type       s_parent_id( s.structure_id() );
           structure_type_id_type  s_sid( s.sid() );
@@ -264,7 +233,7 @@ public:
           structure_type_id_type  this_sid( this->sid() );
           
           return ( s_parent_id == this_id || s_sid == this_sid );          
-    }    
+    }
     inline bool has_valid_target_sid(structure_type_id_type const& target_sid) const
     {
           structure_type_id_type this_sid( this->sid() );
