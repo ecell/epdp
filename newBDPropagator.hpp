@@ -836,7 +836,7 @@ private:
                         const species_type product_species(tx_.get_species(products[0]));
 
                         //// 1 - GET NEW POSITION ON THE TARGET STRUCTURE
-                        // TODO TODO TODO Rework this using structure functions! TODO TODO TODO
+                        // TODO Rework this using structure functions?
                         const position_type product_pos( tx_.apply_boundary(pos_in_struct) );
 
 
@@ -850,9 +850,11 @@ private:
                             throw propagation_error("no space");
                         }
                         // check overlap with structures.
-                        // No need to include old structure as ignore because going down the structure hierarchy anyway.
+                        // first get the structure_id of the old structure...
+                        const structure_id_type old_struct_id(pp.second.structure_id());
+                        // ...and ignore the latter when checking for overlaps
                         const boost::scoped_ptr<const structure_id_pair_and_distance_list> overlap_structures(
-                                tx_.check_surface_overlap(new_shape, product_pos, structure->id(), product_species.radius()));
+                                tx_.check_surface_overlap(new_shape, product_pos, structure->id(), product_species.radius(), old_struct_id));
                         if (overlap_structures && overlap_structures->size() > 0)
                         {
                             throw propagation_error("no space due to near surface");
