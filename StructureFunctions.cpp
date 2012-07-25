@@ -347,7 +347,6 @@ get_pos_sid_pair( CylindricalSurface<Ttraits_>          const& origin_structure,
         // the distance of the projection of old_pos on target_structure to target_structure
     
     if(proj_dist < 0){ // if projection of old_pos is in structure
-    // TODO: Assert that DiskSurface is a substructure of CylindricalSurface ?
      
           return std::make_pair( new_pos, new_id );
     }

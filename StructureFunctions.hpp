@@ -35,9 +35,9 @@ class PlanarSurface;
 /*** ONE NEW POSITION ***/
 /************************/
 
-/******************************/
-/* Some Defaults declarations */
-/******************************/
+/*****************************/
+/* Some default declarations */
+/*****************************/
 // These are actually never called but have to be there for type consistency reasons
 template <typename Ttraits_>
 inline std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type>
