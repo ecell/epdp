@@ -175,6 +175,10 @@ public:
                                                         length_type const& offset, length_type const& rl, rng_type const& rng) const = 0;
     virtual position_structid_pair_type get_pos_sid_pair_helper(PlanarSurface<traits_type> const& origin_structure, position_type const& position,
                                                         length_type const& offset, length_type const& rl, rng_type const& rng) const = 0;
+    // The template function that defines the actual final dispatch procedure.
+    template<typename Tstruct_>
+    position_structid_pair_type get_pos_sid_pair_helper_any(Tstruct_ const& origin_structure, position_type const& position,
+                                                            length_type const& offset, length_type const& rl, rng_type const& rng) const;
     // *** 2 *** - Producing two new positions
     // First dispatch
     virtual position_structid_pair_pair_type get_pos_sid_pair_pair(structure_type const& target_structure, position_type const& position,
@@ -190,7 +194,11 @@ public:
     virtual position_structid_pair_pair_type get_pos_sid_pair_pair_helper(DiskSurface<traits_type> const& origin_structure, position_type const& position,
                                                                           species_type const& s_orig, species_type const& s_targ, length_type const& rl, rng_type const& rng) const = 0;
     virtual position_structid_pair_pair_type get_pos_sid_pair_pair_helper(PlanarSurface<traits_type> const& origin_structure, position_type const& position,
-                                                                          species_type const& s_orig, species_type const& s_targ, length_type const& rl, rng_type const& rng) const = 0;
+                                                                          species_type const& s_orig, species_type const& s_targ, length_type const& rl, rng_type const& rng) const = 0;                                                                          
+    // The template function that defines the actual final dispatch procedure.
+    template<typename Tstruct_>
+    position_structid_pair_pair_type get_pos_sid_pair_pair_helper_any(Tstruct_ const& origin_structure, position_type const& position,
+                                                                      species_type const& s_orig, species_type const& s_targ, length_type const& rl, rng_type const& rng) const;
     
     // *** 3 *** - Pair reactions => two origin structures
     // The following functions handle the case of two origin structures.
@@ -221,6 +229,10 @@ public:
                                                                             length_type const& offset, length_type const& reaction_length, rng_type const& rng) const = 0;
     virtual position_structid_pair_type get_pos_sid_pair_helper_two_origins(PlanarSurface<traits_type> const& origin_structure1, structure_type_id_type const& target_sid, position_type const& CoM,
                                                                             length_type const& offset, length_type const& reaction_length, rng_type const& rng) const = 0;
+    // The template function that defines the actual final dispatch procedure.
+    template<typename Tstruct_>
+    position_structid_pair_type get_pos_sid_pair_helper_two_origins_any(Tstruct_ const& origin_structure1, structure_type_id_type const& target_sid, position_type const& CoM,
+                                                                        length_type const& offset, length_type const& reaction_length, rng_type const& rng) const;
     
     // Some further helper functions used by template<typename Tstruct_> get_pos_sid_pair_helper_two_origins_any(...),
     // which is the final dispatch template defined in each of the derived classes and makes use of the two following checker functions:
