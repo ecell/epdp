@@ -48,7 +48,7 @@ get_pos_sid_pair( CuboidalRegion<Ttraits_>              const& origin_structure,
                   typename Ttraits_::length_type        const& reaction_length,
                   typename Ttraits_::rng_type           const& rng              )
 {
-    throw illegal_propagation_attempt("Calling structure function without type specification!");
+    throw illegal_propagation_attempt("Calling structure function without type specification! Type signature: (CuboidalRegion, Structure).");
 }
 
 template <typename Ttraits_>
@@ -60,7 +60,7 @@ get_pos_sid_pair( SphericalSurface<Ttraits_>            const& origin_structure,
                   typename Ttraits_::length_type        const& reaction_length,
                   typename Ttraits_::rng_type           const& rng              )
 {
-    throw illegal_propagation_attempt("Calling structure function without type specification!");
+    throw illegal_propagation_attempt("Calling structure function without type specification! Type signature: (SphericalSurface, Structure).");
 }
 
 template <typename Ttraits_>
@@ -72,7 +72,7 @@ get_pos_sid_pair( CylindricalSurface<Ttraits_>          const& origin_structure,
                   typename Ttraits_::length_type        const& reaction_length,
                   typename Ttraits_::rng_type           const& rng              )
 {
-    throw illegal_propagation_attempt("Calling structure function without type specification!");
+    throw illegal_propagation_attempt("Calling structure function without type specification! Type signature: (CylindricalSurface, Structure).");
 }
 
 template <typename Ttraits_>
@@ -84,7 +84,7 @@ get_pos_sid_pair( DiskSurface<Ttraits_>                 const& origin_structure,
                   typename Ttraits_::length_type        const& reaction_length,
                   typename Ttraits_::rng_type           const& rng              )
 {
-    throw illegal_propagation_attempt("Calling structure function without type specification!");
+    throw illegal_propagation_attempt("Calling structure function without type specification! Type signature: (DiskSurface, Structure).");
 }
 
 template <typename Ttraits_>
@@ -96,7 +96,7 @@ get_pos_sid_pair( PlanarSurface<Ttraits_>              const& origin_structure,
                   typename Ttraits_::length_type        const& reaction_length,
                   typename Ttraits_::rng_type           const& rng              )
 {
-    throw illegal_propagation_attempt("Calling structure function without type specification!");
+    throw illegal_propagation_attempt("Calling structure function without type specification! Type signature: (PlanarSurface, Structure).");
 }
 
 template <typename Ttraits_>
@@ -108,7 +108,7 @@ get_pos_sid_pair( Structure<Ttraits_>                   const& origin_structure,
                   typename Ttraits_::length_type        const& reaction_length,
                   typename Ttraits_::rng_type           const& rng              )
 {
-    throw illegal_propagation_attempt("Calling structure function without type specification!");
+    throw illegal_propagation_attempt("Calling structure function without type specification! Type signature: (Structure, CuboidalRegion).");
 }
 
 template <typename Ttraits_>
@@ -120,7 +120,7 @@ get_pos_sid_pair( Structure<Ttraits_>                   const& origin_structure,
                   typename Ttraits_::length_type        const& reaction_length,
                   typename Ttraits_::rng_type           const& rng              )
 {
-    throw illegal_propagation_attempt("Calling structure function without type specification!");
+    throw illegal_propagation_attempt("Calling structure function without type specification! Type signature: (Structure, SphericalSurface).");
 }
 
 template <typename Ttraits_>
@@ -132,7 +132,7 @@ get_pos_sid_pair( Structure<Ttraits_>                   const& origin_structure,
                   typename Ttraits_::length_type        const& reaction_length,
                   typename Ttraits_::rng_type           const& rng              )
 {
-    throw illegal_propagation_attempt("Calling structure function without type specification!");
+    throw illegal_propagation_attempt("Calling structure function without type specification! Type signature: (Structure, CylindricalSurface).");
 }
 
 template <typename Ttraits_>
@@ -144,7 +144,7 @@ get_pos_sid_pair( Structure<Ttraits_>                   const& origin_structure,
                   typename Ttraits_::length_type        const& reaction_length,
                   typename Ttraits_::rng_type           const& rng              )
 {
-    throw illegal_propagation_attempt("Calling structure function without type specification!");
+    throw illegal_propagation_attempt("Calling structure function without type specification! Type signature: (Structure, DiskSurface).");
 }
 
 template <typename Ttraits_>
@@ -156,7 +156,7 @@ get_pos_sid_pair( Structure<Ttraits_>                   const& origin_structure,
                   typename Ttraits_::length_type        const& reaction_length,
                   typename Ttraits_::rng_type           const& rng              )
 {
-    throw illegal_propagation_attempt("Calling structure function without type specification!");
+    throw illegal_propagation_attempt("Calling structure function without type specification! Type signature: (Structure, PlanarSurface).");
 }
 
 /******************************/
