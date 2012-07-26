@@ -1,7 +1,6 @@
 #ifndef STRUCTFUNC_HPP
 #define STRUCTFUNC_HPP
 
-//#include "StructureFunctions.hpp" // TODO Why the hell does this not work, man???
 //#include "CuboidalRegion.hpp"
 //#include "SphericalSurface.hpp"
 //#include "CylindricalSurface.hpp"
@@ -9,16 +8,6 @@
 //#include "PlanarSurface.hpp"
 #include "linear_algebra.hpp"
 #include "exceptions.hpp"
-
-
-/******************************************************************************************/
-
-// Define the structure functions and the actions performed in each case.
-// There are two types: 1) yielding one new position and structure id
-//                      2) yielding two new positions and structure ids
-//                         (for single reactions with two products)
-
-/******************************************************************************************/
 
 // Forward declaration of structures
 template <typename Ttraits_>
@@ -38,6 +27,16 @@ class DiskSurface;
 
 template <typename Ttraits_>
 class PlanarSurface;
+
+
+/******************************************************************************************/
+
+// Define the structure functions and the actions performed in each case.
+// There are two types: 1) yielding one new position and structure id
+//                      2) yielding two new positions and structure ids
+//                         (for single reactions with two products)
+
+/******************************************************************************************/
 
 /************************/
 /*** ONE NEW POSITION ***/
