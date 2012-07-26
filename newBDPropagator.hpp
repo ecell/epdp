@@ -20,6 +20,13 @@
 #include "utils/get_default_impl.hpp"
 #include "Logger.hpp"
 
+#include "Structure.hpp"
+#include "CuboidalRegion.hpp"
+#include "SphericalSurface.hpp"
+#include "CylindricalSurface.hpp"
+#include "DiskSurface.hpp"
+#include "PlanarSurface.hpp"
+
 #include <iostream>
 
 template<typename Ttraits_>
