@@ -452,13 +452,14 @@ get_pos_sid_pair( DiskSurface<Ttraits_>                 const& origin_structure,
     typedef typename Ttraits_::position_type            position_type;
     typedef typename Ttraits_::length_type              length_type;
 
-    position_type displacement( origin_structure.surface_dissociation_vector(rng, offset, reaction_length) );
+    position_type u( origin_structure.surface_dissociation_unit_vector(rng) );
     
     // When a particle is dissociation from a disk to the cylinder, the direction is randomized
-    Real r( rng.uniform(0.,1.));    
-    Real rs( r < 0.5 ? -1.0 : +1.0 ); // TESTING TESTING TESTING this is unused yet, work this into the func. below!
-    //position_type new_pos( add(old_pos, multiply(rs, displacement)) );
-    position_type new_pos( add(old_pos, origin_structure.surface_dissociation_vector(rng, offset, reaction_length) ) );
+    Real r(    rng.uniform(0.,1.) );
+    Real r_rl( rng.uniform(0.,reaction_length) );
+    Real r_displace( r < 0.5 ? -1.0*r_rl : +1.0*r_rl );
+    
+    position_type new_pos( add(old_pos, multiply(u, r_displace)) );
     // TODO assert that new_pos is in target_structure
     
     return std::make_pair(new_pos, target_structure.id());
