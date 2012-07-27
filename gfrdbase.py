@@ -200,12 +200,12 @@ def create_box(world, structure_type, center, size):
     name = 'box'
     def_struct_id = world.get_def_structure_id()
     
-    front  = model.create_planar_surface(sid, name+'_front', [center[0] - size[0]/2, center[1] - size[1]/2, center[2] - size[2]/2], [1, 0, 0], [0, 0, 1], size[0], size[2], def_struct_id)
-    back   = model.create_planar_surface(sid, name+'_back',  [center[0] - size[0]/2, center[1] + size[1]/2, center[2] - size[2]/2], [0, 0, 1], [1, 0, 0], size[2], size[0], def_struct_id)
-    right  = model.create_planar_surface(sid, name+'_right', [center[0] + size[0]/2, center[1] - size[1]/2, center[2] - size[2]/2], [0, 1, 0], [0, 0, 1], size[1], size[2], def_struct_id)
-    left   = model.create_planar_surface(sid, name+'_left',  [center[0] - size[0]/2, center[1] - size[1]/2, center[2] - size[2]/2], [0, 0, 1], [0, 1, 0], size[2], size[1], def_struct_id)
-    top    = model.create_planar_surface(sid, name+'_top',   [center[0] - size[0]/2, center[1] - size[1]/2, center[2] + size[2]/2], [1, 0, 0], [0, 1, 0], size[0], size[1], def_struct_id)
-    bottom = model.create_planar_surface(sid, name+'_bottom',[center[0] - size[0]/2, center[1] - size[1]/2, center[2] - size[2]/2], [0, 1, 0], [1, 0, 0], size[1], size[0], def_struct_id)
+    front  = model.create_planar_surface(sid, name+'_front', [center[0] - size[0]/2, center[1] - size[1]/2, center[2] - size[2]/2], [0, 0, 1], [1, 0, 0], size[2], size[0], def_struct_id)
+    back   = model.create_planar_surface(sid, name+'_back',  [center[0] - size[0]/2, center[1] + size[1]/2, center[2] - size[2]/2], [1, 0, 0], [0, 0, 1], size[0], size[2], def_struct_id)
+    right  = model.create_planar_surface(sid, name+'_right', [center[0] + size[0]/2, center[1] - size[1]/2, center[2] - size[2]/2], [0, 0, 1], [0, 1, 0], size[2], size[1], def_struct_id)
+    left   = model.create_planar_surface(sid, name+'_left',  [center[0] - size[0]/2, center[1] - size[1]/2, center[2] - size[2]/2], [0, 1, 0], [0, 0, 1], size[1], size[2], def_struct_id)
+    top    = model.create_planar_surface(sid, name+'_top',   [center[0] - size[0]/2, center[1] - size[1]/2, center[2] + size[2]/2], [0, 1, 0], [1, 0, 0], size[1], size[0], def_struct_id)
+    bottom = model.create_planar_surface(sid, name+'_bottom',[center[0] - size[0]/2, center[1] - size[1]/2, center[2] - size[2]/2], [1, 0, 0], [0, 1, 0], size[0], size[1], def_struct_id)
     world.add_structure(front)
     world.add_structure(back)
     world.add_structure(right)
