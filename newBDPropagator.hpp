@@ -205,6 +205,7 @@ public:
             // restore old position and structure_id
             new_pos = old_pos;
             new_structure_id = old_struct_id;
+            LOG_DEBUG( ("particle bounced, restoring old position and structure id.") ); // TESTING
             
             // re-get the reaction partners (particles), now on old position.
             boost::scoped_ptr<particle_id_pair_and_distance_list> overlap_particles_after_bounce( 
@@ -217,10 +218,11 @@ public:
             // re-get the reaction partners (structures), now on old position.
             boost::scoped_ptr<structure_id_pair_and_distance_list> overlap_structures_after_bounce( 
                     tx_.check_surface_overlap( particle_shape_type( old_pos, r0 + reaction_length_ ), old_pos, old_struct_id, r0) );
-            overlap_structures.swap( overlap_structures_after_bounce );     // FIXME is there no better way?
+            overlap_structures.swap( overlap_structures_after_bounce );   // FIXME is there no better way?
             // NOTE that it is asserted that the particle overlap criterium for the particle with other particles
             // and surfaces is False!
-            structures_in_overlap = overlap_structures ? overlap_structures->size(): 0; 
+            structures_in_overlap = overlap_structures ? overlap_structures->size(): 0;
+            LOG_DEBUG( ("structures_in_overlap = %g", structures_in_overlap) ); // TESTING
         }
         
 
@@ -234,7 +236,6 @@ public:
         //// 5.1 INTERACTIONS WITH STRUCTURES
         // First, if a surface is inside the reaction volume, and the particle is in the 3D attempt an interaction.
         // TODO Rework this using the new structure functions?
-        // TODO Also an interaction should be allowed when a particle is on a cylinder. // Is that not yet the case???
         // TODO Don't check only the closest but check all overlapping surfaces.
         j = 0;
         while(j < structures_in_overlap)
@@ -290,7 +291,8 @@ public:
 
             species_type s0(pp_species);
             species_type s1(tx_.get_species(overlap_particle.first.second.sid()));
-                
+
+            // TODO Remove this if everything works fine!
 /*            // If the structure_types of the reactants are not equal, one of the reactants has to come from the bulk,
             // and we let this be s1, the particle from the surface is named s0.
             if(s0.structure_type_id() != s1.structure_type_id())
