@@ -87,13 +87,16 @@ public:
         length_type r01_sq( r01 * r01 );
 
         return M_PI * ( r01l_sq - r01_sq );
+        // TODO Is there a correction factor if binding is allowed from both sides of the planes?
     }
     
     // Reaction volume for binding to the structure
     virtual Real surface_reaction_volume( length_type const& r0, length_type const& rl ) const
     {
-        //factor 2 because surface has two possible reaction sides due to cyclic BCn.
-        return 2*rl; // FIXME because we reject the above constraint at some point
+        // Assuming binding from one side only (the one that unit_z points towards)
+        // If binding occurs from two sides, this has to be changed to 2*rl and 
+        // unbinding (surface_dissociation_vector) has to be randomized, too.
+        return rl;
     }
     
     // Vector of dissociation from the structure to parent structure
@@ -102,7 +105,7 @@ public:
         Real X( rng.uniform(0.,1.) );
         length_type diss_vec_length( X*rl );
 
-        return multiply( base_type::shape().unit_z(), (rng.uniform_int(0, 1) * 2 - 1) * diss_vec_length );
+        return multiply( base_type::shape().unit_z(), diss_vec_length );
     }
     
     // Normed direction of dissociation from the structure to parent structure
@@ -144,21 +147,25 @@ public:
         //Real theta_max( M_PI/2 - asin(s_bulk.radius() / ( r01 )) );
         //theta_max = theta_max < 0 ? 0 : theta_max;
         
+        // Create random angles for later construction of randomly oriented vector
         Real const theta( rng.uniform(0.,1.) * M_PI );        
         Real const phi( rng.uniform(0.,1.) * 2 * M_PI );
         
+        // Construct dissociation length
         Real const X( rng.uniform(0.,1.) );
         length_type const r01l( r01 + rl );
         length_type const r01l_cb( r01l * r01l * r01l );
         length_type const r01_cb( r01 * r01 * r01 );
         
-        length_type const diss_vec_length( cbrt( X * (r01l_cb - r01_cb ) + r01_cb ) );   
+        length_type const diss_vec_length( cbrt( X * (r01l_cb - r01_cb ) + r01_cb ) );                  
         
-        position_type unit_z( cross_product( base_type::shape().unit_x(), base_type::shape().unit_y() ) );
-        unit_z = normalize ( unit_z );  // TODO unit_z is already defined, don't have to do a cross product
+        position_type unit_z = base_type::shape().unit_x();
+        // Old version for binding from both plane sides; TODO Remove this once everything is fine
+        // position_type unit_z( cross_product( base_type::shape().unit_x(), base_type::shape().unit_y() ) );
+        // unit_z = normalize ( unit_z );        
+        // unit_z = multiply(unit_z, rng.uniform_int(0, 1) * 2 - 1);
         
-        //unit_z = multiply(unit_z, rng.uniform_int(0, 1) * 2 - 1);
-        
+        // Construct randomly oriented dissociation vector
         length_type const x( diss_vec_length * sin( theta ) * cos( phi ) );
         length_type const y( diss_vec_length * sin( theta ) * sin( phi ) );
         length_type const z( diss_vec_length * cos( theta ) );
