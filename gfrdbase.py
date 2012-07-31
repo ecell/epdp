@@ -27,6 +27,7 @@ __all__ = [
     'NoSpace',
     'create_world',
     'create_box',
+    'create_rod',
     'ParticleSimulatorBase',
     'get_all_surfaces',
     'get_neighbor_surfaces',
@@ -186,8 +187,9 @@ def create_world(m, matrix_size=10):
     return world
 
 def create_box(world, structure_type, center, size):
-    # Creates a box of PlanarSurface sections and adds it to the world.
-    # size is a vector in x, y, z
+    """ Creates a box of PlanarSurface sections and adds it to the world.
+        Argument size is a vector in x, y, z
+    """
 
     # assert that the center and size is ok
     center = numpy.array(center)
@@ -225,6 +227,74 @@ def create_box(world, structure_type, center, size):
     world.connect_structures(bottom, 3, right, 2)
     world.connect_structures(bottom, 2, left, 1)
 
+def create_rod(world, cyl_structure_type, cap_structure_type, name, position, radius, orientation, length):
+    """ Creates a cylinder with two disk-caps at its ends and adds it to the world.
+
+        The function ensures that the orientation vectors of the disks point
+        outwards, i.e. away from the cylinder center.
+
+        It returns a structure id which is the structure id of the cylindrical
+        surface. This can be used to create further sub-structures of the rod,
+        i.e. a disk acting as a sink on the rod.
+
+        Arguments:
+            - world
+                the world that the geometry is constructed in
+            - cyl_structure_type
+                the structure type of the cylinder;
+                this is relevant to properly define interactions
+            - cap_structure_type
+                the structure type of the disks representing the caps;
+                this is relevant to properly define interactions
+            - name
+                name of the rod; names of the sub-components will
+                be created from this
+            - position
+                the 3D position vector from which the rod is 
+                constructed; note: this is not the center, but one
+                of the cylinder ends
+            - radius
+                the rod radius; affects both the cylinder and the
+                cap disks
+            - orientation
+                a 3D vector defining the the rod orientation
+            - length
+                the rod length
+    """    
+    # assert that the location and size is ok
+    position = numpy.array(position)
+    orientation = numpy.array(orientation)
+    assert all(0 < position) and all(position < world.world_size)
+    assert (radius < world.world_size/2)
+    assert (length < world.world_size)
+
+    # Some abbreviations
+    cyl_sid       = cyl_structure_type.id
+    cap_sid       = cap_structure_type.id
+    def_struct_id = world.get_def_structure_id()
+    p = position
+    o = orientation
+    l = length
+
+    # Create the cylinder of the rod
+    rod = model.create_cylindrical_surface(cyl_sid, name+'_cylinder', position, radius, orientation, length, def_struct_id)
+    print rod
+
+    # Create the caps
+    #front_cap_pos = [c[0]+(l/2)*o[0], c[1]+(l/2)*o[1], c[2]+(l/2)*o[2]]
+    front_cap_pos = [p[0]+l*o[0], p[1]+l*o[1], p[2]+l*o[2]]
+    front_cap = model.create_disk_surface(cap_sid, name+'_front_cap', front_cap_pos, radius, orientation, def_struct_id)
+
+    #back_cap_pos = [c[0]-(l/2)*o[0], c[1]-(l/2)*o[1], c[2]-(l/2)*o[2]]
+    back_cap_pos = p
+    back_cap = model.create_disk_surface(cap_sid, name+'_back_cap', back_cap_pos, radius, [-o[0],-o[1],-o[2]], def_struct_id)
+
+    # Add the new structures to the world
+    world.add_structure(rod)
+    world.add_structure(front_cap)
+    world.add_structure(back_cap)
+
+    return rod.id
 
 def create_network_rules_wrapper(model):
     return _gfrd.NetworkRulesWrapper(model.network_rules)
