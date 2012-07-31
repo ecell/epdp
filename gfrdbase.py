@@ -261,7 +261,7 @@ def create_rod(world, cyl_structure_type, cap_structure_type, name, position, ra
             - length
                 the rod length
     """    
-    # assert that the location and size is ok
+    # Assert that the location and size is ok
     position = numpy.array(position)
     orientation = numpy.array(orientation)
     assert all(0 < position) and all(position < world.world_size)
@@ -281,12 +281,10 @@ def create_rod(world, cyl_structure_type, cap_structure_type, name, position, ra
     print rod
 
     # Create the caps
-    #front_cap_pos = [c[0]+(l/2)*o[0], c[1]+(l/2)*o[1], c[2]+(l/2)*o[2]]
     front_cap_pos = [p[0]+l*o[0], p[1]+l*o[1], p[2]+l*o[2]]
     front_cap = model.create_disk_surface(cap_sid, name+'_front_cap', front_cap_pos, radius, orientation, def_struct_id)
 
-    #back_cap_pos = [c[0]-(l/2)*o[0], c[1]-(l/2)*o[1], c[2]-(l/2)*o[2]]
-    back_cap_pos = p
+    back_cap_pos = position
     back_cap = model.create_disk_surface(cap_sid, name+'_back_cap', back_cap_pos, radius, [-o[0],-o[1],-o[2]], def_struct_id)
 
     # Add the new structures to the world
