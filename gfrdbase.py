@@ -188,10 +188,20 @@ def create_world(m, matrix_size=10):
 
 def create_box(world, structure_type, center, size):
     """ Creates a box of PlanarSurface sections and adds it to the world.
-        Argument size is a vector in x, y, z
+
+        Arguments:
+            - world
+                the world that the geometry is constructed in
+            - structure_type
+                the structure type of the planar surfaces that make up
+                the box
+            - center
+                a 3D vector defining the center of the box
+            - size
+                a 3D vector defining the box extensions
     """
 
-    # assert that the center and size is ok
+    # Assert that the center and size is ok
     center = numpy.array(center)
     size   = numpy.array(size)
     assert all(0 < center) and all(center < world.world_size)
@@ -202,6 +212,7 @@ def create_box(world, structure_type, center, size):
     name = 'box'
     def_struct_id = world.get_def_structure_id()
     
+    # Create the planes and add them to the world
     front  = model.create_planar_surface(sid, name+'_front', [center[0] - size[0]/2, center[1] - size[1]/2, center[2] - size[2]/2], [0, 0, 1], [1, 0, 0], size[2], size[0], def_struct_id)
     back   = model.create_planar_surface(sid, name+'_back',  [center[0] - size[0]/2, center[1] + size[1]/2, center[2] - size[2]/2], [1, 0, 0], [0, 0, 1], size[0], size[2], def_struct_id)
     right  = model.create_planar_surface(sid, name+'_right', [center[0] + size[0]/2, center[1] - size[1]/2, center[2] - size[2]/2], [0, 0, 1], [0, 1, 0], size[2], size[1], def_struct_id)
@@ -214,6 +225,9 @@ def create_box(world, structure_type, center, size):
     world.add_structure(left)
     world.add_structure(top)
     world.add_structure(bottom)
+
+    # Update the connectivity container
+    # This has to follow the plane side convention strictly!
     world.connect_structures( front, 3, top, 2)
     world.connect_structures( front, 2, bottom, 1)
     world.connect_structures( front, 1, left, 2)
