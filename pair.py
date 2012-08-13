@@ -755,6 +755,12 @@ class CylindricalSurfacePair(SimplePair, hasCylindricalShell):
         self.LD_MAX = numpy.inf # Required by SimplePair.__init__
         SimplePair.__init__(self, domain_id, shell_id, rrs)
 
+        # The latter is defined for completeness and used by check_domain() in egfrd.py:
+        # (Note that that origin and target end up in same list.)
+        self.origin_structure = self.testShell.origin_structure
+        self.target_structure = self.testShell.target_structure         
+#        self.origin_structure = self.structure2D
+#        self.target_structure = self.structure2D #TODO: redundant..
 
     def get_shell_size(self):
         return self.shell.shape.half_length
@@ -863,6 +869,13 @@ class MixedPair2D3D(Pair, hasCylindricalShell):
 
         # set the radii of the inner domains as a function of the outer protective domain
         self.a_R, self.a_r = self.determine_radii()
+        
+        # The latter is defined for completeness and used by check_domain() in egfrd.py:
+        # (Note that that origin and target end up in same list.)
+        self.origin_structure = self.testShell.origin_structure
+        self.target_structure = self.testShell.target_structure         
+#        self.origin_structure = self.structure3D
+#        self.target_structure = self.structure2D
 
 
     def determine_radii(self):
@@ -1106,8 +1119,10 @@ class MixedPair1DCap(Pair, hasCylindricalShell):
         self.cap_structure = self.testShell.cap_structure
 
         # The latter is defined for completeness and used by check_domain() in egfrd.py:
-        self.origin_structure = self.structure1D
-        self.target_structure = self.cap_structure
+        self.origin_structure = self.testShell.origin_structure
+        self.target_structure = self.testShell.target_structure         
+#        self.origin_structure = self.structure1D
+#        self.target_structure = self.cap_structure
 
         # The cap_particle should be immobile; check to be sure:
         assert self.cap_particle.D == 0
