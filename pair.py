@@ -797,13 +797,15 @@ class MixedPair2D3D(Pair, hasCylindricalShell):
 
     def __init__(self, domain_id, shell_id, testShell, rrs):
 
+        # Some definitions (which are also needed by __init__ functions below)
+        self.structure2D = self.testShell.structure2D   # the surface on which particle1 lives
+        self.structure3D = self.testShell.structure3D   # structure on which both particles live
+
         assert isinstance(testShell, MixedPair2D3DtestShell)
         hasCylindricalShell.__init__(self, testShell, domain_id)
         Pair.__init__(self, domain_id, shell_id, rrs)
 
         assert isinstance(self.testShell, testMixedPair2D3D)
-        self.structure2D = self.testShell.structure2D   # the surface on which particle1 lives
-        self.structure3D = self.testShell.structure3D   # structure on which both particles live
 
         # initialize some useful constants
         self.z_scaling_factor = self.testShell.get_scaling_factor()
