@@ -931,7 +931,7 @@ class MixedPair2D3D(Pair, hasCylindricalShell):
 
         return a_R, a_r
 
-    @ classmethod
+    @ classmethod 
     def do_back_transform(cls, com, iv, D1, D2, radius1, radius2, structure2D, structure3D, unit_z):
     # here we assume that the com and iv are really in the structure and no adjustments have to be
     # made
@@ -942,7 +942,7 @@ class MixedPair2D3D(Pair, hasCylindricalShell):
         weight1 = D1 / D_tot
         weight2 = D2 / D_tot
 
-#        min_iv_z_length = radius2
+#       min_iv_z_length = radius2
         # get a sence of scale of the separation between the particle and the membrane
         min_iv_z_length = (radius1 + radius2) * 0.5 * (MINIMAL_SEPARATION_FACTOR - 1.0)
 
@@ -968,7 +968,8 @@ class MixedPair2D3D(Pair, hasCylindricalShell):
         pos1 = com - weight1 * (iv_x + iv_y)
         pos2 = com + weight2 * (iv_x + iv_y) + iv_z 
 
-        return pos1, pos2, self.structure2D.id, self.structure2D.id
+        # Class method; so don't use self.(..)
+        return pos1, pos2, structure2D.id, structure2D.id        
 
     @ classmethod
     def calc_z_scaling_factor(cls, D2d, D3d):
@@ -1084,7 +1085,8 @@ class MixedPair1D3D(Pair):
         pos1 = com - weight1 * iv_z
         pos2 = com + weight2 * iv_z + iv_r
 
-        return pos1, pos2, self.structure1D.id, self.structure1D.id
+        # Class method; so don't use self.(..)
+        return pos1, pos2, structure1D.id, structure1D.id
 
     @ classmethod
     def calc_r_scaling_factor(cls, D1, D2):
