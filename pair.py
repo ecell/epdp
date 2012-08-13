@@ -41,11 +41,8 @@ class Pair(ProtectiveDomain, Others):
     CUTOFF_FACTOR = 5.6
 
     def __init__(self, domain_id, shell_id, rrs):
-        ProtectiveDomain.__init__(self, domain_id, shell_id)
-        # Note: for the Others superclass nothing is to be initialized.
-
-        assert self.testShell       # assume that the testShell exists
-        assert isinstance(self.testShell, testPair)
+        
+        # Definitions
         self.multiplicity = 2
 
         self.single1 = self.testShell.single1
@@ -63,6 +60,12 @@ class Pair(ProtectiveDomain, Others):
         self.iv    = self.testShell.iv
         self.r0    = self.testShell.r0
         self.sigma = self.testShell.sigma
+        
+        assert self.testShell       # assume that the testShell exists
+        assert isinstance(self.testShell, testPair)
+        
+        ProtectiveDomain.__init__(self, domain_id, shell_id)
+        # Note: for the Others superclass nothing is to be initialized.
 
     def __del__(self):
         if __debug__:
@@ -207,13 +210,14 @@ class SimplePair(Pair):
 
     def __init__(self, domain_id, shell_id, rrs):
 
-        Pair.__init__(self, domain_id, shell_id, rrs)
-
+        # Defintions (also needed by __init__ calls below)
         self.structure = self.testShell.structure # structure on which both particles live
 
         shell_size = self.get_shell_size()                  # FIXME
         self.a_R, self.a_r = self.determine_radii(self.r0, shell_size)
         # set the radii of the inner domains as a function of the outer protective domain
+
+        Pair.__init__(self, domain_id, shell_id, rrs)
 
     @ classmethod
     def do_back_transform(cls, com, iv, D1, D2, radius1, radius2, structure1, structure2, unit_z):
@@ -324,9 +328,12 @@ class SphericalPair(SimplePair, hasSphericalShell):
     """
     def __init__(self, domain_id, shell_id, testShell, rrs):
 
+        # Definitions
+        self.LD_MAX = numpy.inf
+
         assert isinstance(testShell, SphericalPairtestShell)
         hasSphericalShell.__init__(self, testShell, domain_id)
-        self.LD_MAX = numpy.inf
+        
         SimplePair.__init__(self, domain_id, shell_id, rrs)     # Always initialize AFTER hasSphericalShell
 
     def com_greens_function(self):
@@ -423,9 +430,11 @@ class PlanarSurfacePair(SimplePair, hasCylindricalShell):
     """
     def __init__(self, domain_id, shell_id, testShell, rrs):
 
-        assert isinstance(testShell, PlanarSurfacePairtestShell)
-        hasCylindricalShell.__init__(self, testShell, domain_id)
+        # Definitions
         self.LD_MAX = 20
+
+        assert isinstance(testShell, PlanarSurfacePairtestShell)
+        hasCylindricalShell.__init__(self, testShell, domain_id)        
         SimplePair.__init__(self, domain_id, shell_id, rrs)
 
     def com_greens_function(self):
@@ -520,14 +529,19 @@ class PlanarSurfaceTransitionPair(SimplePair, hasSphericalShell):
     # do_back_transform() method.
     def __init__(self, domain_id, shell_id, testShell, rrs):
 
-        assert isinstance(testShell, PlanarSurfaceTransitionPairtestShell)
-        hasSphericalShell.__init__(self, testShell, domain_id)
-        self.LD_MAX = numpy.inf # TODO was 20. Why? Because of convergence issues! Maybe not really an issue here though
-        SimplePair.__init__(self, domain_id, shell_id, rrs)     # Always initialize AFTER hasSphericalShell
-        
+
+        # Definitions
         self.structure1 = self.testShell.structure1
         self.structure2 = self.testShell.structure2
         self.structure  = self.testShell.structure1 # just for safety
+        self.LD_MAX = numpy.inf # TODO was 20. Why? Because of convergence issues! Maybe not really an issue here though
+        
+        assert isinstance(testShell, PlanarSurfaceTransitionPairtestShell)
+
+        hasSphericalShell.__init__(self, testShell, domain_id)
+        SimplePair.__init__(self, domain_id, shell_id, rrs)     # Always initialize AFTER hasSphericalShell
+        
+
 
     def com_greens_function(self):
         return GreensFunction2DAbsSym(self.D_R, self.a_R)
@@ -703,9 +717,12 @@ class CylindricalSurfacePair(SimplePair, hasCylindricalShell):
     """
     def __init__(self, domain_id, shell_id, testShell, rrs):
 
-        assert isinstance(testShell, CylindricalSurfacePairtestShell)
-        hasCylindricalShell.__init__(self, testShell, domain_id)
+        # Definitions
         self.LD_MAX = numpy.inf
+
+        assert isinstance(testShell, CylindricalSurfacePairtestShell)
+
+        hasCylindricalShell.__init__(self, testShell, domain_id)
         SimplePair.__init__(self, domain_id, shell_id, rrs)
 
 
@@ -1038,17 +1055,17 @@ class MixedPair1DCap(Pair, hasCylindricalShell):
 
     def __init__(self, domain_id, shell_id, testShell, rrs):
 
+        # Some useful definitions (also needed by __init__ calls below):
+        self.particle1D    = self.testShell.particle1D
+        self.structure1D   = self.testShell.structure1D
+        self.cap_particle  = self.testShell.cap_particle
+        self.cap_structure = self.testShell.cap_structure
+
         assert isinstance(testShell, MixedPair1DCaptestShell)
         hasCylindricalShell.__init__(self, testShell, domain_id)
         Pair.__init__(self, domain_id, shell_id, rrs)
 
         assert isinstance(self.testShell, MixedPair1DCaptestShell)
-
-        # Some useful definitions:
-        self.particle1D    = self.testShell.particle1D
-        self.structure1D   = self.testShell.structure1D
-        self.cap_particle  = self.testShell.cap_particle
-        self.cap_structure = self.testShell.cap_structure
 
         # The latter is defined for completeness and used by check_domain() in egfrd.py:
         self.origin_structure = self.structure1D
