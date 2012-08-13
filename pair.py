@@ -41,6 +41,21 @@ class Pair(ProtectiveDomain, Others):
     CUTOFF_FACTOR = 5.6
 
     def __init__(self, domain_id, shell_id, rrs):
+        # Calls required parent inits and sets variables.
+        #
+        # Sets:     multiplicity, single1, single2, pid_particle_pair1, 
+        #           pid_particle_pair2, structure1, structure2, 
+        #           interparticle_rrs, interparticle_ktot, com, iv, r0,
+        #           sigma
+        #
+        # Requires nothing to be set.
+
+        assert self.testShell       # assume that the testShell exists
+        assert isinstance(self.testShell, testPair)  
+
+        # Call init from parent class(es)
+        ProtectiveDomain.__init__(self, domain_id, shell_id)
+            # Note: for the Others superclass nothing is to be initialized.
         
         # Definitions
         self.multiplicity = 2
@@ -59,13 +74,7 @@ class Pair(ProtectiveDomain, Others):
         self.com   = self.testShell.com
         self.iv    = self.testShell.iv
         self.r0    = self.testShell.r0
-        self.sigma = self.testShell.sigma
-        
-        assert self.testShell       # assume that the testShell exists
-        assert isinstance(self.testShell, testPair)
-        
-        ProtectiveDomain.__init__(self, domain_id, shell_id)
-        # Note: for the Others superclass nothing is to be initialized.
+        self.sigma = self.testShell.sigma              
 
     def __del__(self):
         if __debug__:
@@ -209,15 +218,23 @@ class Pair(ProtectiveDomain, Others):
 class SimplePair(Pair):
 
     def __init__(self, domain_id, shell_id, rrs):
+        # Calls required parent inits and sets variables.
+        #
+        # Sets:     a_R, a_r, strucutre, shell_size
+        # Requires: r0
 
-        # Defintions (also needed by __init__ calls below)
-        self.structure = self.testShell.structure # structure on which both particles live
-
+        # Definitions that are needed by inits
         shell_size = self.get_shell_size()                  # FIXME
+                
+        # Inits from parent classes 
+        Pair.__init__(self, domain_id, shell_id, rrs)        
+        
+        # Definitions 
         self.a_R, self.a_r = self.determine_radii(self.r0, shell_size)
-        # set the radii of the inner domains as a function of the outer protective domain
+            # set the radii of the inner domains as a function of the outer protective domain
+            # (self.r0 is determined in Pair.__init__)
+        self.structure = self.testShell.structure # structure on which both particles live            
 
-        Pair.__init__(self, domain_id, shell_id, rrs)
 
     @ classmethod
     def do_back_transform(cls, com, iv, D1, D2, radius1, radius2, structure1, structure2, unit_z):
@@ -327,13 +344,18 @@ class SphericalPair(SimplePair, hasSphericalShell):
 
     """
     def __init__(self, domain_id, shell_id, testShell, rrs):
-
+        # Calls required parent inits and sets variables.
+        #
+        # Sets:         LD_MAX
+        # Requires:     nothing to be set
+        
         # Definitions
         self.LD_MAX = numpy.inf
 
         assert isinstance(testShell, SphericalPairtestShell)
         hasSphericalShell.__init__(self, testShell, domain_id)
         
+        # Parent classes
         SimplePair.__init__(self, domain_id, shell_id, rrs)     # Always initialize AFTER hasSphericalShell
 
     def com_greens_function(self):
@@ -429,7 +451,11 @@ class PlanarSurfacePair(SimplePair, hasCylindricalShell):
 
     """
     def __init__(self, domain_id, shell_id, testShell, rrs):
-
+        # Calls required parent inits and sets variables.
+        #
+        # Sets:         LD_MAX
+        # Requires:     Nothing to be set.
+        
         # Definitions
         self.LD_MAX = 20
 
@@ -528,7 +554,10 @@ class PlanarSurfaceTransitionPair(SimplePair, hasSphericalShell):
     # hasSphericalShell instead of hasCylindricalShell and a modified 
     # do_back_transform() method.
     def __init__(self, domain_id, shell_id, testShell, rrs):
-
+        # Calls required parent inits and sets variables.
+        #
+        # Sets:         structure1, strucutre2, structure, LD_MAX
+        # Requires:     nothing to be set
 
         # Definitions
         self.structure1 = self.testShell.structure1
@@ -716,7 +745,11 @@ class CylindricalSurfacePair(SimplePair, hasCylindricalShell):
 
     """
     def __init__(self, domain_id, shell_id, testShell, rrs):
-
+        # Calls required parent inits and sets variables.
+        #
+        # Sets:         LD_MAX
+        # Requires:     nothing to be set
+        
         # Definitions
         self.LD_MAX = numpy.inf
 
@@ -813,10 +846,14 @@ class CylindricalSurfacePair(SimplePair, hasCylindricalShell):
 class MixedPair2D3D(Pair, hasCylindricalShell):
 
     def __init__(self, domain_id, shell_id, testShell, rrs):
-
+        # Calls required parent inits and sets variables.
+        #
+        # Sets:         structure2D, structure3D, z_scaling_factor, a_R, a_r
+        # Requires:     nothing to be set
+        
         # Some definitions (which are also needed by __init__ functions below)
-        self.structure2D = self.testShell.structure2D   # the surface on which particle1 lives
-        self.structure3D = self.testShell.structure3D   # structure on which both particles live
+        self.structure2D = testShell.structure2D   # the surface on which particle1 lives
+        self.structure3D = testShell.structure3D   # structure on which both particles live
 
         assert isinstance(testShell, MixedPair2D3DtestShell)
         hasCylindricalShell.__init__(self, testShell, domain_id)
@@ -1054,8 +1091,12 @@ class MixedPair1DCap(Pair, hasCylindricalShell):
     # TODO: Is the new pos. of the cap particle sampled correctly in case of a decay event?
 
     def __init__(self, domain_id, shell_id, testShell, rrs):
-
-        # Some useful definitions (also needed by __init__ calls below):
+        # Calls required parent inits and sets variables.
+        #
+        # Sets:             particle1D, structure1D, cap_particle, cap_structure
+        # Requires:         nothing to be set
+        
+        # Some useful definitions 
         self.particle1D    = self.testShell.particle1D
         self.structure1D   = self.testShell.structure1D
         self.cap_particle  = self.testShell.cap_particle
