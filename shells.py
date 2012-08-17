@@ -1701,6 +1701,7 @@ class DiskSurfaceSingletestShell(CylindricaltestShell, testNonInteractionSingle)
         # - dz_left stays constant and is equal to the cap-bound particle radius
         # - dz_right can be scaled, minimum is set accordingly
         # - dr stays constant and is determined by the maximal particle radius involved
+        #   plus the rod radius (particle unbinds perpendicularly to disk normal vector)
         self.dzdr_right = numpy.inf
         self.drdz_right = 0.0
         self.r0_right   = self.pid_particle_pair[1].radius
@@ -1713,11 +1714,11 @@ class DiskSurfaceSingletestShell(CylindricaltestShell, testNonInteractionSingle)
         # sizing up the shell to a zero shell
         self.dz_right = self.pid_particle_pair[1].radius
         self.dz_left  = self.pid_particle_pair[1].radius
-        self.dr       = self.pid_particle_pair[1].radius        
+        self.dr       = self.pid_particle_pair[1].radius + self.structure.shape.radius
 
     def get_orientation_vector(self):
         return self.structure.shape.unit_z
-        # just copy from disk structure; note that this defines the direction of dissociation!        
+        # just copy from disk structure
 
     def get_searchpoint(self):
         return self.pid_particle_pair[1].position
@@ -1727,14 +1728,14 @@ class DiskSurfaceSingletestShell(CylindricaltestShell, testNonInteractionSingle)
 
     def get_min_dr_dzright_dzleft(self):
         # TODO This will never be called, right? Why do dz_right/dz_left have value larger than particle_radius?
-        dr       = self.pid_particle_pair[1].radius
+        dr       = self.dr
         dz_right = self.pid_particle_pair[1].radius * math.sqrt(MULTI_SHELL_FACTOR**2 - 1.0) #  TODO Use SINGLE_SHELL_FACTOR instead?
         dz_left  = dz_right
         return dr, dz_right, dz_left
         
     def get_max_dr_dzright_dzleft(self):
         # Radius is not scaled here so we do not to check for distance to shape edge
-        dr       = self.pid_particle_pair[1].radius
+        dr       = self.dr
         dz_right = self.pid_particle_pair[1].radius * math.sqrt(MULTI_SHELL_FACTOR**2 - 1.0) # same as the minimum, i.e. no scaling of this length
         dz_left  = dz_right
         return dr, dz_right, dz_left

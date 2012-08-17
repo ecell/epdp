@@ -223,7 +223,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
         self.DEFAULT_DT_FACTOR = 1e-5           # Diffusion time prefactor in oldBD algortithm to determine time step.
         
-        self.DEFAULT_STEP_SIZE_FACTOR = 0.05    # The maximum step size in the newBD algorithm is determined as DSSF * sigma_min.
+        self.DEFAULT_STEP_SIZE_FACTOR = 0.05    # The maximum step size in the newBD algorithm is determined as DSSF * sigma_min.  # TESTING was 0.05
                                                 # Make sure that DEFAULT_STEP_SIZE_FACTOR < MULTI_SHELL_FACTOR, or else the 
                                                 # reaction volume sticks out of the multi. 
 
@@ -979,9 +979,18 @@ class EGFRDSimulator(ParticleSimulatorBase):
                         product_pos_list.append(vector)
 
                 elif isinstance(reactant_structure, DiskSurface):
-                    vector_length = 1.0*product_radius * MINIMAL_SEPARATION_FACTOR
-                    vector        = reactant_pos + vector_length * reactant_structure.shape.unit_z
-                    product_pos_list.append(vector)
+                    # unbinding in direction of disk unit vector
+                    #vector_length = 1.0*product_radius * MINIMAL_SEPARATION_FACTOR
+                    #vector        = reactant_pos + vector_length * reactant_structure.shape.unit_z
+                    #product_pos_list.append(vector)
+                    # unbinding perpendicularly to disk unit vector (i.e. like on cylinder)
+                    vector_length = (product_radius + reactant_structure.shape.radius) * MINIMAL_SEPARATION_FACTOR
+                    for _ in range(self.dissociation_retry_moves):
+                        unit_vector3D = random_unit_vector()
+                        unit_vector2D = normalize(unit_vector3D - 
+                                        (reactant_structure.shape.unit_z * numpy.dot(unit_vector3D, reactant_structure.shape.unit_z)))
+                        vector = reactant_pos + vector_length * unit_vector2D
+                        product_pos_list.append(vector)
 
                 else:
                     # cannot decay from 3D to other structure
