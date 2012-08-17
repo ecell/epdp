@@ -315,14 +315,14 @@ public:
     
     // *** 3 *** - Pair reactions => two origin structures
     // First dispatch
-    // Overloading get_pos_sid_pair with signature (origin_structure2, target_structure_type_id, ...)
-   virtual position_structid_pair_type get_pos_sid_pair(structure_type const& origin_structure2, structure_type_id_type const& target_sid, position_type const& CoM,
-                                                        length_type const& offset, length_type const& reaction_length, rng_type& rng) const
-    {   
-        // this just redirects
-        return this->get_pos_sid_pair_2o(origin_structure2, target_sid, CoM, offset, reaction_length, rng);                            
-    }
-    // The actual implementation of the first dispatch
+//     // Overloading get_pos_sid_pair with signature (origin_structure2, target_structure_type_id, ...)
+//    virtual position_structid_pair_type get_pos_sid_pair(structure_type const& origin_structure2, structure_type_id_type const& target_sid, position_type const& CoM,
+//                                                         length_type const& offset, length_type const& reaction_length, rng_type& rng) const
+//     {   
+//         // this just redirects
+//         return this->get_pos_sid_pair_2o(origin_structure2, target_sid, CoM, offset, reaction_length, rng);                            
+//     }
+//     // The actual implementation of the first dispatch
     virtual position_structid_pair_type get_pos_sid_pair_2o(structure_type const& origin_structure2, structure_type_id_type const& target_sid,
                                                          position_type const& CoM, length_type const& offset, length_type const& reaction_length, rng_type& rng) const
     {

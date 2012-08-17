@@ -208,9 +208,9 @@ public:
     // This is called as a method of origin_structure1 with origin_structure2 as an argument.
     virtual position_structid_pair_type get_pos_sid_pair_2o(structure_type const& origin_structure2, structure_type_id_type const& target_sid, position_type const& CoM,
                                                             length_type const& offset, length_type const& reaction_length, rng_type& rng) const = 0;
-    // Some convenient method overloading; this is just a redirect to the above                                       
-    virtual position_structid_pair_type get_pos_sid_pair(structure_type const& origin_structure2, structure_type_id_type const& target_sid, position_type const& CoM,
-                                                         length_type const& offset, length_type const& reaction_length, rng_type& rng) const = 0;
+//     // Some convenient method overloading; this is just a redirect to the above                                       
+//     virtual position_structid_pair_type get_pos_sid_pair(structure_type const& origin_structure2, structure_type_id_type const& target_sid, position_type const& CoM,
+//                                                          length_type const& offset, length_type const& reaction_length, rng_type& rng) const = 0;
     // Second dispatch
     // The helper functions are the dispatch acceptors and have to be declared for each derived structure class because C++ does not support virtual templates.
     virtual position_structid_pair_type get_pos_sid_pair_2o_helper(CuboidalRegion<traits_type> const& origin_structure1, structure_type_id_type const& target_sid, position_type const& CoM,
