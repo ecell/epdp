@@ -980,7 +980,7 @@ def get_dr_dzright_dzleft_to_CylindricalShape(shape, testShell, r, z_right, z_le
                 r1_min = math.sqrt((scale_center_to_shell_x-shell_half_length)**2 + (scale_center_to_shell_y-shell_radius)**2)*(1.0+TOLERANCE)
                 h1_min = r1_min/math.tan(scale_angle)
 
-#        print "situation= ", situation
+        print "situation= ", situation
         #################
         if situation == 1:
             # shell hits the scaling cylinder with its flat surface on the radial side
@@ -992,8 +992,9 @@ def get_dr_dzright_dzleft_to_CylindricalShape(shape, testShell, r, z_right, z_le
             # TODO we have a solution but it can only be found with a root finder -> slow
             tan_scale_angle = math.tan(scale_angle)
 
-            if scale_angle <= Pi/4.0:
+            if scale_angle < Pi/4.0:
                 def h1(x):
+                    print "value = %s" % str((x*tan_scale_angle)**2 - (scale_center_to_shell_x - shell_half_length)) # TODO DEBUG output, remove when done
                     return x - scale_center_to_shell_z + \
                            math.sqrt(shell_radius**2 - (scale_center_to_shell_y - math.sqrt((x*tan_scale_angle)**2 - (scale_center_to_shell_x - shell_half_length)**2) )**2 )
 
