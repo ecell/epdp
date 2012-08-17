@@ -288,6 +288,9 @@ public:
         //// 6.1 REACTIONS WITH OTHER PARTICLES
         /* Now attempt a reaction with all particles inside the reaction volume. */
         j = 0;
+        accumulated_prob = 0.0; // has to be reset to zero otherwise the particle will react even
+                                // if the reaction rate is zero!
+                                // TODO Is that correct or should everything be in one loop???
         while(j < particles_in_overlap)
         {
             const particle_id_pair_and_distance & overlap_particle( overlap_particles->at(j) );
