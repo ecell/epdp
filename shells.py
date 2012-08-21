@@ -188,7 +188,11 @@ class testInteractionSingle(testSingle, Others):
         self.particle_surface_distance = self.world.distance(self.target_structure.shape, self.pid_particle_pair[1].position)
 
         # The reference_vector is the normalized vector from the reference_point to the particle
-        self.reference_vector = normalize(pos_transposed - self.reference_point)
+        if pos_transposed != self.reference_point :
+            self.reference_vector = normalize(pos_transposed - self.reference_point)
+        else:
+            self.reference_vector = 0
+            raise testShellError('(testInteractionSingle). reference vector = 0.')
 
 class testTransitionSingle(testSingle, Others):
 
