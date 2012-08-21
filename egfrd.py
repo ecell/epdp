@@ -962,13 +962,13 @@ class EGFRDSimulator(ParticleSimulatorBase):
                 # TODO make these generators for efficiency
                 product_pos_list = []
                 if isinstance(reactant_structure, PlanarSurface):
-                    if not reactant_structure.shape.is_one_sided:
+                    if reactant_structure.shape.is_one_sided:
+                        # unbinding always in direction of unit_z
+                        directions = [1]
+                    else:
                         # randomize unbinding direction
                         a = myrandom.choice(-1, 1)
                         directions = [-a,a]
-                    else:
-                        # unbinding always in direction of unit_z
-                        directions = [1]
                     # place the center of mass of the particle 'at contact' with the membrane
                     vector_length = (product_radius + 0.0) * (MINIMAL_SEPARATION_FACTOR - 1.0)  # the thickness of the membrane is 0.0
                     product_pos_list = [reactant_pos + vector_length * reactant_structure.shape.unit_z * direction \
@@ -1098,7 +1098,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
                 if isinstance(reactant_structure, PlanarSurface):
                     # draw a number of new positions for the two product particles
-                    # TODO make this into a generator
+                    # TODO make this a generator
 
                     product_pos_list = []
                     for _ in range(self.dissociation_retry_moves):
@@ -1111,7 +1111,12 @@ class EGFRDSimulator(ParticleSimulatorBase):
                         iv *= MINIMAL_SEPARATION_FACTOR
 
                         # determine the side of the membrane the dissociation takes place
-                        unit_z = reactant_structure.shape.unit_z * myrandom.choice(-1, 1)
+                        if(reactant_structure.shape.is_one_sided):
+                            unit_z = reactant_structure.shape.unit_z
+                        else:
+                            unit_z = reactant_structure.shape.unit_z * myrandom.choice(-1, 1)
+
+                        # calculate the new positions and structure IDs
                         newposA, newposB, sidA, sidB = MixedPair2D3D.do_back_transform(reactant_pos, iv, DA, DB,
                                                                                        productA_radius, productB_radius,
                                                                                        reactant_structure, reactant_structure,
