@@ -962,8 +962,13 @@ class EGFRDSimulator(ParticleSimulatorBase):
                 # TODO make these generators for efficiency
                 product_pos_list = []
                 if isinstance(reactant_structure, PlanarSurface):
-                    a = myrandom.choice(-1, 1)
-                    directions = [-a,a]
+                    if not reactant_structure.shape.is_one_sided:
+                        # randomize unbinding direction
+                        a = myrandom.choice(-1, 1)
+                        directions = [-a,a]
+                    else:
+                        # unbinding always in direction of unit_z
+                        directions = [1]
                     # place the center of mass of the particle 'at contact' with the membrane
                     vector_length = (product_radius + 0.0) * (MINIMAL_SEPARATION_FACTOR - 1.0)  # the thickness of the membrane is 0.0
                     product_pos_list = [reactant_pos + vector_length * reactant_structure.shape.unit_z * direction \
