@@ -104,8 +104,18 @@ public:
     {
         Real X( rng.uniform(0.,1.) );
         length_type diss_vec_length( X*rl );
-
-        return multiply( base_type::shape().unit_z(), diss_vec_length );
+        
+        if( base_type::shape().is_one_sided() )
+        {
+            return multiply( base_type::shape().unit_z(), diss_vec_length );
+        }
+        else
+        {
+            int sign( rng.uniform(0,1)<=0.5 ? -1 : +1);
+            diss_vec_length *= (Real)sign;
+            
+            return multiply( base_type::shape().unit_z(), diss_vec_length );
+        }
     }
     
     // Normed direction of dissociation from the structure to parent structure
