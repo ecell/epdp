@@ -809,6 +809,7 @@ def get_dr_dzright_dzleft_to_CylindricalShape(shape, testShell, r, z_right, z_le
         z2 = z_right
 
     relative_orientation = abs(numpy.dot(orientation_vector, shape.unit_z))
+
     if feq(relative_orientation, 1.0):
     ### If the cylinders are oriented parallelly
 
@@ -980,7 +981,7 @@ def get_dr_dzright_dzleft_to_CylindricalShape(shape, testShell, r, z_right, z_le
                 r1_min = math.sqrt((scale_center_to_shell_x-shell_half_length)**2 + (scale_center_to_shell_y-shell_radius)**2)*(1.0+TOLERANCE)
                 h1_min = r1_min/math.tan(scale_angle)
 
-        print "situation= ", situation
+        #print "situation= ", situation
         #################
         if situation == 1:
             # shell hits the scaling cylinder with its flat surface on the radial side
@@ -1950,11 +1951,9 @@ class CylindricalSurfaceCapInteractiontestShell(CylindricaltestShell, testIntera
                                  (str(e)))
 
     def get_orientation_vector(self):
-        # The orientation vector is collinear with the parent cylinder axis and
-        # pointing "inwards", i.e. towards the center point of the parent cylinder
-        # TODO Check that this works properly!
-        return self.reference_vector     # from testInteractionSingle; reference vector always points from the
-                                         # particle position projected onto the target surface towards particle pos.
+        # Here we assume implicitly that the cap and the
+        # rod are collinear
+        return self.target_structure.shape.unit_z
 
     def get_searchpoint(self):
         return self.pid_particle_pair[1].position
