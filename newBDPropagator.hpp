@@ -289,7 +289,6 @@ public:
                         ++rejected_move_count_;
                         log_.info("treating reaction as forbidden and resetting acc. probability by %s", prob_increase);
                         accumulated_prob -= prob_increase;
-                        // TODO return true here?
                     }
                 }
                 else
@@ -313,7 +312,7 @@ public:
             species_type s0(pp_species);
             species_type s1(tx_.get_species(overlap_particle.first.second.sid()));
 
-            // TODO Remove this if everything works fine!
+            // TODO Remove this when everything works fine!
 /*            // If the structure_types of the reactants are not equal, one of the reactants has to come from the bulk,
             // and we let this be s1, the particle from the surface is named s0.
             if(s0.structure_type_id() != s1.structure_type_id())

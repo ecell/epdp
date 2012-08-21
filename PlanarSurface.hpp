@@ -93,10 +93,10 @@ public:
     // Reaction volume for binding to the structure
     virtual Real surface_reaction_volume( length_type const& r0, length_type const& rl ) const
     {
-        // Assuming binding from one side only (the one that unit_z points towards)
-        // If binding occurs from two sides, this has to be changed to 2*rl and 
-        // unbinding (surface_dissociation_vector) has to be randomized, too.
-        return rl;
+        if( base_type::shape().is_one_sided() )
+            return rl;
+        else
+            return 2.0*rl;
     }
     
     // Vector of dissociation from the structure to parent structure
@@ -111,8 +111,8 @@ public:
         }
         else
         {
-            int sign( rng.uniform(0,1)<=0.5 ? -1 : +1);
-            diss_vec_length *= (Real)sign;
+            Real sign( rng.uniform_int(0, 1) * 2 - 1 );
+            diss_vec_length *= sign;
             
             return multiply( base_type::shape().unit_z(), diss_vec_length );
         }
@@ -167,13 +167,15 @@ public:
         length_type const r01l_cb( r01l * r01l * r01l );
         length_type const r01_cb( r01 * r01 * r01 );
         
-        length_type const diss_vec_length( cbrt( X * (r01l_cb - r01_cb ) + r01_cb ) );                  
+        length_type const diss_vec_length( cbrt( X * (r01l_cb - r01_cb ) + r01_cb ) );        
         
-        position_type unit_z = base_type::shape().unit_x();
-        // Old version for binding from both plane sides; TODO Remove this once everything is fine
-        // position_type unit_z( cross_product( base_type::shape().unit_x(), base_type::shape().unit_y() ) );
-        // unit_z = normalize ( unit_z );        
-        // unit_z = multiply(unit_z, rng.uniform_int(0, 1) * 2 - 1);
+        
+        // Determine direction of dissociation for the particle that ends up in the bulk
+        // As a standard it is the plane's unit_z vector
+        position_type unit_z( base_type::shape().unit_z() );
+        // If the plane however is two-sided: randomize!
+        if( not(base_type::shape().is_one_sided()) )
+            unit_z = multiply(unit_z, rng.uniform_int(0, 1) * 2 - 1);
         
         // Construct randomly oriented dissociation vector
         length_type const x( diss_vec_length * sin( theta ) * cos( phi ) );
