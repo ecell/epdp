@@ -962,7 +962,7 @@ class MixedPair2D3D(Pair, hasCylindricalShell):
         pos2 = com + weight2 * (iv_x + iv_y) + iv_z 
 
         # Class method; so don't use self.(..)
-        return pos1, pos2, structure2D.id, structure2D.id        
+        return pos1, pos2, structure2D.id, structure3D.id
 
     @ classmethod
     def calc_z_scaling_factor(cls, D2d, D3d):
