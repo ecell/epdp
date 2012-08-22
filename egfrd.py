@@ -1643,6 +1643,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
                 else:
                     # with a cylindrical surface it is the surface of the particle
                     surface_horizon = single_radius * MULTI_SHELL_FACTOR
+
                 multi_partners.append((surface, distance - surface_horizon))
 
 
