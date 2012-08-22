@@ -1708,25 +1708,26 @@ class DiskSurfaceSingletestShell(CylindricaltestShell, testNonInteractionSingle)
 
         # Initialize scaling parameters
         # - the reference point is at the cap disk position
-        # - the right scaling point is for the scaling "inwards", i.e. onto the rod
-        # - the left scaling point is for the scaling "outwards", i.e. away from the rod (and cap)
-        # - dz_left stays constant and is equal to the cap-bound particle radius
-        # - dz_right can be scaled, minimum is set accordingly
-        # - dr stays constant and is determined by the maximal particle radius involved
-        #   plus the rod radius (particle unbinds perpendicularly to disk normal vector)
+        # - the orientation vector points from the cap towards the rod center, i.e.:
+        #       - the right scaling point is for the scaling "inwards", i.e. onto the rod
+        #       - the left scaling point is for the scaling "outwards", i.e. away from the rod (and cap)
+        #       - dz_left stays constant and is equal to the cap-bound particle radius
+        #       - dz_right can be scaled, minimum is set accordingly
+        # - dr stays constant and is determined by the maximal radius involved
+        self.shell_radius = max(self.pid_particle_pair[1].radius, self.structure.shape.radius)
         self.dzdr_right = numpy.inf
         self.drdz_right = 0.0
-        self.r0_right   = self.pid_particle_pair[1].radius
+        self.r0_right   = self.shell_radius
         self.z0_right   = 0.0
         self.dzdr_left  = numpy.inf
         self.drdz_left  = 0.0
-        self.r0_left    = self.pid_particle_pair[1].radius
+        self.r0_left    = self.shell_radius
         self.z0_left    = 0.0
 
         # sizing up the shell to a zero shell
         self.dz_right = self.pid_particle_pair[1].radius
         self.dz_left  = self.pid_particle_pair[1].radius
-        self.dr       = self.pid_particle_pair[1].radius + self.structure.shape.radius
+        self.dr       = self.shell_radius
 
     def get_orientation_vector(self):
         return self.structure.shape.unit_z
@@ -1740,14 +1741,14 @@ class DiskSurfaceSingletestShell(CylindricaltestShell, testNonInteractionSingle)
 
     def get_min_dr_dzright_dzleft(self):
         # TODO This will never be called, right? Why do dz_right/dz_left have value larger than particle_radius?
-        dr       = self.dr
+        dr       = self.shell_radius
         dz_right = self.pid_particle_pair[1].radius * math.sqrt(MULTI_SHELL_FACTOR**2 - 1.0) #  TODO Use SINGLE_SHELL_FACTOR instead?
         dz_left  = dz_right
         return dr, dz_right, dz_left
         
     def get_max_dr_dzright_dzleft(self):
         # Radius is not scaled here so we do not to check for distance to shape edge
-        dr       = self.dr
+        dr       = self.shell_radius
         dz_right = self.pid_particle_pair[1].radius * math.sqrt(MULTI_SHELL_FACTOR**2 - 1.0) # same as the minimum, i.e. no scaling of this length
         dz_left  = dz_right
         return dr, dz_right, dz_left
@@ -1936,18 +1937,20 @@ class CylindricalSurfaceCapInteractiontestShell(CylindricaltestShell, testIntera
 
         # Initialize scaling parameters
         # - the reference point is at the cap disk position
-        # - the right scaling point is for the scaling "inwards", i.e. onto the rod
-        # - the left scaling point is for the scaling "outwards", i.e. away from the rod (and cap)
-        # - dz_left stays constant and is equal to the cap-bound particle radius * a safety factor
-        # - dz_right can be scaled, minimum is set accordingly
-        # - dr stays constant and is determined by the maximal particle radius involved
+        # - the orientation vector points from the cap towards the rod particle, i.e.:
+        #       - the right scaling point is for the scaling "inwards", i.e. onto the rod
+        #       - the left scaling point is for the scaling "outwards", i.e. away from the rod (and cap)
+        #       - dz_left stays constant and is equal to the cap-bound particle radius * a safety factor
+        #       - dz_right can be scaled, minimum is set accordingly
+        # - dr stays constant and is determined by the maximal radius involved
+        self.shell_radius = max([self.pid_particle_pair[1].radius, self.origin_structure.shape.radius, self.target_structure.shape.radius])
         self.dzdr_right = numpy.inf
         self.drdz_right = 0.0
-        self.r0_right   = self.pid_particle_pair[1].radius
+        self.r0_right   = self.shell_radius
         self.z0_right   = 0.0
         self.dzdr_left  = 0.0
         self.drdz_left  = numpy.inf
-        self.r0_left    = self.pid_particle_pair[1].radius      # TODO put to zero?
+        self.r0_left    = self.shell_radius # better put to zero?
         self.z0_left    = self.pid_particle_pair[1].radius * SINGLE_SHELL_FACTOR
 
         # This will determine if the shell is possible.
@@ -1961,9 +1964,9 @@ class CylindricalSurfaceCapInteractiontestShell(CylindricaltestShell, testIntera
                                  (str(e)))
 
     def get_orientation_vector(self):
-        # Here we assume implicitly that the cap and the
-        # rod are collinear
-        return self.target_structure.shape.unit_z
+        # The orientation vector is the (normalized) vector that points from the cap
+        # towards the particle on the rod
+        return normalize(self.pid_particle_pair[1].position - self.target_structure.shape.position)
 
     def get_searchpoint(self):
         return self.pid_particle_pair[1].position
@@ -1972,13 +1975,13 @@ class CylindricalSurfaceCapInteractiontestShell(CylindricaltestShell, testIntera
         return self.reference_point         # calculated in the __init__ of testInteractionSingle
 
     def get_min_dr_dzright_dzleft(self):
-        dr       = self.pid_particle_pair[1].radius
+        dr       = self.shell_radius
         dz_left  = self.pid_particle_pair[1].radius * SINGLE_SHELL_FACTOR
         dz_right = self.particle_surface_distance + self.pid_particle_pair[1].radius * SINGLE_SHELL_FACTOR
         return dr, dz_right, dz_left
         
     def get_max_dr_dzright_dzleft(self):
-        dr       = self.pid_particle_pair[1].radius
+        dr       = self.shell_radius
         dz_left  = self.pid_particle_pair[1].radius * SINGLE_SHELL_FACTOR # same as the minimum, i.e. no scaling of this length
         # TODO include max distance to other side of rod?
         dz_right = math.sqrt((self.get_searchradius())**2 - dr**2) + self.particle_surface_distance  # stay within the searchradius
@@ -2234,18 +2237,21 @@ class MixedPair1DCaptestShell(CylindricaltestShell, testMixedPair1DCap):
 
         # Initialize scaling parameters
         # - the reference point is at the cap disk position
-        # - the right scaling point is for the scaling "inwards", i.e. onto the rod
-        # - the left scaling point is for the scaling "outwards", i.e. away from the rod (and cap)
-        # - dz_left stays constant and is equal to the cap-bound particle radius * a safety factor
-        # - dz_right can be scaled, minimum is set accordingly
-        # - dr stays constant and is determined by the maximal particle radius involved
+        # - the orientation vector points from the cap towards the rod particle, i.e.:
+        #       - the right scaling point is for the scaling "inwards", i.e. onto the rod
+        #       - the left scaling point is for the scaling "outwards", i.e. away from the rod (and cap)
+        #       - dz_left stays constant and is equal to the cap-bound particle radius * a safety factor
+        #       - dz_right can be scaled, minimum is set accordingly
+        # - dr stays constant and is determined by the maximal radius involved
+        self.shell_radius = max([self.cap_particle.radius, self.particle1D.radius,\
+                                 self.cap_structure.shape.radius, self.structure1D.shape.radius])
         self.dzdr_right = numpy.inf
         self.drdz_right = 0.0
-        self.r0_right   = max(self.cap_particle.radius, self.particle1D.radius)
+        self.r0_right   = self.shell_radius
         self.z0_right   = 0.0
         self.dzdr_left  = 0.0
         self.drdz_left  = numpy.inf
-        self.r0_left    = max(self.cap_particle.radius, self.particle1D.radius)      # TODO put to zero?
+        self.r0_left    = self.shell_radius
         self.z0_left    = self.cap_particle.radius * SINGLE_SHELL_FACTOR
 
         # This will determine if the shell is possible.
@@ -2258,11 +2264,10 @@ class MixedPair1DCaptestShell(CylindricaltestShell, testMixedPair1DCap):
             raise testShellError('(MixedPair1DCap). %s' %
                                  (str(e)))
 
-    def get_orientation_vector(self):
-        # The orientation vector is collinear with the parent cylinder axis and
-        # pointing "inwards", i.e. towards the center point of the parent cylinder
-        direction = cmp(numpy.dot(self.structure1D.shape.unit_z, self.structure1D.shape.position - self.cap_structure.shape.position), 0)
-        return  direction * self.structure1D.shape.unit_z
+    def get_orientation_vector(self):        
+        # The orientation vector is the (normalized) vector that points from the cap
+        # towards the particle on the rod
+        return normalize(self.particle1D.position - self.cap_structure.shape.position)
 
     def get_searchpoint(self):
         return self.particle1D.position
@@ -2271,13 +2276,13 @@ class MixedPair1DCaptestShell(CylindricaltestShell, testMixedPair1DCap):
         return self.cap_structure.shape.position
 
     def get_min_dr_dzright_dzleft(self):
-        dr       = max(self.particle1D.radius, self.cap_particle.radius)
+        dr       = self.shell_radius
         dz_left  = self.cap_particle.radius * SINGLE_SHELL_FACTOR
         dz_right = self.get_min_pair_size() # TODO make sure this does the right thing!
         return dr, dz_right, dz_left
         
     def get_max_dr_dzright_dzleft(self):
-        dr       = max(self.particle1D.radius, self.cap_particle.radius)
+        dr       = self.shell_radius
         dz_left  = self.cap_particle.radius * SINGLE_SHELL_FACTOR # same as the minimum, i.e. no scaling of this length
         dz_right = math.sqrt((self.get_searchradius())**2 - dr**2) # stay within the searchradius
         return dr, dz_right, dz_left
@@ -2297,7 +2302,7 @@ class MixedPair1DCaptestShell(CylindricaltestShell, testMixedPair1DCap):
         radius1 = self.particle1D.radius
         radius2 = self.cap_particle.radius
 
-        dist_from_com1 = self.r0 * D_1 / self.D_tot      # particle distance from CoM
+        dist_from_com1 = self.r0 * D_1 / self.D_tot     # particle distance from CoM
         dist_from_com2 = self.r0 * D_2 / self.D_tot
         iv_shell_size1 = dist_from_com1 + radius1       # the shell should surround the particles
         iv_shell_size2 = dist_from_com2 + radius2
