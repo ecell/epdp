@@ -1114,10 +1114,8 @@ class MixedPair1DCap(Pair, hasCylindricalShell):
         self.cap_structure = self.testShell.cap_structure
 
         # The latter is defined for completeness and used by check_domain() in egfrd.py:
-        self.origin_structure = self.testShell.origin_structure
-        self.target_structure = self.testShell.target_structure         
-#        self.origin_structure = self.structure1D
-#        self.target_structure = self.cap_structure
+        self.origin_structure = self.structure1D
+        self.target_structure = self.cap_structure
 
         # The cap_particle should be immobile; check to be sure:
         assert self.cap_particle.D == 0
