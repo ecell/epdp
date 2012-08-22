@@ -191,7 +191,7 @@ public:
             boost::scoped_ptr<structure_id_pair_and_distance_list> overlap_structures_tmp(
                 tx_.check_surface_overlap(particle_shape_type( new_pos, r0 + reaction_length_ ), old_pos, new_structure_id, r0, old_struct_id));
             overlap_structures.swap(overlap_structures_tmp);
-            int structures_in_overlap(overlap_structures ? overlap_structures->size(): 0);
+            structures_in_overlap = (int)(overlap_structures ? overlap_structures->size(): 0);
  
             j = 0;
             while(!bounced && j < structures_in_overlap)
@@ -214,6 +214,7 @@ public:
             // NOTE that it is asserted that the particle overlap criterium for the particle with other particles
             // and surfaces is False!
             particles_in_overlap = overlap_particles ? overlap_particles->size(): 0; 
+            LOG_DEBUG( ("particles_in_overlap = %g", particles_in_overlap) ); // TESTING
             
             // re-get the reaction partners (structures), now on old position.
             boost::scoped_ptr<structure_id_pair_and_distance_list> overlap_structures_after_bounce( 
@@ -221,7 +222,7 @@ public:
             overlap_structures.swap( overlap_structures_after_bounce );   // FIXME is there no better way?
             // NOTE that it is asserted that the particle overlap criterium for the particle with other particles
             // and surfaces is False!
-            structures_in_overlap = overlap_structures ? overlap_structures->size(): 0;
+            structures_in_overlap = (int)(overlap_structures ? overlap_structures->size(): 0);
             LOG_DEBUG( ("structures_in_overlap = %g", structures_in_overlap) ); // TESTING
         }
         
@@ -230,6 +231,7 @@ public:
         /* Attempt a reaction (and/or interaction) with all the particles (and/or a surface) that 
            are/is inside the reaction volume. */
         Real accumulated_prob (0);
+        Real prob_increase (0);
         Real rnd( rng_() );
         
         const boost::shared_ptr<const structure_type> current_struct( tx_.get_structure( new_structure_id) );
@@ -248,9 +250,11 @@ public:
                 (overlap_struct.second < r0 + reaction_length_) &&                  // - within the reaction volume
                 (new_pos_projected.second.second < 0) )                             // - 'alongside' of the particle
             {
-                accumulated_prob += k_total( pp.second.sid(), overlap_struct.first.second->sid() ) * dt_ / 
+                prob_increase = k_total( pp.second.sid(), overlap_struct.first.second->sid() ) * dt_ / 
                                     overlap_struct.first.second->surface_reaction_volume( r0, reaction_length_ );
+                accumulated_prob += prob_increase;
         
+                LOG_DEBUG( ("check for surface interaction, acc_prob = %g", accumulated_prob) ); // TESTING
                 if(accumulated_prob >= 1.) // sth. is wrong in this case
                 {
                     LOG_WARNING(("the acceptance probability of an interaction/reaction exceeded one; %f.",
@@ -258,7 +262,8 @@ public:
                 }
                 
                 if( accumulated_prob > rnd ) // OK, try to fire the interaction
-                {            
+                {   
+                    LOG_DEBUG( ("attempting surface interaction, acc_prob = %g", accumulated_prob) ); // TESTING
                     try
                     {
                         LOG_DEBUG( ("fire surface interaction with surface %s.",
@@ -270,6 +275,20 @@ public:
                     {
                         log_.info("surface interaction rejected (reason: %s).", reason.what());
                         ++rejected_move_count_;
+                        // Revert the addition of the prob. increment to avoid that the a reaction will
+                        // fire in the (following) particle overlap loop even if the reaction rate and
+                        // prob. increment zero there.
+                        // Conceptually this means that the prob. for the reaction that was just attempted
+                        // and failed was zero in the first place (due to lack of space).
+                        log_.info("treating reaction as forbidden and resetting acc. probability by %s", prob_increase);
+                        accumulated_prob -= prob_increase;
+                    }
+                    catch (illegal_propagation_attempt const& reason)
+                    {
+                        log_.info("surface interaction: illegal propagation attempt (reason: %s)", reason.what());
+                        ++rejected_move_count_;
+                        log_.info("treating reaction as forbidden and resetting acc. probability by %s", prob_increase);
+                        accumulated_prob -= prob_increase;
                     }
                 }
                 else
@@ -285,6 +304,7 @@ public:
         //// 6.1 REACTIONS WITH OTHER PARTICLES
         /* Now attempt a reaction with all particles inside the reaction volume. */
         j = 0;
+        prob_increase = 0;
         while(j < particles_in_overlap)
         {
             const particle_id_pair_and_distance & overlap_particle( overlap_particles->at(j) );
@@ -292,7 +312,7 @@ public:
             species_type s0(pp_species);
             species_type s1(tx_.get_species(overlap_particle.first.second.sid()));
 
-            // TODO Remove this if everything works fine!
+            // TODO Remove this when everything works fine!
 /*            // If the structure_types of the reactants are not equal, one of the reactants has to come from the bulk,
             // and we let this be s1, the particle from the surface is named s0.
             if(s0.structure_type_id() != s1.structure_type_id())
@@ -307,8 +327,9 @@ public:
             }
 */            
             const boost::shared_ptr<const structure_type> s1_struct( tx_.get_structure( overlap_particle.first.second.structure_id()) );
-            accumulated_prob += k_total(s0.id(), s1.id()) * dt_ /
+            prob_increase = k_total(s0.id(), s1.id()) * dt_ /
                                 ( 2. * s1_struct->particle_reaction_volume( s0.radius() + s1.radius(), reaction_length_ ) ); 
+            accumulated_prob += prob_increase;
             
             if (accumulated_prob >= 1.)
             {
@@ -329,6 +350,9 @@ public:
                 {
                     log_.info("second-order reaction rejected (reason: %s)", reason.what());
                     ++rejected_move_count_;
+                    // Set the increase to zero a posteriori
+                    log_.info("treating reaction as forbidden and resetting acc. probability by %s", prob_increase);
+                    accumulated_prob -= prob_increase;
                 }
             }
             else                
@@ -547,7 +571,7 @@ private:
                             
                             // Produce two new positions and structure IDs
                             // Note that reactant_structure = prod0_structure here.
-                            LOG_DEBUG(("Attempting single reaction: calling get_pos_sid_pair with %s", boost::lexical_cast<std::string>(prod1_structure).c_str())); // TESTING
+                            LOG_DEBUG(("Attempting single reaction: calling get_pos_sid_pair_pair with %s", boost::lexical_cast<std::string>(prod1_structure).c_str())); // TESTING
                             pos0pos1_pair = reactant_structure->get_pos_sid_pair_pair(*prod1_structure, reactant_pos, product0_species, product1_species, reaction_length_, rng_ );
                             // Remember the new structure IDs
                             prod0_struct_id = pos0pos1_pair.first.second;
@@ -733,8 +757,8 @@ private:
                         // origin_structure types.
                         const length_type offset(0.0);
                         LOG_DEBUG(("Attempting pair reaction: calling get_pos_sid_pair with %s", boost::lexical_cast<std::string>(reactant1_structure).c_str())); // TESTING
-                        const position_structid_pair_type product_pos_struct_id( reactant0_structure->get_pos_sid_pair(*reactant1_structure, product_structure_type_id,
-                                                                                                                       reactants_CoM, offset, reaction_length_, rng_ ) );
+                        const position_structid_pair_type product_pos_struct_id( reactant0_structure->get_pos_sid_pair_2o(*reactant1_structure, product_structure_type_id,
+                                                                                                                          reactants_CoM, offset, reaction_length_, rng_ ) );
                         // Apply the boundary conditions; this is particularly important here because the CoM projection as produced by the function above
                         // in some cases might end up out of the target_structure (e.g. in case the two reactants are coming from adjacent planes
                         tx_.apply_boundary(product_pos_struct_id);
@@ -801,17 +825,17 @@ private:
     /********************/
     /*** INTERACTIONS ***/
     /********************/
-    const bool attempt_interaction(particle_id_pair const& pp, position_type const& pos_in_struct, boost::shared_ptr<structure_type> const& structure)
+    const bool attempt_interaction(particle_id_pair const& pp, position_type const& pos_in_struct, boost::shared_ptr<structure_type> const& product_structure)
     // This handles the 'reaction' (interaction) between a particle and a structure.
     // Returns True if the interaction was succesfull
     {
         // Get the reaction rules for the interaction with this structure.
-        reaction_rules const& rules(rules_.query_reaction_rule(pp.second.sid(), structure->sid() ));
+        reaction_rules const& rules(rules_.query_reaction_rule(pp.second.sid(), product_structure->sid() ));
         if (::size(rules) == 0)
             throw propagation_error("trying to fire an interaction with a structure without a reaction rule.");
         
                 
-        const Real k_tot( k_total(pp.second.sid(), structure->sid()) );
+        const Real k_tot( k_total(pp.second.sid(), product_structure->sid()) );
         const Real rnd( k_tot * rng_() );
         Real k_cumm = 0;  
 
@@ -839,11 +863,24 @@ private:
                     /*** ONE PRODUCT ***/
                     case 1:
                     {
-                        const species_type product_species(tx_.get_species(products[0]));
+                      
+                        const position_type                             reactant_pos( pp.second.position() );
+                        const boost::shared_ptr<const structure_type>   reactant_structure( tx_.get_structure(pp.second.structure_id()) );
+                        const structure_id_type                         reactant_structure_id( pp.second.structure_id() );
+                        const species_type                              product_species( tx_.get_species(products[0]) );
 
-                        //// 1 - GET NEW POSITION ON THE TARGET STRUCTURE
-                        // TODO Rework this using structure functions?
-                        const position_type product_pos( tx_.apply_boundary(pos_in_struct) );
+                        //// 1 - GET NEW POSITION ON THE TARGET STRUCTURE                        
+                        LOG_DEBUG(("Attempting interaction: calling get_pos_sid_pair with %s", boost::lexical_cast<std::string>(product_structure).c_str())); // TESTING
+                        const position_structid_pair_type new_pos_sid_pair_tmp( reactant_structure->get_pos_sid_pair(*product_structure, reactant_pos,
+                                                                                product_species.radius(), reaction_length_, rng_) );
+                        // Apply boundary conditions
+                        // NOTE make_move is not called here because interactions are the result of a move before
+                        const position_structid_pair_type new_pos_sid_pair = tx_.apply_boundary( new_pos_sid_pair_tmp );
+                        const position_type product_pos( new_pos_sid_pair.first );
+                        const structure_id_type product_structure_id( new_pos_sid_pair.second);
+                        
+                        // OLD VERSION
+                        //const position_type product_pos( tx_.apply_boundary(pos_in_struct) );
 
 
                         //// 2 - CHECK FOR OVERLAPS
@@ -856,11 +893,9 @@ private:
                             throw propagation_error("no space");
                         }
                         // check overlap with structures.
-                        // first get the structure_id of the old structure...
-                        const structure_id_type old_struct_id(pp.second.structure_id());
-                        // ...and ignore the latter when checking for overlaps
+                        // ignore reactant_structures when checking for overlaps
                         const boost::scoped_ptr<const structure_id_pair_and_distance_list> overlap_structures(
-                                tx_.check_surface_overlap(new_shape, product_pos, structure->id(), product_species.radius(), old_struct_id));
+                                tx_.check_surface_overlap(new_shape, product_pos, product_structure_id, product_species.radius(), reactant_structure_id));
                         if (overlap_structures && overlap_structures->size() > 0)
                         {
                             throw propagation_error("no space due to near surface");
@@ -877,7 +912,7 @@ private:
                         //// 3 - PROCESS CHANGES
                         remove_particle(pp.first);
                         // Make new particle in interaction structure 
-                        const particle_id_pair product_particle( tx_.new_particle(product_species.id(), structure->id(), product_pos) );
+                        const particle_id_pair product_particle( tx_.new_particle(product_species.id(), product_structure_id, product_pos) );
                         // Record changes
                         if (rrec_)
                         {
