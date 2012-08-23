@@ -897,7 +897,7 @@ def get_dr_dzright_dzleft_to_CylindricalShape(shape, testShell, r, z_right, z_le
         # of the scaled cylinder:
         BARREL_HITS_FLAT, EDGE_HITS_EDGE, BARREL_HITS_EDGE, FLAT_HITS_BARREL, EDGE_HITS_BARREL, BARREL_HITS_BARREL = range(6)
 
-        # Now first determine which type of collision happens:
+        #### (1) Now first determine which type of collision happens:
 
         if (ref_to_shell_x2 < 0) and (ref_to_shell_y2 < 0):
             # quadrant 1
@@ -1007,8 +1007,8 @@ def get_dr_dzright_dzleft_to_CylindricalShape(shape, testShell, r, z_right, z_le
                 r1_min = math.sqrt((scale_center_to_shell_x-shell_half_length)**2 + (scale_center_to_shell_y-shell_radius)**2)*(1.0+TOLERANCE)
                 h1_min = r1_min/math.tan(scale_angle)
 
+        ##### (2) Treat the situation accordingly
         #print "situation= ", situation
-        #################
         if situation == BARREL_HITS_FLAT:
             # the scaling cylinder hits the flat side of 'shell' with its barrel side
             r_new = min(r, (ref_to_shell_x - shell_half_length))
@@ -1017,25 +1017,28 @@ def get_dr_dzright_dzleft_to_CylindricalShape(shape, testShell, r, z_right, z_le
         elif situation == EDGE_HITS_EDGE:             
             # the scaling cylinder hits the edge of 'shell' with its edge
             # TODO we have a solution but it can only be found with a root finder -> slow
-            # FIXME THIS CAUSES SERIOUS ERRORS IN SOME SITUATIONS!!!
+            # FIXME THIS CAUSES SERIOUS ERRORS IN SOME SITUATIONS! FIND A SOLUTION WHICH DOES NOT EMPLOY THE ROOTFINDER!
             tan_scale_angle = math.tan(scale_angle)
 
             if scale_angle <= Pi/4.0:
-                def h1(x):
-                    print "value = %s" % str((x*tan_scale_angle)**2 - (scale_center_to_shell_x - shell_half_length)) # TODO DEBUG output, remove when done
-                    return x - scale_center_to_shell_z + \
-                           math.sqrt(shell_radius**2 - (scale_center_to_shell_y - math.sqrt((x*tan_scale_angle)**2 - (scale_center_to_shell_x - shell_half_length)**2) )**2 )
+                #def h1(x):
+                    #print "value = %s" % str((x*tan_scale_angle)**2 - (scale_center_to_shell_x - shell_half_length)) # TODO DEBUG output, remove when done
+                    #return x - scale_center_to_shell_z + \
+                           #math.sqrt(shell_radius**2 - (scale_center_to_shell_y - math.sqrt((x*tan_scale_angle)**2 - (scale_center_to_shell_x - shell_half_length)**2) )**2 )
 
-                h_touch = scale_center_z + findroot(h1, h1_min, scale_center_to_shell_z*(1.0-TOLERANCE))
+                #h_touch = scale_center_z + findroot(h1, h1_min, scale_center_to_shell_z*(1.0-TOLERANCE))
+                h_touch = ref_to_shell_z - shell_radius # TODO This is a crude fix to override the original version above and may be improved
                 z1_new = min(z1, h_touch)
                 r_new  = min(r,  r1_function(z1_new))
             else:
-                def r1(x):
-                    shell_radius_sq = shell_radius**2
-                    return x/tan_scale_angle - scale_center_to_shell_z + \
-                           math.sqrt(shell_radius_sq - (scale_center_to_shell_y - math.sqrt(x**2 - (scale_center_to_shell_x - shell_half_length)**2))**2)
+                #def r1(x):
+                    #shell_radius_sq = shell_radius**2
+                    #return x/tan_scale_angle - scale_center_to_shell_z + \
+                           #math.sqrt(shell_radius_sq - (scale_center_to_shell_y - math.sqrt(x**2 - (scale_center_to_shell_x - shell_half_length)**2))**2)
 
-                r_touch = findroot(r1, r1_min, math.sqrt((scale_center_to_shell_x-shell_half_length)**2 + (scale_center_to_shell_y)**2)*(1.0-TOLERANCE))
+                #r_touch = findroot(r1, r1_min, math.sqrt((scale_center_to_shell_x-shell_half_length)**2 + (scale_center_to_shell_y)**2)*(1.0-TOLERANCE))
+                r_touch = math.sqrt( (ref_to_shell_x-shell_half_length)**2 + (ref_to_shell_y - shell_radius)**2)
+                          # TODO This is a crude fix to override the original version above and may be improved
                 r_new  = min(r, r_touch)
                 z1_new = min(z1, z1_function(r_new))
 
