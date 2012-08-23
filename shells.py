@@ -1690,9 +1690,12 @@ class CylindricalSurfaceSingletestShell(CylindricaltestShell, testNonInteraction
 
     def get_max_dr_dzright_dzleft(self):
         dr = self.pid_particle_pair[1].radius
-#        dz_right_edge = self.structure.min_dist_proj_to_edge(self.get_referencepoint())    # TODO rethink this
+        #dz_right_edge = self.structure.min_dist_proj_to_edge(self.get_referencepoint())    # TODO rethink this
+        ##_, (_, pp_dist) = self.structure.project_point(self.get_referencepoint())
+        ##assert(pp_dist <= 0.0)
+        ##dz_right_edge = abs(pp_dist)
         dz_right_sr   = math.sqrt((self.get_searchradius())**2 - dr**2) # stay within the searchradius
-#        dz_right      = min(dz_right_sr, dz_right_edge)
+        #dz_right      = min(dz_right_sr, dz_right_edge)
         dz_right      = dz_right_sr
         dz_left       = dz_right
         return dr, dz_right, dz_left
