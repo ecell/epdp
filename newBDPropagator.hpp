@@ -258,13 +258,13 @@ public:
                 
                 if(prob_increase >= 1.) // sth. is wrong in this case
                 {
-                    LOG_WARNING(("probability increase exceeded one in particle-surface interaction: prob_increase = %f, k_total = %f, surface_reaction_volume = %f.",
+                    LOG_WARNING(("probability increase exceeded one in particle-surface interaction: prob_increase = %f, k_total = %e, surface_reaction_volume = %e.",
                                  prob_increase, k_total( pp.second.sid(), overlap_struct.first.second->sid() ),
                                  overlap_struct.first.second->surface_reaction_volume( r0, reaction_length_ )           ));
                 }
                 if(accumulated_prob >= 1.) // sth. is wrong in this case
                 {
-                    LOG_WARNING(("the acceptance probability of an interaction/reaction exceeded one in particle-surface interaction: p_acc = %f, reaction_length = %f, dt = %f.",
+                    LOG_WARNING(("the acceptance probability of an interaction/reaction exceeded one in particle-surface interaction: p_acc = %f, reaction_length = %e, dt = %e.",
                                  accumulated_prob, reaction_length_, dt_));
                 }
                 
@@ -341,7 +341,7 @@ public:
             if (accumulated_prob >= 1.)
             {
                 LOG_WARNING((
-                    "the accumulated acceptance probability inside a reaction volume exeededs one in particle-particle reaction: p_acc = %f, reaction_length = %f, dt = %f.",
+                    "the accumulated acceptance probability inside a reaction volume exeededs one in particle-particle reaction: p_acc = %f, reaction_length = %e, dt = %e.",
                      accumulated_prob, reaction_length_, dt_));
             } 
             
