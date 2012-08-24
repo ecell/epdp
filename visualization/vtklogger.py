@@ -271,6 +271,8 @@ class VTKLogger:
                            self.get_cylindrical_surface_data())
         self.make_snapshot('planar_surfaces',
                            self.get_planar_surface_data())
+        self.make_snapshot('spherical_surfaces',
+                           self.get_spherical_surface_data())
         if self.draw_simulation_box:
             self.make_snapshot('cuboidal_regions', 
                                self.get_cuboidal_region_data())
@@ -364,6 +366,12 @@ class VTKLogger:
                              if isinstance(surface.shape, Cylinder)
                              or isinstance(surface.shape, Disk)]
         return self.process_cylinders(cylinders)
+
+    def get_spherical_surface_data(self):
+        spheres = [surface for surface
+                           in self.sim.world.structures
+                           if isinstance(surface.shape, Sphere)]
+        return self.process_spheres(spheres)
 
     def process_spheres(self, spheres=[], color_list=[]):
         # Return 4 lists:
