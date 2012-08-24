@@ -1030,15 +1030,21 @@ def get_dr_dzright_dzleft_to_CylindricalShape(shape, testShell, r, z_right, z_le
                 h_touch = ref_to_shell_z - shell_radius # TODO This is a crude fix to override the original version above and may be improved
                 z1_new = min(z1, h_touch)
                 r_new  = min(r,  r1_function(z1_new))
-            else:
+            else:                
                 #def r1(x):
                     #shell_radius_sq = shell_radius**2
                     #return x/tan_scale_angle - scale_center_to_shell_z + \
                            #math.sqrt(shell_radius_sq - (scale_center_to_shell_y - math.sqrt(x**2 - (scale_center_to_shell_x - shell_half_length)**2))**2)
 
                 #r_touch = findroot(r1, r1_min, math.sqrt((scale_center_to_shell_x-shell_half_length)**2 + (scale_center_to_shell_y)**2)*(1.0-TOLERANCE))
-                r_touch = math.sqrt( (ref_to_shell_x-shell_half_length)**2 + (ref_to_shell_y - shell_radius)**2)
-                          # TODO This is a crude fix to override the original version above and may be improved
+
+                # Very crude alternative that does not involve a rootfinder; treat the static shell as a box:
+                #r_touch = math.sqrt( (ref_to_shell_x-shell_half_length)**2 + (ref_to_shell_y - shell_radius)**2)
+
+                # Improved fix, but still suboptimal: basically the edge-hits-barrel solution
+                cot_scale_angle = math.tan(scale_angle - Pi/2.0)
+                r_touch = ref_to_shell_y - shell_radius * ( math.sqrt(2.0*cot_scale_angle)+ cot_scale_angle ) / (1.0 + cot_scale_angle**2.0)
+                          
                 r_new  = min(r, r_touch)
                 z1_new = min(z1, z1_function(r_new))
 
