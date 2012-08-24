@@ -440,6 +440,16 @@ class Pipeline(object):
             else:
                 rep6.AmbientColor = color
 
+            # Spherical surfaces.
+            spherical_surface_data = self.add_extract_block(static, [8], 'b7')
+            spherical_surfaces = self.add_tensor_glyph(spherical_surface_data, 'Box', 
+                                                    name='Spherical Surfaces')
+
+            rep7 = self.show(spherical_surfaces)
+            rep7.Representation = 'Surface'
+            rep7.Opacity = 0.5
+            rep7.Opacity = 0.5
+
 
         # Set camera.
         cam = rv.GetActiveCamera()
