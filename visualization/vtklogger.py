@@ -271,11 +271,11 @@ class VTKLogger:
                            self.get_cylindrical_surface_data())
         self.make_snapshot('planar_surfaces',
                            self.get_planar_surface_data())
-        self.make_snapshot('spherical_surfaces',
-                           self.get_spherical_surface_data())
         if self.draw_simulation_box:
             self.make_snapshot('cuboidal_regions', 
                                self.get_cuboidal_region_data())
+        self.make_snapshot('spherical_surfaces',
+                           self.get_spherical_surface_data())
 
         # Finally, write PVD files.
         self.vtk_writer.write_pvd(self.dir + '/' + 'files.pvd', 

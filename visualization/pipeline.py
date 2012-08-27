@@ -416,7 +416,6 @@ class Pipeline(object):
             rep5 = self.show(planar_surfaces)
             rep5.Representation = 'Surface'
             rep5.Opacity = 0.5
-            rep5.Opacity = 0.5
 
 
             # Cuboidal surfaces.
@@ -442,12 +441,13 @@ class Pipeline(object):
 
             # Spherical surfaces.
             spherical_surface_data = self.add_extract_block(static, [8], 'b7')
-            spherical_surfaces = self.add_tensor_glyph(spherical_surface_data, 'Box', 
-                                                    name='Spherical Surfaces')
+            spherical_surfaces = self.add_sphere_glyph(spherical_surface_data, self.resolution, 
+                                                       name='Spherical Surfaces')
+            spherical_surfaces.SetScaleFactor = self.sphere_radius_scale_factor
 
             rep7 = self.show(spherical_surfaces)
+            #self.set_color(spherical_surfaces, rep7, color_map=MakeNiceLT)
             rep7.Representation = 'Surface'
-            rep7.Opacity = 0.5
             rep7.Opacity = 0.5
 
 
