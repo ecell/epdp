@@ -255,10 +255,17 @@ public:
                 accumulated_prob += prob_increase;
         
                 LOG_DEBUG( ("check for surface interaction, acc_prob = %g", accumulated_prob) ); // TESTING
+                
+                if(prob_increase >= 1.) // sth. is wrong in this case
+                {
+                    LOG_WARNING(("probability increase exceeded one in particle-surface interaction: prob_increase = %f, k_total = %e, surface_reaction_volume = %e.",
+                                 prob_increase, k_total( pp.second.sid(), overlap_struct.first.second->sid() ),
+                                 overlap_struct.first.second->surface_reaction_volume( r0, reaction_length_ )           ));
+                }
                 if(accumulated_prob >= 1.) // sth. is wrong in this case
                 {
-                    LOG_WARNING(("the acceptance probability of an interaction/reaction exceeded one; %f.",
-                                 accumulated_prob));
+                    LOG_WARNING(("the acceptance probability of an interaction/reaction exceeded one in particle-surface interaction: p_acc = %f, reaction_length = %e, dt = %e.",
+                                 accumulated_prob, reaction_length_, dt_));
                 }
                 
                 if( accumulated_prob > rnd ) // OK, try to fire the interaction
@@ -334,8 +341,8 @@ public:
             if (accumulated_prob >= 1.)
             {
                 LOG_WARNING((
-                    "the accumulated acceptance probability inside a reaction volume exeededs one; %f.",
-                    accumulated_prob));
+                    "the accumulated acceptance probability inside a reaction volume exeededs one in particle-particle reaction: p_acc = %f, reaction_length = %e, dt = %e.",
+                     accumulated_prob, reaction_length_, dt_));
             } 
             
             if(accumulated_prob > rnd)
@@ -461,12 +468,24 @@ private:
                             // For a disk bound particle it can be both the bulk and the cylinder
                             const structure_id_type product_structure_id(reactant_structure->structure_id()); // the parent structure
                             const boost::shared_ptr<const structure_type> product_structure( tx_.get_structure(product_structure_id) );
-                            // Produce new position and structure id
-                            LOG_DEBUG(("Attempting single reaction: calling get_pos_sid_pair with %s", boost::lexical_cast<std::string>(product_structure).c_str())); // TESTING
+                            
+                            assert( product_species.structure_type_id() == product_structure->sid() );
+                            
+                            // Some debug info // TESTING
+                            LOG_DEBUG(("Attempting single reaction: calling get_pos_sid_pair with:" ));
+                            LOG_DEBUG(("reactant_structure = %s, sid = %s",
+                                          boost::lexical_cast<std::string>(*reactant_structure).c_str(),
+                                          boost::lexical_cast<std::string>( reactant_structure->sid()).c_str() ));
+                            LOG_DEBUG(("product_structure = %s, sid = %s",
+                                          boost::lexical_cast<std::string>(*product_structure).c_str(),
+                                          boost::lexical_cast<std::string>( product_structure->sid()).c_str() ));
+                                          
+                            // Produce new position and structure id                            
                             const position_structid_pair_type new_pos_sid_pair( reactant_structure->get_pos_sid_pair(*product_structure, reactant_pos,
-                                                                                                                      product_species.radius(), reaction_length_, rng_) );                            
+                                                                                                                      product_species.radius(), reaction_length_, rng_) );                                                                                                                      
                             // Apply boundary conditions
-                            product_pos_struct_id = tx_.apply_boundary( new_pos_sid_pair );
+                            product_pos_struct_id = tx_.apply_boundary( new_pos_sid_pair );                            
+                            
                             // Particle is allowed to move after dissociation from surface. TODO Isn't it allways allowed to move?
                             product_pos_struct_id = make_move(product_species, product_pos_struct_id, pp.first);
                         }
@@ -568,10 +587,19 @@ private:
                             // This is all taken care of by the structure functions get_pos_sid_pair_pair; the latter has to be called
                             // with the right order of parameters, i.e. passing first the species of the particle staying on the reactant_structure,
                             // then the species of the particle staying on the parent_structure.
+                                                        
+                            // Some debug info // TESTING
+                            LOG_DEBUG(("Attempting single reaction: calling get_pos_sid_pair_pair with:" ));
+                            LOG_DEBUG(("reactant_structure = %s, sid = %s",
+                                          boost::lexical_cast<std::string>(*reactant_structure).c_str(),
+                                          boost::lexical_cast<std::string>( reactant_structure->sid()).c_str() ));
+                            LOG_DEBUG(("prod1_structure = %s, sid = %s",
+                                          boost::lexical_cast<std::string>(*prod1_structure).c_str(),
+                                          boost::lexical_cast<std::string>( prod1_structure->sid()).c_str() ));
+                            LOG_DEBUG(("Note: prod0_structure = reactant_structure"));
                             
                             // Produce two new positions and structure IDs
                             // Note that reactant_structure = prod0_structure here.
-                            LOG_DEBUG(("Attempting single reaction: calling get_pos_sid_pair_pair with %s", boost::lexical_cast<std::string>(prod1_structure).c_str())); // TESTING
                             pos0pos1_pair = reactant_structure->get_pos_sid_pair_pair(*prod1_structure, reactant_pos, product0_species, product1_species, reaction_length_, rng_ );
                             // Remember the new structure IDs
                             prod0_struct_id = pos0pos1_pair.first.second;
@@ -756,7 +784,17 @@ private:
                         // structures are the same, no projection should occur. This is handled correctly by the structure functions defined for equal
                         // origin_structure types.
                         const length_type offset(0.0);
-                        LOG_DEBUG(("Attempting pair reaction: calling get_pos_sid_pair with %s", boost::lexical_cast<std::string>(reactant1_structure).c_str())); // TESTING
+                        
+                        // Some debug info // TESTING
+                        LOG_DEBUG(("Attempting pair reaction: calling get_pos_sid_pair with:" ));
+                        LOG_DEBUG(("reactant0_structure = %s, sid = %s",
+                                      boost::lexical_cast<std::string>(*reactant0_structure).c_str(),
+                                      boost::lexical_cast<std::string>( reactant0_structure->sid()).c_str() ));
+                        LOG_DEBUG(("reactant1_structure = %s, sid = %s",
+                                      boost::lexical_cast<std::string>(*reactant1_structure).c_str(),
+                                      boost::lexical_cast<std::string>( reactant1_structure->sid()).c_str() ));
+                        LOG_DEBUG(("Note: product_structure_type_id = %s", boost::lexical_cast<std::string>( product_structure_type_id).c_str() ));
+                        
                         const position_structid_pair_type product_pos_struct_id( reactant0_structure->get_pos_sid_pair_2o(*reactant1_structure, product_structure_type_id,
                                                                                                                           reactants_CoM, offset, reaction_length_, rng_ ) );
                         // Apply the boundary conditions; this is particularly important here because the CoM projection as produced by the function above
@@ -870,7 +908,15 @@ private:
                         const species_type                              product_species( tx_.get_species(products[0]) );
 
                         //// 1 - GET NEW POSITION ON THE TARGET STRUCTURE                        
-                        LOG_DEBUG(("Attempting interaction: calling get_pos_sid_pair with %s", boost::lexical_cast<std::string>(product_structure).c_str())); // TESTING
+                        // Some debug info // TESTING
+                        LOG_DEBUG(("Attempting interaction: calling get_pos_sid_pair with:" ));
+                        LOG_DEBUG(("reactant_structure = %s, sid = %s",
+                                      boost::lexical_cast<std::string>(*reactant_structure).c_str(),
+                                      boost::lexical_cast<std::string>( reactant_structure->sid()).c_str() ));
+                        LOG_DEBUG(("product_structure = %s, sid = %s",
+                                      boost::lexical_cast<std::string>(*product_structure).c_str(),
+                                      boost::lexical_cast<std::string>( product_structure->sid()).c_str() ));
+                        
                         const position_structid_pair_type new_pos_sid_pair_tmp( reactant_structure->get_pos_sid_pair(*product_structure, reactant_pos,
                                                                                 product_species.radius(), reaction_length_, rng_) );
                         // Apply boundary conditions

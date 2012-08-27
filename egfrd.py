@@ -16,6 +16,7 @@ from _gfrd import (
     DomainID,
     ParticleContainer,
     CuboidalRegion,
+    SphericalSurface,
     CylindricalSurface,
     DiskSurface,
     PlanarSurface,
@@ -1650,7 +1651,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
             # get the closest object (if there)
             if multi_partners:
                 multi_partners = sorted(multi_partners, key=lambda domain_overlap: domain_overlap[1])
-#                log.debug('multi_partners: %s' % str(multi_partners))
+                #log.debug('multi_partners: %s' % str(multi_partners))
                 closest_overlap = multi_partners[0][1]
             else:
                 # In case there is really nothing
@@ -2363,7 +2364,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
                     isinstance(partner, Multi) or \
                     isinstance(partner, PlanarSurface) or \
                     isinstance(partner, DiskSurface) or \
-                    isinstance(partner, CylindricalSurface)), \
+                    isinstance(partner, CylindricalSurface)) or \
+                    isinstance(partner, SphericalSurface), \
                     'multi_partner %s was not of proper type' % (partner)
 
 
@@ -2563,32 +2565,42 @@ class EGFRDSimulator(ParticleSimulatorBase):
             - None
 
         """
+        total_steps = self.step_counter
+        single_steps = numpy.array(self.single_steps.values()).sum()
+        interaction_steps = numpy.array(self.interaction_steps.values()).sum()
+        pair_steps = numpy.array(self.pair_steps.values()).sum()
+        multi_steps = self.multi_steps[3] # total multi steps
+
         report = '''
 t = %g
 steps = %d 
-\tSingle:\t%d\t(escape: %d, reaction: %d, bursted: %d)
-\tInteraction: %d\t(escape: %d, interaction: %d, bursted: %d)
-\tPair:\t%d\t(escape r: %d, R: %d, reaction pair: %d, single: %d, bursted: %d)
-\tMulti:\t%d\t(escape: %d, reaction pair: %d, single: %d, bursted: %d)
+\tSingle:\t%d\t(%.2f %%)\t(escape: %d, reaction: %d, bursted: %d)
+\tInteraction: %d\t(%.2f %%)\t(escape: %d, interaction: %d, bursted: %d)
+\tPair:\t%d\t(%.2f %%)\t(escape r: %d, R: %d, reaction pair: %d, single: %d, bursted: %d)
+\tMulti:\t%d\t(%.2f %%)\t(escape: %d, reaction pair: %d, single: %d, bursted: %d)
 total reactions = %d
 rejected moves = %d
 ''' \
-            % (self.t, self.step_counter,
-               numpy.array(self.single_steps.values()).sum(),
+            % (self.t, total_steps,
+               single_steps,
+               (100.0*single_steps) / total_steps,
                self.single_steps[EventType.SINGLE_ESCAPE],
                self.single_steps[EventType.SINGLE_REACTION],
                self.single_steps[EventType.BURST],
-               numpy.array(self.interaction_steps.values()).sum(),
+               interaction_steps,
+               (100.0*interaction_steps) / total_steps,
                self.interaction_steps[EventType.IV_ESCAPE],
                self.interaction_steps[EventType.IV_INTERACTION],
                self.interaction_steps[EventType.BURST],
-               numpy.array(self.pair_steps.values()).sum(),
+               pair_steps,
+               (100.0*pair_steps) / total_steps,
                self.pair_steps[EventType.IV_ESCAPE],
                self.pair_steps[EventType.COM_ESCAPE],
                self.pair_steps[EventType.IV_REACTION],
                self.pair_steps[EventType.SINGLE_REACTION],
                self.pair_steps[EventType.BURST],
-               self.multi_steps[3], # total multi steps
+               multi_steps,
+               (100.0*multi_steps) / total_steps,
                self.multi_steps[EventType.MULTI_ESCAPE],
                self.multi_steps[EventType.MULTI_BIMOLECULAR_REACTION],
                self.multi_steps[EventType.MULTI_UNIMOLECULAR_REACTION],
