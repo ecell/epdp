@@ -16,6 +16,7 @@ from _gfrd import (
     DomainID,
     ParticleContainer,
     CuboidalRegion,
+    SphericalSurface,
     CylindricalSurface,
     DiskSurface,
     PlanarSurface,
@@ -1650,7 +1651,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
             # get the closest object (if there)
             if multi_partners:
                 multi_partners = sorted(multi_partners, key=lambda domain_overlap: domain_overlap[1])
-#                log.debug('multi_partners: %s' % str(multi_partners))
+                #log.debug('multi_partners: %s' % str(multi_partners))
                 closest_overlap = multi_partners[0][1]
             else:
                 # In case there is really nothing
@@ -2363,7 +2364,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
                     isinstance(partner, Multi) or \
                     isinstance(partner, PlanarSurface) or \
                     isinstance(partner, DiskSurface) or \
-                    isinstance(partner, CylindricalSurface)), \
+                    isinstance(partner, CylindricalSurface)) or \
+                    isinstance(partner, SphericalSurface), \
                     'multi_partner %s was not of proper type' % (partner)
 
 
