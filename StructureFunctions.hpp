@@ -66,7 +66,7 @@ get_pos_sid_pair( CuboidalRegion<Ttraits_>              const& origin_structure,
     }
     else // structure transition not allowed
       
-      throw illegal_propagation_attempt("Origin structure must be equal to target structure for this type of structure transition.");
+      throw illegal_propagation_attempt("Origin structure must be equal to target structure for this type of structure transition (CuboidalRegion->CuboidalRegion).");
 };
 
 // CuboidalRegion -> SphericalSurface
@@ -84,7 +84,7 @@ get_pos_sid_pair( CuboidalRegion<Ttraits_>              const& origin_structure,
     typedef typename Ttraits_::length_type              length_type;
 
     /*** COMBINATION NOT SUPPORTED ***/
-    throw illegal_propagation_attempt("Structure transition between combination of origin structure and target structure not supported.");
+    throw illegal_propagation_attempt("Structure transition between combination of origin structure and target structure not supported (CuboidalRegion->Sphere).");
     
     return std::make_pair(position_type(), structure_id_type());
 };
@@ -114,7 +114,7 @@ get_pos_sid_pair( CuboidalRegion<Ttraits_>              const& origin_structure,
     }
     else // structure transition not allowed
       
-      throw illegal_propagation_attempt("Illegal original particle position for structure transition.");
+      throw illegal_propagation_attempt("Illegal original particle position for structure transition (CuboidalRegion->Cylinder).");
     
 };
 
@@ -143,7 +143,7 @@ get_pos_sid_pair( CuboidalRegion<Ttraits_>              const& origin_structure,
     }
     else // structure transition not allowed
       
-      throw illegal_propagation_attempt("Illegal original particle position for structure transition.");
+      throw illegal_propagation_attempt("Illegal original particle position for structure transition (CuboidalRegion->Disk).");
 };
 
 // CuboidalRegion -> PlanarSurface
@@ -171,7 +171,7 @@ get_pos_sid_pair( CuboidalRegion<Ttraits_>              const& origin_structure,
     }
     else // structure transition not allowed
       
-      throw illegal_propagation_attempt("Illegal original particle position for structure transition.");
+      throw illegal_propagation_attempt("Illegal original particle position for structure transition (CuboidalRegion->Plane).");
 };
 
 /********************************/
@@ -192,7 +192,7 @@ get_pos_sid_pair( SphericalSurface<Ttraits_>            const& origin_structure,
     typedef typename Ttraits_::length_type              length_type;
 
     /*** COMBINATION NOT SUPPORTED ***/
-    throw illegal_propagation_attempt("Structure transition between combination of origin structure and target structure not supported.");
+    throw illegal_propagation_attempt("Structure transition between combination of origin structure and target structure not supported (Sphere->CuboidalRegion).");
     
     return std::make_pair(position_type(), structure_id_type());
 };
@@ -212,7 +212,7 @@ get_pos_sid_pair( SphericalSurface<Ttraits_>            const& origin_structure,
     typedef typename Ttraits_::length_type              length_type;
 
     /*** COMBINATION NOT SUPPORTED ***/
-    throw illegal_propagation_attempt("Structure transition between combination of origin structure and target structure not supported.");
+    throw illegal_propagation_attempt("Structure transition between combination of origin structure and target structure not supported (Sphere->Sphere).");
     
     return std::make_pair(position_type(), structure_id_type());
 };
@@ -232,7 +232,7 @@ get_pos_sid_pair( SphericalSurface<Ttraits_>            const& origin_structure,
     typedef typename Ttraits_::length_type              length_type;
 
     /*** COMBINATION NOT SUPPORTED ***/
-    throw illegal_propagation_attempt("Structure transition between combination of origin structure and target structure not supported.");
+    throw illegal_propagation_attempt("Structure transition between combination of origin structure and target structure not supported (Sphere->Cylinder).");
     
     return std::make_pair(position_type(), structure_id_type());
 };
@@ -252,7 +252,7 @@ get_pos_sid_pair( SphericalSurface<Ttraits_>            const& origin_structure,
     typedef typename Ttraits_::length_type              length_type;
 
     /*** COMBINATION NOT SUPPORTED ***/
-    throw illegal_propagation_attempt("Structure transition between combination of origin structure and target structure not supported.");
+    throw illegal_propagation_attempt("Structure transition between combination of origin structure and target structure not supported (Sphere->Disk).");
     
     return std::make_pair(position_type(), structure_id_type());
 };
@@ -272,7 +272,7 @@ get_pos_sid_pair( SphericalSurface<Ttraits_>            const& origin_structure,
     typedef typename Ttraits_::length_type              length_type;
 
     /*** COMBINATION NOT SUPPORTED ***/
-    throw illegal_propagation_attempt("Structure transition between combination of origin structure and target structure not supported.");
+    throw illegal_propagation_attempt("Structure transition between combination of origin structure and target structure not supported (Sphere->Plane).");
     
     return std::make_pair(position_type(), structure_id_type());
 };
@@ -322,7 +322,7 @@ get_pos_sid_pair( CylindricalSurface<Ttraits_>          const& origin_structure,
     }
     else // structure transition not allowed
       
-      throw illegal_propagation_attempt("Origin structure must be equal to target structure for this type of structure transition.");
+      throw illegal_propagation_attempt("Origin structure must be equal to target structure for this type of structure transition (Cylinder->Cylinder).");
 };
 
 // CylindricalSurface -> SphericalSurface
@@ -340,7 +340,7 @@ get_pos_sid_pair( CylindricalSurface<Ttraits_>          const& origin_structure,
     typedef typename Ttraits_::length_type              length_type;
 
     /*** COMBINATION NOT SUPPORTED ***/
-    throw illegal_propagation_attempt("Structure transition between combination of origin structure and target structure not supported.");
+    throw illegal_propagation_attempt("Structure transition between combination of origin structure and target structure not supported (Cylinder->Sphere).");
     
     return std::make_pair(position_type(), structure_id_type());
 };
@@ -370,7 +370,7 @@ get_pos_sid_pair( CylindricalSurface<Ttraits_>          const& origin_structure,
     }
     else // structure transition not allowed
       
-      throw illegal_propagation_attempt("Illegal original particle position for structure transition.");
+      throw illegal_propagation_attempt("Illegal original particle position for structure transition (Cylinder->Disk).");
 };
 
 // CylindricalSurface -> PlanarSurface
@@ -388,7 +388,7 @@ get_pos_sid_pair( CylindricalSurface<Ttraits_>          const& origin_structure,
     typedef typename Ttraits_::length_type              length_type;
 
     /*** COMBINATION NOT SUPPORTED ***/
-    throw illegal_propagation_attempt("Structure transition between combination of origin structure and target structure not supported.");
+    throw illegal_propagation_attempt("Structure transition between combination of origin structure and target structure not supported (Cylinder->Plane).");
     
     return std::make_pair(position_type(), structure_id_type());
 };
@@ -432,7 +432,7 @@ get_pos_sid_pair( DiskSurface<Ttraits_>                 const& origin_structure,
     typedef typename Ttraits_::length_type              length_type;
 
     /*** COMBINATION NOT SUPPORTED ***/
-    throw illegal_propagation_attempt("Structure transition between combination of origin structure and target structure not supported.");
+    throw illegal_propagation_attempt("Structure transition between combination of origin structure and target structure not supported (Disk->Sphere).");
     
     return std::make_pair(position_type(), structure_id_type());
 };
@@ -485,7 +485,7 @@ get_pos_sid_pair( DiskSurface<Ttraits_>                 const& origin_structure,
     }
     else // structure transition not allowed
       
-      throw illegal_propagation_attempt("Origin structure must be equal to target structure for this type of structure transition.");    
+      throw illegal_propagation_attempt("Origin structure must be equal to target structure for this type of structure transition (Disk->Disk).");    
 };
 
 // DiskSurface -> PlanarSurface
@@ -503,7 +503,7 @@ get_pos_sid_pair( DiskSurface<Ttraits_>                 const& origin_structure,
     typedef typename Ttraits_::length_type              length_type;
 
     /*** COMBINATION NOT SUPPORTED ***/
-    throw illegal_propagation_attempt("Structure transition between combination of origin structure and target structure not supported.");
+    throw illegal_propagation_attempt("Structure transition between combination of origin structure and target structure not supported (Disk->Plane).");
     
     return std::make_pair(position_type(), structure_id_type());
 };
@@ -547,7 +547,7 @@ get_pos_sid_pair( PlanarSurface<Ttraits_>               const& origin_structure,
     typedef typename Ttraits_::length_type              length_type;
 
     /*** COMBINATION NOT SUPPORTED ***/
-    throw illegal_propagation_attempt("Structure transition between combination of origin structure and target structure not supported.");
+    throw illegal_propagation_attempt("Structure transition between combination of origin structure and target structure not supported (Plane->Sphere).");
     
     return std::make_pair(position_type(), structure_id_type());
 };
@@ -567,7 +567,7 @@ get_pos_sid_pair( PlanarSurface<Ttraits_>               const& origin_structure,
     typedef typename Ttraits_::length_type              length_type;
 
     /*** COMBINATION NOT SUPPORTED ***/
-    throw illegal_propagation_attempt("Structure transition between combination of origin structure and target structure not supported.");
+    throw illegal_propagation_attempt("Structure transition between combination of origin structure and target structure not supported (Plane->Cylinder).");
     
     return std::make_pair(position_type(), structure_id_type());
 };
@@ -587,7 +587,7 @@ get_pos_sid_pair( PlanarSurface<Ttraits_>               const& origin_structure,
     typedef typename Ttraits_::length_type              length_type;
 
     /*** COMBINATION NOT SUPPORTED ***/
-    throw illegal_propagation_attempt("Structure transition between combination of origin structure and target structure not supported.");
+    throw illegal_propagation_attempt("Structure transition between combination of origin structure and target structure not supported (Plane->Disk).");
     
     return std::make_pair(position_type(), structure_id_type());
 };
@@ -613,7 +613,7 @@ get_pos_sid_pair( PlanarSurface<Ttraits_>               const& origin_structure,
     }
     else // structure transition not allowed
       
-      throw illegal_propagation_attempt("Origin structure must be equal to target structure for this type of structure transition.");        
+      throw illegal_propagation_attempt("Origin structure must be equal to target structure for this type of structure transition (Plane->Plane).");        
 };
 
 
@@ -657,7 +657,7 @@ get_pos_sid_pair_pair( CuboidalRegion<Ttraits_>               const& origin_stru
     }
     else // structure transition not allowed
       
-      throw illegal_propagation_attempt("Origin structure must be equal to target structure for this type of structure transition.");        
+      throw illegal_propagation_attempt("Origin structure must be equal to target structure for this type of structure transition (CuboidalRegion->CuboidalRegion/CuboidalRegion).");        
 };
 
 // CuboidalRegion -> SphericalSurface
@@ -677,7 +677,7 @@ get_pos_sid_pair_pair( CuboidalRegion<Ttraits_>               const& origin_stru
     typedef typename Ttraits_::length_type              length_type;
 
     /*** COMBINATION NOT SUPPORTED ***/
-    throw illegal_propagation_attempt("Structure transition between combination of origin structure and target structure not supported.");
+    throw illegal_propagation_attempt("Structure transition between combination of origin structure and target structure not supported (CuboidalRegion->CuboidalRegion/Sphere).");
     
     return std::make_pair(      std::make_pair(position_type(), structure_id_type()),
                                 std::make_pair(position_type(), structure_id_type())    );
@@ -700,7 +700,7 @@ get_pos_sid_pair_pair( CuboidalRegion<Ttraits_>               const& origin_stru
     typedef typename Ttraits_::length_type              length_type;
 
     /*** COMBINATION NOT SUPPORTED ***/
-    throw illegal_propagation_attempt("Structure transition between combination of origin structure and target structure not supported.");
+    throw illegal_propagation_attempt("Structure transition between combination of origin structure and target structure not supported (CuboidalRegion->CuboidalRegion/Cylinder).");
     
     return std::make_pair(      std::make_pair(position_type(), structure_id_type()),
                                 std::make_pair(position_type(), structure_id_type())    );
@@ -724,7 +724,7 @@ get_pos_sid_pair_pair( CuboidalRegion<Ttraits_>               const& origin_stru
     typedef typename Ttraits_::length_type              length_type;
 
     /*** COMBINATION NOT SUPPORTED ***/
-    throw illegal_propagation_attempt("Structure transition between combination of origin structure and target structure not supported.");
+    throw illegal_propagation_attempt("Structure transition between combination of origin structure and target structure not supported (CuboidalRegion->CuboidalRegion/Disk).");
     
     return std::make_pair(      std::make_pair(position_type(), structure_id_type()),
                                 std::make_pair(position_type(), structure_id_type())    );
@@ -747,7 +747,7 @@ get_pos_sid_pair_pair( CuboidalRegion<Ttraits_>               const& origin_stru
     typedef typename Ttraits_::length_type              length_type;
 
     /*** COMBINATION NOT SUPPORTED ***/
-    throw illegal_propagation_attempt("Structure transition between combination of origin structure and target structure not supported.");
+    throw illegal_propagation_attempt("Structure transition between combination of origin structure and target structure not supported (CuboidalRegion->CuboidalRegion/Plane).");
     
     return std::make_pair(      std::make_pair(position_type(), structure_id_type()),
                                 std::make_pair(position_type(), structure_id_type())    );
@@ -773,7 +773,7 @@ get_pos_sid_pair_pair( SphericalSurface<Ttraits_>             const& origin_stru
     typedef typename Ttraits_::length_type              length_type;
 
     /*** COMBINATION NOT SUPPORTED ***/
-    throw illegal_propagation_attempt("Structure transition between combination of origin structure and target structure not supported.");
+    throw illegal_propagation_attempt("Structure transition between combination of origin structure and target structure not supported (Sphere->Sphere/CuboidalRegion).");
     
     return std::make_pair(      std::make_pair(position_type(), structure_id_type()),
                                 std::make_pair(position_type(), structure_id_type())    );
@@ -796,7 +796,7 @@ get_pos_sid_pair_pair( SphericalSurface<Ttraits_>             const& origin_stru
     typedef typename Ttraits_::length_type              length_type;
 
     /*** COMBINATION NOT SUPPORTED ***/
-    throw illegal_propagation_attempt("Structure transition between combination of origin structure and target structure not supported.");
+    throw illegal_propagation_attempt("Structure transition between combination of origin structure and target structure not supported (Sphere->Sphere/Sphere).");
     
     return std::make_pair(      std::make_pair(position_type(), structure_id_type()),
                                 std::make_pair(position_type(), structure_id_type())    );
@@ -819,7 +819,7 @@ get_pos_sid_pair_pair( SphericalSurface<Ttraits_>             const& origin_stru
     typedef typename Ttraits_::length_type              length_type;
 
     /*** COMBINATION NOT SUPPORTED ***/
-    throw illegal_propagation_attempt("Structure transition between combination of origin structure and target structure not supported.");
+    throw illegal_propagation_attempt("Structure transition between combination of origin structure and target structure not supported (Sphere->Sphere/Cylinder).");
     
     return std::make_pair(      std::make_pair(position_type(), structure_id_type()),
                                 std::make_pair(position_type(), structure_id_type())    );
@@ -842,7 +842,7 @@ get_pos_sid_pair_pair( SphericalSurface<Ttraits_>             const& origin_stru
     typedef typename Ttraits_::length_type              length_type;
 
     /*** COMBINATION NOT SUPPORTED ***/
-    throw illegal_propagation_attempt("Structure transition between combination of origin structure and target structure not supported.");
+    throw illegal_propagation_attempt("Structure transition between combination of origin structure and target structure not supported (Sphere->Sphere/Disk).");
     
     return std::make_pair(      std::make_pair(position_type(), structure_id_type()),
                                 std::make_pair(position_type(), structure_id_type())    );
@@ -865,7 +865,7 @@ get_pos_sid_pair_pair( SphericalSurface<Ttraits_>             const& origin_stru
     typedef typename Ttraits_::length_type              length_type;
 
     /*** COMBINATION NOT SUPPORTED ***/
-    throw illegal_propagation_attempt("Structure transition between combination of origin structure and target structure not supported.");
+    throw illegal_propagation_attempt("Structure transition between combination of origin structure and target structure not supported (Sphere->Sphere/Plane).");
     
     return std::make_pair(      std::make_pair(position_type(), structure_id_type()),
                                 std::make_pair(position_type(), structure_id_type())    );
@@ -931,7 +931,7 @@ get_pos_sid_pair_pair( CylindricalSurface<Ttraits_>           const& origin_stru
     }
     else // structure transition not allowed
       
-      throw illegal_propagation_attempt("Origin structure must be equal to target structure for this type of structure transition.");        
+      throw illegal_propagation_attempt("Origin structure must be equal to target structure for this type of structure transition (Cylinder->Cylinder/Cylinder).");        
 };
 
 // CylindricalSurface -> SphericalSurface
@@ -951,7 +951,7 @@ get_pos_sid_pair_pair( CylindricalSurface<Ttraits_>           const& origin_stru
     typedef typename Ttraits_::length_type              length_type;
 
     /*** COMBINATION NOT SUPPORTED ***/
-    throw illegal_propagation_attempt("Structure transition between combination of origin structure and target structure not supported.");
+    throw illegal_propagation_attempt("Structure transition between combination of origin structure and target structure not supported (Cylinder->Cylinder/Sphere).");
     
     return std::make_pair(      std::make_pair(position_type(), structure_id_type()),
                                 std::make_pair(position_type(), structure_id_type())    );
@@ -974,7 +974,7 @@ get_pos_sid_pair_pair( CylindricalSurface<Ttraits_>           const& origin_stru
     typedef typename Ttraits_::length_type              length_type;
 
     /*** COMBINATION NOT SUPPORTED ***/
-    throw illegal_propagation_attempt("Structure transition between combination of origin structure and target structure not supported.");
+    throw illegal_propagation_attempt("Structure transition between combination of origin structure and target structure not supported (Cylinder->Cylinder/Disk).");
     
     return std::make_pair(      std::make_pair(position_type(), structure_id_type()),
                                 std::make_pair(position_type(), structure_id_type())    );
@@ -997,7 +997,7 @@ get_pos_sid_pair_pair( CylindricalSurface<Ttraits_>           const& origin_stru
     typedef typename Ttraits_::length_type              length_type;
 
     /*** COMBINATION NOT SUPPORTED ***/
-    throw illegal_propagation_attempt("Structure transition between combination of origin structure and target structure not supported.");
+    throw illegal_propagation_attempt("Structure transition between combination of origin structure and target structure not supported (Cylinder->Cylinder/Plane).");
     
     return std::make_pair(      std::make_pair(position_type(), structure_id_type()),
                                 std::make_pair(position_type(), structure_id_type())    );
@@ -1050,7 +1050,7 @@ get_pos_sid_pair_pair( DiskSurface<Ttraits_>                  const& origin_stru
     typedef typename Ttraits_::length_type              length_type;
 
     /*** COMBINATION NOT SUPPORTED ***/
-    throw illegal_propagation_attempt("Structure transition between combination of origin structure and target structure not supported.");
+    throw illegal_propagation_attempt("Structure transition between combination of origin structure and target structure not supported (Disk->Disk/Sphere).");
     
     return std::make_pair(      std::make_pair(position_type(), structure_id_type()),
                                 std::make_pair(position_type(), structure_id_type())    );
@@ -1076,7 +1076,7 @@ get_pos_sid_pair_pair( DiskSurface<Ttraits_>                  const& origin_stru
     // IMPLEMENT THE UNBINDING FROM THE DISK ACTING AS A SINK!
     
     /*** COMBINATION NOT SUPPORTED ***/
-    throw illegal_propagation_attempt("Structure transition between combination of origin structure and target structure not supported.");
+    throw illegal_propagation_attempt("Structure transition between combination of origin structure and target structure not supported (Disk->Disk/Cylinder).");
     
     return std::make_pair(      std::make_pair(position_type(), structure_id_type()),
                                 std::make_pair(position_type(), structure_id_type())    );
@@ -1099,7 +1099,7 @@ get_pos_sid_pair_pair( DiskSurface<Ttraits_>                  const& origin_stru
     typedef typename Ttraits_::length_type              length_type;
 
     /*** COMBINATION NOT SUPPORTED ***/
-    throw illegal_propagation_attempt("Structure transition between combination of origin structure and target structure not supported.");
+    throw illegal_propagation_attempt("Structure transition between combination of origin structure and target structure not supported (Disk->Disk/Disk).");
     
     return std::make_pair(      std::make_pair(position_type(), structure_id_type()),
                                 std::make_pair(position_type(), structure_id_type())    );
@@ -1122,7 +1122,7 @@ get_pos_sid_pair_pair( DiskSurface<Ttraits_>                  const& origin_stru
     typedef typename Ttraits_::length_type              length_type;
 
     /*** COMBINATION NOT SUPPORTED ***/
-    throw illegal_propagation_attempt("Structure transition between combination of origin structure and target structure not supported.");
+    throw illegal_propagation_attempt("Structure transition between combination of origin structure and target structure not supported (Disk->Disk/Plane).");
     
     return std::make_pair(      std::make_pair(position_type(), structure_id_type()),
                                 std::make_pair(position_type(), structure_id_type())    );
@@ -1175,7 +1175,7 @@ get_pos_sid_pair_pair( PlanarSurface<Ttraits_>                const& origin_stru
     typedef typename Ttraits_::length_type              length_type;
 
     /*** COMBINATION NOT SUPPORTED ***/
-    throw illegal_propagation_attempt("Structure transition between combination of origin structure and target structure not supported.");
+    throw illegal_propagation_attempt("Structure transition between combination of origin structure and target structure not supported (Plane->Plane/Sphere).");
     
     return std::make_pair(      std::make_pair(position_type(), structure_id_type()),
                                 std::make_pair(position_type(), structure_id_type())    );
@@ -1198,7 +1198,7 @@ get_pos_sid_pair_pair( PlanarSurface<Ttraits_>                const& origin_stru
     typedef typename Ttraits_::length_type              length_type;
 
     /*** COMBINATION NOT SUPPORTED ***/
-    throw illegal_propagation_attempt("Structure transition between combination of origin structure and target structure not supported.");
+    throw illegal_propagation_attempt("Structure transition between combination of origin structure and target structure not supported (Plane->Plane/Cylinder).");
     
     return std::make_pair(      std::make_pair(position_type(), structure_id_type()),
                                 std::make_pair(position_type(), structure_id_type())    );
@@ -1221,7 +1221,7 @@ get_pos_sid_pair_pair( PlanarSurface<Ttraits_>                const& origin_stru
     typedef typename Ttraits_::length_type              length_type;
 
     /*** COMBINATION NOT SUPPORTED ***/
-    throw illegal_propagation_attempt("Structure transition between combination of origin structure and target structure not supported.");
+    throw illegal_propagation_attempt("Structure transition between combination of origin structure and target structure not supported (Plane->Plane/Disk).");
     
     return std::make_pair(      std::make_pair(position_type(), structure_id_type()),
                                 std::make_pair(position_type(), structure_id_type())    );
@@ -1259,7 +1259,7 @@ get_pos_sid_pair_pair( PlanarSurface<Ttraits_>                const& origin_stru
     }
     else // structure transition not allowed
       
-      throw illegal_propagation_attempt("Origin structure must be equal to target structure for this type of structure transition.");        
+      throw illegal_propagation_attempt("Origin structure must be equal to target structure for this type of structure transition (Plane->Plane/Plane).");        
 };
 
 /******************************************************************************************************/
