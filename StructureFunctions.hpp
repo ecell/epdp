@@ -364,6 +364,10 @@ get_pos_sid_pair( CylindricalSurface<Ttraits_>          const& origin_structure,
     length_type         proj_dist( target_structure.project_point(old_pos).second.second );
         // the distance of the projection of old_pos on target_structure to target_structure
     
+    // Note that this function also correctly handles the pair reaction between a particle on a disk
+    // and a particle on a cylinder. Since we assume that the product will end up on the disk, new_pos
+    // (which is the projection of the center of mass of both particles on the disk) will be the
+    // correct product position.
     if(proj_dist < 0){ // if projection of old_pos is in structure
      
           return std::make_pair( new_pos, new_id );
@@ -602,18 +606,47 @@ get_pos_sid_pair( PlanarSurface<Ttraits_>               const& origin_structure,
                   typename Ttraits_::length_type        const& reaction_length,
                   typename Ttraits_::rng_type           &rng              )
 {
-    typedef typename Ttraits_::structure_id_type        structure_id_type;
-    typedef typename Ttraits_::position_type            position_type;
-    typedef typename Ttraits_::length_type              length_type;
-
-    // Currently only species change and decay are supported
-    if(origin_structure.id() == target_structure.id()){
-     
+    typedef typename Ttraits_::structure_id_type          structure_id_type;
+    typedef typename Ttraits_::position_type              position_type;
+    typedef typename Ttraits_::length_type                length_type;
+    typedef std::pair<length_type, length_type>           length_pair_type;
+    typedef std::pair<position_type, length_pair_type>    projected_type;
+    
+    // Species change and decay: no structure change
+    if( origin_structure.id() == target_structure.id() )
+    {     
           return std::make_pair( old_pos, origin_structure.id() );
+    }
+    // Function is called with two different structure of the same type: Pair reaction "over the edge"
+    else if( origin_structure.sid() == target_structure.sid() )
+    {        
+          // In this case old_pos = CoM of the two reactants, 
+          // origin_structure = the origin structure of the first reactant,
+          // target_structure = the origin structure of the second reactant.
+          // Return the projection of the CoM towards the plane that
+          // it is closest to.
+          
+          // First make sure that the projection of the CoM is in both planes (should never fail)
+          projected_type      proj_1( origin_structure.project_point(old_pos) );
+          projected_type      proj_2( target_structure.project_point(old_pos) );
+          
+          if( !(proj_1.second.second<=0.0 && proj_2.second.second<=0.0) ) // second length pair entry is negative if pos. is in plane
+              throw illegal_propagation_attempt("Center of mass does not project on both origin planes in pair reaction involving two planes.");
+          
+          // Decide which projection of the CoM to take for the product position
+          position_type       proj_pos_1( proj_1.first );
+          position_type       proj_pos_2( proj_2.first );
+          length_type         proj_normal_1( proj_1.second.first );
+          length_type         proj_normal_2( proj_2.second.first );
+    
+          if(proj_normal_1 < proj_normal_2)
+              return std::make_pair( proj_pos_1, origin_structure.id() );
+          else
+              return std::make_pair( proj_pos_2, target_structure.id() );
     }
     else // structure transition not allowed
       
-      throw illegal_propagation_attempt("Origin structure must be equal to target structure for this type of structure transition (Plane->Plane).");        
+      throw illegal_propagation_attempt("Origin structure type must be equal to target structure type for this type of structure transition (Plane->Plane).");        
 };
 
 
