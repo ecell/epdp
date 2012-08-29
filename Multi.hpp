@@ -333,15 +333,17 @@ public:
         Real k_max(0.);
         int i = 0, j= 0;
         
-        // Rates for surface/structure interactions
+        // Rates for particle-surface interactions
         BOOST_FOREACH(particle_id_pair pp, get_particles_range())
         {
             // s = species of the current particle
             species_type const s( get_species(pp.second.sid()) );
             
+            // Get list of close structures with ids and distances from current particle's position           
             const boost::scoped_ptr<const structure_id_pair_and_distance_list>   close_struct_id_distance (
                 get_close_structures(pp.second.position(), pp.second.structure_id(), pp.second.structure_id()) );
-                
+
+            // Take the closest one and pass it as an id-and-distance pair
             const std::pair<boost::shared_ptr<structure_type>, length_type>   struct_and_dist (
                 close_struct_id_distance ? std::make_pair(close_struct_id_distance->at(0).first.second, close_struct_id_distance->at(0).second)
                                          : std::make_pair(get_structure(pp.second.structure_id()), std::numeric_limits<length_type>::max()));
@@ -350,7 +352,7 @@ public:
 //                get_closest_surface( pp.second.position(), pp.second.structure_id() ) );    // only ignore structure that the particle is on.
             
             // If structure is within specified range and this particle lives in the default structure
-            // TODO Extend the last requirement to all "allowed" interactions using the new structure functions
+            //    TODO Extend the last requirement to all "allowed" interactions using the new structure functions
             if( struct_and_dist.second < 2.0 * s.radius() && s.structure_type_id() == get_def_structure_type_id() )
             {
                 // Get the reaction rule for this particle-structure interaction
@@ -429,13 +431,13 @@ public:
        
        PROBLEM: for certain parameters (large k) dt can be very small and the simulation will slow down.
     */    
-    real_pair determine_dt_and_reaction_length(network_rules_type const& rules, Real const& step_size_factor) const
+    real_pair determine_dt_and_reaction_length(network_rules_type const& rules, Real const& step_size_factor, Real const& dt_hardcore_min = -1.0) const
     {               
         const real_pair maxD_minr( maxD_minsigma() );
         const Real k_max( get_max_rate(rules) );
         const Real D_max( maxD_minr.first );
         const Real r_min( maxD_minr.second );
-        const Real Pacc_max( 0.01 ); //Maximum allowed value of the acceptance probability.
+        const Real Pacc_max( 0.1 ); //Maximum allowed value of the acceptance probability. // TESTING was 0.01
         Real dt;
         const Real tau_D( 2. * gsl_pow_2(step_size_factor * r_min) / D_max );
         
@@ -446,6 +448,8 @@ public:
         }
         else
             dt = tau_D;
+        
+        if( dt < dt_hardcore_min )      dt = dt_hardcore_min;
 
         return real_pair(dt, step_size_factor * r_min);
     }
