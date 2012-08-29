@@ -8,6 +8,7 @@
 //#include "PlanarSurface.hpp"
 #include "linear_algebra.hpp"
 #include "exceptions.hpp"
+#include "Logger.hpp"
 
 // Forward declaration of structures
 template <typename Ttraits_>
@@ -602,7 +603,7 @@ inline std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_
 get_pos_sid_pair( PlanarSurface<Ttraits_>               const& origin_structure,
                   PlanarSurface<Ttraits_>               const& target_structure,
                   typename Ttraits_::position_type      const& old_pos,
-                  typename Ttraits_::length_type        const& offset,
+                  typename Ttraits_::length_type        const& typical_length,
                   typename Ttraits_::length_type        const& reaction_length,
                   typename Ttraits_::rng_type           &rng              )
 {
@@ -610,7 +611,7 @@ get_pos_sid_pair( PlanarSurface<Ttraits_>               const& origin_structure,
     typedef typename Ttraits_::position_type              position_type;
     typedef typename Ttraits_::length_type                length_type;
     typedef std::pair<length_type, length_type>           length_pair_type;
-    typedef std::pair<position_type, length_pair_type>    projected_type;
+    typedef std::pair<position_type, length_pair_type>    projected_type;    
     
     // Species change and decay: no structure change
     if( origin_structure.id() == target_structure.id() )
@@ -623,26 +624,32 @@ get_pos_sid_pair( PlanarSurface<Ttraits_>               const& origin_structure,
           // In this case old_pos = CoM of the two reactants, 
           // origin_structure = the origin structure of the first reactant,
           // target_structure = the origin structure of the second reactant.
-          // Return the projection of the CoM towards the plane that
-          // it is closest to.
+          // We assume here that the problem has been correctly transformed
+          // into the structure passed as target_structure to this function
+          // before; however, to be sure, we check again and return the 
+          // ID of the structure that the CoM (old_pos) lies in.
+          // As a standard, this should be target_structure.
           
-          // First make sure that the projection of the CoM is in both planes (should never fail)
-          projected_type      proj_1( origin_structure.project_point(old_pos) );
-          projected_type      proj_2( target_structure.project_point(old_pos) );
+          // Calculate the projections of the CoM (old_pos) into both involved planes
+          // This will also give the normal components of old_pos in the CS of the planes
+          projected_type proj_o( origin_structure.project_point(old_pos) );
+          projected_type proj_t( target_structure.project_point(old_pos) );
           
-          if( !(proj_1.second.second<=0.0 && proj_2.second.second<=0.0) ) // second length pair entry is negative if pos. is in plane
-              throw illegal_propagation_attempt("Center of mass does not project on both origin planes in pair reaction involving two planes.");
+          // Check in which plane old_pos lies by comparing the normal components of the projection
+          // Note: pair entries proj_X.second.first are the normal components
+          // Then return the right position-structure_id pair; for safety we return the projected CoM
+          // Note: apply_boundary will modify the product position accordingly if it lies outside of the (bounded) plane
+          assert(typical_length > 0.0); // typical_length should contain the particle radius if this function was called correctly
+          if( feq(proj_t.second.first, 0.0, typical_length) )
+              // CoM is in target_structure
+              return std::make_pair( proj_t.first, target_structure.id() );
           
-          // Decide which projection of the CoM to take for the product position
-          position_type       proj_pos_1( proj_1.first );
-          position_type       proj_pos_2( proj_2.first );
-          length_type         proj_normal_1( proj_1.second.first );
-          length_type         proj_normal_2( proj_2.second.first );
-    
-          if(proj_normal_1 < proj_normal_2)
-              return std::make_pair( proj_pos_1, origin_structure.id() );
+          else if( feq(proj_o.second.first, 0.0, typical_length) )
+              // CoM is in origin_structure
+              return std::make_pair( proj_o.first, origin_structure.id() );
           else
-              return std::make_pair( proj_pos_2, target_structure.id() );
+              // CoM is in neither plane; something is terribly wrong...
+              throw illegal_propagation_attempt("Center of mass is not in plane of either origin_structure or target_structure in pair reaction involving two PlanarSurfaces.");                    
     }
     else // structure transition not allowed
       
