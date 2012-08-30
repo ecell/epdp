@@ -1022,29 +1022,62 @@ def get_dr_dzright_dzleft_to_CylindricalShape(shape, testShell, r, z_right, z_le
             tan_scale_angle = math.tan(scale_angle)
 
             if scale_angle <= Pi/4.0:
-                #def h1(x):
-                    #print "value = %s" % str((x*tan_scale_angle)**2 - (scale_center_to_shell_x - shell_half_length)) # TODO DEBUG output, remove when done
-                    #return x - scale_center_to_shell_z + \
-                           #math.sqrt(shell_radius**2 - (scale_center_to_shell_y - math.sqrt((x*tan_scale_angle)**2 - (scale_center_to_shell_x - shell_half_length)**2) )**2 )
+                def h1_eq(x):
+                    
+                    print "testShell = "+str(testShell)
+                    print "scale_angle = %s" % scale_angle
+                    print "tan_scale_angle = %s" % tan_scale_angle
+                    print "r2 = %s" % (shell_radius)
+                    print "h2 = %s" % (shell_half_length)
+                    print "Dy = %s" % (scale_center_to_shell_y)
+                    print "Dx = %s" % (scale_center_to_shell_x)
+                    print "Dy-r2 = %s" % (scale_center_to_shell_y-shell_radius)
+                    print "Dx-h2 = %s" % (scale_center_to_shell_x - shell_half_length)
+                    print "lambda = %s" % (math.sqrt( (x*tan_scale_angle)**2 - (scale_center_to_shell_x - shell_half_length)**2 ))
+                    print "Dy-lambda = %s" % (scale_center_to_shell_y - math.sqrt( (x*tan_scale_angle)**2 - (scale_center_to_shell_x - shell_half_length)**2 ))
+                    print "(Dy-lambda)^2 = %s" % ((scale_center_to_shell_y - math.sqrt( (x*tan_scale_angle)**2 - (scale_center_to_shell_x - shell_half_length)**2 ))**2 )
 
-                #h_touch = scale_center_z + findroot(h1, h1_min, scale_center_to_shell_z*(1.0-TOLERANCE))
-                h_touch = ref_to_shell_z - shell_radius # TODO This is a crude fix to override the original version above and may be improved
+                    print "h = %s, val = %s" % (x, (x*tan_scale_angle)**2 - (scale_center_to_shell_x - shell_half_length)**2 ) # TESTING
+                    print "outer = %s" % (shell_radius**2 - (scale_center_to_shell_y - math.sqrt( (x*tan_scale_angle)**2 - (scale_center_to_shell_x - shell_half_length)**2 ) )**2)
+
+                    print "r1 = %s" % (r1_function(x+scale_center_z))
+                                        
+                    return x - (scale_center_to_shell_z - \
+                           math.sqrt(shell_radius**2 - (scale_center_to_shell_y - math.sqrt( (x*tan_scale_angle)**2 - (scale_center_to_shell_x - shell_half_length)**2 ) )**2 ) )
+
+                if scale_center_to_shell_y > shell_radius :
+                    h1_interval_start = (1.0+TOLERANCE)*(z1_function( math.sqrt( (scale_center_to_shell_x-shell_half_length)**2 + (scale_center_to_shell_y-shell_radius)**2 ) ) - scale_center_z) # h1_min
+                else:
+                    h1_interval_start = (1.0+TOLERANCE)*(scale_center_to_shell_x - shell_half_length)
+                
+                assert(h1_interval_start >= 0)
+                h1_interval_end   = scale_center_to_shell_z*(1.0-TOLERANCE)                
+
+                print "h1_interval_start = %s" % h1_interval_start
+                print "h1_interval_end = %s"   % h1_interval_end
+
+                h_touch = scale_center_z + findroot(h1_eq, h1_interval_start, h1_interval_end)
+                #h_touch = ref_to_shell_z - shell_radius # TODO This is a crude fix to override the original version above and may be improved
                 z1_new = min(z1, h_touch)
                 r_new  = min(r,  r1_function(z1_new))
             else:                
-                #def r1(x):
-                    #shell_radius_sq = shell_radius**2
-                    #return x/tan_scale_angle - scale_center_to_shell_z + \
-                           #math.sqrt(shell_radius_sq - (scale_center_to_shell_y - math.sqrt(x**2 - (scale_center_to_shell_x - shell_half_length)**2))**2)
+                def r1_eq(x):
+                    shell_radius_sq = shell_radius**2
+                    return x - tan_scale_angle * (scale_center_to_shell_z - \
+                           math.sqrt(shell_radius_sq - (scale_center_to_shell_y - math.sqrt(x**2 - (scale_center_to_shell_x - shell_half_length)**2) )**2) )
 
-                #r_touch = findroot(r1, r1_min, math.sqrt((scale_center_to_shell_x-shell_half_length)**2 + (scale_center_to_shell_y)**2)*(1.0-TOLERANCE))
+                r_touch = findroot(r1_eq, r1_min, math.sqrt((scale_center_to_shell_x-shell_half_length)**2 + (scale_center_to_shell_y)**2)*(1.0-TOLERANCE))
 
                 # Very crude alternative that does not involve a rootfinder; treat the static shell as a box:
                 #r_touch = math.sqrt( (ref_to_shell_x-shell_half_length)**2 + (ref_to_shell_y - shell_radius)**2)
 
                 # Improved fix, but still suboptimal: basically the edge-hits-barrel solution
-                cot_scale_angle = math.tan(scale_angle - Pi/2.0)
-                r_touch = ref_to_shell_y - shell_radius * ( math.sqrt(2.0*cot_scale_angle)+ cot_scale_angle ) / (1.0 + cot_scale_angle**2.0)
+                #cot_scale_angle = math.tan(scale_angle - Pi/2.0)
+                #r_touch = ref_to_shell_y - shell_radius * ( math.sqrt(2.0*cot_scale_angle)+ cot_scale_angle ) / (1.0 + cot_scale_angle**2.0)
+
+                #if feq(scale_angle, Pi/2.0):
+                    #r_touch_x = ref_to_shell_x - shell_half_length
+                    #r_touch = max(r_touch, r_touch_x)
                           
                 r_new  = min(r, r_touch)
                 z1_new = min(z1, z1_function(r_new))
