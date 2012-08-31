@@ -1027,22 +1027,23 @@ def get_dr_dzright_dzleft_to_CylindricalShape(shape, testShell, r, z_right, z_le
                     #rhs = (scale_center_to_shell_z - \
                            #math.sqrt(shell_radius**2 - (scale_center_to_shell_y - math.sqrt( (x*tan_scale_angle)**2 - (scale_center_to_shell_x - shell_half_length)**2 ) )**2 ) )
 
-                    rhs2 = (scale_center_to_shell_z - x)**2 - shell_radius**2 +\
-                           (scale_center_to_shell_y - math.sqrt( (x*tan_scale_angle)**2 - (scale_center_to_shell_x - shell_half_length)**2 ) )**2
+                    eq_value = (scale_center_to_shell_z - x)**2 - shell_radius**2 +\
+                               (scale_center_to_shell_y - math.sqrt( (x*tan_scale_angle)**2 - (scale_center_to_shell_x - shell_half_length)**2 ) )**2
 
                     print "***** ROOTFINDER CALL with: *****"
-                    print "  h1 = %s, rhs2 = %s" % (x, rhs2 )
+                    print "  h1 = %s, value = %s" % (x, eq_value )
                     print "  r1 = %s" % (r1_function(x+scale_center_z))
                     print "  lambda = %s" % (math.sqrt( (x*tan_scale_angle)**2 - (scale_center_to_shell_x - shell_half_length)**2 ))
                     print "  Dy-lambda = %s" % (scale_center_to_shell_y - math.sqrt( (x*tan_scale_angle)**2 - (scale_center_to_shell_x - shell_half_length)**2 ))
                     print "  (Dy-lambda)^2 = %s" % ((scale_center_to_shell_y - math.sqrt( (x*tan_scale_angle)**2 - (scale_center_to_shell_x - shell_half_length)**2 ))**2 )
                     print "  outer = %s" % (shell_radius**2 - (scale_center_to_shell_y - math.sqrt( (x*tan_scale_angle)**2 - (scale_center_to_shell_x - shell_half_length)**2 ) )**2)
                                         
-                    return rhs2
+                    return eq_value
 
-                h1_interval_start = (1.0001)*(z1_function(scale_center_to_shell_x - shell_half_length) - scale_center_z)                
-                h1_interval_end   = (0.9999)*(z1_function( math.sqrt( scale_center_to_shell_y**2 + (scale_center_to_shell_x-shell_half_length)**2 ) ) - scale_center_z)
+                h1_interval_start = (1+TOLERANCE)*(z1_function(scale_center_to_shell_x - shell_half_length) - scale_center_z)                
+                h1_interval_end   = (1-TOLERANCE)*(z1_function( math.sqrt( scale_center_to_shell_y**2 + (scale_center_to_shell_x-shell_half_length)**2 ) ) - scale_center_z)
                 assert(h1_interval_start >= 0)
+                assert(h1_interval_end   >= h1_interval_end)
 
                 print "***** NEW ROOTFINDER ITERATION *****"
                 print "  testShell = "+str(testShell)
@@ -1058,9 +1059,9 @@ def get_dr_dzright_dzleft_to_CylindricalShape(shape, testShell, r, z_right, z_le
                 print "  h1_interval_end = %s"   % h1_interval_end
 
                 h_touch = scale_center_z + findroot(h1_eq, h1_interval_start, h1_interval_end)
-                #h_touch = ref_to_shell_z - shell_radius # TODO This is a crude fix to override the original version above and may be improved
                 z1_new = min(z1, h_touch)
                 r_new  = min(r,  r1_function(z1_new))
+
             else:                
                 def r1_eq(x):
                     shell_radius_sq = shell_radius**2
