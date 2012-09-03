@@ -1032,7 +1032,7 @@ def get_dr_dzright_dzleft_to_CylindricalShape(shape, testShell, r, z_right, z_le
                     eq_value = (scale_center_to_shell_z - x)**2 - shell_radius_sq +\
                                (scale_center_to_shell_y - math.sqrt( (x*tan_scale_angle)**2 - scale_center_to_shell_edge_x**2 ) )**2
 
-                    print "***** ROOTFINDER CALL with: *****"
+                    print "***** ROOTFINDER CALL: Calling h1_eq() with: *****"
                     print "  h1 = %s, value = %s" % (x, eq_value )
                     print "  r1 = %s" % (r1_function(x+scale_center_z))
                     #print "  lambda = %s" % (math.sqrt( (x*tan_scale_angle)**2 - (scale_center_to_shell_x - shell_half_length)**2 ))
@@ -1059,6 +1059,8 @@ def get_dr_dzright_dzleft_to_CylindricalShape(shape, testShell, r, z_right, z_le
                 print "  Dx-h2 = %s" % scale_center_to_shell_edge_x
                 print "  h1_interval_start = %s" % h1_interval_start
                 print "  h1_interval_end = %s"   % h1_interval_end
+                print "  h1(i_start) = %s"       % h1_eq(h1_interval_start)
+                print "  h1(i_end) = %s"         % h1_eq(h1_interval_end)
 
                 h_touch = scale_center_z + findroot(h1_eq, h1_interval_start, h1_interval_end)
                 z1_new = min(z1, h_touch)
@@ -1071,14 +1073,14 @@ def get_dr_dzright_dzleft_to_CylindricalShape(shape, testShell, r, z_right, z_le
                     eq_value = (scale_center_to_shell_z - x/tan_scale_angle)**2 - shell_radius_sq +\
                                (scale_center_to_shell_y - math.sqrt( x**2 - scale_center_to_shell_edge_x**2 ) )**2
 
-                    print "***** ROOTFINDER CALL with: *****"
+                    print "***** ROOTFINDER CALL: Calling r1_eq() with: *****"
                     print "  r1 = %s, value = %s" % (x, eq_value )
                     print "  h1 = %s" % (z1_function(x))
 
                     return eq_value
 
-                r1_interval_start = (1+TOLERANCE)*scale_center_to_shell_edge_x
-                r1_interval_end   = (1-TOLERANCE)*math.sqrt( scale_center_to_shell_y**2 + scale_center_to_shell_edge_x**2 )
+                r1_interval_start = scale_center_to_shell_edge_x
+                r1_interval_end   = math.sqrt( scale_center_to_shell_y**2 + scale_center_to_shell_edge_x**2 )
                 assert(r1_interval_start >= 0)
                 assert(r1_interval_end   >= r1_interval_start)
 
@@ -1094,6 +1096,8 @@ def get_dr_dzright_dzleft_to_CylindricalShape(shape, testShell, r, z_right, z_le
                 print "  Dx-h2 = %s" % scale_center_to_shell_edge_x
                 print "  r1_interval_start = %s" % r1_interval_start
                 print "  r1_interval_end = %s"   % r1_interval_end
+                print "  r1(i_start) = %s"       % r1_eq(scale_center_to_shell_edge_x)
+                print "  r1(i_end) = %s"         % r1_eq(math.sqrt( scale_center_to_shell_y**2 + scale_center_to_shell_edge_x**2))
 
                 r_touch = findroot(r1_eq, r1_interval_start, r1_interval_end)
 
