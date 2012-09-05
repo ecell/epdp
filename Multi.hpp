@@ -437,12 +437,17 @@ public:
         const Real k_max( get_max_rate(rules) );
         const Real D_max( maxD_minr.first );
         const Real r_min( maxD_minr.second );
-        const Real Pacc_max( 0.1 ); //Maximum allowed value of the acceptance probability. // TESTING was 0.01
+        const Real Pacc_max( 0.1 ); // Maximum allowed value of the acceptance probability. // TESTING was 0.01
+                                    // This should be kept very low (max. 0.01), otherwise the approximation of
+                                    // treating the reaction as two sequential attempts fails
         Real dt;
         const Real tau_D( 2. * gsl_pow_2(step_size_factor * r_min) / D_max );
         
         if( k_max > 0)
         {
+            // step_size_factor * r_min is the reaction length
+            // Here it is assumed that the RL is linear in any dimension,
+            // which requires it to be very small!
             Real dt_temp( 2. * Pacc_max * step_size_factor * r_min / k_max );
             dt = std::min( dt_temp, tau_D ); // tau_D is upper limit of dt.
         }
