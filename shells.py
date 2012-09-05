@@ -1128,7 +1128,7 @@ def get_dr_dzright_dzleft_to_CylindricalShape(shape, testShell, r, z_right, z_le
                 # Very crude alternative that does not involve a rootfinder; treat the static shell as a box:
                 #r_touch = math.sqrt( (ref_to_shell_x-shell_half_length)**2 + (ref_to_shell_y - shell_radius)**2)
 
-                # Improved fix, but still suboptimal: basically the edge-hits-barrel solution
+                # Improved fix, but still suboptimal: basically the edge-coshits-barrel solution
                 #cot_scale_angle = math.tan(scale_angle - Pi/2.0)
                 #r_touch = ref_to_shell_y - shell_radius * ( math.sqrt(2.0*cot_scale_angle)+ cot_scale_angle ) / (1.0 + cot_scale_angle**2.0)
 
@@ -1174,7 +1174,7 @@ def get_dr_dzright_dzleft_to_CylindricalShape(shape, testShell, r, z_right, z_le
             assert scale_center_to_shell >= shell_radius
             print "asin-value=%s" % str(math.sin(angle_diff)*scale_center_to_shell/shell_radius)
             ss_angle = math.asin(math.sin(angle_diff)*scale_center_to_shell/shell_radius)
-            scale_center_shell_dist = shell_radius * math.cos(angle_diff+ss_angle) / math.sin(angle_diff)
+            scale_center_shell_dist = shell_radius * math.sin(math.pi-(angle_diff+ss_angle)) / math.sin(angle_diff)
             assert scale_center_shell_dist>0 # TESTING
 
             if scale_angle <= Pi/4.0:
