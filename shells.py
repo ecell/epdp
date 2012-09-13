@@ -1227,9 +1227,8 @@ def get_dr_dzright_dzleft_to_CylindricalShape(shape, testShell, r, z_right, z_le
         z_right = z2_new
         z_left  = z1_new
 
-    # TODO MAKE THIS WORK!!!!
-    #print "r=%s, z_left=%s, z_right=%s" % (r, z_left, z_right)
-    #assert r > 0 and z_left > 0 and z_right > 0
+    if( r < 0 or z_left < 0 or z_right < 0 ):
+        raise testShellError('get_dr_dzright_dzleft_to_CylindricalShape: Negative length in shell scaling: r=%s, z_left=%s, z_right=%s' % (r, z_left, z_right) )
 
     return r, z_right, z_left
 
