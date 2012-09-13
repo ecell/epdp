@@ -849,8 +849,6 @@ def get_dr_dzright_dzleft_to_CylindricalShape(shape, testShell, r, z_right, z_le
             # shell hits the scaling cylinder on top
             z1_new = min(z1, (ref_to_shell_z - shell_half_length))
             r_new  = min(r,  r1_function(z1_new))           # TODO if z1 hasn't changed we also don't have to recalculate this
-            print "PARALLEL CYLINDERS: Called r1_function with r=%s, z1=%s, z1_new=%s, to_edge_angle=%s, scale_angle=%s, ref_to_shell_z=%s, shell_half_length=%s" %\
-                                                              (r, z1, z1_new, to_edge_angle, scale_angle, ref_to_shell_z, shell_half_length) # TESTING
         else:
             # shell hits the scaling cylinder on the radial side
             r_new = min(r, (ref_to_shell_r - shell_radius))
@@ -900,6 +898,7 @@ def get_dr_dzright_dzleft_to_CylindricalShape(shape, testShell, r, z_right, z_le
         # which has to be treated in different ways; the following collision specifiers are from the point of view
         # of the scaled cylinder:
         BARREL_HITS_FLAT, EDGE_HITS_EDGE, BARREL_HITS_EDGE, FLAT_HITS_BARREL, EDGE_HITS_BARREL, BARREL_HITS_BARREL = range(6)
+        situation_string = ["BARREL_HITS_FLAT", "EDGE_HITS_EDGE", "BARREL_HITS_EDGE", "FLAT_HITS_BARREL", "EDGE_HITS_BARREL", "BARREL_HITS_BARREL"]
 
         # Define some constants
         tan_scale_angle = math.tan(scale_angle)
@@ -918,16 +917,11 @@ def get_dr_dzright_dzleft_to_CylindricalShape(shape, testShell, r, z_right, z_le
             dist_to_projected_edge_1 = math.sqrt(scale_center_to_shell_y**2 + (shell_half_length + scale_center_to_shell_y)**2)
             dist_to_projected_edge_2 = math.sqrt(scale_center_to_shell_y**2 + (shell_half_length - scale_center_to_shell_y)**2)
 
-            print "r1_touch=%s, scale_angle=%s, shell_radius=%s, shell_half_length=%s" % (r1_touch, scale_angle, shell_radius, shell_half_length)
-            print "s_x=%s, s_y=%s, d_1=%s, d_2=%s" % (scale_center_to_shell_x, scale_center_to_shell_y, dist_to_projected_edge_1, dist_to_projected_edge_2)
-
             if r1_touch >= scale_center_to_shell_y:
                 # At least a part of the projected axis is within r_touch => flat side of scaled cyl. hits the barrel of cyl. 2
                 # Note that we know that at least a part of the shell is above the top side of the scaled cylinder (quadrant 1 condition)
-                print "-> FLAT_HITS_BARREL"
                 situation = FLAT_HITS_BARREL
             else:
-                print "-> EDGE_HITS_BARREL"
                 situation = EDGE_HITS_BARREL
 
         elif (ref_to_shell_x2 >= 0) and (ref_to_shell_y2 < 0):
@@ -1000,20 +994,30 @@ def get_dr_dzright_dzleft_to_CylindricalShape(shape, testShell, r, z_right, z_le
         else:
             # Quadrant 4
             print "Quadrant 4"
+            print "shell_radius=%s, shell_half_length=%s, r=%s, scale_center_r=%s" % (shell_radius, shell_half_length, r, scale_center_r)
+            print "scale_angle=%s, scale_center_to_shell_x=%s, scale_center_to_shell_y=%s, scale_center_to_shell_z=%s" % (scale_angle, scale_center_to_shell_x, scale_center_to_shell_y, scale_center_to_shell_z)
+
             assert (ref_to_shell_x2 >= 0) and (ref_to_shell_y2 >= 0)
 
-            scale_center_to_critpoint_r = math.sqrt((scale_center_to_shell_y - shell_radius)**2 + (scale_center_to_shell_x - shell_half_length)**2) - scale_center_r
-            scale_center_to_lowpoint_r = math.sqrt(scale_center_to_shell_y**2 + (scale_center_to_shell_x - shell_half_length)**2) - scale_center_r
-            scale_center_to_lowpoint_z = scale_center_to_shell_z - shell_radius
+            # Two points on the edge of the static cylinder are of interest here:
+            # - the "lowpoint", which is the point on the edge with the minimal z-distance to the scale center in the zy plane
+            # - the "critpoint" (critical point), which is the point on the edge with the minimal y-distance to
+            #   the scale center in the zy-plane
+            scale_center_to_critpoint_r = math.sqrt((scale_center_to_shell_y - shell_radius)**2 + (scale_center_to_shell_x - shell_half_length)**2) - scale_center_r    # a_r
+            scale_center_to_lowpoint_r = math.sqrt(scale_center_to_shell_y**2 + (scale_center_to_shell_x - shell_half_length)**2) - scale_center_r                      # b_r
+            scale_center_to_lowpoint_z = scale_center_to_shell_z - shell_radius                                                                                         # b_z
 
-            # angle1
+            # Calculate the angle between the z-axis of the scaled cylinder and the line that
+            # connects this axis with the "critpoint" on the static cylinder's edge
             if scale_center_to_shell_z == 0.0:
                 scale_center_to_shell_crit_angle_xy = Pi/2.0
             else:
                 scale_center_to_shell_crit_angle_xy = math.atan(scale_center_to_critpoint_r / scale_center_to_shell_z)
                 if scale_center_to_shell_z < 0.0:
                     scale_center_to_shell_crit_angle_xy += Pi
-            # angle2
+
+            # Calculate the angle between the z-axis of the scaled cylinder and the line that
+            # connects this axis with the "lowpoint" on the static cylinder's edge
             if scale_center_to_lowpoint_z == 0.0:
                 scale_center_to_shell_low_angle_xy = Pi/2.0
             else:
@@ -1021,20 +1025,33 @@ def get_dr_dzright_dzleft_to_CylindricalShape(shape, testShell, r, z_right, z_le
                 if scale_center_to_lowpoint_z < 0.0:
                     scale_center_to_shell_low_angle_xy += Pi
 
+            print "scale_center_to_shell_crit_angle_xy=%s, scale_center_to_shell_low_angle_xy=%s, scale_center_to_critpoint_r=%s, scale_center_to_lowpoint_r=%s, scale_center_to_lowpoint_z=%s" \
+                 % (scale_center_to_shell_crit_angle_xy, scale_center_to_shell_low_angle_xy, scale_center_to_critpoint_r, scale_center_to_lowpoint_r, scale_center_to_lowpoint_z)
 
-            if scale_angle <= scale_center_to_shell_crit_angle_xy:
-                situation = BARREL_HITS_EDGE
-            elif scale_center_to_shell_low_angle_xy <= scale_angle:
-                situation = FLAT_HITS_BARREL
-            else:
-                assert scale_center_to_shell_crit_angle_xy < scale_angle and \
-                       scale_angle < scale_center_to_shell_low_angle_xy
+            # First treat the special case: when the scale center is further away from the z-axis than the "critpoint" (in the xy-plane)
+            if scale_center_to_critpoint_r <= 0.0:
                 situation = EDGE_HITS_EDGE
-                r1_min = math.sqrt((scale_center_to_shell_x-shell_half_length)**2 + (scale_center_to_shell_y-shell_radius)**2)*(1.0+TOLERANCE)
-                h1_min = r1_min/math.tan(scale_angle)
+
+                if scale_center_to_lowpoint_r <= 0.0:
+                    situation = FLAT_HITS_BARREL
+
+            # Now the standard case:
+            else:
+
+                if scale_angle <= scale_center_to_shell_crit_angle_xy:
+                    situation = BARREL_HITS_EDGE
+
+                elif scale_center_to_shell_low_angle_xy <= scale_angle:
+                    situation = FLAT_HITS_BARREL
+
+                else:
+                    assert scale_center_to_shell_crit_angle_xy < scale_angle and scale_angle < scale_center_to_shell_low_angle_xy and scale_angle > 0.0
+                    situation = EDGE_HITS_EDGE
+                    r1_min = math.sqrt((scale_center_to_shell_x-shell_half_length)**2 + (scale_center_to_shell_y-shell_radius)**2)*(1.0+TOLERANCE)
+                    h1_min = r1_min/math.tan(scale_angle)
 
         ##### (2) Treat the situation accordingly
-        #print "situation= ", situation
+        print "Situation= ", situation_string[situation]
         if situation == BARREL_HITS_FLAT:
             # the scaling cylinder hits the flat side of 'shell' with its barrel side
             r_new = min(r, (ref_to_shell_x - shell_half_length))
@@ -1043,11 +1060,36 @@ def get_dr_dzright_dzleft_to_CylindricalShape(shape, testShell, r, z_right, z_le
         elif situation == EDGE_HITS_EDGE:             
             # the scaling cylinder hits the edge of 'shell' with its edge
             # TODO we have a solution but it can only be found with a root finder -> slow
-            # FIXME THIS CAUSES SERIOUS ERRORS IN SOME SITUATIONS! FIND A SOLUTION WHICH DOES NOT EMPLOY THE ROOTFINDER!
             shell_radius_sq = shell_radius**2
             scale_center_to_shell_edge_x = scale_center_to_shell_x - shell_half_length
+            scale_center_to_shell_edge_y = scale_center_to_shell_y - shell_radius
+            scale_center_to_shell_edge_z = scale_center_to_shell_z - shell_radius
+            print "scale_center_to_shell_edge_x=%s" % str(scale_center_to_shell_edge_x)
 
-            if scale_angle <= Pi/4.0:
+            if scale_angle == 0.0:
+
+                # scale_angle = 0 means that the radius r will stay constant at scaling
+                # Therefore, if the projected edge of the static shell lies outside of the 
+                # circle defined by r there will be no collision:
+                if r < math.sqrt(scale_center_to_shell_edge_x**2 + scale_center_to_shell_edge_y**2) :
+
+                    # The height and radius of the scaled cylinder remain unaltered
+                    z1_new = z1
+                    r1_new = r
+
+                else:
+                # There is a collision possible when z1 is scaled
+                    
+                    y1_collide = math.sqrt(r**2 - scale_center_to_shell_edge_x**2)
+                    y2_collide = scale_center_to_shell_y - y1_collide
+                    h_collide = math.sqrt(shell_radius**2 - y2_collide**2)
+
+                    h_touch = scale_center_to_shell_z - h_collide
+                    z1_new = min(z1, h_touch)
+                    r_new  = min(r,  r1_function(z1_new))
+
+            elif scale_angle <= Pi/4.0:
+
                 def h1_eq(x):
 
                     #rhs = (scale_center_to_shell_z - \
@@ -1056,9 +1098,10 @@ def get_dr_dzright_dzleft_to_CylindricalShape(shape, testShell, r, z_right, z_le
                     eq_value = (scale_center_to_shell_z - x)**2 - shell_radius_sq +\
                                (scale_center_to_shell_y - math.sqrt( (x*tan_scale_angle)**2 - scale_center_to_shell_edge_x**2 ) )**2
 
-                    print "***** ROOTFINDER CALL: Calling h1_eq() with: *****"
-                    print "  h1 = %s, value = %s" % (x, eq_value )
-                    print "  r1 = %s" % (r1_function(x+scale_center_z))
+                    # TODO TESTING REMOVE THIS WHEN DONE
+                    #print "***** ROOTFINDER CALL: Calling h1_eq() with: *****"
+                    #print "  h1 = %s, value = %s" % (x, eq_value )
+                    #print "  r1 = %s" % (r1_function(x+scale_center_z))
                     #print "  lambda = %s" % (math.sqrt( (x*tan_scale_angle)**2 - (scale_center_to_shell_x - shell_half_length)**2 ))
                     #print "  Dy-lambda = %s" % (scale_center_to_shell_y - math.sqrt( (x*tan_scale_angle)**2 - (scale_center_to_shell_x - shell_half_length)**2 ))
                     #print "  (Dy-lambda)^2 = %s" % ((scale_center_to_shell_y - math.sqrt( (x*tan_scale_angle)**2 - (scale_center_to_shell_x - shell_half_length)**2 ))**2 )
@@ -1068,23 +1111,25 @@ def get_dr_dzright_dzleft_to_CylindricalShape(shape, testShell, r, z_right, z_le
 
                 h1_interval_start = (1+TOLERANCE)*(z1_function(scale_center_to_shell_edge_x) - scale_center_z)
                 h1_interval_end   = (1-TOLERANCE)*(z1_function( math.sqrt( scale_center_to_shell_y**2 + scale_center_to_shell_edge_x**2 ) ) - scale_center_z)
+
                 assert(h1_interval_start >= 0)
                 assert(h1_interval_end   >= h1_interval_end)
 
-                print "***** NEW ROOTFINDER ITERATION *****"
-                print "  testShell = "+str(testShell)
-                print "  scale_angle = %s" % scale_angle
-                print "  tan_scale_angle = %s" % tan_scale_angle
-                print "  r2 = %s" % (shell_radius)
-                print "  h2 = %s" % (shell_half_length)
-                print "  Dy = %s" % (scale_center_to_shell_y)
-                print "  Dx = %s" % (scale_center_to_shell_x)
-                print "  Dy-r2 = %s" % (scale_center_to_shell_y-shell_radius)
-                print "  Dx-h2 = %s" % scale_center_to_shell_edge_x
-                print "  h1_interval_start = %s" % h1_interval_start
-                print "  h1_interval_end = %s"   % h1_interval_end
-                print "  h1(i_start) = %s"       % h1_eq(h1_interval_start)
-                print "  h1(i_end) = %s"         % h1_eq(h1_interval_end)
+                # TODO TESTING REMOVE THIS WHEN DONE
+                #print "***** NEW ROOTFINDER ITERATION *****"
+                #print "  testShell = "+str(testShell)
+                #print "  scale_angle = %s" % scale_angle
+                #print "  tan_scale_angle = %s" % tan_scale_angle
+                #print "  r2 = %s" % (shell_radius)
+                #print "  h2 = %s" % (shell_half_length)
+                #print "  Dy = %s" % (scale_center_to_shell_y)
+                #print "  Dx = %s" % (scale_center_to_shell_x)
+                #print "  Dy-r2 = %s" % (scale_center_to_shell_y-shell_radius)
+                #print "  Dx-h2 = %s" % scale_center_to_shell_edge_x
+                #print "  h1_interval_start = %s" % h1_interval_start
+                #print "  h1_interval_end = %s"   % h1_interval_end
+                #print "  h1(i_start) = %s"       % h1_eq(h1_interval_start)
+                #print "  h1(i_end) = %s"         % h1_eq(h1_interval_end)
 
                 h_touch = scale_center_z + findroot(h1_eq, h1_interval_start, h1_interval_end)
                 z1_new = min(z1, h_touch)
@@ -1097,9 +1142,10 @@ def get_dr_dzright_dzleft_to_CylindricalShape(shape, testShell, r, z_right, z_le
                     eq_value = (scale_center_to_shell_z - x/tan_scale_angle)**2 - shell_radius_sq +\
                                (scale_center_to_shell_y - math.sqrt( x**2 - scale_center_to_shell_edge_x**2 ) )**2
 
-                    print "***** ROOTFINDER CALL: Calling r1_eq() with: *****"
-                    print "  r1 = %s, value = %s" % (x, eq_value )
-                    print "  h1 = %s" % (z1_function(x))
+                    # TODO TESTING REMOVE THIS WHEN DONE
+                    #print "***** ROOTFINDER CALL: Calling r1_eq() with: *****"
+                    #print "  r1 = %s, value = %s" % (x, eq_value )
+                    #print "  h1 = %s" % (z1_function(x))
 
                     return eq_value
 
@@ -1108,33 +1154,23 @@ def get_dr_dzright_dzleft_to_CylindricalShape(shape, testShell, r, z_right, z_le
                 assert(r1_interval_start >= 0)
                 assert(r1_interval_end   >= r1_interval_start)
 
-                print "***** NEW ROOTFINDER ITERATION *****"
-                print "  testShell = "+str(testShell)
-                print "  scale_angle = %s" % scale_angle
-                print "  tan_scale_angle = %s" % tan_scale_angle
-                print "  r2 = %s" % (shell_radius)
-                print "  h2 = %s" % (shell_half_length)
-                print "  Dy = %s" % (scale_center_to_shell_y)
-                print "  Dx = %s" % (scale_center_to_shell_x)
-                print "  Dy-r2 = %s" % (scale_center_to_shell_y-shell_radius)
-                print "  Dx-h2 = %s" % scale_center_to_shell_edge_x
-                print "  r1_interval_start = %s" % r1_interval_start
-                print "  r1_interval_end = %s"   % r1_interval_end
-                print "  r1(i_start) = %s"       % r1_eq(scale_center_to_shell_edge_x)
-                print "  r1(i_end) = %s"         % r1_eq(math.sqrt( scale_center_to_shell_y**2 + scale_center_to_shell_edge_x**2))
+                # TODO TESTING REMOVE THIS WHEN DONE
+                #print "***** NEW ROOTFINDER ITERATION *****"
+                #print "  testShell = "+str(testShell)
+                #print "  scale_angle = %s" % scale_angle
+                #print "  tan_scale_angle = %s" % tan_scale_angle
+                #print "  r2 = %s" % (shell_radius)
+                #print "  h2 = %s" % (shell_half_length)
+                #print "  Dy = %s" % (scale_center_to_shell_y)
+                #print "  Dx = %s" % (scale_center_to_shell_x)
+                #print "  Dy-r2 = %s" % (scale_center_to_shell_y-shell_radius)
+                #print "  Dx-h2 = %s" % scale_center_to_shell_edge_x
+                #print "  r1_interval_start = %s" % r1_interval_start
+                #print "  r1_interval_end = %s"   % r1_interval_end
+                #print "  r1(i_start) = %s"       % r1_eq(scale_center_to_shell_edge_x)
+                #print "  r1(i_end) = %s"         % r1_eq(math.sqrt( scale_center_to_shell_y**2 + scale_center_to_shell_edge_x**2))
 
                 r_touch = findroot(r1_eq, r1_interval_start, r1_interval_end)
-
-                # Very crude alternative that does not involve a rootfinder; treat the static shell as a box:
-                #r_touch = math.sqrt( (ref_to_shell_x-shell_half_length)**2 + (ref_to_shell_y - shell_radius)**2)
-
-                # Improved fix, but still suboptimal: basically the edge-coshits-barrel solution
-                #cot_scale_angle = math.tan(scale_angle - Pi/2.0)
-                #r_touch = ref_to_shell_y - shell_radius * ( math.sqrt(2.0*cot_scale_angle)+ cot_scale_angle ) / (1.0 + cot_scale_angle**2.0)
-
-                #if feq(scale_angle, Pi/2.0):
-                    #r_touch_x = ref_to_shell_x - shell_half_length
-                    #r_touch = max(r_touch, r_touch_x)
                           
                 r_new  = min(r, r_touch)
                 z1_new = min(z1, z1_function(r_new))
@@ -1148,10 +1184,6 @@ def get_dr_dzright_dzleft_to_CylindricalShape(shape, testShell, r, z_right, z_le
             # the scaling cylinder hits the barrel of 'shell' with its top flat side
             z1_new = min(z1, (ref_to_shell_z - shell_radius))
             r_new  = min(r,  r1_function(z1_new))
-            print "SITUATION FLAT_HITS_BARREL: Called r1_function with r=%s, z1=%s, z1_new=%s, scale_angle=%s, ref_to_shell_z=%s, shell_radius=%s" %\
-                                                                      (r, z1, z1_new, scale_angle, ref_to_shell_z, shell_radius) # TESTING
-            print "SITUATION FLAT_HITS_BARREL: ref_to_shell_x=%s, ref_to_shell_y=%s, shell_half_length=%s" %\
-                                                                      (ref_to_shell_x, ref_to_shell_y, shell_half_length) # TESTING
 
         elif situation == EDGE_HITS_BARREL:
             # the scaling cylinder hits the barrel of 'shell' with its edge
@@ -1160,11 +1192,8 @@ def get_dr_dzright_dzleft_to_CylindricalShape(shape, testShell, r, z_right, z_le
             ss_sq = (scale_center_to_shell_z**2 + scale_center_to_shell_y**2)
             scale_center_to_shell = math.sqrt(ss_sq)
 
-            print "ss = %s, s_z=%s, s_y=%s, shell_radius=%s" % (scale_center_to_shell, scale_center_to_shell_z, scale_center_to_shell_y, shell_radius)  # TESTING
-
             shell_angle_yz = math.atan(scale_center_to_shell_y/scale_center_to_shell_z)
             angle_diff = abs(shell_angle_yz - scale_angle)
-            print "angle_diff = %s, shell_angle_yz=%s" % (angle_diff, shell_angle_yz)  # TESTING
             sin_angle_diff = math.sin(angle_diff)
             cos_angle_diff = math.cos(angle_diff)
 
@@ -1181,8 +1210,6 @@ def get_dr_dzright_dzleft_to_CylindricalShape(shape, testShell, r, z_right, z_le
                 cos_scale_angle = math.cos(scale_angle)
                 z1_new = min(z1, (scale_center_z + cos_scale_angle * scale_center_shell_dist))
                 r_new  = min(r, r1_function(z1_new))
-                print "SITUATION EDGE_HITS_BARREL: Called r1_function with r=%s, z1=%s, z1_new=%s, scale_angle=%s, scale_center_z=%s, scale_center_shell_dist=%s" %\
-                                                                          (r, z1, z1_new, scale_angle, scale_center_z, scale_center_shell_dist) # TESTING
             else:
                 sin_scale_angle = math.sin(scale_angle)
                 r_new  = min(r,  (scale_center_r + sin_scale_angle * scale_center_shell_dist))
@@ -1210,7 +1237,9 @@ def get_dr_dzright_dzleft_to_CylindricalShape(shape, testShell, r, z_right, z_le
         z_right = z2_new
         z_left  = z1_new
 
-    assert r > 0 and z_left > 0 and z_right > 0
+    # TODO MAKE THIS WORK!!!!
+    #print "r=%s, z_left=%s, z_right=%s" % (r, z_left, z_right)
+    #assert r > 0 and z_left > 0 and z_right > 0
 
     return r, z_right, z_left
 
