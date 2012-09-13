@@ -1048,6 +1048,13 @@ def get_dr_dzright_dzleft_to_CylindricalShape(shape, testShell, r, z_right, z_le
                     r1_min = math.sqrt((scale_center_to_shell_x-shell_half_length)**2 + (scale_center_to_shell_y-shell_radius)**2)*(1.0+TOLERANCE)
                     h1_min = r1_min/math.tan(scale_angle)
 
+        # TESTING Debug info
+        print "  *** testShell=%s, r=%s, z1=%s" % (str(testShell), r, z1)
+        print "  *** scale_angle=%s, tan_scale_angle=%s, scale_center_z=%s, scale_center_r=%s" % (scale_angle, tan_scale_angle, scale_center_z, scale_center_r)
+        print "  *** shell_radius=%s, shell_half_length=%s" % (shell_radius, shell_half_length)
+        print "  *** ref_to_shell_x=%s, ref_to_shell_y=%s, ref_to_shell_z=%s" % (ref_to_shell_x, ref_to_shell_y, ref_to_shell_z)
+        print "  *** scale_center_to_shell_x=%s, scale_center_to_shell_y=%s, scale_center_to_shell_z=%s" % (scale_center_to_shell_x, scale_center_to_shell_y, scale_center_to_shell_z)
+
         ##### (2) Treat the situation accordingly
         print "Situation= ", situation_string[situation]
         if situation == BARREL_HITS_FLAT:
@@ -1114,13 +1121,6 @@ def get_dr_dzright_dzleft_to_CylindricalShape(shape, testShell, r, z_right, z_le
 
                 # TODO TESTING REMOVE THIS WHEN DONE
                 #print "***** NEW ROOTFINDER ITERATION *****"
-                #print "  testShell = "+str(testShell)
-                #print "  scale_angle = %s" % scale_angle
-                #print "  tan_scale_angle = %s" % tan_scale_angle
-                #print "  r2 = %s" % (shell_radius)
-                #print "  h2 = %s" % (shell_half_length)
-                #print "  Dy = %s" % (scale_center_to_shell_y)
-                #print "  Dx = %s" % (scale_center_to_shell_x)
                 #print "  Dy-r2 = %s" % (scale_center_to_shell_y-shell_radius)
                 #print "  Dx-h2 = %s" % scale_center_to_shell_edge_x
                 #print "  h1_interval_start = %s" % h1_interval_start
@@ -1153,13 +1153,6 @@ def get_dr_dzright_dzleft_to_CylindricalShape(shape, testShell, r, z_right, z_le
 
                 # TODO TESTING REMOVE THIS WHEN DONE
                 #print "***** NEW ROOTFINDER ITERATION *****"
-                #print "  testShell = "+str(testShell)
-                #print "  scale_angle = %s" % scale_angle
-                #print "  tan_scale_angle = %s" % tan_scale_angle
-                #print "  r2 = %s" % (shell_radius)
-                #print "  h2 = %s" % (shell_half_length)
-                #print "  Dy = %s" % (scale_center_to_shell_y)
-                #print "  Dx = %s" % (scale_center_to_shell_x)
                 #print "  Dy-r2 = %s" % (scale_center_to_shell_y-shell_radius)
                 #print "  Dx-h2 = %s" % scale_center_to_shell_edge_x
                 #print "  r1_interval_start = %s" % r1_interval_start
@@ -2119,8 +2112,8 @@ class CylindricalSurfaceCapInteractiontestShell(CylindricaltestShell, testIntera
         self.drdz_right = 0.0
         self.r0_right   = self.shell_radius
         self.z0_right   = 0.0
-        self.dzdr_left  = 0.0
-        self.drdz_left  = numpy.inf
+        self.dzdr_left  = numpy.inf
+        self.drdz_left  = 0.0
         self.r0_left    = self.shell_radius # better put to zero?
         self.z0_left    = self.pid_particle_pair[1].radius * SINGLE_SHELL_FACTOR
 
@@ -2420,8 +2413,8 @@ class MixedPair1DCaptestShell(CylindricaltestShell, testMixedPair1DCap):
         self.drdz_right = 0.0
         self.r0_right   = self.shell_radius
         self.z0_right   = 0.0
-        self.dzdr_left  = 0.0
-        self.drdz_left  = numpy.inf
+        self.dzdr_left  = numpy.inf
+        self.drdz_left  = 0.0
         self.r0_left    = self.shell_radius
         self.z0_left    = self.cap_particle.radius * SINGLE_SHELL_FACTOR
 
