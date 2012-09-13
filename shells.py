@@ -908,6 +908,7 @@ def get_dr_dzright_dzleft_to_CylindricalShape(shape, testShell, r, z_right, z_le
         if (ref_to_shell_x2 < 0) and (ref_to_shell_y2 < 0):
             # Quadrant 1
             print "Quadrant 1"
+
             # Scale cylinder one until its height is equal to the z-distance minus the radius of the cyl. shell 2;
             # Then check whether any point of the axis of cyl. 2 projected on the top side of cyl. 1 is inside the radius of (scaled) cyl. 1.
             # If this is the case, we have the flat side of cyl. 1 hitting the barrel of cyl. 2. Else we have the edge hitting the barrel.
@@ -927,6 +928,7 @@ def get_dr_dzright_dzleft_to_CylindricalShape(shape, testShell, r, z_right, z_le
         elif (ref_to_shell_x2 >= 0) and (ref_to_shell_y2 < 0):
             # Quadrant 2
             print "Quadrant 2"
+
             scale_center_to_shell_x    -= scale_center_r
             scale_center_to_flatend_x   = scale_center_to_shell_x - shell_half_length
             scale_center_to_critpoint_z = scale_center_to_shell_z - math.sqrt(shell_radius**2 - scale_center_to_shell_y**2) 
@@ -962,6 +964,7 @@ def get_dr_dzright_dzleft_to_CylindricalShape(shape, testShell, r, z_right, z_le
         elif (ref_to_shell_x2 < 0) and (ref_to_shell_y2 >= 0):
             # Quadrant 3
             print "Quadrant 3"
+
             scale_center_to_shell_y -= scale_center_r
             scale_center_to_critpoint_y = scale_center_to_shell_y - shell_radius
             scale_center_to_lowpoint_z = scale_center_to_shell_z - shell_radius
@@ -994,8 +997,6 @@ def get_dr_dzright_dzleft_to_CylindricalShape(shape, testShell, r, z_right, z_le
         else:
             # Quadrant 4
             print "Quadrant 4"
-            print "shell_radius=%s, shell_half_length=%s, r=%s, scale_center_r=%s" % (shell_radius, shell_half_length, r, scale_center_r)
-            print "scale_angle=%s, scale_center_to_shell_x=%s, scale_center_to_shell_y=%s, scale_center_to_shell_z=%s" % (scale_angle, scale_center_to_shell_x, scale_center_to_shell_y, scale_center_to_shell_z)
 
             assert (ref_to_shell_x2 >= 0) and (ref_to_shell_y2 >= 0)
 
@@ -1024,9 +1025,6 @@ def get_dr_dzright_dzleft_to_CylindricalShape(shape, testShell, r, z_right, z_le
                 scale_center_to_shell_low_angle_xy  = math.atan(scale_center_to_lowpoint_r / scale_center_to_lowpoint_z )
                 if scale_center_to_lowpoint_z < 0.0:
                     scale_center_to_shell_low_angle_xy += Pi
-
-            print "scale_center_to_shell_crit_angle_xy=%s, scale_center_to_shell_low_angle_xy=%s, scale_center_to_critpoint_r=%s, scale_center_to_lowpoint_r=%s, scale_center_to_lowpoint_z=%s" \
-                 % (scale_center_to_shell_crit_angle_xy, scale_center_to_shell_low_angle_xy, scale_center_to_critpoint_r, scale_center_to_lowpoint_r, scale_center_to_lowpoint_z)
 
             # First treat the special case: when the scale center is further away from the z-axis than the "critpoint" (in the xy-plane)
             if scale_center_to_critpoint_r <= 0.0:
@@ -1064,7 +1062,6 @@ def get_dr_dzright_dzleft_to_CylindricalShape(shape, testShell, r, z_right, z_le
             scale_center_to_shell_edge_x = scale_center_to_shell_x - shell_half_length
             scale_center_to_shell_edge_y = scale_center_to_shell_y - shell_radius
             scale_center_to_shell_edge_z = scale_center_to_shell_z - shell_radius
-            print "scale_center_to_shell_edge_x=%s" % str(scale_center_to_shell_edge_x)
 
             if scale_angle == 0.0:
 
