@@ -1048,12 +1048,12 @@ def get_dr_dzright_dzleft_to_CylindricalShape(shape, testShell, r, z_right, z_le
                     r1_min = math.sqrt((scale_center_to_shell_x-shell_half_length)**2 + (scale_center_to_shell_y-shell_radius)**2)*(1.0+TOLERANCE)
                     h1_min = r1_min/math.tan(scale_angle)
 
-        # TESTING Debug info
-        print "  *** testShell=%s, r=%s, z1=%s" % (str(testShell), r, z1)
-        print "  *** scale_angle=%s, tan_scale_angle=%s, scale_center_z=%s, scale_center_r=%s" % (scale_angle, tan_scale_angle, scale_center_z, scale_center_r)
-        print "  *** shell_radius=%s, shell_half_length=%s" % (shell_radius, shell_half_length)
-        print "  *** ref_to_shell_x=%s, ref_to_shell_y=%s, ref_to_shell_z=%s" % (ref_to_shell_x, ref_to_shell_y, ref_to_shell_z)
-        print "  *** scale_center_to_shell_x=%s, scale_center_to_shell_y=%s, scale_center_to_shell_z=%s" % (scale_center_to_shell_x, scale_center_to_shell_y, scale_center_to_shell_z)
+        # TODO TESTING Debug info
+        #print "  *** testShell=%s, r=%s, z1=%s" % (str(testShell), r, z1)
+        #print "  *** scale_angle=%s, tan_scale_angle=%s, scale_center_z=%s, scale_center_r=%s" % (scale_angle, tan_scale_angle, scale_center_z, scale_center_r)
+        #print "  *** shell_radius=%s, shell_half_length=%s" % (shell_radius, shell_half_length)
+        #print "  *** ref_to_shell_x=%s, ref_to_shell_y=%s, ref_to_shell_z=%s" % (ref_to_shell_x, ref_to_shell_y, ref_to_shell_z)
+        #print "  *** scale_center_to_shell_x=%s, scale_center_to_shell_y=%s, scale_center_to_shell_z=%s" % (scale_center_to_shell_x, scale_center_to_shell_y, scale_center_to_shell_z)
 
         ##### (2) Treat the situation accordingly
         print "Situation= ", situation_string[situation]
@@ -1191,7 +1191,6 @@ def get_dr_dzright_dzleft_to_CylindricalShape(shape, testShell, r, z_right, z_le
             #scale_center_shell_dist = (scale_center_to_shell * cos_angle_diff -
                                        #math.sqrt(shell_radius_sq - (ss_sq * sin_angle_diff * sin_angle_diff) ))
             assert scale_center_to_shell >= shell_radius
-            print "asin-value=%s" % str(math.sin(angle_diff)*scale_center_to_shell/shell_radius)
             ss_angle = math.asin(math.sin(angle_diff)*scale_center_to_shell/shell_radius)
             scale_center_shell_dist = shell_radius * math.sin(math.pi-(angle_diff+ss_angle)) / math.sin(angle_diff)
             assert scale_center_shell_dist>0 # TESTING
