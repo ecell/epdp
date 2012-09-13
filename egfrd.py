@@ -231,7 +231,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
         self.BD_ONLY_FLAG = False               # Will force the algorithm into Multi-creation, i.e. always to use BD
                                                 # Take care: This is for testing only! Keep this 'False' for normal sims!
 
-        self.BD_DT_HARDCORE_MIN = 1e-7          # This is to define a hardcore lower bound for the timestep that will be
+        self.BD_DT_HARDCORE_MIN = -1e-9         # This is to define a hardcore lower bound for the timestep that will be
                                                 # dynamically determined by the new BD scheme. It will prevent the algorithm
                                                 # to calculate ridiculously small timesteps, but will break detail balance.
                                                 # Take care: This is for testing only! Keep this at a negative value for normal sims!
@@ -2581,8 +2581,8 @@ t = %g
 steps = %d 
 \tSingle:\t%d\t(%.2f %%)\t(escape: %d, reaction: %d, bursted: %d)
 \tInteraction: %d\t(%.2f %%)\t(escape: %d, interaction: %d, bursted: %d)
-\tPair:\t%d\t(%.2f %%)\t(escape r: %d, R: %d, reaction pair: %d, single: %d, bursted: %d)
-\tMulti:\t%d\t(%.2f %%)\t(escape: %d, reaction pair: %d, single: %d, bursted: %d)
+\tPair:\t%d\t(%.2f %%)\t(r-escape: %d, R-escape: %d, reaction pair: %d, single: %d, bursted: %d)
+\tMulti:\t%d\t(%.2f %%)\t(diffusion: %d, escape: %d, reaction pair: %d, single: %d, bursted: %d)
 total reactions = %d
 rejected moves = %d
 ''' \
@@ -2606,6 +2606,7 @@ rejected moves = %d
                self.pair_steps[EventType.BURST],
                multi_steps,
                (100.0*multi_steps) / total_steps,
+               self.multi_steps[EventType.MULTI_DIFFUSION],
                self.multi_steps[EventType.MULTI_ESCAPE],
                self.multi_steps[EventType.MULTI_BIMOLECULAR_REACTION],
                self.multi_steps[EventType.MULTI_UNIMOLECULAR_REACTION],
