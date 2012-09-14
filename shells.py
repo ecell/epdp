@@ -945,38 +945,38 @@ def get_dr_dzright_dzleft_to_CylindricalShape(shape, testShell, r, z_right, z_le
                       # the static cylinder does not overlap with the flat side circle of the scaled cylinder
             else:
 
-                # Lauren's version
-                scale_center_to_shell_x    -= scale_center_r
-                scale_center_to_flatend_x   = scale_center_to_shell_x - shell_half_length
-                scale_center_to_critpoint_z = scale_center_to_shell_z - math.sqrt(shell_radius**2 - scale_center_to_shell_y**2) 
-                scale_center_to_lowpoint_z  = scale_center_to_shell_z - shell_radius
+                  # Lauren's version
+                  scale_center_to_shell_x    -= scale_center_r
+                  scale_center_to_flatend_x   = scale_center_to_shell_x - shell_half_length
+                  scale_center_to_critpoint_z = scale_center_to_shell_z - math.sqrt(shell_radius**2 - scale_center_to_shell_y**2) 
+                  scale_center_to_lowpoint_z  = scale_center_to_shell_z - shell_radius
 
-                # angle1
-                if scale_center_to_critpoint_z == 0:
-                    scale_center_to_shell_crit_angle_y = Pi/2
-                else:
-                    scale_center_to_shell_crit_angle_y = math.atan(scale_center_to_flatend_x/ scale_center_to_critpoint_z)
-                    if scale_center_to_critpoint_z < 0.0:
-                        scale_center_to_shell_crit_angle_y += Pi
-                # angle2
-                if scale_center_to_lowpoint_z == 0:
-                    scale_center_to_shell_low_angle_y = Pi/2
-                else:
-                    scale_center_to_shell_low_angle_y  = math.atan(scale_center_to_flatend_x/ scale_center_to_lowpoint_z )
-                    if scale_center_to_lowpoint_z < 0.0:
-                        scale_center_to_shell_low_angle_y += Pi
+                  # angle1
+                  if scale_center_to_critpoint_z == 0:
+                      scale_center_to_shell_crit_angle_y = Pi/2
+                  else:
+                      scale_center_to_shell_crit_angle_y = math.atan(scale_center_to_flatend_x/ scale_center_to_critpoint_z)
+                      if scale_center_to_critpoint_z < 0.0:
+                          scale_center_to_shell_crit_angle_y += Pi
+                  # angle2
+                  if scale_center_to_lowpoint_z == 0:
+                      scale_center_to_shell_low_angle_y = Pi/2
+                  else:
+                      scale_center_to_shell_low_angle_y  = math.atan(scale_center_to_flatend_x/ scale_center_to_lowpoint_z )
+                      if scale_center_to_lowpoint_z < 0.0:
+                          scale_center_to_shell_low_angle_y += Pi
 
 
-                if scale_angle <= scale_center_to_shell_crit_angle_y:
-                    situation = BARREL_HITS_FLAT
-                elif scale_center_to_shell_low_angle_y <= scale_angle:
-                    situation = FLAT_HITS_BARREL
-                else:
-                    assert scale_center_to_shell_crit_angle_y < scale_angle and \
-                          scale_angle < scale_center_to_shell_low_angle_y
-                    situation = EDGE_HITS_EDGE
-                    r1_min = (scale_center_to_shell_x - shell_half_length)*(1.0+TOLERANCE)
-                    h1_min = r1_min/math.tan(scale_angle)
+                  if scale_angle <= scale_center_to_shell_crit_angle_y:
+                      situation = BARREL_HITS_FLAT
+                  elif scale_center_to_shell_low_angle_y <= scale_angle:
+                      situation = FLAT_HITS_BARREL
+                  else:
+                      assert scale_center_to_shell_crit_angle_y < scale_angle and \
+                            scale_angle < scale_center_to_shell_low_angle_y
+                      situation = EDGE_HITS_EDGE
+                      r1_min = (scale_center_to_shell_x - shell_half_length)*(1.0+TOLERANCE)
+                      h1_min = r1_min/math.tan(scale_angle)
 
         elif (ref_to_shell_x2 < 0) and (ref_to_shell_y2 >= 0):
             # Quadrant 3
@@ -1096,7 +1096,7 @@ def get_dr_dzright_dzleft_to_CylindricalShape(shape, testShell, r, z_right, z_le
 
                     # The height and radius of the scaled cylinder remain unaltered
                     z1_new = z1
-                    r1_new = r
+                    r_new = r
 
                 else:
                 # There is a collision possible when z1 is scaled
