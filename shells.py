@@ -935,95 +935,121 @@ def get_dr_dzright_dzleft_to_CylindricalShape(shape, testShell, r, z_right, z_le
             # The case scale_angle=0, i.e. radius remaining constant at scaling, has to be treated separately
             # because in this case the mathematics in the standard case misdetect the collision situation
             if scale_angle == 0:
+                
+                if math.sqrt( (scale_center_to_shell_x - shell_half_length)**2 + scale_center_to_shell_y**2) < r :
+                # The lowest point of the static cylinder is within the radius/flat side circle of the scaling cylinder.
+                # Therefore, when the height is scaled, the flat side must hit the barrel of the static cylinder at the lowpoint.
+                    situation = FLAT_HITS_BARREL
 
-                  if math.sqrt( (scale_center_to_shell_x - shell_half_length)**2 + scale_center_to_shell_y**2) < r :
-                  # The lowest point of the static cylinder is within the radius/flat side circle of the scaling cylinder.
-                  # Therefore, when the height is scaled, the flat side must hit the barrel of the static cylinder at the lowpoint.
-                      situation = FLAT_HITS_BARREL
-
-                  else:
-                      situation = EDGE_HITS_EDGE
-                      # This will also properly treat the case in which there is no collision because the projection of
-                      # the static cylinder does not overlap with the flat side circle of the scaled cylinder
+                else:
+                    situation = EDGE_HITS_EDGE
+                    # This will also properly treat the case in which there is no collision because the projection of
+                    # the static cylinder does not overlap with the flat side circle of the scaled cylinder
             else:
-                  # case scale_angle >0
+                # case scale_angle >0
 
-                  # Two points on the edge of the static cylinder are of interest here:
-                  # - the "lowpoint", which is the point on the edge with the minimal z-distance to the scale center in the zy-plane
-                  # - the "critpoint" (critical point), which is the point on the edge with the shortest distance to the scale center                  
-                  scale_center_to_flatend_x   = (scale_center_to_shell_x - shell_half_length) - scale_center_r
-                  scale_center_to_lowpoint_x  = math.sqrt(( scale_center_to_shell_x - shell_half_length)**2 + scale_center_to_shell_y**2) - scale_center_r
-                      # TODO Is there no better way to include scale_center_r here?
-                  scale_center_to_critpoint_z = scale_center_to_shell_z - math.sqrt(shell_radius**2 - scale_center_to_shell_y**2) 
-                  scale_center_to_lowpoint_z  = scale_center_to_shell_z - shell_radius
+                # Two points on the edge of the static cylinder are of interest here:
+                # - the "lowpoint", which is the point on the edge with the minimal z-distance to the scale center in the zy-plane
+                # - the "critpoint" (critical point), which is the point on the edge with the shortest distance to the scale center                  
+                scale_center_to_flatend_x   = (scale_center_to_shell_x - shell_half_length) - scale_center_r
+                scale_center_to_lowpoint_x  = math.sqrt(( scale_center_to_shell_x - shell_half_length)**2 + scale_center_to_shell_y**2) - scale_center_r
+                    # TODO Is there no better way to include scale_center_r here?
+                scale_center_to_critpoint_z = scale_center_to_shell_z - math.sqrt(shell_radius**2 - scale_center_to_shell_y**2) 
+                scale_center_to_lowpoint_z  = scale_center_to_shell_z - shell_radius
 
-                  # Strategy:
-                  # - When the scale angle is smaller than the angle between the scaled cylinder's axis and the line
-                  #   that links the critpoint then we have a BARREL_HITS_FLAT situation.
-                  # - When the scale angle is bigger than the angle between the scaled cylinder's axis and the line
-                  #   that links the lowpoint then we are in a FLAT_HITS_BARREL situation.                  
-                  # - Everything else results in EDGE_HITS_EDGE.
+                # Strategy:
+                # - When the scale angle is smaller than the angle between the scaled cylinder's axis and the line
+                #   that links the critpoint then we have a BARREL_HITS_FLAT situation.
+                # - When the scale angle is bigger than the angle between the scaled cylinder's axis and the line
+                #   that links the lowpoint then we are in a FLAT_HITS_BARREL situation.                  
+                # - Everything else results in EDGE_HITS_EDGE.
 
-                  # Calculate the angle between the scaled cylinder's axis and the line that links the scale center and lowpoint
-                  if scale_center_to_critpoint_z == 0:
-                      scale_center_to_shell_crit_angle_y = Pi/2
-                  else:
-                      scale_center_to_shell_crit_angle_y = math.atan(scale_center_to_flatend_x/ scale_center_to_critpoint_z)
-                      if scale_center_to_critpoint_z < 0.0:
-                          scale_center_to_shell_crit_angle_y += Pi
+                # Calculate the angle between the scaled cylinder's axis and the line that links the scale center and lowpoint
+                if scale_center_to_critpoint_z == 0:
+                    scale_center_to_shell_crit_angle_y = Pi/2
+                else:
+                    scale_center_to_shell_crit_angle_y = math.atan(scale_center_to_flatend_x/ scale_center_to_critpoint_z)
+                    if scale_center_to_critpoint_z < 0.0:
+                        scale_center_to_shell_crit_angle_y += Pi
 
-                  # Calculate the angle between the scaled cylinder's axis and the line that links the scale center and critpoint
-                  if scale_center_to_lowpoint_z == 0:
-                      scale_center_to_shell_low_angle_y = Pi/2
-                  else:
-                      scale_center_to_shell_low_angle_y  = math.atan(scale_center_to_lowpoint_x/ scale_center_to_lowpoint_z )
-                      if scale_center_to_lowpoint_z < 0.0:
-                          scale_center_to_shell_low_angle_y += Pi
+                # Calculate the angle between the scaled cylinder's axis and the line that links the scale center and critpoint
+                if scale_center_to_lowpoint_z == 0:
+                    scale_center_to_shell_low_angle_y = Pi/2
+                else:
+                    scale_center_to_shell_low_angle_y  = math.atan(scale_center_to_lowpoint_x/ scale_center_to_lowpoint_z )
+                    if scale_center_to_lowpoint_z < 0.0:
+                        scale_center_to_shell_low_angle_y += Pi
 
-                  # Compare the angles to determine the situation
-                  if scale_angle <= scale_center_to_shell_crit_angle_y:
-                      situation = BARREL_HITS_FLAT
-                  elif scale_angle >= scale_center_to_shell_low_angle_y:
-                      situation = FLAT_HITS_BARREL
-                  else:
-                      assert scale_center_to_shell_crit_angle_y < scale_angle and \
-                             scale_angle < scale_center_to_shell_low_angle_y
-                      situation = EDGE_HITS_EDGE
-                      r1_min = (scale_center_to_shell_x - shell_half_length)*(1.0+TOLERANCE)
-                      h1_min = r1_min/math.tan(scale_angle)
+                # Compare the angles to determine the situation
+                if scale_angle <= scale_center_to_shell_crit_angle_y:
+                    situation = BARREL_HITS_FLAT
+                elif scale_angle >= scale_center_to_shell_low_angle_y:
+                    situation = FLAT_HITS_BARREL
+                else:
+                    assert scale_center_to_shell_crit_angle_y < scale_angle and \
+                            scale_angle < scale_center_to_shell_low_angle_y
+                    situation = EDGE_HITS_EDGE
+                    r1_min = (scale_center_to_shell_x - shell_half_length)*(1.0+TOLERANCE)
+                    h1_min = r1_min/math.tan(scale_angle)
 
         elif (ref_to_shell_x2 < 0) and (ref_to_shell_y2 >= 0):
             # Quadrant 3
             print "Quadrant 3"
 
-            scale_center_to_shell_y -= scale_center_r  # TODO Is there no better way to include scale_center_r here?
-            scale_center_to_critpoint_y = scale_center_to_shell_y - shell_radius
-            scale_center_to_lowpoint_z = scale_center_to_shell_z - shell_radius
+            # The case scale_angle=0, i.e. radius remaining constant at scaling, has to be treated separately
+            # because in this case the mathematics in the standard case misdetect the collision situation
+            if scale_angle == 0:
 
-            # angle1
-            if scale_center_to_shell_z == 0.0:
-                scale_center_to_shell_crit_angle_x = Pi/2.0
-            else:
-                scale_center_to_shell_crit_angle_x = math.atan(scale_center_to_critpoint_y / scale_center_to_shell_z)
-                if scale_center_to_shell_z < 0.0:
-                    scale_center_to_shell_crit_angle_x += Pi
-            # angle2
-            if scale_center_to_lowpoint_z == 0.0:
-                scale_center_to_shell_low_angle_x = Pi/2.0
-            else:
-                scale_center_to_shell_low_angle_x  = math.atan(scale_center_to_shell_y/scale_center_to_lowpoint_z)
-                if scale_center_to_lowpoint_z < 0.0:
-                    scale_center_to_shell_low_angle_x += Pi
+                if scale_center_to_shell_y < r :
+                # The lowest point of the static cylinder is within the radius/flat side circle of the scaling cylinder.
+                # Therefore, when the height is scaled, the flat side must hit the barrel of the static cylinder at the lowpoint.
+                    situation = FLAT_HITS_BARREL
 
+                elif scale_center_to_shell_y - shell_radius <= r:
+                    situation = EDGE_HITS_BARREL
 
-            if scale_angle <= scale_center_to_shell_crit_angle_x:
-                situation = BARREL_HITS_BARREL
-            elif scale_center_to_shell_low_angle_x <= scale_angle:
-                situation = FLAT_HITS_BARREL
+                else:
+                    # In this case the cylinders do not hit; this is treated properly by the BARREL_HITS_BARREL routine
+                    situation = BARREL_HITS_BARREL
+
             else:
-                assert scale_center_to_shell_crit_angle_x < scale_angle and \
-                       scale_angle < scale_center_to_shell_low_angle_x
-                situation = EDGE_HITS_BARREL
+
+                # Two points on the edge of the static cylinder are of interest here:
+                # - the "lowpoint", which is the point on the edge with the minimal z-distance to the scale center in the zy-plane
+                # - the "critpoint" (critical point), which is the point on the edge with the shortest distance to the scale center   
+                scale_center_to_shell_y -= scale_center_r  # TODO Is there no better way to include scale_center_r here?
+                scale_center_to_critpoint_y = scale_center_to_shell_y - shell_radius
+                scale_center_to_lowpoint_z = scale_center_to_shell_z - shell_radius
+
+                # Calculate the angle between the scaled cylinder's axis and the line that links the scale center and critpoint
+                if scale_center_to_shell_z == 0.0:
+                    scale_center_to_shell_crit_angle_x = Pi/2.0
+                else:
+                    scale_center_to_shell_crit_angle_x = math.atan(scale_center_to_critpoint_y / scale_center_to_shell_z)
+                    if scale_center_to_shell_z < 0.0:
+                        scale_center_to_shell_crit_angle_x += Pi
+                # Calculate the angle between the scaled cylinder's axis and the line that links the scale center and lowpoint
+                if scale_center_to_lowpoint_z == 0.0:
+                    scale_center_to_shell_low_angle_x = Pi/2.0
+                else:
+                    scale_center_to_shell_low_angle_x  = math.atan(scale_center_to_shell_y/scale_center_to_lowpoint_z)
+                    if scale_center_to_lowpoint_z < 0.0:
+                        scale_center_to_shell_low_angle_x += Pi
+
+                # Determine which collision will happen:
+                # If the scale angle is bigger than the angle between the scaled cylinder's axis and the lowpoint
+                # then we hit the barrel of the static cylinder when scaling.
+                # If the scale angle is smaller than the angle between the scaled cylinder's axis and the critpoint
+                # the barrel of the scaled cylinder will hit the barrel of the static cylinder.
+                # Otherwise we have the edge of the scaled cylinder hitting the barrel of the static cylinder.
+                if scale_angle <= scale_center_to_shell_crit_angle_x:
+                    situation = BARREL_HITS_BARREL
+                elif scale_center_to_shell_low_angle_x <= scale_angle:
+                    situation = FLAT_HITS_BARREL
+                else:
+                    assert scale_center_to_shell_crit_angle_x < scale_angle and \
+                          scale_angle < scale_center_to_shell_low_angle_x
+                    situation = EDGE_HITS_BARREL
 
         else:
             # Quadrant 4
@@ -1306,8 +1332,14 @@ def get_dr_dzright_dzleft_to_CylindricalShape(shape, testShell, r, z_right, z_le
 
         elif situation == BARREL_HITS_BARREL:
             # The scaling cylinder hits the barrel of 'shell' with its barrel
-            r_new = min(r, (ref_to_shell_y - shell_radius))
-            z1_new = min(z1, z1_function(r_new))
+            if scale_angle == 0.0:
+                # In this case the cylinders can never hit; just leave the lenghts as they are
+                r_new = r
+                z1_new = z1
+            else:
+                # case scale_angle > 0
+                r_new = min(r, (ref_to_shell_y - shell_radius))
+                z1_new = min(z1, z1_function(r_new))
 
         else:
             raise RuntimeError('get_dr_dzright_dzleft_to_CylindricalShape: Bad situation for making cylinders against cylinders.')
