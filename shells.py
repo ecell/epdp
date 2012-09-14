@@ -962,7 +962,7 @@ def get_dr_dzright_dzleft_to_CylindricalShape(shape, testShell, r, z_right, z_le
                   #   that links the critpoint then we have a BARREL_HITS_FLAT situation.
                   # - When the scale angle is bigger than the angle between the scaled cylinder's axis and the line
                   #   that links the lowpoint then we are in a FLAT_HITS_BARREL situation.                  
-                  # - Everything else results in EDGE_HITS_EDGE
+                  # - Everything else results in EDGE_HITS_EDGE.
 
                   # Calculate the angle between the scaled cylinder's axis and the line that links the scale center and lowpoint
                   if scale_center_to_critpoint_z == 0:
@@ -976,7 +976,7 @@ def get_dr_dzright_dzleft_to_CylindricalShape(shape, testShell, r, z_right, z_le
                   if scale_center_to_lowpoint_z == 0:
                       scale_center_to_shell_low_angle_y = Pi/2
                   else:
-                      scale_center_to_shell_low_angle_y  = math.atan(scale_center_to_flatend_x/ scale_center_to_lowpoint_z )
+                      scale_center_to_shell_low_angle_y  = math.atan(scale_center_to_lowpoint_x/ scale_center_to_lowpoint_z )
                       if scale_center_to_lowpoint_z < 0.0:
                           scale_center_to_shell_low_angle_y += Pi
 
@@ -987,7 +987,7 @@ def get_dr_dzright_dzleft_to_CylindricalShape(shape, testShell, r, z_right, z_le
                       situation = FLAT_HITS_BARREL
                   else:
                       assert scale_center_to_shell_crit_angle_y < scale_angle and \
-                            scale_angle < scale_center_to_shell_low_angle_y
+                             scale_angle < scale_center_to_shell_low_angle_y
                       situation = EDGE_HITS_EDGE
                       r1_min = (scale_center_to_shell_x - shell_half_length)*(1.0+TOLERANCE)
                       h1_min = r1_min/math.tan(scale_angle)
@@ -1057,8 +1057,8 @@ def get_dr_dzright_dzleft_to_CylindricalShape(shape, testShell, r, z_right, z_le
                 if scale_center_to_lowpoint_z < 0.0:
                     scale_center_to_shell_low_angle_xy += Pi
 
-            # First treat the special case: when the scale center is further away from the z-axis than the "critpoint" (in the xy-plane)
-            # This also treats the case in which scale_angle = 0 and the scaled cylinder is directly below the static shell
+            # First treat the special case: when the scale center is further away from the z-axis than the "critpoint" (in the xy-plane).
+            # This also treats the case in which scale_angle = 0 and the scaled cylinder is directly below the static shell.
             if scale_center_to_critpoint_r <= 0.0:
                 situation = EDGE_HITS_EDGE
 
