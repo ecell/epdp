@@ -1126,7 +1126,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
                         newposA, newposB, sidA, sidB = MixedPair2D3D.do_back_transform(reactant_pos, iv, DA, DB,
                                                                                        productA_radius, productB_radius,
                                                                                        reactant_structure, reactant_structure,
-                                                                                       unit_z)
+                                                                                       unit_z, self.world)
                         # the second reactant_structure parameter passed is ignored here
 
                         if default:
@@ -1142,11 +1142,14 @@ class EGFRDSimulator(ParticleSimulatorBase):
                         iv = random_vector(particle_radius12 * MixedPair1D3D.calc_r_scaling_factor(DA, DB))
                         iv *= MINIMAL_SEPARATION_FACTOR
 
+                        unit_z = reactant_structure.shape.unit_z
+
                         newposA, newposB, sidA, sidB = MixedPair1D3D.do_back_transform(reactant_pos, iv, DA, DB,
                                                                                        productA_radius, productB_radius,
-                                                                                       reactant_structure, reactant_structure)
+                                                                                       reactant_structure, reactant_structure,
+                                                                                       unit_z, self.world)
                         # the second reactant_structure parameter passed is ignored here
-                        # TODO: Why is there no unit_z passed here?
+                        # unit_z is passed here for completeness but not used in the method
 
                         newposB = self.world.apply_boundary(newposB)
                         if __debug__:
@@ -1179,7 +1182,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
                     newpos1, newpos2, sid1, sid2 = SimplePair.do_back_transform(reactant_pos, iv, D1, D2,
                                                                                 product1_radius, product2_radius,
                                                                                 reactant_structure, reactant_structure,
-                                                                                unit_z)
+                                                                                unit_z, self.world)
                     # for the SimplePair do_back_transform() requires that the two structures passed are the same
                     # because it will check for this!
 
@@ -1234,7 +1237,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
                                                                                                          D1, D2,
                                                                                                          product1_radius, product2_radius,
                                                                                                          reactant_structure, target_structure,
-                                                                                                         unit_z)
+                                                                                                         unit_z, self.world)
 
                             newpos1, sid1 = self.world.apply_boundary((newpos1, sid1))
                             newpos2, sid2 = self.world.apply_boundary((newpos2, sid2))
