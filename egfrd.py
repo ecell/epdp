@@ -1211,14 +1211,14 @@ class EGFRDSimulator(ParticleSimulatorBase):
                             out_pos = newpos2
                             in_pos  = newpos1
 
-                        assert(newpos1_is_out * newpos2_is_out == 0)
-                            # at most one particle should be out if the CoM did not move out of the plane!
+                        if newpos1_is_out * newpos2_is_out == 0:
+                            log.warning('single reaction: both product positions lie out of plane (reactant_pos=%s, newpos1=%s, newpos2=%s)' % (reactant_pos, newpos1, newpos2) )
 
                         if(newpos1_is_out or newpos2_is_out):
 
                             # Get the closest plane
                             neighbors = []
-                            neighbors = self.geometrycontainer.get_neighbor_surfaces(out_pos, reactant_structure.id, ignores=[])
+                            neighbors = get_neighbor_surfaces(self.world, out_pos, reactant_structure.id, ignores=[])
 
                             neighbor_planes = []
                             for structure, structure_distance in neighbors:
