@@ -687,35 +687,7 @@ class PlanarSurfaceTransitionPair(SimplePair, hasSphericalShell):
 
             # Re-apply boundaries
             new_pos1, new_sid1 = world.apply_boundary((pos1, structure1.id))
-            new_pos2, new_sid2 = world.apply_boundary((pos2, structure1.id))
-
-        
-        ## Check whether the new positions will end up on the same structure
-        ## by comparing their orthogonal components in the coordinate system of
-        ## structure2 (which is assumed to be orthogonal to structure1).
-        ## These components also are used to calculate the safety factor for
-        ## interparticle vector enlargement in case that the two particles
-        ## indeed are on two different planes.
-        #_, (pos1_orth, _) = structure2.project_point(pos1)
-        #_, (pos2_orth, _) = structure2.project_point(pos2)
-
-        #if pos1_orth < 0.0 or pos2_orth < 0.0 :
-            ## The particles will end up on different planes, that means
-            ## that one of the points will be deflected.
-            ## The interparticle vector therefore must be enlarged to
-            ## ensure that there is no overlap after deflection.
-            ## Calculate the safety (= IPV enlargement) factor
-            #l_iv = length(iv)
-            #assert(2.0*abs(pos1_orth*pos2_orth) < (l_iv*l_iv))  # That should never fail!
-            #iv_safety = 1.0/( 1.0 - 2.0*abs(pos1_orth*pos2_orth)/(l_iv*l_iv) )
-            ## Recalculate the interparticle vector and new positions
-            #iv_rescaled = iv_safety * iv
-            #pos1 = com - iv_rescaled * (D1 / D_tot)
-            #pos2 = com + iv_rescaled * (D2 / D_tot)
-
-        ## Apply boundary; this will also correctly set the new structure IDs
-        #new_pos1, new_sid1 = world.apply_boundary((pos1, structure1.id))
-        #new_pos2, new_sid2 = world.apply_boundary((pos2, structure1.id))          
+            new_pos2, new_sid2 = world.apply_boundary((pos2, structure1.id))               
 
         # TODO: Check that the new positions are in their new planes and 
         # maybe also that pos1 and pos2 are in structure1 in the first place?

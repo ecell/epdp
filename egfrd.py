@@ -1188,18 +1188,6 @@ class EGFRDSimulator(ParticleSimulatorBase):
                     # of the potential structure change and potentially resulting overlaps.
                     if isinstance(reactant_structure, PlanarSurface):
 
-                        ## Get the closest plane
-                        #neighbors = []
-                        #neighbors = get_neighbor_surfaces(self.world, out_pos, reactant_structure.id, ignores=[])
-
-                        #neighbor_planes = []
-                        #for structure, structure_distance in neighbors:
-                            #if isinstance(structure, PlanarSurface):
-                                #neighbor_planes.append((structure, structure_distance))
-                    
-                        #neighbor_planes = sorted(neighbor_planes, key=lambda plane_and_dist: plane_and_dist[1])
-                        #target_structure, _  = neighbor_planes[0]
-
                         # Recalculate the back transform taking into account the deflection
                         newpos1, newpos2, sid1, sid2 = PlanarSurfaceTransitionPair.do_back_transform(reactant_pos, iv,
                                                                                                       D1, D2,
