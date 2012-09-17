@@ -688,21 +688,28 @@ class PlanarSurfaceTransitionPair(SimplePair, hasSphericalShell):
         # if not, they have to be deflected on structure2.
         # The structure.deflect() method requires a starting point and a displacement; we can construct
         # bogus parameters for these by subtracting the center position of structure1 from pos1 and pos2.
-        s1_ctr = structure1.shape.position
+        #s1_ctr = structure1.shape.position
 
-        new_pos1, changeflag1 = structure2.deflect(s1_ctr, pos1 - s1_ctr)   #TODO replace by world.apply_boundary
-        new_pos2, changeflag2 = structure2.deflect(s1_ctr, pos2 - s1_ctr)
+        #new_pos1, changeflag1 = structure2.deflect(s1_ctr, pos1 - s1_ctr)   #TODO replace by world.apply_boundary
+        #new_pos2, changeflag2 = structure2.deflect(s1_ctr, pos2 - s1_ctr)      
         
-        # adjust the structure_ids of the particles
-        if changeflag1 == 0 :
-            new_sid1 = structure1.id
-        else :
-            new_sid1 = structure2.id
+        ## adjust the structure_ids of the particles
+        #if changeflag1 == 0 :
+            #new_sid1 = structure1.id
+        #else :
+            #new_sid1 = structure2.id
 
-        if changeflag2 == 0 :
-            new_sid2 = structure1.id
-        else :
-            new_sid2 = structure2.id
+        #if changeflag2 == 0 :
+            #new_sid2 = structure1.id
+        #else :
+            #new_sid2 = structure2.id
+
+        # TESTING Using world.apply_boundary here not work because a classmethod does not know anything outside...
+        # Therefore we return the raw positions still in structure1 here; make sure apply_boundary is invoked later
+        new_pos1 = pos1
+        new_pos2 = pos2
+        new_sid1 = structure1.id
+        new_sid2 = structure1.id
 
         # TODO: Check that the new positions are in their new planes and 
         # maybe also that pos1 and pos2 are in structure1 in the first place?

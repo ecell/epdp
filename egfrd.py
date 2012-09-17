@@ -1211,8 +1211,9 @@ class EGFRDSimulator(ParticleSimulatorBase):
                             out_pos = newpos2
                             in_pos  = newpos1
 
-                        if newpos1_is_out * newpos2_is_out == 0:
-                            log.warning('single reaction: both product positions lie out of plane (reactant_pos=%s, newpos1=%s, newpos2=%s)' % (reactant_pos, newpos1, newpos2) )
+                        if newpos1_is_out * newpos2_is_out > 0:  # TESTING
+                            log.warning('single reaction: both product positions lie out of plane (reactant_pos=%s, iv=%s, newpos1=%s, newpos2=%s)' % (reactant_pos, iv, newpos1, newpos2) )
+                            assert newpos1_is_out * newpos2_is_out == 0
 
                         if(newpos1_is_out or newpos2_is_out):
 
@@ -1234,6 +1235,9 @@ class EGFRDSimulator(ParticleSimulatorBase):
                                                                                                          product1_radius, product2_radius,
                                                                                                          reactant_structure, target_structure,
                                                                                                          unit_z)
+
+                            newpos1, sid1 = self.world.apply_boundary((newpos1, sid1))
+                            newpos2, sid2 = self.world.apply_boundary((newpos2, sid2))
 
                         # If none of the new pos. is out the call to SimplePair.do_back_transform() should have
                         # produced the correct positions.
