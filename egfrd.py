@@ -1169,7 +1169,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
             #     If the two particles stay on the same structure type as the reactant
             #     (but not necessarily on the same structure!)
             else:
-                # generate new positions in the structure
+                # Case product1_structure_type_id == product2_structure_type_id
+                # Generate new positions in the structure
                 # TODO Make this into a generator
                 product_pos_list = []
                 for _ in range(self.dissociation_retry_moves):
@@ -1178,72 +1179,44 @@ class EGFRDSimulator(ParticleSimulatorBase):
                     iv = _random_vector(reactant_structure, particle_radius12, self.rng)
                     iv *= MINIMAL_SEPARATION_FACTOR
 
-                    unit_z = reactant_structure.shape.unit_z    # not used
-                    newpos1, newpos2, sid1, sid2 = SimplePair.do_back_transform(reactant_pos, iv, D1, D2,
-                                                                                product1_radius, product2_radius,
-                                                                                reactant_structure, reactant_structure,
-                                                                                unit_z, self.world)
-                    # for the SimplePair do_back_transform() requires that the two structures passed are the same
-                    # because it will check for this!
+                    unit_z = reactant_structure.shape.unit_z    # not used but passed for completeness
 
                     # If reactant_structure is a finite PlanarSurface the new position potentially can
                     # lie outside of the plane. The two product particles then will end up on different
-                    # planes of the same structure_type.
-                    #
-                    # In this case we have to:
-                    #
-                    # (1) Check whether one of the new positions are out of plane reactant_structure
-                    #     (note that this can be the case for at most one of the particles).
-                    # (2) If yes, find the plane that they should be deflected to, which is
-                    #     the closest one with respect to the new position.
-                    # (3) Calculate the new postions again using the correct back transform function.
+                    # planes of the same structure_type. Therefore this case is treated separately.
+                    # We use a specific do_back_transform method here which automatically takes care
+                    # of the potential structure change and potentially resulting overlaps.
                     if isinstance(reactant_structure, PlanarSurface):
 
-                        dist1 = self.world.distance(reactant_structure.shape, newpos1)
-                        dist2 = self.world.distance(reactant_structure.shape, newpos2)
+                        ## Get the closest plane
+                        #neighbors = []
+                        #neighbors = get_neighbor_surfaces(self.world, out_pos, reactant_structure.id, ignores=[])
 
-                        newpos1_is_out = 0
-                        newpos2_is_out = 0
-                        if(dist1 > 0.0):
-                            newpos1_is_out = 1
-                            out_pos = newpos1
-                            in_pos  = newpos2
+                        #neighbor_planes = []
+                        #for structure, structure_distance in neighbors:
+                            #if isinstance(structure, PlanarSurface):
+                                #neighbor_planes.append((structure, structure_distance))
+                    
+                        #neighbor_planes = sorted(neighbor_planes, key=lambda plane_and_dist: plane_and_dist[1])
+                        #target_structure, _  = neighbor_planes[0]
 
-                        if(dist2 > 0.0):
-                            newpos2_is_out = 1
-                            out_pos = newpos2
-                            in_pos  = newpos1
-
-                        if newpos1_is_out * newpos2_is_out > 0:  # TESTING
-                            log.warning('single reaction: both product positions lie out of plane (reactant_pos=%s, iv=%s, newpos1=%s, newpos2=%s)' % (reactant_pos, iv, newpos1, newpos2) )
-                            assert newpos1_is_out * newpos2_is_out == 0
-
-                        if(newpos1_is_out or newpos2_is_out):
-
-                            # Get the closest plane
-                            neighbors = []
-                            neighbors = get_neighbor_surfaces(self.world, out_pos, reactant_structure.id, ignores=[])
-
-                            neighbor_planes = []
-                            for structure, structure_distance in neighbors:
-                                if isinstance(structure, PlanarSurface):
-                                    neighbor_planes.append((structure, structure_distance))
+                        # Recalculate the back transform taking into account the deflection
+                        newpos1, newpos2, sid1, sid2 = PlanarSurfaceTransitionPair.do_back_transform(reactant_pos, iv,
+                                                                                                      D1, D2,
+                                                                                                      product1_radius, product2_radius,
+                                                                                                      reactant_structure, reactant_structure,
+                                                                                                      unit_z, self.world)
+                    else:
                         
-                            neighbor_planes = sorted(neighbor_planes, key=lambda plane_and_dist: plane_and_dist[1])
-                            target_structure, _  = neighbor_planes[0]
+                        # Calculate the standard back transform
+                        newpos1, newpos2, sid1, sid2 = SimplePair.do_back_transform(reactant_pos, iv, D1, D2,
+                                                                                    product1_radius, product2_radius,
+                                                                                    reactant_structure, reactant_structure,
+                                                                                    unit_z, self.world)
+                        # for the SimplePair do_back_transform() requires that the two structures passed are the same
+                        # because it will check for this!
 
-                            # Recalculate the back transform taking into account the deflection
-                            newpos1, newpos2, sid1, sid2 = PlanarSurfaceTransitionPair.do_back_transform(reactant_pos, iv,
-                                                                                                         D1, D2,
-                                                                                                         product1_radius, product2_radius,
-                                                                                                         reactant_structure, target_structure,
-                                                                                                         unit_z, self.world)
-
-                        # If none of the new pos. is out the call to SimplePair.do_back_transform() should have
-                        # produced the correct positions.
-
-                # End of special treatment for PlanarSurface particles
-                                        
+                # Pass on the newly generated information
                 product_pos_list.append((newpos1, newpos2))
                 product1_structure_id = sid1
                 product2_structure_id = sid2
