@@ -1239,9 +1239,6 @@ class EGFRDSimulator(ParticleSimulatorBase):
                                                                                                          reactant_structure, target_structure,
                                                                                                          unit_z, self.world)
 
-                            newpos1, sid1 = self.world.apply_boundary((newpos1, sid1))
-                            newpos2, sid2 = self.world.apply_boundary((newpos2, sid2))
-
                         # If none of the new pos. is out the call to SimplePair.do_back_transform() should have
                         # produced the correct positions.
 

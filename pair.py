@@ -652,21 +652,21 @@ class PlanarSurfaceTransitionPair(SimplePair, hasSphericalShell):
         # structure should be = structure1, but for safety we use the structures
         # inherited from the test shell
 
-        # Calculate the new positions still in structure1
+        # Calculate the new positions (still in structure1)
         D_tot = D1 + D2
         pos1 = com - iv * (D1 / D_tot)
         pos2 = com + iv * (D2 / D_tot)
 
         # Check whether the new positions will end up on the same structure
         # by comparing their orthogonal components in the coordinate system of
-        # structure2 (which is orthogonal to structure1).
+        # structure2 (which is assumed to be orthogonal to structure1).
         # These components also are used to calculate the safety factor for
         # interparticle vector enlargement in case that the two particles
         # indeed are on two different planes.
         _, (pos1_orth, _) = structure2.project_point(pos1)
         _, (pos2_orth, _) = structure2.project_point(pos2)
 
-        if( pos1_orth * pos2_orth < 0.0 ) :
+        if pos1_orth < 0.0 or pos2_orth < 0.0 :
             # The particles will end up on different planes, that means
             # that one of the points will be deflected.
             # The interparticle vector therefore must be enlarged to
@@ -679,12 +679,15 @@ class PlanarSurfaceTransitionPair(SimplePair, hasSphericalShell):
             iv_rescaled = iv_safety * iv
             pos1 = com - iv_rescaled * (D1 / D_tot)
             pos2 = com + iv_rescaled * (D2 / D_tot)
-                
+
+        # Apply boundary; this will also correctly set the new structure IDs
+        new_pos1, new_sid1 = world.apply_boundary((pos1, structure1.id))
+        new_pos2, new_sid2 = world.apply_boundary((pos2, structure1.id))                
 
         # TODO: Check that the new positions are in their new planes and 
         # maybe also that pos1 and pos2 are in structure1 in the first place?
 
-        return pos1, pos2, structure1.id, structure1.id
+        return new_pos1, new_pos2, new_sid1, new_sid2
 
     def draw_new_com(self, dt, event_type):
         # Draws a new coordinate for the CoM in world coordinates.
