@@ -1550,7 +1550,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
         for surface, surface_distance in surface_distances:
             if isinstance(surface, PlanarSurface) and isinstance(single.structure, PlanarSurface):
                 # a transition going from one plane to the next can be initiated from a distance    TODO still not sure this is the right place
-                surface_horizon = single_radius * SINGLE_SHELL_FACTOR * 2        # HACK  to be balanced
+                surface_horizon = single_radius * (SINGLE_SHELL_FACTOR - 1.0)
             elif isinstance(surface, PlanarSurface) or isinstance(surface, DiskSurface):
                 # with a planar or disk surface it is the center of mass that 'looks around'
                 surface_horizon = single_radius * (SINGLE_SHELL_FACTOR - 1.0)
@@ -1833,7 +1833,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
                     self.single_steps[single.event_type] += 1
                 elif single.event_type == EventType.BURST:
                     self.single_steps[single.event_type] += 1
-                else if __debug__:
+                elif __debug__:
                     log.warning('Omitting to count a single event with unforeseen event type (%s).' % single.event_type)
                     
 

@@ -1627,7 +1627,7 @@ class PlanarSurfaceTransitionSingletestShell(SphericaltestShell, testTransitionS
         # the target surface. Make sure that min_offset > 0.0, because only then it is
         # guaranteed that there is always a certain probability to cross the edge even
         # if the shell with minimal radius is constructed
-        return self.distance_to_target_structure + self.pid_particle_pair[1].radius
+        return self.distance_to_target_structure + self.pid_particle_pair[1].radius * SINGLE_SHELL_FACTOR
 
 #####
 class PlanarSurfaceTransitionPairtestShell(SphericaltestShell, testPlanarSurfaceTransitionPair):
