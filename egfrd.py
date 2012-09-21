@@ -1831,7 +1831,11 @@ class EGFRDSimulator(ParticleSimulatorBase):
                 # Update statistics
                 if single.event_type == EventType.SINGLE_ESCAPE:
                     self.single_steps[single.event_type] += 1
-                    # TODO count burst events ?
+                elif single.event_type == EventType.BURST:
+                    self.single_steps[single.event_type] += 1
+                else if __debug__:
+                    log.warning('Omitting to count a single event with unforeseen event type (%s).' % single.event_type)
+                    
 
             domains = zero_singles_b
 
