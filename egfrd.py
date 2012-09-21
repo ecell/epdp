@@ -224,7 +224,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
         self.DEFAULT_DT_FACTOR = 1e-5           # Diffusion time prefactor in oldBD algortithm to determine time step.
         
-        self.DEFAULT_STEP_SIZE_FACTOR = 0.05    # The maximum step size in the newBD algorithm is determined as DSSF * sigma_min.  # TESTING was 0.05
+        self.DEFAULT_STEP_SIZE_FACTOR = 0.05    # The maximum step size in the newBD algorithm is determined as DSSF * sigma_min.
                                                 # Make sure that DEFAULT_STEP_SIZE_FACTOR < MULTI_SHELL_FACTOR, or else the 
                                                 # reaction volume sticks out of the multi. 
 
@@ -466,9 +466,9 @@ class EGFRDSimulator(ParticleSimulatorBase):
                 # TODO What is best solution here? Usually no prob, -> just let 
                 # user know?
                 if self.zero_steps >= max(self.scheduler.size * 3, self.MAX_NUM_DT0_STEPS): 
-                    #raise RuntimeError('too many dt=zero steps. '
-                    #                   'Simulator halted?'
-                    #                'dt= %.10g-%.10g' % (self.scheduler.top[1].time, self.t))
+                    raise RuntimeError('too many dt=zero steps. '
+                                       'Simulator halted?'
+                                    'dt= %.10g-%.10g' % (self.scheduler.top[1].time, self.t))
                     log.warning('dt=zero step, working in s.t >> dt~0 Python limit.')
             else:
                 self.zero_steps = 0
@@ -1728,13 +1728,16 @@ class EGFRDSimulator(ParticleSimulatorBase):
     # produced by a single. The single can be a NonInteractionSingle or an InteractionSingle.
     # Note that this method is also called when a single is bursted, in that case the event
     # is a BURST event.
-    # Note that 'ignore' should already contain the id of 'pair'.
-    # Returns:
-    # - the 'domains' that were the results of the processing. This can be a newly made domain
-    #   (since make_new_domain is also called from here) or zero_singles that are the result of
-    #   the process. Note that these could be many since the event can induce recursive bursting.
-    # - the updated ignore list. This contains the id of the 'single' domain, ids of domains
-    #   bursted in the process and the ids of zero-dt singles.
+    #
+    # Note that 'ignore' should already contain the id of 'single'.
+    #
+    # This method returns:
+    #
+    # - the 'domains' that were created as a result of the processing. This can be a newly made domains
+    #   (since make_new_domain is also called from here) or zero_singles
+    #   Note that these could be many since the event can induce recursive bursting. 
+    # - the updated ignore list. This contains the id of the 'single' domain, IDs of domains
+    #   bursted in the process and the IDs of zero-dt singles.
 
         if __debug__:
 #            # TODO assert that there is no event associated with this domain in the scheduler
@@ -1759,7 +1762,6 @@ class EGFRDSimulator(ParticleSimulatorBase):
                 log.info('single = %s' % single)
             self.add_domain_event(single)
             domains = [single]
-
 
 
 
@@ -1814,39 +1816,44 @@ class EGFRDSimulator(ParticleSimulatorBase):
                     log.info('reactant = %s' % single)
 
                 if single.event_type == EventType.SINGLE_REACTION:
-                    self.single_steps[single.event_type] += 1       # TODO counters should also be updated for escape events
+                    self.single_steps[single.event_type] += 1
                     particles, zero_singles_b, ignore = self.fire_single_reaction(single, newpos, struct_id, ignore)
                     # The 'zero_singles_b' list now contains the resulting singles of a putative burst
                     # that occured in fire_single_reaction
 
                 else:
-                    self.interaction_steps[single.event_type] += 1  # TODO similarly here
+                    self.interaction_steps[single.event_type] += 1
                     particles, zero_singles_b, ignore = self.fire_interaction(single, newpos, struct_id, ignore)
 
             else:
                 particles = self.fire_move(single, newpos, struct_id)
-                zero_singles_b = []     # no bursting takes place
-                # ignore is unchanged
+                zero_singles_b = []   # no bursting takes place, ignore list remains unchanged
+                # Update statistics
+                if single.event_type == EventType.SINGLE_ESCAPE:
+                    self.single_steps[single.event_type] += 1
+                    # TODO count burst events ?
+
             domains = zero_singles_b
 
-            ### 5. Make a (new) domain (reuse) domain for each particle(s)
+            ### 5. Make a new domain (or reuse the old one) for each particle(s)
             #      (Re)schedule the (new) domain
             zero_singles = []
             for pid_particle_pair in particles:
-#               single.pid_particle_pair = pid_particle_pair    # reuse single
+#               single.pid_particle_pair = pid_particle_pair         # TODO reuse single
                 zero_single = self.create_single(pid_particle_pair)  # TODO re-use NonInteractionSingle domain if possible
                 self.add_domain_event(zero_single)                   # TODO re-use event if possible
                 zero_singles.append(zero_single)       # Add the newly made zero-dt singles to the list
-                ignore.append(zero_single.domain_id)   # Ignore these newly made singles (cannot be bursted)
+                ignore.append(zero_single.domain_id)   # Ignore these newly made singles (they should not be bursted)
             domains.extend(zero_singles)
 
             ### 6. Recursively burst around the newly made zero-dt NonInteractionSingles that surround the particles.
+            #      For each zero_single the burst radius equals the particle radius * SINGLE_SHELL_FACTOR
             #      Add the resulting zero_singles to the already existing list.
             for zero_single in zero_singles:
-                zero_singles2, ignore = self.burst_non_multis(zero_single.pid_particle_pair[1].position,
-                                                              zero_single.pid_particle_pair[1].radius*SINGLE_SHELL_FACTOR,
-                                                              ignore)
-                domains.extend(zero_singles2)
+                more_zero_singles, ignore = self.burst_non_multis(zero_single.pid_particle_pair[1].position,
+                                                                  zero_single.pid_particle_pair[1].radius*SINGLE_SHELL_FACTOR,
+                                                                  ignore)
+                domains.extend(more_zero_singles)
 
             if __debug__:
                 # check that at least all the zero_singles are on the ignore list
