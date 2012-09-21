@@ -474,8 +474,8 @@ class testPlanarSurfaceTransitionPair(testPair):
 
         com = self.world.calculate_pair_CoM(pos1, pos2, D_1, D_2)
         com = self.world.apply_boundary(com)
-        # make sure that the com is in the structure of the particle (assume that this is done correctly in
-        # calculate_pair_CoM)
+        # TODO make sure that the com is in the structure of the particle
+        # (assume that this is done correctly in calculate_pair_CoM)
 
         pos2t = self.world.cyclic_transpose(pos2, pos1)
         iv = pos2t - pos1
@@ -488,15 +488,16 @@ class testPlanarSurfaceTransitionPair(testPair):
         # SphericalPair          -> size = radius
         # PlanarSurfacePair      -> size = radius
         # CylindricalSurfacePair -> size = half_length
-        # TODO: Make sure this also works correctly when IP-vectors are enlarged to remove overlaps
-        # at deflection.
+
+        # TODO: Make sure this also works correctly when IP-vectors are enlarged to remove
+        # overlaps at deflection.
 
         D_1 = self.pid_particle_pair1[1].D
         D_2 = self.pid_particle_pair2[1].D
         radius1 = self.pid_particle_pair1[1].radius
         radius2 = self.pid_particle_pair2[1].radius
 
-        dist_from_com1 = self.r0 * D_1 / self.D_tot      # particle distance from CoM
+        dist_from_com1 = self.r0 * D_1 / self.D_tot     # particle distance from CoM
         dist_from_com2 = self.r0 * D_2 / self.D_tot
         iv_shell_size1 = dist_from_com1 + radius1       # the shell should surround the particles
         iv_shell_size2 = dist_from_com2 + radius2
