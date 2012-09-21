@@ -1108,13 +1108,13 @@ def get_dr_dzright_dzleft_to_CylindricalShape(shape, testShell, r, z_right, z_le
                     h1_min = r1_min/math.tan(scale_angle)
 
         # TODO TESTING Debug info
-        print "  *** QUADRANT = %s ***" % str(quadrant)
-        print "  *** Situation = ", situation_string[situation]
-        print "  *** testShell=%s, r=%s, z1=%s" % (str(testShell), r, z1)
-        print "  *** scale_angle=%s, tan_scale_angle=%s, scale_center_z=%s, scale_center_r=%s" % (scale_angle, tan_scale_angle, scale_center_z, scale_center_r)
-        print "  *** shell_radius=%s, shell_half_length=%s" % (shell_radius, shell_half_length)
-        print "  *** ref_to_shell_x=%s, ref_to_shell_y=%s, ref_to_shell_z=%s" % (ref_to_shell_x, ref_to_shell_y, ref_to_shell_z)
-        print "  *** scale_center_to_shell_x=%s, scale_center_to_shell_y=%s, scale_center_to_shell_z=%s" % (scale_center_to_shell_x, scale_center_to_shell_y, scale_center_to_shell_z)
+        #print "  *** QUADRANT = %s ***" % str(quadrant)
+        #print "  *** Situation = ", situation_string[situation]
+        #print "  *** testShell=%s, r=%s, z1=%s" % (str(testShell), r, z1)
+        #print "  *** scale_angle=%s, tan_scale_angle=%s, scale_center_z=%s, scale_center_r=%s" % (scale_angle, tan_scale_angle, scale_center_z, scale_center_r)
+        #print "  *** shell_radius=%s, shell_half_length=%s" % (shell_radius, shell_half_length)
+        #print "  *** ref_to_shell_x=%s, ref_to_shell_y=%s, ref_to_shell_z=%s" % (ref_to_shell_x, ref_to_shell_y, ref_to_shell_z)
+        #print "  *** scale_center_to_shell_x=%s, scale_center_to_shell_y=%s, scale_center_to_shell_z=%s" % (scale_center_to_shell_x, scale_center_to_shell_y, scale_center_to_shell_z)
 
         ##### (2) Treat the situation accordingly        
         if situation == BARREL_HITS_FLAT:
