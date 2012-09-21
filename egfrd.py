@@ -1582,13 +1582,10 @@ class EGFRDSimulator(ParticleSimulatorBase):
                 pair_horizon  = (single_radius + domain.pid_particle_pair[1].radius) * SINGLE_SHELL_FACTOR
                 pair_interaction_partners.append((domain, pair_distance - pair_horizon))
         
-        for surface, surface_distance in surface_distances:
-            if isinstance(surface, PlanarSurface) and isinstance(single.structure, PlanarSurface):
-                # a transition going from one plane to the next can be initiated from a distance    TODO still not sure this is the right place
-                surface_horizon = single_radius * (SINGLE_SHELL_FACTOR - 1.0)
-            elif isinstance(surface, PlanarSurface) or isinstance(surface, DiskSurface):
-                # with a planar or disk surface it is the center of mass that 'looks around'
-                surface_horizon = single_radius * (SINGLE_SHELL_FACTOR - 1.0)
+        for surface, surface_distance in surface_distances:            
+            if isinstance(surface, PlanarSurface):# or isinstance(surface, DiskSurface):
+                # with a planar surface it is the center of mass that 'looks around'
+                surface_horizon = single_radius * (SINGLE_SHELL_FACTOR - 1.0)            
             else:
                 # with a cylindrical surface it is the surface of the particle
                 surface_horizon = single_radius * SINGLE_SHELL_FACTOR
