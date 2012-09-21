@@ -348,8 +348,8 @@ public:
                 close_struct_id_distance ? std::make_pair(close_struct_id_distance->at(0).first.second, close_struct_id_distance->at(0).second)
                                          : std::make_pair(get_structure(pp.second.structure_id()), std::numeric_limits<length_type>::max()));
                                          
-//            structure_id_and_distance_pair const struct_id_and_dist( 
-//                get_closest_surface( pp.second.position(), pp.second.structure_id() ) );    // only ignore structure that the particle is on.
+            //structure_id_and_distance_pair const struct_id_and_dist( 
+            //    get_closest_surface( pp.second.position(), pp.second.structure_id() ) );    // only ignore structure that the particle is on.
             
             // If structure is within specified range and this particle lives in the default structure
             //    TODO Extend the last requirement to all "allowed" interactions using the new structure functions
@@ -399,13 +399,13 @@ public:
                     if(s0.structure_type_id() != s1.structure_type_id())
                     {
                         if(s0.structure_type_id() == get_def_structure_type_id())
-                            k = 0.001;  // TODO k = get_structure( s0.structure_id() )->get_1D_rate_geminate( (*it).k(), r01 );
+                            k = 0.001;  // HACK k = get_structure( s0.structure_id() )->get_1D_rate_geminate( (*it).k(), r01 );
                         else
-                            k = 0.001;  // TODO k = get_structure( s1.structure_id() )->get_1D_rate_geminate( (*it).k(), r01 );
+                            k = 0.001;  // HACK k = get_structure( s1.structure_id() )->get_1D_rate_geminate( (*it).k(), r01 );
                     }
                     else
                     {
-                        k = 0.001;      // TODO k = get_structure( s0.structure_id() )->get_1D_rate_geminate( (*it).k(), r01 ); 
+                        k = 0.001;      // HACK k = get_structure( s0.structure_id() )->get_1D_rate_geminate( (*it).k(), r01 ); 
                     }
                 
                     if ( k_max < k )
@@ -427,7 +427,8 @@ public:
        (3) particles escape the multi with a maximum step size in the order of the 
            reaction length. (Dmax * dt ~ (ssf * r_min)**2 ).
        
-       TODO:This function should be a method of the Multi Class, but I put it in the mpc (multi particle container) such that we can use it in python.
+       TODO: This function should be a method of the Multi Class,
+             but I put it in the mpc (multi particle container) such that we can use it in python.
        
        PROBLEM: for certain parameters (large k) dt can be very small and the simulation will slow down.
     */    
