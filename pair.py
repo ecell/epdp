@@ -1144,7 +1144,10 @@ class MixedPair1DCap(Pair, hasCylindricalShell):
         return GreensFunction1DAbsAbs(self.D_R, self.v_R, 0.0, -self.a_R, self.a_R)
 
     def iv_greens_function(self, r0):
-        return GreensFunction1DRadAbs(self.D_r, self.v_r, self.interparticle_ktot, r0, self.sigma, self.a_r)
+        if( numpy.isinf(self.interparticle_ktot) ):
+            return GreensFunction1DAbsAbs(self.D_r, self.v_r, r0, self.sigma, self.a_r)
+        else:
+            return GreensFunction1DRadAbs(self.D_r, self.v_r, self.interparticle_ktot, r0, self.sigma, self.a_r)
 
     def choose_pair_greens_function(self, r0, t):
         # Todo

@@ -1098,7 +1098,10 @@ class CylindricalSurfaceCapInteraction(InteractionSingle):
         dz_cap = -self.get_inner_dz_left()
         dz_abs = self.get_inner_dz_right()
 
-        return GreensFunction1DRadAbs(self.D, self.v, self.interaction_ktot, 0.0, dz_cap, dz_abs)
+        if( numpy.isinf(self.interaction_ktot) ):
+            return GreensFunction1DAbsAbs(self.D, self.v, 0.0, dz_cap, dz_abs)
+        else:
+            return GreensFunction1DRadAbs(self.D, self.v, self.interaction_ktot, 0.0, dz_cap, dz_abs)
 
     def draw_new_position(self, dt, event_type):
 
