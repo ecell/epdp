@@ -453,7 +453,7 @@ class testPlanarSurfaceTransitionPair(testPair):
                 assert isinstance(single2.structure, PlanarSurface) 
 
         testPair.__init__(self, single1, single2) # note: this makes self.single1/self.pid_particle_pair1 and the same for particle2
-        self.structure  = self.structure1         # some pair methods might need this to be defined TODO Remove and test
+        #self.structure  = self.structure1         # some pair methods might need this to be defined TODO Remove and test
 
     def get_sigma(self):
         # Nothing changed as compared to the simple pair here
