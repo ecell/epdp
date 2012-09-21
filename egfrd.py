@@ -1866,10 +1866,9 @@ class EGFRDSimulator(ParticleSimulatorBase):
                 particles = self.fire_move(single, newpos, struct_id)
                 zero_singles_b = []   # no bursting takes place, ignore list remains unchanged
                 # Update statistics
-                if single.event_type == EventType.SINGLE_ESCAPE:
-                    self.single_steps[single.event_type] += 1
-                elif single.event_type == EventType.BURST:
-                    self.single_steps[single.event_type] += 1
+                if single.event_type == EventType.SINGLE_ESCAPE or\
+                   single.event_type == EventType.BURST:
+                    self.single_steps[single.event_type] += 1                
                 elif __debug__:
                     log.warning('Omitting to count a single event with unforeseen event type (%s).' % single.event_type)
                     
