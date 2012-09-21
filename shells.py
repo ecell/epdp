@@ -911,7 +911,7 @@ def get_dr_dzright_dzleft_to_CylindricalShape(shape, testShell, r, z_right, z_le
 
         if (ref_to_shell_x2 < 0) and (ref_to_shell_y2 < 0):
             # Quadrant 1
-            print "Quadrant 1"
+            quadrant = 1
 
             # Scale cylinder one until its height is equal to the z-distance minus the radius of the cyl. shell 2;
             # Then check whether any point of the axis of cyl. 2 projected on the top side of cyl. 1 is inside the radius of (scaled) cyl. 1.
@@ -931,7 +931,7 @@ def get_dr_dzright_dzleft_to_CylindricalShape(shape, testShell, r, z_right, z_le
 
         elif (ref_to_shell_x2 >= 0) and (ref_to_shell_y2 < 0):
             # Quadrant 2
-            print "Quadrant 2"
+            quadrant = 2
 
             # The case scale_angle=0, i.e. radius remaining constant at scaling, has to be treated separately
             # because in this case the mathematics in the standard case misdetect the collision situation
@@ -995,7 +995,7 @@ def get_dr_dzright_dzleft_to_CylindricalShape(shape, testShell, r, z_right, z_le
 
         elif (ref_to_shell_x2 < 0) and (ref_to_shell_y2 >= 0):
             # Quadrant 3
-            print "Quadrant 3"
+            quadrant = 3
 
             # The case scale_angle=0, i.e. radius remaining constant at scaling, has to be treated separately
             # because in this case the mathematics in the standard case misdetect the collision situation
@@ -1054,7 +1054,7 @@ def get_dr_dzright_dzleft_to_CylindricalShape(shape, testShell, r, z_right, z_le
 
         else:
             # Quadrant 4
-            print "Quadrant 4"
+            quadrant = 4
 
             assert (ref_to_shell_x2 >= 0) and (ref_to_shell_y2 >= 0)
 
@@ -1108,14 +1108,15 @@ def get_dr_dzright_dzleft_to_CylindricalShape(shape, testShell, r, z_right, z_le
                     h1_min = r1_min/math.tan(scale_angle)
 
         # TODO TESTING Debug info
+        print "  *** QUADRANT = %s ***" % str(quadrant)
+        print "  *** Situation = ", situation_string[situation]
         print "  *** testShell=%s, r=%s, z1=%s" % (str(testShell), r, z1)
         print "  *** scale_angle=%s, tan_scale_angle=%s, scale_center_z=%s, scale_center_r=%s" % (scale_angle, tan_scale_angle, scale_center_z, scale_center_r)
         print "  *** shell_radius=%s, shell_half_length=%s" % (shell_radius, shell_half_length)
         print "  *** ref_to_shell_x=%s, ref_to_shell_y=%s, ref_to_shell_z=%s" % (ref_to_shell_x, ref_to_shell_y, ref_to_shell_z)
         print "  *** scale_center_to_shell_x=%s, scale_center_to_shell_y=%s, scale_center_to_shell_z=%s" % (scale_center_to_shell_x, scale_center_to_shell_y, scale_center_to_shell_z)
 
-        ##### (2) Treat the situation accordingly
-        print "Situation= ", situation_string[situation]
+        ##### (2) Treat the situation accordingly        
         if situation == BARREL_HITS_FLAT:
             # the scaling cylinder hits the flat side of 'shell' with its barrel side
             r_new = min(r, (ref_to_shell_x - shell_half_length))
@@ -1153,7 +1154,7 @@ def get_dr_dzright_dzleft_to_CylindricalShape(shape, testShell, r, z_right, z_le
 
             else:
 
-                # Check whether to run the rootfinder.
+                # TESTING Code snippet to check whether rootfinder run is necessary
                 # We only want to run it if the radius increase at intersection of the cylinder edges is "significant".
                 # This is sub-optimal but it avoids rootfinder errors caused by the fact that the radius search interval
                 # becomes to small, which is equivalent to the potential r-increase becoming small.
@@ -1210,7 +1211,7 @@ def get_dr_dzright_dzleft_to_CylindricalShape(shape, testShell, r, z_right, z_le
                     n=1
                     nmax=100
                     h1_eq_product = 1
-                    assert(TOLERANCE<1.0) # TODO Remove this?
+                    assert TOLERANCE>0.0 and TOLERANCE<1.0
                     while h1_eq_product > 0.0:
 
                         h1_interval_start = (1.0+TOLERANCE**n) * (z1_function(scale_center_to_shell_edge_x) - scale_center_z)
@@ -1222,21 +1223,17 @@ def get_dr_dzright_dzleft_to_CylindricalShape(shape, testShell, r, z_right, z_le
                         if n>nmax:
                             raise testShellError('get_dr_dzright_dzleft_to_CylindricalShape: Could not find suitable rootfinder boundaries in EDGE_HITS_EDGE cylinder scaling. nmax=%s' % str(nmax) )
 
-                    # h1-based VERSION; does not work well...
-                    #h1_interval_start = (1+TOLERANCE)*max(scale_center_to_shell_z - shell_radius, 0.0)
-                    #h1_interval_end   = (1-TOLERANCE)*scale_center_to_shell_z
-
                     assert(h1_interval_start >= 0)
                     assert(h1_interval_end   >= h1_interval_end)
 
                     # TODO TESTING REMOVE THIS WHEN DONE
-                    print "***** NEW ROOTFINDER ITERATION *****"
-                    print "  Dy-r2 = %s" % (scale_center_to_shell_y-shell_radius)
-                    print "  Dx-h2 = %s" % scale_center_to_shell_edge_x
-                    print "  h1_interval_start = %s" % h1_interval_start
-                    print "  h1_interval_end = %s"   % h1_interval_end
-                    print "  h1(i_start) = %s"       % h1_eq(h1_interval_start)
-                    print "  h1(i_end) = %s"         % h1_eq(h1_interval_end)
+                    #print "***** NEW ROOTFINDER ITERATION *****"
+                    #print "  Dy-r2 = %s" % (scale_center_to_shell_y-shell_radius)
+                    #print "  Dx-h2 = %s" % scale_center_to_shell_edge_x
+                    #print "  h1_interval_start = %s" % h1_interval_start
+                    #print "  h1_interval_end = %s"   % h1_interval_end
+                    #print "  h1(i_start) = %s"       % h1_eq(h1_interval_start)
+                    #print "  h1(i_end) = %s"         % h1_eq(h1_interval_end)
 
                     h_touch = scale_center_z + findroot(h1_eq, h1_interval_start, h1_interval_end)
                     z1_new = min(z1, h_touch)
@@ -1259,7 +1256,7 @@ def get_dr_dzright_dzleft_to_CylindricalShape(shape, testShell, r, z_right, z_le
                     n=1
                     nmax=100
                     r1_eq_product = 1
-                    assert(TOLERANCE<1.0) # TODO TESTING Remove this?
+                    assert TOLERANCE>0.0 and TOLERANCE<1.0
                     while r1_eq_product > 0.0:
 
                         r1_interval_start = (1.0+TOLERANCE**n) * scale_center_to_shell_edge_x
@@ -1271,20 +1268,20 @@ def get_dr_dzright_dzleft_to_CylindricalShape(shape, testShell, r, z_right, z_le
                         if n>nmax:
                             raise testShellError('get_dr_dzright_dzleft_to_CylindricalShape: Could not find suitable rootfinder boundaries in EDGE_HITS_EDGE cylinder scaling. nmax=%s' % str(nmax) )
 
-                    # Non-adaptive version
+                    # Non-adaptive version; TODO Remove this after TESTING
                     #r1_interval_start = scale_center_to_shell_edge_x
                     #r1_interval_end   = math.sqrt( scale_center_to_shell_y**2 + scale_center_to_shell_edge_x**2 )
                     assert(r1_interval_start >= 0)
                     assert(r1_interval_end   >= r1_interval_start)
 
                     # TODO TESTING REMOVE THIS WHEN DONE
-                    print "***** NEW ROOTFINDER ITERATION *****"
-                    print "  Dy-r2 = %s" % (scale_center_to_shell_y-shell_radius)
-                    print "  Dx-h2 = %s" % scale_center_to_shell_edge_x
-                    print "  r1_interval_start = %s" % r1_interval_start
-                    print "  r1_interval_end = %s"   % r1_interval_end
-                    print "  r1(i_start) = %s"       % r1_eq(scale_center_to_shell_edge_x)
-                    print "  r1(i_end) = %s"         % r1_eq(math.sqrt( scale_center_to_shell_y**2 + scale_center_to_shell_edge_x**2))
+                    #print "***** NEW ROOTFINDER ITERATION *****"
+                    #print "  Dy-r2 = %s" % (scale_center_to_shell_y-shell_radius)
+                    #print "  Dx-h2 = %s" % scale_center_to_shell_edge_x
+                    #print "  r1_interval_start = %s" % r1_interval_start
+                    #print "  r1_interval_end = %s"   % r1_interval_end
+                    #print "  r1(i_start) = %s"       % r1_eq(scale_center_to_shell_edge_x)
+                    #print "  r1(i_end) = %s"         % r1_eq(math.sqrt( scale_center_to_shell_y**2 + scale_center_to_shell_edge_x**2))
 
                     r_touch = findroot(r1_eq, r1_interval_start, r1_interval_end)
                               
@@ -2272,7 +2269,7 @@ class CylindricalSurfaceCapInteractiontestShell(CylindricaltestShell, testIntera
     def get_min_dr_dzright_dzleft(self):
         dr       = self.shell_radius
         dz_left  = self.pid_particle_pair[1].radius * SINGLE_SHELL_FACTOR
-        dz_right = self.particle_surface_distance + self.pid_particle_pair[1].radius * SINGLE_SHELL_FACTOR
+        dz_right = self.particle_surface_distance + 2*self.pid_particle_pair[1].radius * SINGLE_SHELL_FACTOR
         return dr, dz_right, dz_left
         
     def get_max_dr_dzright_dzleft(self):
