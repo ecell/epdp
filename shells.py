@@ -2163,7 +2163,7 @@ class PlanarSurfaceInteractiontestShell(CylindricaltestShell, testInteractionSin
         return dr, dz_right, dz_left
 
     def apply_safety(self, r, z_right, z_left):
-        return self.r_right(z_right/SAFETY), z_right/SAFETY, z_left
+        return self.r_right(z_right/SAFETY)/SAFETY, z_right/SAFETY, z_left
 
 #####
 class CylindricalSurfaceInteractiontestShell(CylindricaltestShell, testInteractionSingle):
@@ -2219,7 +2219,7 @@ class CylindricalSurfaceInteractiontestShell(CylindricaltestShell, testInteracti
         return dr, dz_right, dz_left
 
     def apply_safety(self, r, z_right, z_left):
-        return r/SAFETY, self.z_right(r/SAFETY), self.z_left(r/SAFETY)
+        return r/SAFETY, self.z_right(r/SAFETY)/SAFETY, self.z_left(r/SAFETY)/SAFETY
 
 class CylindricalSurfaceCapInteractiontestShell(CylindricaltestShell, testInteractionSingle):
 
@@ -2514,8 +2514,8 @@ class MixedPair2D3DtestShell(CylindricaltestShell, testMixedPair2D3D):
         return r_right
 
     def apply_safety(self, r, z_right, z_left):
-        SAFETY = 1.1
-        return r/SAFETY, self.z_right(r/SAFETY), z_left
+        SAFETY = 1.1 # FIXME What is that? Why is that not the standard?
+        return r/SAFETY, self.z_right(r/SAFETY)/SAFETY, z_left
 
 class MixedPair1DCaptestShell(CylindricaltestShell, testMixedPair1DCap):
 
