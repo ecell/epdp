@@ -1193,6 +1193,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
                         product_pos_list.append((newpos1, newpos2))
 
                 else:
+                    # TODO TODO TODO Include dissociation from cap with two products TODO TODO TODO
                     # cannot decay from 3D to other structure
                     raise RuntimeError('fire_single_reaction: Can not decay from 3D to other structure')
 
@@ -2654,7 +2655,7 @@ rejected moves = %d
             # surfaces.
             ignores = [s.id for s in self.world.structures]
             associated = []
-        elif isinstance(domain, SphericalSingle) or isinstance(domain, SphericalPair) or isinstance(domain, PlanarSurfaceSingle):
+        elif isinstance(domain, SphericalSingle) or isinstance(domain, SphericalPair) or isinstance(domain, PlanarSurfaceSingle): # TODO Why not PlanarSurfacePair ?
             # 3D NonInteractionSingles can overlap with planar surfaces but not with rods
             ignores = [s.id for s in self.world.structures if isinstance(s, PlanarSurface)]
             associated = []
