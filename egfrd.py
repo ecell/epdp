@@ -1104,19 +1104,21 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
 
             # 1.5 Get new positions and structure_ids of particles
+            # FIXME     This should be made more elegant, using as much as possible the
+            #           structure functions from the BD mode.
             #     If one of the particle is not on the surface of the reactant.
             if product1_structure_type_id != product2_structure_type_id:
-                # make sure that the reactant was on a 2D or 1D surface
+                # Make sure that the reactant was on a 2D or 1D surface
                 assert reactant_structure_type_id != self.world.get_def_structure_type_id()
-                # make sure that only either one of the target structures is the 3D ('^' is exclusive-OR)
+                # Make sure that only either one of the target structures is the 3D ('^' is exclusive-OR)
                 assert ((product1_structure_type_id == self.world.get_def_structure_type_id()) ^ \
                         (product2_structure_type_id == self.world.get_def_structure_type_id()))
 
-                # figure out which product stays in the surface and which one goes to 3D
+                # Figure out which product stays in the surface and which one goes to 3D
                 # Note that A is a particle in the surface and B is in the 3D
                 if (product2_structure_type_id == self.world.get_def_structure_type_id()):
                     # product2 goes to 3D and is now particleB (product1 is particleA and is on the surface)
-                    product1_structure_id = reactant_structure_id               # TODO after the displacement the structure can change!
+                    product1_structure_id = reactant_structure_id # TODO after the displacement the structure can change!
                     product2_structure_id = self.world.get_def_structure_id()
                     productA_radius = product1_radius
                     productB_radius = product2_radius
@@ -1192,8 +1194,29 @@ class EGFRDSimulator(ParticleSimulatorBase):
                             newpos1, newpos2 = newposB, newposA
                         product_pos_list.append((newpos1, newpos2))
 
+                elif isinstance(reactant_structure, DiskSurface):
+
+                    product_pos_list = []
+
+                    # productA always must stay on the disk, in the position of the reactant
+                    newposA = reactant_pos
+
+                    # Create the position of the particle that goes into the bulk (productB)
+                    # This is the same as for the single reaction of a disk-bound particle (see above)
+                    vector_length = (productB_radius + max(productA_radius, reactant_structure.shape.radius)) * MINIMAL_SEPARATION_FACTOR
+                    for _ in range(self.dissociation_retry_moves):
+                        unit_vector3D = random_unit_vector()
+                        unit_vector2D = normalize(unit_vector3D - 
+                                        (reactant_structure.shape.unit_z * numpy.dot(unit_vector3D, reactant_structure.shape.unit_z)))
+                        newposB = reactant_pos + vector_length * unit_vector2D                    
+
+                        if default:
+                            newpos1, newpos2 = newposA, newposB
+                        else:
+                            newpos1, newpos2 = newposB, newposA
+                        product_pos_list.append((newpos1, newpos2))
+
                 else:
-                    # TODO TODO TODO Include dissociation from cap with two products TODO TODO TODO
                     # cannot decay from 3D to other structure
                     raise RuntimeError('fire_single_reaction: Can not decay from 3D to other structure')
 
@@ -1261,9 +1284,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
                 # check that there is space for the products 
                 # Note that we do not check overlap with surfaces -> TODO
-                if (not self.world.check_overlap((newpos1, product1_radius), reactant[0])
-                   and
-                   not self.world.check_overlap((newpos2, product2_radius), reactant[0])):
+                if (not self.world.check_overlap((newpos1, product1_radius), reactant[0]) and \
+                    not self.world.check_overlap((newpos2, product2_radius), reactant[0])):
                     
                     # 4. process the changes (remove particle, make new ones)
                     self.world.remove_particle(reactant[0])
