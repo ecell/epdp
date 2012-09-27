@@ -1363,7 +1363,7 @@ def get_dr_dzright_dzleft_to_CylindricalShape(shape, testShell, r, z_right, z_le
 
 def get_radius_to_CylindricalShape(shape, testShell, r):
     # This function returns the radius for the spherical 'testShell' using the cylindrical 'shell' as its closest
-    # neighbor. Note that it returns the minimum the newly calculated radius and the old radius. The 'testShell' can
+    # neighbor. Note that it returns the minimum of the newly calculated radius and the old radius. The 'testShell' can
     # therefore only become smaller.
 
     # Note that the 'shell' is querried from this domain earlier by the testShell.

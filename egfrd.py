@@ -1,4 +1,5 @@
 #!/usr/env python
+# -*- coding: utf-8 -*-
 
 from weakref import ref
 import math
@@ -893,9 +894,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
         # Returns:
         # - the updated list domains that are already bursted -> ignore list
         # - zero_singles that were the result of the burst
-
         # get the neighbors in the burstradius that are not already bursted.
-        neighbor_ids = self.geometrycontainer.get_neighbors_within_radius_no_sort(pos, radius, ignore)
+        neighbor_ids = self.geometrycontainer.get_neighbors_within_radius_no_sort(pos, SAFETY*radius, ignore)        
 
         zero_singles = []
         for domain_id in neighbor_ids:
@@ -1914,6 +1914,11 @@ class EGFRDSimulator(ParticleSimulatorBase):
                                                                   zero_single.pid_particle_pair[1].radius*SINGLE_SHELL_FACTOR,
                                                                   ignore)
                 domains.extend(more_zero_singles)
+
+            # TESTING
+            print "burst_radius = %s, ignore = %s" % (zero_single.pid_particle_pair[1].radius*SINGLE_SHELL_FACTOR, ignore)
+            print "zero_singles = %s " % zero_singles
+            print "more_zero_singles = %s " % more_zero_singles
 
             if __debug__:
                 # check that at least all the zero_singles are on the ignore list
