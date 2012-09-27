@@ -881,9 +881,9 @@ class EGFRDSimulator(ParticleSimulatorBase):
                 # add the domain_id to the list of domains that is already bursted (ignore list),
                 # and burst the domain.
                 ignore.append(domain_id)
-                zero_singles2, ignore = self.burst_domain(domain, ignore)
+                more_zero_singles, ignore = self.burst_domain(domain, ignore)
                 # add the resulting zero_singles from the burst to the total list of zero_singles.
-                zero_singles.extend(zero_singles2)
+                zero_singles.extend(more_zero_singles)
 
         return zero_singles, ignore
 
@@ -918,9 +918,9 @@ class EGFRDSimulator(ParticleSimulatorBase):
                     # add the domain_id to the list of domains that is already bursted (ignore list),
                     # and burst the domain.
                     ignore.append(domain_id)
-                    zero_singles2, ignore = self.burst_domain(domain, ignore)
+                    more_zero_singles, ignore = self.burst_domain(domain, ignore)
                     # add the resulting zero_singles from the burst to the total list of zero_singles.
-                    zero_singles.extend(zero_singles2)
+                    zero_singles.extend(more_zero_singles)
 
                 #else:
                     # Don't burst domain if (OR):
@@ -1915,11 +1915,6 @@ class EGFRDSimulator(ParticleSimulatorBase):
                                                                   ignore)
                 domains.extend(more_zero_singles)
 
-            # TESTING
-            print "burst_radius = %s, ignore = %s" % (zero_single.pid_particle_pair[1].radius*SINGLE_SHELL_FACTOR, ignore)
-            print "zero_singles = %s " % zero_singles
-            print "more_zero_singles = %s " % more_zero_singles
-
             if __debug__:
                 # check that at least all the zero_singles are on the ignore list
                 assert all(zero_single.domain_id in ignore for zero_single in domains)
@@ -2233,10 +2228,10 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
         ### Recursively burst around the newly made zero-dt NonInteractionSingles that surround the particles.
         for zero_single in zero_singles:
-            zero_singles2, ignore = self.burst_non_multis(zero_single.pid_particle_pair[1].position,
-                                                          zero_single.pid_particle_pair[1].radius*SINGLE_SHELL_FACTOR,
-                                                          ignore)
-            zero_singles_fin.extend(zero_singles2)
+            more_zero_singles, ignore = self.burst_non_multis(zero_single.pid_particle_pair[1].position,
+                                                              zero_single.pid_particle_pair[1].radius*SINGLE_SHELL_FACTOR,
+                                                              ignore)
+            zero_singles_fin.extend(more_zero_singles)
 
         # check that at least all the zero_singles are on the ignore list
         if __debug__:
