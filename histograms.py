@@ -41,12 +41,9 @@ class Histogram3D(object):
 
         for d in [0, 1, 2]:
 
-            for b in range(0, self.nbins[d]-1):
-                
-                lb = b * self.binsizes[d]
-                rb = (b+1) * self.binsizes[d]
+            b = int(data[d] / self.binsizes[d])
 
-                if data[d] > lb and data[d] <= rb:
+            if b > 0 and b < self.nbins[d]-1:
 
                     index[d] = b
 
