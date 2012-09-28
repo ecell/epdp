@@ -32,6 +32,8 @@ class Histogram3D(object):
 
             binsizes[d] = 1.0 * self.dimensions[d] / self.nbins[d]
 
+        assert all([bs>0 for bs in binsizes]), "Cannot work with nonzero binsizes!"
+
         return binsizes
 
 
