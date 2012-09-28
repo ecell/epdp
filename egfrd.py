@@ -246,7 +246,13 @@ class EGFRDSimulator(ParticleSimulatorBase):
                                                 # The domains can be a single, pair or multi of any type.
 
         # spatial histograms of domain type creation
-        self.DomainCreationHists = DomainsHistogramCollection(world, nbins=100)
+        self.CREATION_HISTOGRAMS = True
+        self.UPDATES_HISTOGRAMS = False         # Attention, this slows down simulation significantly!
+
+        if self.CREATION_HISTOGRAMS:
+            self.DomainCreationHists = DomainsHistogramCollection(world, nbins=100)
+        if self.UPDATES_HISTOGRAMS:
+            self.DomainUpdatesHists  = DomainsHistogramCollection(world, nbins=100)
 
         # other stuff
         self.is_dirty = True                    # The simulator is dirty if the state if the simulator is not
@@ -448,7 +454,10 @@ class EGFRDSimulator(ParticleSimulatorBase):
                      'Singles: %d, Pairs: %d, Multis: %d\n' % domain_counts + 
                      'event=#%d reactions=%d rejectedmoves=%d' %
                      (id, self.reaction_events, self.rejected_moves))
-       
+
+        if self.UPDATES_HISTOGRAMS:
+            self.DomainUpdatesHists.bin_domain(domain)
+
         # 2. Use the correct method to process (fire) the shell that produced the event
         #
         # Dispatch is a dictionary (hash) of what function to use to fire
@@ -1698,7 +1707,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
                 domain = self.form_multi(single, multi_partners)
 
             # Update statistics on domain creation
-            self.DomainCreationHists.bin_domain(domain)
+            if self.CREATION_HISTOGRAMS:
+                self.DomainCreationHists.bin_domain(domain)
 
         return domain
 
@@ -3179,7 +3189,7 @@ class Histogram3D(object):
 
         binsizes = numpy.zeros(3)
 
-        for d in [0,1,2]:
+        for d in [0, 1, 2]:
 
             binsizes[d] = 1.0 * self.dimensions[d] / self.nbins[d]
 
