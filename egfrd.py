@@ -1703,14 +1703,22 @@ class EGFRDSimulator(ParticleSimulatorBase):
             if closest_overlap > 0.0 and not self.BD_ONLY_FLAG : 
                 # just make a normal NonInteractionSingle
                 self.update_single(single)
+                bin_domain = single
+
             else:
                 # An object was closer than the Multi horizon
                 # Form a multi with everything that is in the multi_horizon
                 domain = self.form_multi(single, multi_partners)
+                bin_domain = domain
 
-            # Update statistics on domain creation
-            if self.CREATION_HISTOGRAMS:
-                self.DomainCreationHists.bin_domain(domain)
+        else:
+
+            # A non-Single / non-Multi has been successfully created
+            bin_domain = domain
+
+        # Update statistics on domain creation
+        if self.CREATION_HISTOGRAMS:
+            self.DomainCreationHists.bin_domain(bin_domain)
 
         return domain
 
