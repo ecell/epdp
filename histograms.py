@@ -64,12 +64,12 @@ class Histogram3D(object):
         assert all([bs>0 for bs in self.binsizes]), "Cannot work with nonzero binsizes!"
         assert self.total_cnt > 0, "Cannot normalize histogram that does not contain any counts."
         
-        binvolume  = self.binsizes[0] * self.binsizes[1] * self.binsizes[3]
+        binvolume  = self.binsizes[0] * self.binsizes[1] * self.binsizes[2]
         normfactor = self.total_cnt * binvolume
 
-        for i0 in range(0, self.dimensions[0]):
-          for i1 in range(0, self.dimensions[1]):
-            for i2 in range(0, self.dimensions[2]):
+        for i0 in range(0, self.nbins[0]):
+          for i1 in range(0, self.nbins[1]):
+            for i2 in range(0, self.nbins[2]):
 
                 self.histogram[i0][i1][i2] = self.histogram[i0][i1][i2] / normfactor
 
