@@ -45,7 +45,7 @@ class Histogram3D(object):
 
             b = int(data[d] / self.binsizes[d])
 
-            if b > 0 and b < self.nbins[d]-1:
+            if b >= 0 and b < self.nbins[d]:
 
                     index[d] = b
 
