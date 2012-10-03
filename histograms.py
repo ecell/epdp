@@ -60,8 +60,16 @@ class Histogram3D(object):
 
 
     def normalize(self):
-        # TODO
-        pass   
+        
+        binvolume  = self.binsizes[0] * self.binsizes[1] * self.binsizes[3]
+        normfactor = self.total_cnt * binvolume
+
+        for i0 in range(0, self.dimensions[0]):
+          for i1 in range(0, self.dimensions[1]):
+            for i2 in range(0, self.dimensions[2]):
+
+                self.histogram[i0][i1][i2] = self.histogram[i0][i1][i2] / normfactor
+
     
 
 class DomainsHistogramCollection(object):
@@ -106,6 +114,8 @@ class DomainsHistogramCollection(object):
 
 
     def normalize(self):
-        # TODO
-        pass
+        
+        for h in [self.SinglesHistogram, self.PairsHistogram, self.MultisHistogram, self.NonMultisHistogram]:
+
+            h.normalize()
 
