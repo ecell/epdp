@@ -60,6 +60,9 @@ class Histogram3D(object):
 
 
     def normalize(self):
+
+        assert all([bs>0 for bs in self.binsizes]), "Cannot work with nonzero binsizes!"
+        assert self.total_cnt > 0, "Cannot normalize histogram that does not contain any counts."
         
         binvolume  = self.binsizes[0] * self.binsizes[1] * self.binsizes[3]
         normfactor = self.total_cnt * binvolume
@@ -111,6 +114,9 @@ class DomainsHistogramCollection(object):
 
                 pos = pid_particle_pair[1].position            
                 self.MultisHistogram.bin(pos)
+
+        else: 
+            raise RuntimeError( "Cannot classify domain type for binning, domain = %s" % str(domain) )
 
 
     def normalize(self):
