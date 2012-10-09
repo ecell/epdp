@@ -2806,10 +2806,10 @@ rejected moves = %d
         # overlap criterium when one of the shapes is a sphere
         if (type(shape1) is Sphere):
             distance = self.world.distance(shape2, shape1.position)
-            return distance - shape1.radius
+            return (1.0+TOLERANCE)*distance - shape1.radius
         elif (type(shape2) is Sphere):
             distance = self.world.distance(shape1, shape2.position)
-            return distance - shape2.radius
+            return (1.0+TOLERANCE)*distance - shape2.radius
 
         # overlap criterium when one of the shapes is a cylinder and the other is a plane
         elif ((type(shape1) is Cylinder) and (type(shape2) is Plane)) or \
@@ -2824,6 +2824,7 @@ rejected moves = %d
             if math.sqrt(shape1.half_length**2 + shape1.radius**2) < self.world.distance(shape2, shape1.position):
                 # if the plane is outside the sphere surrounding the cylinder.
                 return 1
+
             else: 
                 shape1_pos = shape1.position
                 shape2_pos = shape2.position
@@ -2866,33 +2867,49 @@ rejected moves = %d
             if type(shape2) is Cylinder:                
                 shape2_hl = shape2.half_length
 
+            # Check whether the cylinders are inside the sphere of which the radius is the shortest distance
+            # to the other cylinder; in that case, there cannot be any overlap and we are fine.
             if math.sqrt(shape1_hl**2 + shape1.radius**2) < self.world.distance(shape2, shape1.position) or \
                math.sqrt(shape2_hl**2 + shape2.radius**2) < self.world.distance(shape1, shape2.position):
-                # if cylinder2 is outside the sphere surrounding the cylinder.
+                
                 return 1
-            else: 
+
+            else:
+
+                # Calculate the inter-object vector (inter_pos)
+                # Don't forget the periodic boundary conditions
                 shape1_pos = shape1.position
                 shape2_pos = shape2.position
                 shape1_post = self.world.cyclic_transpose(shape1_pos, shape2_pos)
                 inter_pos = shape1_post - shape2_pos
 
                 relative_orientation = numpy.dot(shape1.unit_z, shape2.unit_z)
-                # if the unit_z of cylinder1 (disk1) is perpendicular to the axis of cylinder2 (disk2).
+
+                # If the unit_z of cylinder1 (disk1) is perpendicular to the axis of cylinder2 (disk2).
                 if feq(relative_orientation, 0.0):
                     return 1                                      # TODO Why does this always return 1 ?
 
-
+                # If the two objects (cylinder or disk) are parallel
                 elif feq(abs(relative_orientation), 1.0):
+
+                    # Calculate the components of the inter-object vector in the COS
+                    # defined by shape2
                     inter_pos_z = shape2.unit_z * numpy.dot(inter_pos, shape2.unit_z)
                     inter_pos_r = inter_pos - inter_pos_z
-                    overlap_r = length(inter_pos_r) - (shape1.radius + shape2.radius)
-                    overlap_z = length(inter_pos_z) - (shape1_hl + shape2_hl)
-                    if (overlap_r <= 0.0) and (overlap_z <= 0.0):
-                        if (overlap_r == 0.0) or (overlap_z == 0.0):
-                            # Special treatment of "direct overlap", i.e. e.g. two overlapping disks
-                            return -1
-                        else:
-                            return -(overlap_r * overlap_z)        # TODO: find better number for overlap measure
+                    overlap_r = (1.0+TOLERANCE)*length(inter_pos_r) - (shape1.radius + shape2.radius)
+                    overlap_z = (1.0+TOLERANCE)*length(inter_pos_z) - (shape1_hl + shape2_hl)
+
+                    if (overlap_r < 0.0) and (overlap_z < 0.0):
+
+                       if length(inter_pos_r) == 0.0: 
+                          total_overlap = overlap_z
+                       elif length(inter_pos_z) == 0.0:
+                          total_overlap = overlap_r
+                       else:
+                          total_overlap = -1.0 * sqrt(overlap_r*overlap_r + overlap_z*overlap_z)
+                        
+                       return total_overlap
+
                     else:
                         return 1
                 else:
