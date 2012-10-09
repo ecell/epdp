@@ -305,6 +305,10 @@ class EGFRDSimulator(ParticleSimulatorBase):
                             EventType.BURST:0,
                             3:0}
         self.zero_steps = 0
+
+        self.multi_time = 0.0
+        self.nonmulti_time = 0.0
+
         self.rejected_moves = 0
         self.reaction_events = 0
         self.last_event = None
@@ -1867,6 +1871,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
                        'Timeline incorrect. single.last_time = %s, single.dt = %s, self.t = %s' % \
                         (FORMAT_DOUBLE % single.last_time, FORMAT_DOUBLE % single.dt, FORMAT_DOUBLE % self.t)
 
+            self.nonmulti_time += single.dt
+
 
             ### 2. get some necessary information
             pid_particle_pair = single.pid_particle_pair
@@ -1995,6 +2001,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
             assert (abs(pair.last_time + pair.dt - self.t) <= TIME_TOLERANCE * self.t), \
                     'Timeline incorrect. pair.last_time = %s, pair.dt = %s, self.t = %s' % \
                     (FORMAT_DOUBLE % pair.last_time, FORMAT_DOUBLE % pair.dt, FORMAT_DOUBLE % self.t)
+
+        self.nonmulti_time += pair.dt
 
         ### 2. get some necessary information
         single1 = pair.single1
@@ -2215,6 +2223,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
         self.multi_steps[multi.last_event] += 1
         self.multi_steps[3] += 1  # multi_steps[3]: total multi steps
+        self.multi_time += multi.dt
         multi.step()
 
         if(multi.last_event == EventType.MULTI_UNIMOLECULAR_REACTION or
@@ -2647,6 +2656,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
         report = '''
 t = %g
+\tNonmulti: %g\tMulti: %g
 steps = %d 
 \tSingle:\t%d\t(%.2f %%)\t(escape: %d, reaction: %d, bursted: %d)
 \tInteraction: %d\t(%.2f %%)\t(escape: %d, interaction: %d, bursted: %d)
@@ -2655,7 +2665,7 @@ steps = %d
 total reactions = %d
 rejected moves = %d
 ''' \
-            % (self.t, total_steps,
+            % (self.t, self.nonmulti_time, self.multi_time, total_steps,
                single_steps,
                (100.0*single_steps) / total_steps,
                self.single_steps[EventType.SINGLE_ESCAPE],
