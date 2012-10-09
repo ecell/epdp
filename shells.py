@@ -1944,7 +1944,7 @@ class CylindricalSurfaceSingletestShell(CylindricaltestShell, testNonInteraction
         CylindricaltestShell.__init__(self, geometrycontainer, domains)
         testNonInteractionSingle.__init__(self, pid_particle_pair, structure)
 
-        # initialize the scaling parameters
+        # Initialize the scaling parameters
         self.dzdr_right = numpy.inf
         self.drdz_right = 0.0
         self.r0_right   = self.pid_particle_pair[1].radius
@@ -1954,7 +1954,9 @@ class CylindricalSurfaceSingletestShell(CylindricaltestShell, testNonInteraction
         self.r0_left    = self.pid_particle_pair[1].radius
         self.z0_left    = 0.0
 
-        # sizing up the shell to a zero shell
+        # Sizing up the shell to a zero shell
+        # Important: leave this as it is, because we always want to construct
+        # a zero-single by default!
         self.dz_right = self.pid_particle_pair[1].radius
         self.dz_left  = self.pid_particle_pair[1].radius
         self.dr       = self.pid_particle_pair[1].radius
@@ -2016,7 +2018,9 @@ class DiskSurfaceSingletestShell(CylindricaltestShell, testNonInteractionSingle)
         self.r0_left    = self.shell_radius
         self.z0_left    = 0.0
 
-        # sizing up the shell to a zero shell
+        # Sizing up the shell to a zero shell
+        # Important: leave this as it is, because we always want to construct
+        # a zero-single by default!
         self.dz_right = self.pid_particle_pair[1].radius
         self.dz_left  = self.pid_particle_pair[1].radius
         self.dr       = self.shell_radius
@@ -2034,7 +2038,7 @@ class DiskSurfaceSingletestShell(CylindricaltestShell, testNonInteractionSingle)
     def get_min_dr_dzright_dzleft(self):
         # TODO This will never be called, right? Why do dz_right/dz_left have value larger than particle_radius?
         dr       = self.shell_radius
-        dz_right = self.pid_particle_pair[1].radius * math.sqrt(MULTI_SHELL_FACTOR**2 - 1.0) #  TODO Use SINGLE_SHELL_FACTOR instead?
+        dz_right = self.pid_particle_pair[1].radius * math.sqrt(MULTI_SHELL_FACTOR**2 - 1.0)
         dz_left  = dz_right
         return dr, dz_right, dz_left
         
@@ -2046,7 +2050,7 @@ class DiskSurfaceSingletestShell(CylindricaltestShell, testNonInteractionSingle)
         return dr, dz_right, dz_left
 
     def apply_safety(self, r, z_right, z_left):
-        return r, z_right/SAFETY, z_left/SAFETY     # TODO this should just be r, z_right, z_left
+        return r, z_right/SAFETY, z_left/SAFETY
 
 #####
 class CylindricalSurfacePairtestShell(CylindricaltestShell, testSimplePair):
