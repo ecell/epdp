@@ -1674,7 +1674,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
             for domain, dist_to_shell in neighbor_distances:
 
                 if (isinstance (domain, NonInteractionSingle) and domain.is_reset()):
-                    multi_horizon = (single_radius + domain.pid_particle_pair[1].radius) * MULTI_SHELL_FACTOR * SAFETY
+                    multi_horizon = (single_radius + domain.pid_particle_pair[1].radius) * MULTI_SHELL_FACTOR
                     distance = self.world.distance(single_pos, domain.shell.shape.position)
                     multi_partners.append((domain, distance - multi_horizon))
 
@@ -1682,17 +1682,17 @@ class EGFRDSimulator(ParticleSimulatorBase):
                     # The dist_to_shell = dist_to_particle - multi_horizon_of_target_particle
                     # So only the horizon and distance of the current single needs to be taken into account
                     # Note: this is built on the assumption that the shell of a Multi has the size of the horizon.
-                    multi_horizon = (single_radius * MULTI_SHELL_FACTOR) * SAFETY
+                    multi_horizon = (single_radius * MULTI_SHELL_FACTOR)
                     multi_partners.append((domain, dist_to_shell - multi_horizon))
 
             # Also add surfaces
             for surface, distance in surface_distances:
                 if isinstance(surface, PlanarSurface):
                     # with a planar surface it is the center of mass that 'looks around'
-                    surface_horizon = single_radius * (MULTI_SHELL_FACTOR - 1.0) * SAFETY
+                    surface_horizon = single_radius * (MULTI_SHELL_FACTOR - 1.0)
                 else:
                     # with a cylindrical surface it is the surface of the particle
-                    surface_horizon = single_radius * MULTI_SHELL_FACTOR * SAFETY
+                    surface_horizon = single_radius * MULTI_SHELL_FACTOR
 
                 multi_partners.append((surface, distance - surface_horizon))
 
