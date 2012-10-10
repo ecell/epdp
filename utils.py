@@ -40,6 +40,9 @@ SINGLE_SHELL_FACTOR = 2.0           # This is the threshold for when the algorit
                                     # the radius in which the NonInteractionSingle will burst intruding domains.
                                     # IMPORTANT NOTE: SINGLE_SHELL_FACTOR should be AT_LEAST 2 !
 
+CYLINDER_R_FACTOR = 1.0             # This factor rescales all cylindrical domains constructed on cylindrical
+                                    # surfaces. It should be ALWAYS at least 1.0
+
 if __debug__:
     PRECISION = 7
     FORMAT_DOUBLE = '%.' + str(PRECISION) + 'g'
