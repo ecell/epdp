@@ -1599,7 +1599,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
         reaction_threshold = single_radius * SINGLE_SHELL_FACTOR
 
         # 1.0 Get neighboring domains and surfaces
-        neighbor_distances = self.geometrycontainer.get_neighbor_domains(single_pos, self.domains, ignore=[single.domain_id, ])
+        neighbor_distances = self.geometrycontainer.get_neighbor_domains(single_pos, self.domains, ignore=[single.domain_id, ])        
         # Get also surfaces but only if the particle is in 3D
         surface_distances = get_neighbor_surfaces(self.world, single_pos, single.structure.id, ignores=[])
 
@@ -1667,8 +1667,9 @@ class EGFRDSimulator(ParticleSimulatorBase):
             # TODO: combine with first selection such that we have to do this loop only once
             multi_partners = []
             for domain, dist_to_shell in neighbor_distances:
+
                 if (isinstance (domain, NonInteractionSingle) and domain.is_reset()):
-                    multi_horizon = (single_radius + domain.pid_particle_pair[1].radius) * MULTI_SHELL_FACTOR
+                    multi_horizon = (single_radius + domain.pid_particle_pair[1].radius) * MULTI_SHELL_FACTOR * SAFETY
                     distance = self.world.distance(single_pos, domain.shell.shape.position)
                     multi_partners.append((domain, distance - multi_horizon))
 
@@ -1676,17 +1677,17 @@ class EGFRDSimulator(ParticleSimulatorBase):
                     # The dist_to_shell = dist_to_particle - multi_horizon_of_target_particle
                     # So only the horizon and distance of the current single needs to be taken into account
                     # Note: this is built on the assumption that the shell of a Multi has the size of the horizon.
-                    multi_horizon = (single_radius * MULTI_SHELL_FACTOR)
+                    multi_horizon = (single_radius * MULTI_SHELL_FACTOR) * SAFETY
                     multi_partners.append((domain, dist_to_shell - multi_horizon))
 
             # Also add surfaces
             for surface, distance in surface_distances:
                 if isinstance(surface, PlanarSurface):
                     # with a planar surface it is the center of mass that 'looks around'
-                    surface_horizon = single_radius * (MULTI_SHELL_FACTOR - 1.0)
+                    surface_horizon = single_radius * (MULTI_SHELL_FACTOR - 1.0) * SAFETY
                 else:
                     # with a cylindrical surface it is the surface of the particle
-                    surface_horizon = single_radius * MULTI_SHELL_FACTOR
+                    surface_horizon = single_radius * MULTI_SHELL_FACTOR * SAFETY
 
                 multi_partners.append((surface, distance - surface_horizon))
 
@@ -1991,7 +1992,9 @@ class EGFRDSimulator(ParticleSimulatorBase):
         if __debug__:
             assert (pair.domain_id in ignore), \
                    'Domain_id should already be on ignore list before processing event.'
-            assert self.check_domain(pair)
+            if pair.event_type != EventType.BURST:
+                assert self.check_domain(pair)
+                # check only non-bursted domains, because the burst may have been caused by an overlap
             assert pair.single1.domain_id not in self.domains
             assert pair.single2.domain_id not in self.domains
             # TODO assert that there is no event associated with this domain in the scheduler
