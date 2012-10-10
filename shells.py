@@ -2255,7 +2255,7 @@ class CylindricalSurfaceCapInteractiontestShell(CylindricaltestShell, testIntera
         self.dzdr_left  = numpy.inf
         self.drdz_left  = 0.0
         self.r0_left    = self.dr_const
-        self.z0_left    = self.pid_particle_pair[1].radius * SINGLE_SHELL_FACTOR
+        self.z0_left    = self.pid_particle_pair[1].radius * math.sqrt(MULTI_SHELL_FACTOR**2 - 1.0)
 
         # This will determine if the shell is possible.
         # If possible, it will write the dr, dz_right, dz_left defining the dimensions of the cylindrical shell.
@@ -2280,13 +2280,13 @@ class CylindricalSurfaceCapInteractiontestShell(CylindricaltestShell, testIntera
 
     def get_min_dr_dzright_dzleft(self):
         dr       = self.dr_const
-        dz_left  = self.pid_particle_pair[1].radius * SINGLE_SHELL_FACTOR
-        dz_right = self.particle_surface_distance + 2*self.pid_particle_pair[1].radius * SINGLE_SHELL_FACTOR
+        dz_left  = self.pid_particle_pair[1].radius * math.sqrt(MULTI_SHELL_FACTOR**2 - 1.0)
+        dz_right = self.particle_surface_distance + self.pid_particle_pair[1].radius * math.sqrt(MULTI_SHELL_FACTOR**2 - 1.0)
         return dr, dz_right, dz_left
         
     def get_max_dr_dzright_dzleft(self):
         dr       = self.dr_const
-        dz_left  = self.pid_particle_pair[1].radius * SINGLE_SHELL_FACTOR # same as the minimum, i.e. no scaling of this length
+        dz_left  = self.pid_particle_pair[1].radius * math.sqrt(MULTI_SHELL_FACTOR**2 - 1.0) # same as the minimum, i.e. no scaling of this length
         # TODO include max distance to other side of rod?
         dz_right = math.sqrt((self.get_searchradius())**2 - dr**2) + self.particle_surface_distance  # stay within the searchradius
         return dr, dz_right, dz_left
