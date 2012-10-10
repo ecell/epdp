@@ -245,15 +245,20 @@ class EGFRDSimulator(ParticleSimulatorBase):
         self.domains = {}                       # a dictionary containing references to the domains that are defined
                                                 # in the simulation system. The id of the domain (domain_id) is the key.
                                                 # The domains can be a single, pair or multi of any type.
+        self.world = world
 
         # spatial histograms of domain type creation
-        self.CREATION_HISTOGRAMS = True
-        self.UPDATES_HISTOGRAMS = True          # Attention, this may slow down simulation significantly!
+        self.CREATION_HISTOGRAMS = False
+        self.UPDATES_HISTOGRAMS  = False        # Attention, this may slow down simulation significantly!
+                                                # Use method self.(de)activate_histograms() to switch this on from an external script       
+        self.DomainCreationHists = None
+        self.DomainUpdatesHists  = None
 
         if self.CREATION_HISTOGRAMS:
-            self.DomainCreationHists = DomainsHistogramCollection(world, nbins=100, name='Creation Histograms Collection')
+            self.activate_histograms('creation')
+
         if self.UPDATES_HISTOGRAMS:
-            self.DomainUpdatesHists  = DomainsHistogramCollection(world, nbins=100, name='Updates Histograms Collection')
+            self.activate_histograms('updates')
 
         # other stuff
         self.is_dirty = True                    # The simulator is dirty if the state if the simulator is not
@@ -2641,9 +2646,9 @@ class EGFRDSimulator(ParticleSimulatorBase):
         return dists
             
 
-    ###########################
-    #### STATISTICS REPORT ####
-    ###########################
+    ####################
+    #### STATISTICS ####
+    ####################
     def print_report(self, out=None):
         """Print various statistics about the simulation.
         
@@ -2698,6 +2703,55 @@ rejected moves = %d
                )
 
         print >> out, report
+
+
+    def activate_histograms(self, modes=['creation', 'updates']):
+        """ Activate and initialize the shell creation and / or updates histograms.
+
+            The argument is a list containing keywords of the histograms to activate,
+            i.e. 'creation' and/or 'updates'.
+
+            The default is ['creation', 'updates'], i.e. both histograms will be
+            activated.
+
+        """
+        for m in modes:
+
+            log.info('Activating %s histograms ...', str(m))
+
+            if str(m) == 'creation':
+                self.CREATION_HISTOGRAMS = True
+
+            if str(m) == 'updates':
+                self.UPDATES_HISTOGRAMS = True
+
+
+        if self.CREATION_HISTOGRAMS:
+            self.DomainCreationHists = DomainsHistogramCollection(self.world, nbins=100, name='Creation Histograms Collection')
+
+        if self.UPDATES_HISTOGRAMS:
+            self.DomainUpdatesHists = DomainsHistogramCollection(self.world, nbins=100, name='Updates Histograms Collection')
+
+
+    def deactivate_histograms(self, modes=['creation', 'updates']):
+        """ Deactivate the shell creation and / or updates histograms.
+
+            The argument is a list containing keywords of the histograms to activate,
+            i.e. 'creation' and/or 'updates'.
+
+            The default is ['creation', 'updates'], i.e. both histograms will be
+            deactivated.
+
+        """
+        for m in modes:
+
+            log.info('Deactivating %s histograms ...', str(m))
+
+            if str(m) == 'creation':
+                self.CREATION_HISTOGRAMS = False
+
+            if str(m) == 'updates':
+                self.UPDATES_HISTOGRAMS = False
 
 
     ##########################################
