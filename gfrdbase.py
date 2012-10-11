@@ -542,6 +542,31 @@ class ParticleSimulatorBase(object):
         """ #TODO: Added by wehrens@amolf.nl; please revise
         return self.world.species
 
+    def get_structure_types(self):
+        """
+        Return an iterator over the StructureTypes in the simulator.
+
+        Structure types basically have only an id and a name, the
+        latter of which is accessible via a dictionary lookup:
+
+        e.g. structure_type['name'] = 'membrane'
+        
+        Arguments: 
+            - sim an EGFRDSimulator. 
+        
+        """
+        return self.world.structure_types
+
+    def get_structures(self):
+        """
+        Return an iterator over the Structures in the simulator.        
+        
+        Arguments: 
+            - sim an EGFRDSimulator. 
+        
+        """
+        return self.world.structures
+
     def get_first_pid(self, sid):
         """
         Returns the first particle ID of a certain species.
