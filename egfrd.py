@@ -62,6 +62,7 @@ from shells import (
 import logging
 import os
 
+import loadsave
 from histograms import *
 
 log = logging.getLogger('ecell')
@@ -3220,6 +3221,22 @@ rejected moves = %d
         self.check_particle_consistency()
         
         self.check_domain_for_all()
+
+
+    ########################################
+    #### METHODS FOR LOADING AND SAVING ####
+    ########################################
+    # These are just wrappers around the methods
+    # in loadsave.py :
+
+    def save_state(self, filename):
+
+        loadsave.save_state(self, filename)
+
+
+    def load_state(self, filename):
+
+        loadsave.load_state(self, filename)
 
 
     ###############################
