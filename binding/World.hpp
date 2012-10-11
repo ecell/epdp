@@ -416,6 +416,9 @@ inline boost::python::objects::class_base register_world_class(char const* name)
         .def("connect_structures", &impl_type::template connect_structures<typename impl_type::cylindrical_surface_type, int>)
         .def("get_neighbor_info",  &impl_type::template get_neighbor_info<typename impl_type::planar_surface_type,      int>)
         .def("get_neighbor_info",  &impl_type::template get_neighbor_info<typename impl_type::cylindrical_surface_type, int>)
+              // TODO get_neighbor_info still needs a type converter to work properly!
+        .def("get_neighbor_id",    &impl_type::template get_neighbor_id<typename impl_type::planar_surface_type,      int>)
+        .def("get_neighbor_id",    &impl_type::template get_neighbor_id<typename impl_type::cylindrical_surface_type, int>)
         .def("set_def_structure",  &impl_type::set_def_structure)
         // StructureType stuff
         .def("add_structure_type", &impl_type::add_structure_type)

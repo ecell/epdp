@@ -435,6 +435,12 @@ public:
     {
         return base_type::structures_.get_neighbor_info(structure, side);
     }
+    
+    template <typename Tstructure_, typename Tside_enum_>
+    structure_id_type get_neighbor_id(Tstructure_ const& structure, Tside_enum_ side)
+    {
+        return base_type::structures_.get_neighbor_info(structure, side).first;
+    }
 
     // Get all the structure ids by structure_type id
     structure_id_set get_structure_ids(structure_type_id_type const& sid) const
