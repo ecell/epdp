@@ -151,8 +151,22 @@ def save_state(simulator, filename):
             cp.set(sectionname, 'half_extent', list(structure.shape.half_extent))
 
 
-    #### STRUCTURE LINKS ####
-    # TODO
+    #### STRUCTURE CONNECTIVITY ####
+    for structure in simulator.get_structures():
+
+        if isinstance(structure, PlanarSurface):
+
+            id_int  = id_to_int(structure.id)
+
+            sectionname = 'STRUCTURECONNECTION_' + str(id_int)
+            cp.add_section(sectionname)
+
+            for n in range(0, 4):
+
+                nid = simulator.world.get_neighbor_id(structure, n)
+                nid_int  = id_to_int(nid)
+
+                cp.set(sectionname, 'neighbor'+str(n), nid_int)
 
     #### PARTICLES ####
     pid_particle_pairs = list(simulator.world)
