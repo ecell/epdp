@@ -86,11 +86,105 @@ def save_state(simulator, filename):
         structure_type_names.append( (id_int, name) )
 
     #### RULES ####
-    # TODO ...
-    for species in simulator.get_species():
+    extracted_rules = []  # to avoid double-extraction
+    for species0 in simulator.get_species():
 
-        rules = simulator.network_rules.query_reaction_rule(species)
+        # Reactions with one reactant (unimolecular or unbinding)
+        rules = simulator.network_rules.query_reaction_rule(species0)
         
+        for rr in rules:
+
+              if not rr.id in extracted_rules:
+
+                  rate = rr.k
+
+                  r0 = rr.reactants[0]
+                  reactant_ids = ( id_to_int(r0), )
+
+                  if len(rr.products) == 1:
+
+                      rtype = 'unimolecular'
+                      p0 = rr.products[0]
+                      product_ids  = ( id_to_int(p0), )
+
+                  elif len(rr.products) == 2:
+
+                      rtype = 'unbinding'
+                      p0 = rr.products[0]
+                      p1 = rr.products[1]
+                      product_ids  = ( id_to_int(p0), id_to_int(p1) )
+
+                  else:
+                      raise LoadSaveError('Unimolecular or unbinding reaction rule has more than two products. Something is utterly wrong.')
+
+                  sectionname = 'REACTIONRULE_' + str(rr.id)
+                  cp.add_section(sectionname)
+
+                  cp.set(sectionname, 'type', rtype)
+                  cp.set(sectionname, 'reactant_ids', reactant_ids)
+                  cp.set(sectionname, 'product_ids', product_ids)
+                  cp.set(sectionname, 'rate', rate)
+
+                  extracted_rules.append(rr.id)
+
+        # Reactions with two reactants (particle species)
+        for species1 in list(simulator.get_species()) + list(simulator.get_structure_types()):
+              
+            rules = simulator.network_rules.query_reaction_rule(species0, species1)
+
+            for rr in rules:
+
+                if not rr.id in extracted_rules and not len(rr.products)==0:
+
+                    rate = rr.k
+
+                    # Check whether we have a surface binding reaction.
+                    # Since only species1 loops over StructureTypes we only have to check
+                    # whether species1 is a SstructureType or not.
+                    if species1.id in [st.id for st in list(simulator.get_structure_types())]:
+                        # We must construct an id list from the iterator because otherwise
+                        # the comparison does not work
+                        rtype = 'binding_surface'
+
+                    else:
+                        rtype = 'binding_particle'
+
+                    # Make sure that the first reactant stores species1, which is the surface
+                    # in case we have a surface reaction.
+                    if rr.reactants[0] == species1.id:
+                        r0 = rr.reactants[0]
+                        r1 = rr.reactants[1]
+                    else:
+                        # reverse order
+                        r0 = rr.reactants[1]
+                        r1 = rr.reactants[0]
+
+                    reactant_ids = ( id_to_int(r0), id_to_int(r1) )
+
+                    # Check whether there is a legal number of products
+                    if len(rr.products) == 0:
+
+                        product_ids  = None
+                        rtype = 'annihilation'
+
+                    elif len(rr.products) == 1:
+
+                        p0 = rr.products[0]
+                        product_ids  = ( id_to_int(p0), )
+
+                    else:
+                        raise LoadSaveError('Binding reaction rule has %s product(s). Something is utterly wrong.' % str(len(rr.products)) )           
+
+                    # Construct the section info
+                    sectionname = 'REACTIONRULE_' + str(rr.id)
+                    cp.add_section(sectionname)
+
+                    cp.set(sectionname, 'type', rtype)
+                    cp.set(sectionname, 'reactant_ids', reactant_ids)
+                    cp.set(sectionname, 'product_ids', product_ids)
+                    cp.set(sectionname, 'rate', rate)
+
+                    extracted_rules.append(rr.id)
 
     #### STRUCTURES ####
     for structure in simulator.get_structures():
@@ -161,12 +255,13 @@ def save_state(simulator, filename):
             sectionname = 'STRUCTURECONNECTION_' + str(id_int)
             cp.add_section(sectionname)
 
+            # Retrieve the neighbor structure IDs for this structure
             for n in range(0, 4):
 
                 nid = simulator.world.get_neighbor_id(structure, n)
                 nid_int  = id_to_int(nid)
 
-                cp.set(sectionname, 'neighbor'+str(n), nid_int)
+                cp.set(sectionname, 'neighbor_id_'+str(n), nid_int)
 
     #### PARTICLES ####
     pid_particle_pairs = list(simulator.world)
@@ -219,11 +314,11 @@ def id_to_int(ID):
     if p[2] != '':
         q = p[2].partition(')')
 
-    if q[0] != '':
-        return int(q[0])
+        if q[0] != '':
+            return int(q[0])
 
     else:
-        raise RuntimeError('Could not extract number, probably the argument is not a valid ID.')
+        raise LoadSaveError('Could not extract number, probably the argument is not a valid ID.')
 
 
 structure_keywords = [
@@ -233,3 +328,8 @@ structure_keywords = [
         (DiskSurface,        'DISK'),
         (PlanarSurface,      'PLANE')
         ]
+
+
+class LoadSaveError(Exception):
+    pass
+
