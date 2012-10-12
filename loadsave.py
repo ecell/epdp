@@ -1,5 +1,6 @@
 #!/usr/env python
 
+import copy
 import math
 import numpy
 
@@ -30,6 +31,7 @@ from _gfrd import (
     )
 
 from gfrdbase import *
+from gfrdbase import DomainEvent
 
 __all__ = [ 'save_state', 'load_state' ]
 
@@ -288,6 +290,39 @@ def save_state(simulator, filename):
         cp.set(sectionname, 'position', list(particle.position))
         cp.set(sectionname, 'structure_id', structure_id_int)
 
+    #### PARTICLE ORDER IN SCHEDULER ####
+    # Pop the events from the scheduler and remember
+    # them to push them back again afterwards.
+    # Event IDs will change but this should not matter
+    # for the simulated trajectory as such.    
+    eventlist = []
+    scheduler_order = []
+    while not simulator.scheduler.size == 0 :
+
+        id, event = simulator.scheduler.pop()
+        domain = simulator.domains[event.data]
+
+        # Store the events in a list
+        # inserting from the beginning; thus it
+        # will already have the right order for
+        # reinsertion
+        eventlist.insert(0, (event, domain))
+
+        pid, particle = domain.pid_particle_pair        
+        pid_int = id_to_int(pid)
+
+        scheduler_order.append(pid_int)
+    
+    # Just to be sure...
+    assert simulator.scheduler.size == 0
+    # Put the events back into the scheduler in reverse order
+    for (event, domain) in list(eventlist):
+        event_id = simulator.scheduler.add(DomainEvent(event.time, domain))
+
+    # Create a new section in the save file
+    sectionname = 'SCHEDULER_' + str(pid_int)
+    cp.add_section(sectionname)
+    cp.set(sectionname, 'order', list(scheduler_order))    
 
     #### WRITE FILE ####
     with open(filename, 'wb') as outfile:
