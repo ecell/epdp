@@ -329,9 +329,9 @@ def save_state(simulator, filename):
         event_id = simulator.scheduler.add(DomainEvent(event.time, domain))
 
     # Create a new section in the save file
-    sectionname = 'SCHEDULER_' + str(pid_int)
+    sectionname = 'SCHEDULER'
     cp.add_section(sectionname)
-    cp.set(sectionname, 'order', list(scheduler_order))    
+    cp.set(sectionname, 'particle_order', list(scheduler_order))    
 
     #### WRITE FILE ####
     with open(filename, 'wb') as outfile:
