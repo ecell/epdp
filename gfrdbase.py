@@ -518,6 +518,10 @@ class ParticleSimulatorBase(object):
     def initialize(self):
         pass
 
+    def reset_seed(self, s):
+
+        self.rng.seed(s)
+
     def get_species(self):
         """
         Return an iterator over the Species in the simulator. 
