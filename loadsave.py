@@ -40,6 +40,15 @@ __all__ = [ 'save_state', 'load_state' ]
 def save_state(simulator, filename):
     
 
+    #### BURST ALL DOMAINS ####
+    # This is an important precondition for this
+    # save routine to work properly.
+    # In particular running this without bursting
+    # all the domains will mess up the EventScheduler
+    # because it will reconstruct it with different
+    # event IDs
+    simulator.burst_all_domains()
+
     #### DEFINE THE CONFIG PARSER OBJECT ####
     cp = CP.ConfigParser()
     cp.optionxform = str # for upper case option names
