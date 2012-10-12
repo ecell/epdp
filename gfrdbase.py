@@ -481,6 +481,12 @@ def place_particle(world, sid, position):
     return particle
 
 
+class DomainEvent(_gfrd.Event):
+    __slot__ = ['data']
+    def __init__(self, time, domain):
+        _gfrd.Event.__init__(self, time)
+        self.data = domain.domain_id            # Store the domain_id key refering to the domain
+                                                # in domains{} in the scheduler
 
 class ParticleSimulatorBase(object):
     def __init__(self, world, rng, network_rules):

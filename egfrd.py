@@ -30,6 +30,7 @@ from _gfrd import (
     )
 
 from gfrdbase import *
+from gfrdbase import DomainEvent
 from single import *
 from pair import *
 from multi import *
@@ -173,13 +174,6 @@ def create_default_pair(domain_id, shell_id, testShell, reaction_rules):
         return MixedPair2D3D               (domain_id, shell_id, testShell, reaction_rules)
     elif isinstance(testShell, MixedPair1DCaptestShell):
         return MixedPair1DCap              (domain_id, shell_id, testShell, reaction_rules)
-
-class DomainEvent(Event):
-    __slot__ = ['data']
-    def __init__(self, time, domain):
-        Event.__init__(self, time)
-        self.data = domain.domain_id            # Store the domain_id key refering to the domain
-                                                # in domains{} in the scheduler
 
 class Delegate(object):
     def __init__(self, obj, method, arg):
