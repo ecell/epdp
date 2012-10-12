@@ -32,6 +32,7 @@ from _gfrd import (
 
 from gfrdbase import *
 from gfrdbase import DomainEvent
+import model
 
 __all__ = [ 'save_state', 'load_state' ]
 
@@ -74,19 +75,6 @@ def save_state(simulator, filename):
     cp.add_section('SEED')
     cp.set('SEED', 'seed', new_seed)
 
-    #### SPECIES ####
-    for species in simulator.get_species():
-
-        id_int = id_to_int(species.id)
-        sectionname = 'SPECIES_' + str(id_int)
-        cp.add_section(sectionname)
-
-        cp.set(sectionname, 'id', id_int)
-        cp.set(sectionname, 'radius', species.radius)
-        cp.set(sectionname, 'D', species.D)
-        cp.set(sectionname, 'v', species.v)
-        cp.set(sectionname, 'structure_type_id', id_to_int(species.structure_type_id))
-
     #### STRUCTURE TYPES ####
     structure_type_names = [] # will store the names in a lookup list
     for structure_type in simulator.get_structure_types():
@@ -107,6 +95,19 @@ def save_state(simulator, filename):
 
         # Remember name for later
         structure_type_names.append( (id_int, name) )
+
+    #### SPECIES ####
+    for species in simulator.get_species():
+
+        id_int = id_to_int(species.id)
+        sectionname = 'SPECIES_' + str(id_int)
+        cp.add_section(sectionname)
+
+        cp.set(sectionname, 'id', id_int)
+        cp.set(sectionname, 'radius', species.radius)
+        cp.set(sectionname, 'D', species.D)
+        cp.set(sectionname, 'v', species.v)
+        cp.set(sectionname, 'structure_type_id', id_to_int(species.structure_type_id))
 
     #### RULES ####
     extracted_rules = []  # to avoid double-extraction
@@ -351,9 +352,46 @@ def save_state(simulator, filename):
 
 
 
-def load_state(simulator, filename):
+def load_state(filename):
+    """ Loads a file previously generated with save_state() and
+        constructs a model, world and info needed to construct the 
+        EGFRDSimulator.       
+    """
 
-    pass
+    #### DEFINE THE CONFIG PARSER OBJECT ####
+    cp = CP.ConfigParser()
+    cp.optionxform = str # for upper case option names
+
+    # Load the saved file
+    # TODO Check for right format
+    cp.read(filename)
+
+    #### FIRST GET GLOBAL INFO ####
+    world_size  = cp.getfloat('WORLD', 'world_size')
+    matrix_size = cp.getfloat('WORLD', 'matrix_size')
+    seed        = cp.getint('SEED', 'seed')    
+
+    #### CREATE THE MODEL ####
+    m = model.ParticleModel(world_size)
+
+    #### STRUCTURE_TYPES ####
+    species_sections = filter_sections(cp.sections(), 'STRUCTURETYPE')
+    for sectionname in species_sections:
+    
+        
+        id      = cp.getint(sectionname, 'id')
+        name    = cp.get(sectionname, 'name')
+
+    #### SPECIES ####
+    species_sections = filter_sections(cp.sections(), 'SPECIES')    
+    for sectionname in species_sections:
+    
+        
+        id      = cp.getint(sectionname, 'id')
+        radius  = cp.getfloat(sectionname, 'radius')
+        D       = cp.getfloat(sectionname, 'D')
+        v       = cp.getfloat(sectionname, 'v')
+        structure_type_id = cp.getint(sectionname, 'structure_type_id')
 
 
 def id_to_int(ID):
@@ -375,6 +413,24 @@ def id_to_int(ID):
 
     else:
         raise LoadSaveError('Could not extract number, probably the argument is not a valid ID.')
+
+
+def separate(sectionname):
+
+    separator = '_'
+    part = sectionname.partition(separator)
+
+    return (part[0], part[2])
+
+    # TODO Check for right tag format
+    # raise LoadSaveError('Section name in input file did not have the required format.')
+
+
+def filter_sections(sectionlist, tagstring):
+
+    assert isinstance(tagstring, str)
+
+    return [section for section in sectionlist if separate(section)[0] == tagstring]
 
 
 structure_keywords = [

@@ -3230,7 +3230,7 @@ rejected moves = %d
 
     def load_state(self, filename):
 
-        loadsave.load_state(self, filename)
+        loadsave.load_state(filename)
 
 
     ###############################
