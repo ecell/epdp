@@ -1,6 +1,6 @@
 #!/usr/env python
 
-import copy
+import sys
 import math
 import numpy
 
@@ -49,18 +49,30 @@ def save_state(simulator, filename):
     # event IDs
     simulator.burst_all_domains()
 
+    # Re-seed the random number generator
+    # (with a randomly drawn seed)
+    # This seed has to be saved and used to
+    # (re)seed the newly setup simulator when
+    # loading to ensure that we will reproduce
+    # the same trajectory.
+    new_seed = simulator.rng.uniform_int(0, 1000000)
+    simulator.reset_seed(new_seed)
+
     #### DEFINE THE CONFIG PARSER OBJECT ####
     cp = CP.ConfigParser()
     cp.optionxform = str # for upper case option names
 
     # Now add the relevant info in separate sections
-    #### MODEL and WORLD ####
+    #### MODEL, WORLD and SEED ####
     cp.add_section('MODEL')
     cp.set('MODEL', 'world_size', simulator.world.world_size)
 
     cp.add_section('WORLD')
     cp.set('WORLD', 'world_size', simulator.world.world_size)
     cp.set('WORLD', 'matrix_size', simulator.world.matrix_size)
+
+    cp.add_section('SEED')
+    cp.set('SEED', 'seed', new_seed)
 
     #### SPECIES ####
     for species in simulator.get_species():
