@@ -395,8 +395,10 @@ def load_state(filename):
     #### CREATE THE WORLD AND THE MODEL ####
     m = model.ParticleModel(world_size)
 
+
     #### STRUCTURE_TYPES ####
     structure_types_dict = {}  # will map the old (read-in) ID to the StructureType
+
     structure_types_sections = filter_sections(cp.sections(), 'STRUCTURETYPE')
     # Now read in the the structure types and add them to the new model
     # in the right order.
@@ -408,7 +410,7 @@ def load_state(filename):
         name    = cp.get(sectionname, 'name')        
 
         # Assert that the read id corresponds to the one in the sectionname
-        assert int(sectionname.split('_')[-1]) == id
+        assert name_to_int(sectionname) == id
 
         # Create a new StructureType object and add it to the model
         structure_type = _gfrd.StructureType()
@@ -422,26 +424,29 @@ def load_state(filename):
 
     print 'structure_types_dict = ' + str(structure_types_dict) ### TESTING
 
+
     #### SPECIES ####
     # Now the same for the species
     # Again we have to make sure we add the species in the right order => sort sections list
     species_dict = {}  # will map the old (read-in) ID to the Species
+
     species_sections = filter_sections(cp.sections(), 'SPECIES')
-    for sectionname in sorted(species_sections, key = lambda name : int(name.split('_')[-1])):    
+    for sectionname in sorted(species_sections, key = lambda name : name_to_int(name)):
         
         id      = cp.getint(sectionname, 'id')
-        #name    = cp.getfloat(sectionname, 'name') # TODO
+        #name    = cp.getfloat(sectionname, 'name') # FIXME
         radius  = cp.getfloat(sectionname, 'radius')
         D       = cp.getfloat(sectionname, 'D')
         v       = cp.getfloat(sectionname, 'v')
         structure_type_id = cp.getint(sectionname, 'structure_type_id')
 
         # Assert that the read id corresponds to the one in the sectionname
-        assert int(sectionname.split('_')[-1]) == id
+        assert name_to_int(sectionname) == id
 
-        # TODO name cannot be output yet, so we have to make up one here
+        # FIXME name cannot be output yet, so we have to make up one here
         name = 'Species_'+str(id)
 
+        # Get the structure type for this species from the structure_type_id
         if structure_type_id > 1:
             structure_type = structure_types_dict[structure_type_id]
             assert id_to_int(structure_type.id) == structure_type_id
@@ -462,6 +467,86 @@ def load_state(filename):
     print 'species_dict = ' + str(species_dict) ### TESTING
 
 
+    #### RULES ####
+    rules_dict = {}  # will map the old (read-in) ID to the reaction rule
+
+    rules_sections = filter_sections(cp.sections(), 'REACTIONRULE')
+    for sectionname in sorted(rules_sections, key = lambda name : name_to_int(name)):
+
+        rtype        = cp.get(sectionname, 'type')
+        rate         = cp.getfloat(sectionname, 'rate')
+        reactant_ids = eval(cp.get(sectionname, 'reactant_ids')) # eval makes sure we get a list
+        product_ids  = eval(cp.get(sectionname, 'product_ids'))
+
+        rule = None
+        if rtype == 'unimolecular':
+
+            assert len(reactant_ids) == 1 and reactant_ids[0] != None and \
+                   len(product_ids)  == 1 and product_ids[0]  != None, \
+                     'Saved reaction rule does not have the proper signature: rule = %s' % sectionname
+
+            # Get the involved species
+            reactant = species_dict[int(reactant_ids[0])]
+            product  = species_dict[int(product_ids[0])]
+
+            # Create the rule
+            rule = model.create_unimolecular_reaction_rule(reactant, product, rate)
+
+        elif rtype == 'unbinding':
+
+            assert len(reactant_ids) == 1 and reactant_ids[0] != None and \
+                   product_ids[0] != None and product_ids[1]  != None, \
+                     'Saved reaction rule does not have the proper signature: rule = %s' % sectionname
+
+            # Get the involved species
+            reactant = species_dict[int(reactant_ids[0])]
+            product0 = species_dict[int(product_ids[0])]
+            product1 = species_dict[int(product_ids[1])]
+
+            # Create the rule
+            rule = model.create_unbinding_reaction_rule(reactant, product0, product1, rate)
+
+        elif rtype == 'binding_particle':
+            
+            assert reactant_ids[0] != None and reactant_ids[1] != None and \
+                   len(product_ids) == 1   and product_ids[0]  != None, \
+                     'Saved reaction rule does not have the proper signature: rule = %s' % sectionname
+
+            # Get the involved species
+            reactant0 = species_dict[int(reactant_ids[0])]
+            reactant1 = species_dict[int(reactant_ids[1])]
+            product   = species_dict[int(product_ids[0])]
+
+            # Create the rule
+            rule = model.create_binding_reaction_rule(reactant0, reactant1, product, rate)
+
+        elif rtype == 'binding_surface':
+            
+            assert reactant_ids[0] != None and reactant_ids[1] != None and \
+                   len(product_ids) == 1   and product_ids[0]  != None, \
+                     'Saved reaction rule does not have the proper signature: rule = %s' % sectionname
+
+            # Get the involved species
+            structure_type = structure_types_dict[int(reactant_ids[0])]
+            reactant       = species_dict[int(reactant_ids[1])]
+            product        = species_dict[int(product_ids[0])]
+
+            # Create the rule
+            rule = model.create_binding_reaction_rule(reactant, structure_type, product, rate)
+
+        else:
+
+            raise LoadSaveError('Cannot create reaction rule when loading state: unknown reaction rule type.')
+
+        # If we have successfully constructed a reaction rule, add it to the model
+        # and to the internal rules dictionary
+        if rule:
+            
+            m.add_reaction_rule(rule)
+            rules_dict[name_to_int(sectionname)] = rule
+            print 'Added ' + str(rule) + ', type = %s' % str(rtype) ### TESTING
+
+    print 'rules_dict = ' + str(rules_dict) ### TESTING
 
 ##########################
 #### HELPER FUNCTIONS ####
