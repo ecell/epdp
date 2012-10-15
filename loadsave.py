@@ -4,6 +4,8 @@ import sys
 import math
 import numpy
 
+from array import *
+
 import ConfigParser as CP
 
 from _gfrd import (
@@ -33,6 +35,7 @@ from _gfrd import (
 from gfrdbase import *
 from gfrdbase import DomainEvent
 import model
+import _gfrd
 
 __all__ = [ 'save_state', 'load_state' ]
 
@@ -58,6 +61,11 @@ def save_state(simulator, filename):
     # the same trajectory.
     new_seed = simulator.rng.uniform_int(0, 1000000)
     simulator.reset_seed(new_seed)
+
+    # Reset counters
+    N_structure_types = 0
+    N_species         = 0
+    N_rules           = 0
 
     #### DEFINE THE CONFIG PARSER OBJECT ####
     cp = CP.ConfigParser()
@@ -96,6 +104,9 @@ def save_state(simulator, filename):
         # Remember name for later
         structure_type_names.append( (id_int, name) )
 
+        # Update counter
+        N_structure_types += 1
+
     #### SPECIES ####
     for species in simulator.get_species():
 
@@ -104,10 +115,14 @@ def save_state(simulator, filename):
         cp.add_section(sectionname)
 
         cp.set(sectionname, 'id', id_int)
+        #cp.set(sectionname, 'name', species.name]) # TODO SpeciesInfo does not have this property for some reason...
         cp.set(sectionname, 'radius', species.radius)
         cp.set(sectionname, 'D', species.D)
         cp.set(sectionname, 'v', species.v)
         cp.set(sectionname, 'structure_type_id', id_to_int(species.structure_type_id))
+
+        # Update counter
+        N_species += 1
 
     #### RULES ####
     extracted_rules = []  # to avoid double-extraction
@@ -346,6 +361,10 @@ def save_state(simulator, filename):
     cp.add_section(sectionname)
     cp.set(sectionname, 'particle_order', list(scheduler_order))    
 
+    #### ADD COUNTERS TO MODEL SECTION ####
+    cp.set('MODEL', 'N_structure_types', N_structure_types)
+    cp.set('MODEL', 'N_species', N_species)
+
     #### WRITE FILE ####
     with open(filename, 'wb') as outfile:
         cp.write(outfile)
@@ -369,31 +388,84 @@ def load_state(filename):
     #### FIRST GET GLOBAL INFO ####
     world_size  = cp.getfloat('WORLD', 'world_size')
     matrix_size = cp.getfloat('WORLD', 'matrix_size')
-    seed        = cp.getint('SEED', 'seed')    
+    N_structure_types = cp.getint('MODEL', 'N_structure_types')
+    N_species   = cp.getint('MODEL', 'N_species')
+    seed        = cp.getint('SEED', 'seed')
 
-    #### CREATE THE MODEL ####
+    #### CREATE THE WORLD AND THE MODEL ####
     m = model.ParticleModel(world_size)
 
     #### STRUCTURE_TYPES ####
-    species_sections = filter_sections(cp.sections(), 'STRUCTURETYPE')
-    for sectionname in species_sections:
-    
+    structure_types_dict = {}  # will map the old (read-in) ID to the StructureType
+    structure_types_sections = filter_sections(cp.sections(), 'STRUCTURETYPE')
+    # Now read in the the structure types and add them to the new model
+    # in the right order.
+    # Note that add_structure_type() will create IDs automatically,
+    # so it is important that we sort the sectionnames list by the ids.
+    for sectionname in sorted(structure_types_sections, key = lambda name : name_to_int(name)):
         
         id      = cp.getint(sectionname, 'id')
-        name    = cp.get(sectionname, 'name')
+        name    = cp.get(sectionname, 'name')        
+
+        # Assert that the read id corresponds to the one in the sectionname
+        assert int(sectionname.split('_')[-1]) == id
+
+        # Create a new StructureType object and add it to the model
+        structure_type = _gfrd.StructureType()
+        structure_type['name'] = name
+
+        if id > 1:  # Skip adding the default structure_type a second time
+            m.add_structure_type(structure_type)
+            assert id_to_int(structure_type.id) == id
+            structure_types_dict[id] = structure_type
+            print 'Added ' + str(structure_type) ### TESTING
+
+    print 'structure_types_dict = ' + str(structure_types_dict) ### TESTING
 
     #### SPECIES ####
-    species_sections = filter_sections(cp.sections(), 'SPECIES')    
-    for sectionname in species_sections:
-    
+    # Now the same for the species
+    # Again we have to make sure we add the species in the right order => sort sections list
+    species_dict = {}  # will map the old (read-in) ID to the Species
+    species_sections = filter_sections(cp.sections(), 'SPECIES')
+    for sectionname in sorted(species_sections, key = lambda name : int(name.split('_')[-1])):    
         
         id      = cp.getint(sectionname, 'id')
+        #name    = cp.getfloat(sectionname, 'name') # TODO
         radius  = cp.getfloat(sectionname, 'radius')
         D       = cp.getfloat(sectionname, 'D')
         v       = cp.getfloat(sectionname, 'v')
         structure_type_id = cp.getint(sectionname, 'structure_type_id')
 
+        # Assert that the read id corresponds to the one in the sectionname
+        assert int(sectionname.split('_')[-1]) == id
 
+        # TODO name cannot be output yet, so we have to make up one here
+        name = 'Species_'+str(id)
+
+        if structure_type_id > 1:
+            structure_type = structure_types_dict[structure_type_id]
+            assert id_to_int(structure_type.id) == structure_type_id
+
+        # Create a new Species object and add it to the model
+        if structure_type_id == 1:
+            species = model.Species(name, D, radius)
+        elif v == 0:
+            species = model.Species(name, D, radius, structure_type)
+        else:
+            species = model.Species(name, D, radius, structure_type, v)
+
+        m.add_species_type(species)
+        assert id_to_int(species.id) == id
+        species_dict[id] = species
+        print 'Added ' + str(species) ### TESTING
+
+    print 'species_dict = ' + str(species_dict) ### TESTING
+
+
+
+##########################
+#### HELPER FUNCTIONS ####
+##########################
 def id_to_int(ID):
     """ Strips an eGFRD-type ID-specifier off everything
         but the integer ID numbers.
@@ -415,9 +487,14 @@ def id_to_int(ID):
         raise LoadSaveError('Could not extract number, probably the argument is not a valid ID.')
 
 
+def get_default_separator():
+
+    return '_'
+
+
 def separate(sectionname):
 
-    separator = '_'
+    separator = get_default_separator()
     part = sectionname.partition(separator)
 
     return (part[0], part[2])
@@ -431,6 +508,13 @@ def filter_sections(sectionlist, tagstring):
     assert isinstance(tagstring, str)
 
     return [section for section in sectionlist if separate(section)[0] == tagstring]
+
+
+def name_to_int(sectionname):
+
+    separator = get_default_separator()
+
+    return int(sectionname.split(separator)[-1])
 
 
 structure_keywords = [
