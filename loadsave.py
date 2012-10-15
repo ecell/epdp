@@ -234,13 +234,13 @@ def save_state(simulator, filename):
             # the structure_id property of structures is the parent structure id
 
         # Find the name of the structure type
-        for i, name in structure_type_names:
+        for i, name in structure_type_names: ## FIXME replace by dictionary?
             if i == sid_int:
                 st_name = name
 
         # Find the keyword for the geometric type of this structure
-        for instance, key in structure_keywords:
-            if isinstance(structure, instance):
+        for object_type, key in structure_keywords:
+            if isinstance(structure, object_type):
                 geometry_key = key
 
         sectionname = 'STRUCTURE_' + geometry_key + '_' + str(id_int)
@@ -385,9 +385,11 @@ def load_state(filename):
     # TODO Check for right format
     cp.read(filename)
 
+    print 'Sections in file : ' + str(cp.sections()) ### TESTING
+
     #### FIRST GET GLOBAL INFO ####
     world_size  = cp.getfloat('WORLD', 'world_size')
-    matrix_size = cp.getfloat('WORLD', 'matrix_size')
+    matrix_size = cp.getint('WORLD', 'matrix_size')
     N_structure_types = cp.getint('MODEL', 'N_structure_types')
     N_species   = cp.getint('MODEL', 'N_species')
     seed        = cp.getint('SEED', 'seed')
@@ -547,6 +549,98 @@ def load_state(filename):
             print 'Added ' + str(rule) + ', type = %s' % str(rtype) ### TESTING
 
     print 'rules_dict = ' + str(rules_dict) ### TESTING
+
+    #### CREATE THE WORLD ####
+    w = create_world(m, matrix_size)
+    # This will come in handy later
+    def_structure_id = w.get_def_structure_id()
+
+    #### STRUCTURES ####
+    structures_dict = {}  # will map the old (read-in) ID to the structure
+
+    structures_sections = filter_sections(cp.sections(), 'STRUCTURE')
+    for sectionname in sorted(structures_sections, key = lambda name : name_to_int(name)):
+
+        # Get the geometry key
+        # TODO This assumes that the section name has the right signature
+        #      => Implement a check
+        geometry_key = sectionname.split(get_default_separator())[-2]
+
+        # Find the geometric type of this structure according to its key
+        for object_type, key in structure_keywords:
+            if geometry_key == key:
+                structure_object_type = object_type
+
+        # Read in the information common to all object types
+        id        = cp.getint(sectionname, 'id')        
+        name      = cp.get(sectionname, 'name')
+        parent_id = cp.getint(sectionname, 'parent_id')
+        st_id     = cp.getint(sectionname, 'structure_type_id')        
+        st_name   = cp.get(sectionname, 'structure_type_name')
+        position  = eval(cp.get(sectionname, 'position'))
+                    # eval makes sure we import a list
+
+        # Assert that the read id corresponds to the one in the sectionname
+        # This is particularly important in this part of the loading routine
+        # because structures may be defined as substructures of previously
+        # defined structures. Thus we want to define them in the order in
+        # which they were defined before they have been saved to the file.
+        assert name_to_int(sectionname) == id
+
+        parent_structure = w.get_structure(def_structure_id) # TESTING
+
+        structure = None
+        if structure_object_type == CuboidalRegion:
+        
+            unit_x      = eval(cp.get(sectionname, 'unit_x'))
+            unit_y      = eval(cp.get(sectionname, 'unit_y'))
+            unit_z      = eval(cp.get(sectionname, 'unit_z'))            
+            half_extent = eval(cp.get(sectionname, 'half_extent'))
+
+            assert id == id_to_int(def_structure_id)
+            # TODO Add more than default cuboidal regions
+            # Right now we assume that there is only one which
+            # is created automatically via create_world()            
+
+        elif structure_object_type == SphericalSurface:
+            
+            radius = cp.getfloat(sectionname, 'radius')
+
+            # Create the structure
+            structure = model.create_spherical_surface(structure_type.id, name, position, radius, parent_structure.id)
+
+        elif structure_object_type == CylindricalSurface:
+            
+            unit_z      = eval(cp.get(sectionname, 'unit_z'))            
+            half_length = cp.getfloat(sectionname, 'half_length')
+            radius      = cp.getfloat(sectionname, 'radius')
+
+        elif structure_object_type == DiskSurface:
+            
+            unit_z      = eval(cp.get(sectionname, 'unit_z'))            
+            radius      = cp.getfloat(sectionname, 'radius')
+
+            structure_type = structure_types_dict[st_id]            
+
+            # Create the structure
+            structure = model.create_disk_surface(structure_type.id, name, position, radius, unit_z, parent_structure.id)
+
+        elif structure_object_type == PlanarSurface:
+
+            unit_x      = eval(cp.get(sectionname, 'unit_x'))
+            unit_y      = eval(cp.get(sectionname, 'unit_y'))
+            unit_z      = eval(cp.get(sectionname, 'unit_z'))            
+            half_extent = eval(cp.get(sectionname, 'half_extent'))
+
+        # Add it to the world
+        if structure:
+            w.add_structure(structure)
+            #assert id_to_int(structure.id) == id # TODO
+            structures_dict[id] = structure
+            print 'Added ' + str(structure) + ', type = %s, parent = %s' % (structure_type, parent_id) ### TESTING
+
+    print 'structures_dict = ' + str(structures_dict) ### TESTING
+
 
 ##########################
 #### HELPER FUNCTIONS ####
