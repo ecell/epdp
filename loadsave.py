@@ -558,6 +558,12 @@ def load_state(filename):
     #### STRUCTURES ####
     structures_dict = {}  # will map the old (read-in) ID to the structure
 
+    # The default structure should be always ID 1 and has to be added
+    # from the beginning because it is created automatically at the init
+    # of world.
+    # To be sure we check that the default ID is indeed 1.
+    # FIXME There must be a more elegant solution...
+    assert id_to_int(def_structure_id) == 1
     def_structure = w.get_structure(def_structure_id)
     structures_dict[id_to_int(def_structure_id)] = def_structure
 
@@ -664,6 +670,23 @@ def load_state(filename):
 
     print 'structures_dict = ' + str(structures_dict) ### TESTING
 
+    #### STRUCTURE CONNECTIONS ####
+    connections_dict = {}  # will map the old (read-in) ID to the structure connection
+
+    sc_sections = filter_sections(cp.sections(), 'STRUCTURECONNECTION')
+    for sectionname in sorted(sc_sections, key = lambda name : name_to_int(name)):
+
+        to_connect_id = name_to_int(sectionname)
+
+        neighbor_id_0 = cp.getint(sectionname, 'neighbor_id_0')
+        neighbor_id_1 = cp.getint(sectionname, 'neighbor_id_1')
+        neighbor_id_2 = cp.getint(sectionname, 'neighbor_id_2')
+        neighbor_id_3 = cp.getint(sectionname, 'neighbor_id_3')
+
+        # TODO Continue... we need to find the side number to which
+        # to_connect_id structure is connected at each of its sides
+        # This may require implementing a C++ to Python converter
+        # for get_neighbor_info()
 
 ##########################
 #### HELPER FUNCTIONS ####
