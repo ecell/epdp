@@ -558,6 +558,9 @@ def load_state(filename):
     #### STRUCTURES ####
     structures_dict = {}  # will map the old (read-in) ID to the structure
 
+    def_structure = w.get_structure(def_structure_id)
+    structures_dict[id_to_int(def_structure_id)] = def_structure
+
     structures_sections = filter_sections(cp.sections(), 'STRUCTURE')
     for sectionname in sorted(structures_sections, key = lambda name : name_to_int(name)):
 
@@ -577,7 +580,7 @@ def load_state(filename):
         parent_id = cp.getint(sectionname, 'parent_id')
         st_id     = cp.getint(sectionname, 'structure_type_id')        
         st_name   = cp.get(sectionname, 'structure_type_name')
-        position  = eval(cp.get(sectionname, 'position'))
+        position  = vectorize(cp.get(sectionname, 'position'))
                     # eval makes sure we import a list
 
         # Assert that the read id corresponds to the one in the sectionname
@@ -587,15 +590,19 @@ def load_state(filename):
         # which they were defined before they have been saved to the file.
         assert name_to_int(sectionname) == id
 
-        parent_structure = w.get_structure(def_structure_id) # TESTING
+        # Get the parent structure from the structures dictionary
+        # For this to work it is of critical importance that the order
+        # in which the structures are defined is the same as the order
+        # in which they were defined in before the output
+        parent_structure = structures_dict[parent_id]
 
         structure = None
         if structure_object_type == CuboidalRegion:
         
-            unit_x      = eval(cp.get(sectionname, 'unit_x'))
-            unit_y      = eval(cp.get(sectionname, 'unit_y'))
-            unit_z      = eval(cp.get(sectionname, 'unit_z'))            
-            half_extent = eval(cp.get(sectionname, 'half_extent'))
+            unit_x      = vectorize(cp.get(sectionname, 'unit_x'))
+            unit_y      = vectorize(cp.get(sectionname, 'unit_y'))
+            unit_z      = vectorize(cp.get(sectionname, 'unit_z'))            
+            half_extent = vectorize(cp.get(sectionname, 'half_extent'))
 
             assert id == id_to_int(def_structure_id)
             # TODO Add more than default cuboidal regions
@@ -611,13 +618,21 @@ def load_state(filename):
 
         elif structure_object_type == CylindricalSurface:
             
-            unit_z      = eval(cp.get(sectionname, 'unit_z'))            
+            unit_z      = vectorize(cp.get(sectionname, 'unit_z'))            
             half_length = cp.getfloat(sectionname, 'half_length')
             radius      = cp.getfloat(sectionname, 'radius')
 
+            # The cylinder creation function does not take the midpoint of
+            # the cylinder (which is stored in position) and its half length
+            # but the edge point and the total length. Thus we need:
+            edge_pos = position - half_length * unit_z
+
+            # Create the structure
+            structure = model.create_cylindrical_surface(structure_type.id, name, edge_pos, radius, unit_z, 2.0*half_length, parent_structure.id)
+
         elif structure_object_type == DiskSurface:
             
-            unit_z      = eval(cp.get(sectionname, 'unit_z'))            
+            unit_z      = vectorize(cp.get(sectionname, 'unit_z'))            
             radius      = cp.getfloat(sectionname, 'radius')
 
             structure_type = structure_types_dict[st_id]            
@@ -627,17 +642,25 @@ def load_state(filename):
 
         elif structure_object_type == PlanarSurface:
 
-            unit_x      = eval(cp.get(sectionname, 'unit_x'))
-            unit_y      = eval(cp.get(sectionname, 'unit_y'))
-            unit_z      = eval(cp.get(sectionname, 'unit_z'))            
-            half_extent = eval(cp.get(sectionname, 'half_extent'))
+            unit_x      = vectorize(cp.get(sectionname, 'unit_x'))
+            unit_y      = vectorize(cp.get(sectionname, 'unit_y'))
+            unit_z      = vectorize(cp.get(sectionname, 'unit_z'))            
+            half_extent = vectorize(cp.get(sectionname, 'half_extent'))
+
+            # The plane creation function does not take the midpoint of
+            # the plane (which is stored in position) and its half extents
+            # but the corner point and the total extensions. Thus we need:
+            corner_pos = position - half_extent[0] * unit_x - half_extent[1] * unit_y
+
+            # Create the structure
+            structure = model.create_planar_surface(structure_type.id, name, corner_pos, unit_x, unit_y, 2.0*half_extent[0], 2.0*half_extent[1], parent_structure.id)
 
         # Add it to the world
         if structure:
             w.add_structure(structure)
-            #assert id_to_int(structure.id) == id # TODO
+            assert id_to_int(structure.id) == id # TODO
             structures_dict[id] = structure
-            print 'Added ' + str(structure) + ', type = %s, parent = %s' % (structure_type, parent_id) ### TESTING
+            print 'Added ' + str(structure) + ', type = %s, id = %s, parent = %s' % (structure_type, structure.id, structure.structure_id) ### TESTING
 
     print 'structures_dict = ' + str(structures_dict) ### TESTING
 
@@ -694,6 +717,11 @@ def name_to_int(sectionname):
     separator = get_default_separator()
 
     return int(sectionname.split(separator)[-1])
+
+
+def vectorize(input_list):
+
+    return numpy.array(eval(input_list))
 
 
 structure_keywords = [
