@@ -30,6 +30,7 @@ from _gfrd import (
     )
 
 from gfrdbase import *
+from gfrdbase import DomainEvent
 from single import *
 from pair import *
 from multi import *
@@ -62,6 +63,7 @@ from shells import (
 import logging
 import os
 
+import loadsave
 from histograms import *
 
 log = logging.getLogger('ecell')
@@ -172,13 +174,6 @@ def create_default_pair(domain_id, shell_id, testShell, reaction_rules):
         return MixedPair2D3D               (domain_id, shell_id, testShell, reaction_rules)
     elif isinstance(testShell, MixedPair1DCaptestShell):
         return MixedPair1DCap              (domain_id, shell_id, testShell, reaction_rules)
-
-class DomainEvent(Event):
-    __slot__ = ['data']
-    def __init__(self, time, domain):
-        Event.__init__(self, time)
-        self.data = domain.domain_id            # Store the domain_id key refering to the domain
-                                                # in domains{} in the scheduler
 
 class Delegate(object):
     def __init__(self, obj, method, arg):
@@ -3220,6 +3215,35 @@ rejected moves = %d
         self.check_particle_consistency()
         
         self.check_domain_for_all()
+
+
+    ########################################
+    #### METHODS FOR LOADING AND SAVING ####
+    ########################################
+    # These are just wrappers around the methods
+    # in loadsave.py :
+
+    def save_state(self, filename):
+
+        loadsave.save_state(self, filename)
+
+
+    def load_state(self, filename):
+
+        #assert self.is_dirty == True   # TODO
+
+        # Run the load function which will return a
+        # new world containing the read-in model and
+        # objects in the right positions and the seed
+        # that was used to reset the RNG at output
+        world, seed = loadsave.load_state(filename)
+        myrandom.seed(seed)
+
+        if __debug__:
+            log.info('Loaded state from file %s \nRe-initializing the simulator...' % filename)
+
+        # Re-initialize the simulator
+        self.__init__(world, myrandom.rng)
 
 
     ###############################
