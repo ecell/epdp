@@ -333,7 +333,7 @@ def save_state(simulator, filename):
     # This seems awkward but it is convenient because
     # we will do the same procedure when rebuilding the
     # system at loading / read-in.
-    # Event IDs will change but this should not matter
+    # Event IDs will change but this does not matter
     # for the simulated trajectory as such.    
     eventlist = []
     scheduler_order = []
@@ -355,7 +355,8 @@ def save_state(simulator, filename):
     
     # Just to be sure...
     assert simulator.scheduler.size == 0
-    # Put the events back into the scheduler in reverse order
+    # Put the events back into the scheduler (in reverse order)
+    # Note that the eventlist already has been correctly inverted at this point
     for (event, domain) in list(eventlist):
         event_id = simulator.scheduler.add(DomainEvent(event.time, domain))
 
@@ -779,10 +780,13 @@ def load_state(filename):
     for pid in particle_order:
 
         particle = particles_dict[pid]
-        particle_species = species_dict[particle['species_id']]
+        particle_species = species_dict[ particle['species_id'] ]
         
-        place_particle(w, particle_species, particle['position'])
-        print 'Placed particle of species %s at %s.' % (particle_species, particle['position']) ### TESTING
+        placed = place_particle(w, particle_species, particle['position'])
+        print 'Placed particle %s.' % str(placed) ### TESTING
+
+
+    return w, seed
 
 
 

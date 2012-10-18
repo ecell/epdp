@@ -3230,7 +3230,20 @@ rejected moves = %d
 
     def load_state(self, filename):
 
-        loadsave.load_state(filename)
+        #assert self.is_dirty == True   # TODO
+
+        # Run the load function which will return a
+        # new world containing the read-in model and
+        # objects in the right positions and the seed
+        # that was used to reset the RNG at output
+        world, seed = loadsave.load_state(filename)
+        myrandom.seed(seed)
+
+        if __debug__:
+            log.info('Loaded state from file %s \nRe-initializing the simulator...' % filename)
+
+        # Re-initialize the simulator
+        self.__init__(world, myrandom.rng)
 
 
     ###############################
