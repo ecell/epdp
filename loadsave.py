@@ -351,14 +351,21 @@ def save_state(simulator, filename):
         pid, particle = domain.pid_particle_pair        
         pid_int = id_to_int(pid)
 
-        scheduler_order.append(pid_int)
-    
+        # Also output the scheduler order in reverse
+        # fashion already, so we don't have to bother later
+        scheduler_order.insert(0, pid_int)
+
+    print scheduler_order
+
     # Just to be sure...
     assert simulator.scheduler.size == 0
     # Put the events back into the scheduler (in reverse order)
     # Note that the eventlist already has been correctly inverted at this point
     for (event, domain) in list(eventlist):
+        print "Re-instering domain %s, pid = %s into scheduler" % (domain, domain.pid_particle_pair[0])
         event_id = simulator.scheduler.add(DomainEvent(event.time, domain))
+
+    print simulator.scheduler
 
     # Create a new section in the save file
     sectionname = 'SCHEDULER'
@@ -743,7 +750,11 @@ def load_state(filename):
     # Here we first read in the scheduler order, i.e. the
     # order with which particles were sitting in the scheduler
     # before the output, and the particles as such.
-    # Then we create the particles in the right order.
+    # Then we create the particles in the right order (FILO principle).
+    # Note that the particle_order list of the SCHEDULER section
+    # already contains the particles in reverse order as compared
+    # to their order in the scheduler before saving, i.e. they
+    # will be added to the system in the right order here.
 
     # Get the particle order
     assert cp.has_section('SCHEDULER')
@@ -786,6 +797,8 @@ def load_state(filename):
         print 'Placed particle %s.' % str(placed) ### TESTING
 
 
+    # Return the world and the seed that was used 
+    # to re-seed the simulator at output
     return w, seed
 
 
