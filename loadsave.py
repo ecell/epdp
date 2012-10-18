@@ -330,6 +330,9 @@ def save_state(simulator, filename):
     #### PARTICLE ORDER IN SCHEDULER ####
     # Pop the events from the scheduler and remember
     # them to push them back again afterwards.
+    # This seems awkward but it is convenient because
+    # we will do the same procedure when rebuilding the
+    # system at loading / read-in.
     # Event IDs will change but this should not matter
     # for the simulated trajectory as such.    
     eventlist = []
@@ -359,7 +362,7 @@ def save_state(simulator, filename):
     # Create a new section in the save file
     sectionname = 'SCHEDULER'
     cp.add_section(sectionname)
-    cp.set(sectionname, 'particle_order', list(scheduler_order))    
+    cp.set(sectionname, 'particle_order', list(scheduler_order))
 
     #### ADD COUNTERS TO MODEL SECTION ####
     cp.set('MODEL', 'N_structure_types', N_structure_types)
@@ -389,10 +392,10 @@ def load_state(filename):
 
     #### FIRST GET GLOBAL INFO ####
     world_size  = cp.getfloat('WORLD', 'world_size')
-    matrix_size = cp.getint('WORLD', 'matrix_size')
+    matrix_size = cp.getint('WORLD',   'matrix_size')
     N_structure_types = cp.getint('MODEL', 'N_structure_types')
     N_species   = cp.getint('MODEL', 'N_species')
-    seed        = cp.getint('SEED', 'seed')
+    seed        = cp.getint('SEED',  'seed')
 
     #### CREATE THE WORLD AND THE MODEL ####
     m = model.ParticleModel(world_size)
@@ -400,6 +403,13 @@ def load_state(filename):
 
     #### STRUCTURE_TYPES ####
     structure_types_dict = {}  # will map the old (read-in) ID to the StructureType
+
+    # First get the default structure type already defined at model creation
+    # and add it to the internal dictionary
+    def_structure_type_id = id_to_int(m.get_def_structure_type_id())
+    def_structure_type    = m.get_structure_type_by_id(m.get_def_structure_type_id())
+    structure_types_dict[def_structure_type_id] = def_structure_type
+    print 'Added ' + str(def_structure_type) ### TESTING
 
     structure_types_sections = filter_sections(cp.sections(), 'STRUCTURETYPE')
     # Now read in the the structure types and add them to the new model
@@ -418,9 +428,9 @@ def load_state(filename):
         structure_type = _gfrd.StructureType()
         structure_type['name'] = name
 
-        if id > 1:  # Skip adding the default structure_type a second time
+        if id != def_structure_type_id:  # Skip adding the default structure_type a second time
             m.add_structure_type(structure_type)
-            assert id_to_int(structure_type.id) == id
+            assert id_to_int(structure_type.id) == id            
             structure_types_dict[id] = structure_type
             print 'Added ' + str(structure_type) ### TESTING
 
@@ -449,12 +459,12 @@ def load_state(filename):
         name = 'Species_'+str(id)
 
         # Get the structure type for this species from the structure_type_id
-        if structure_type_id > 1:
-            structure_type = structure_types_dict[structure_type_id]
-            assert id_to_int(structure_type.id) == structure_type_id
+        structure_type = structure_types_dict[structure_type_id]
+        assert id_to_int(structure_type.id) == structure_type_id
 
         # Create a new Species object and add it to the model
-        if structure_type_id == 1:
+        # Make sure to choose the right argument signature for each case
+        if structure_type_id == def_structure_type_id:
             species = model.Species(name, D, radius)
         elif v == 0:
             species = model.Species(name, D, radius, structure_type)
@@ -475,7 +485,7 @@ def load_state(filename):
     rules_sections = filter_sections(cp.sections(), 'REACTIONRULE')
     for sectionname in sorted(rules_sections, key = lambda name : name_to_int(name)):
 
-        rtype        = cp.get(sectionname, 'type')
+        rtype        = cp.get(sectionname,      'type')
         rate         = cp.getfloat(sectionname, 'rate')
         reactant_ids = eval(cp.get(sectionname, 'reactant_ids')) # eval makes sure we get a list
         product_ids  = eval(cp.get(sectionname, 'product_ids'))
@@ -582,10 +592,10 @@ def load_state(filename):
 
         # Read in the information common to all object types
         id        = cp.getint(sectionname, 'id')        
-        name      = cp.get(sectionname, 'name')
+        name      = cp.get(sectionname,    'name')
         parent_id = cp.getint(sectionname, 'parent_id')
         st_id     = cp.getint(sectionname, 'structure_type_id')        
-        st_name   = cp.get(sectionname, 'structure_type_name')
+        st_name   = cp.get(sectionname,    'structure_type_name')
         position  = vectorize(cp.get(sectionname, 'position'))
                     # eval makes sure we import a list
 
@@ -595,6 +605,11 @@ def load_state(filename):
         # defined structures. Thus we want to define them in the order in
         # which they were defined before they have been saved to the file.
         assert name_to_int(sectionname) == id
+
+        # Get the structure_type of this structure
+        structure_type = structure_types_dict[st_id]
+        if st_id != def_structure_type_id:
+            assert structure_type['name'] == st_name
 
         # Get the parent structure from the structures dictionary
         # For this to work it is of critical importance that the order
@@ -620,7 +635,8 @@ def load_state(filename):
             radius = cp.getfloat(sectionname, 'radius')
 
             # Create the structure
-            structure = model.create_spherical_surface(structure_type.id, name, position, radius, parent_structure.id)
+            structure = model.create_spherical_surface(structure_type.id, name, \
+                                                       position, radius, parent_structure.id)
 
         elif structure_object_type == CylindricalSurface:
             
@@ -634,7 +650,8 @@ def load_state(filename):
             edge_pos = position - half_length * unit_z
 
             # Create the structure
-            structure = model.create_cylindrical_surface(structure_type.id, name, edge_pos, radius, unit_z, 2.0*half_length, parent_structure.id)
+            structure = model.create_cylindrical_surface(structure_type.id, name, edge_pos, radius, \
+                                                         unit_z, 2.0*half_length, parent_structure.id)
 
         elif structure_object_type == DiskSurface:
             
@@ -644,7 +661,8 @@ def load_state(filename):
             structure_type = structure_types_dict[st_id]            
 
             # Create the structure
-            structure = model.create_disk_surface(structure_type.id, name, position, radius, unit_z, parent_structure.id)
+            structure = model.create_disk_surface(structure_type.id, name, position, radius, \
+                                                  unit_z, parent_structure.id)
 
         elif structure_object_type == PlanarSurface:
 
@@ -719,8 +737,54 @@ def load_state(filename):
         w.connect_structures(struct0, side0, struct1, side1)
         print 'Connected side %s of structure %s (id=%s) with side %s of structure %s (id=%s)' \
                     % (side0, struct0, struct0.id, side1, struct1, struct1.id) ### TESTING
+
+    #### PARTICLES ####
+    # Here we first read in the scheduler order, i.e. the
+    # order with which particles were sitting in the scheduler
+    # before the output, and the particles as such.
+    # Then we create the particles in the right order.
+
+    # Get the particle order
+    assert cp.has_section('SCHEDULER')
+    particle_order = eval(cp.get('SCHEDULER', 'particle_order'))
+
+    print 'particle_order = ' + str(particle_order) ### TESTING
+    
+    # Read in the particle information
+    particles_dict = {}  # will map the old (read-in) ID to the particle info
+
+    particle_sections = filter_sections(cp.sections(), 'PARTICLE')
+    for sectionname in particle_sections:
+    
+        pid = cp.getint(sectionname, 'id')
+        sid = cp.getint(sectionname, 'species_id')        
+        radius   = cp.getfloat(sectionname, 'radius')
+        D        = cp.getfloat(sectionname, 'D')
+        v        = cp.getfloat(sectionname, 'v')
+        position = vectorize(cp.get(sectionname, 'position'))
+        str_id   = cp.getint(sectionname, 'structure_id')
+
+        # Store the info in an internal particle dictionary
+        # and add it to the collection (particles_dict)
+        particle = { 'id'  : pid,
+                     'species_id' : sid,
+                     'radius'     : radius,
+                     'D'   : D,
+                     'v'   : v,
+                     'position'   : position,
+                     'structure_id' : str_id
+                   }
+        particles_dict[pid] = particle
+
+    for pid in particle_order:
+
+        particle = particles_dict[pid]
+        particle_species = species_dict[particle['species_id']]
         
-        
+        place_particle(w, particle_species, particle['position'])
+        print 'Placed particle of species %s at %s.' % (particle_species, particle['position']) ### TESTING
+
+
 
 ##########################
 #### HELPER FUNCTIONS ####
