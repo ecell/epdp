@@ -354,18 +354,19 @@ def save_state(simulator, filename):
         # Also output the scheduler order in reverse
         # fashion already, so we don't have to bother later
         scheduler_order.insert(0, pid_int)
-
-    print scheduler_order
-
-    # Just to be sure...
-    assert simulator.scheduler.size == 0
+    
     # Put the events back into the scheduler (in reverse order)
     # Note that the eventlist already has been correctly inverted at this point
+    assert simulator.scheduler.size == 0   # just to be sure
     for (event, domain) in list(eventlist):
         print "Re-instering domain %s, pid = %s into scheduler" % (domain, domain.pid_particle_pair[0])
         event_id = simulator.scheduler.add(DomainEvent(event.time, domain))
+        # The event_id is changed in this process, so don't forget to update the domain
+        domain.event_id = event_id
 
-    print simulator.scheduler
+    # To be sure, check that event IDs in reconstructed scheduler
+    # correspond to event IDs of the domains
+    simulator.check_domains()
 
     # Create a new section in the save file
     sectionname = 'SCHEDULER'
