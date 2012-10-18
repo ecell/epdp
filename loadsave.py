@@ -666,13 +666,16 @@ def load_state(filename):
             w.add_structure(structure)
             assert id_to_int(structure.id) == id # TODO
             structures_dict[id] = structure
-            print 'Added ' + str(structure) + ', type = %s, id = %s, parent = %s' % (structure_type, structure.id, structure.structure_id) ### TESTING
+            print 'Added ' + str(structure) + ', type = %s, id = %s, parent = %s' \
+                        % (structure_type, structure.id, structure.structure_id) ### TESTING
 
     print 'structures_dict = ' + str(structures_dict) ### TESTING
 
     #### STRUCTURE CONNECTIONS ####
     connections_dict = {}  # will map the old (read-in) ID to the structure connection
 
+    # Here we first read in all the connections and then figure out which sides are
+    # connected in order to actually connect them.
     sc_sections = filter_sections(cp.sections(), 'STRUCTURECONNECTION')
     for sectionname in sorted(sc_sections, key = lambda name : name_to_int(name)):
 
@@ -683,10 +686,41 @@ def load_state(filename):
         neighbor_id_2 = cp.getint(sectionname, 'neighbor_id_2')
         neighbor_id_3 = cp.getint(sectionname, 'neighbor_id_3')
 
-        # TODO Continue... we need to find the side number to which
-        # to_connect_id structure is connected at each of its sides
-        # This may require implementing a C++ to Python converter
-        # for get_neighbor_info()
+        connections_dict[to_connect_id] = [neighbor_id_0, neighbor_id_1, \
+                                           neighbor_id_2, neighbor_id_3] 
+
+    # Figure out which sides are connected
+    connections = []
+    for to_connect_id, neighbor_list in connections_dict.iteritems():
+
+        # For each neighbor_id find the side with which the neighbor is
+        # connected to the structure with con_id
+        for side in range(0,3):
+
+            n_id = neighbor_list[side]
+            nn_list = connections_dict[n_id]
+
+            for n_side in range(0,3):
+            
+                nn_id = nn_list[n_side]
+                if nn_id == to_connect_id:
+                # We have found the neighbor_id that links to con_id
+                    connections.append( (to_connect_id, side, n_id, n_side) )
+                    break
+
+    print 'connections = ' + str(connections) ### TESTING
+
+    # Establish the connections
+    for struct_id0, side0, struct_id1, side1 in connections:
+
+        struct0 = structures_dict[struct_id0]
+        struct1 = structures_dict[struct_id1]
+
+        w.connect_structures(struct0, side0, struct1, side1)
+        print 'Connected side %s of structure %s (id=%s) with side %s of structure %s (id=%s)' \
+                    % (side0, struct0, struct0.id, side1, struct1, struct1.id) ### TESTING
+        
+        
 
 ##########################
 #### HELPER FUNCTIONS ####
