@@ -3236,13 +3236,14 @@ rejected moves = %d
         # new world containing the read-in model and
         # objects in the right positions and the seed
         # that was used to reset the RNG at output
-        world, seed = loadsave.load_state(filename)
-        myrandom.seed(seed)
+        world, seed = loadsave.load_state(filename)        
 
         if __debug__:
             log.info('Loaded state from file %s \nRe-initializing the simulator...' % filename)
 
-        # Re-initialize the simulator
+        # Re-initialize the simulator using the seed
+        # from the input file
+        self.reset_seed(seed)
         self.__init__(world, myrandom.rng)
 
 
