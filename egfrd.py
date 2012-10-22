@@ -450,12 +450,12 @@ class EGFRDSimulator(ParticleSimulatorBase):
             self.t, self.last_event = self.MAX_TIME_STEP, event
         else:
             self.t, self.last_event = event.time, event
-
+        
         if __debug__:
             domain_counts = self.count_domains()
-            log.info('\n\n%d: t=%s dt=%s\t' %
-                     (self.step_counter, FORMAT_DOUBLE % self.t,
-                      FORMAT_DOUBLE % self.dt) + 
+            log.info('\n\n%d: t=%s dt=%s (next_time=%s)\t' %
+                     (self.step_counter, self.t,
+                      self.dt, self.scheduler.top[1].time) + 
                      'Singles: %d, Pairs: %d, Multis: %d\n' % domain_counts + 
                      'event=#%d reactions=%d rejectedmoves=%d' %
                      (id, self.reaction_events, self.rejected_moves))
@@ -481,6 +481,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
         # 3. Adjust the simulation time
         #
         next_time = self.scheduler.top[1].time
+        log.info('next_time=%s' % next_time)
         self.dt = next_time - self.t
 
         # assert if not too many successive dt=0 steps occur.
@@ -721,8 +722,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
             DomainEvent(event_time, domain))
         if __debug__:
             log.info('add_event: %s, event=#%d, t=%s' %
-                     (domain.domain_id, event_id,
-                      FORMAT_DOUBLE % (event_time)))
+                     (domain.domain_id, event_id, event_time )
+                    )
         domain.event_id = event_id                      # FIXME side effect programming -> unclear!!
 
 
@@ -737,7 +738,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
     def update_domain_event(self, t, domain):
         if __debug__:
             log.info('update_event: %s, event=#%d, t=%s' %
-                     (domain.domain_id, domain.event_id, FORMAT_DOUBLE % t))
+                     (domain.domain_id, domain.event_id, t))
         self.scheduler.update((domain.event_id, DomainEvent(t, domain)))
 
 
@@ -2212,7 +2213,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
     #   particles.
 
         if __debug__:
-            log.info('FIRE MULTI: %s' % multi.last_event)
+            log.info('FIRE MULTI: %s (dt=%s)' % (multi.last_event, multi.dt))
 
         if __debug__:
             assert (multi.domain_id in ignore), \
