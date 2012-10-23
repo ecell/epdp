@@ -372,6 +372,9 @@ def save_state(simulator, filename):
     sectionname = 'SCHEDULER'
     cp.add_section(sectionname)
     cp.set(sectionname, 'particle_order', list(scheduler_order))
+    cp.set(sectionname, 't', simulator.t)
+    cp.set(sectionname, 'dt', simulator.dt)
+    cp.set(sectionname, 'step_counter', simulator.step_counter)
 
     #### ADD COUNTERS TO MODEL SECTION ####
     cp.set('MODEL', 'N_structure_types', N_structure_types)
@@ -386,7 +389,13 @@ def save_state(simulator, filename):
 def load_state(filename):
     """ Loads a file previously generated with save_state() and
         constructs a model, world and info needed to construct the 
-        EGFRDSimulator.       
+        EGFRDSimulator.
+
+        Returns: world, seed, time_info
+
+        time_info is a tuple containing (t, dt, step_counter)
+        where t, dt and step_counter are the values of these
+        quantities at the moment of output / saving.
     """
 
     #### DEFINE THE CONFIG PARSER OBJECT ####
@@ -757,9 +766,14 @@ def load_state(filename):
     # to their order in the scheduler before saving, i.e. they
     # will be added to the system in the right order here.
 
-    # Get the particle order
+    # Get the particle order and time counter values at output
     assert cp.has_section('SCHEDULER')
     particle_order = eval(cp.get('SCHEDULER', 'particle_order'))
+    t  = cp.getfloat('SCHEDULER', 't')
+    dt = cp.getfloat('SCHEDULER', 'dt')
+    step_counter = cp.getfloat('SCHEDULER', 'step_counter')
+
+    time_info = (t, dt, step_counter)
 
     print 'particle_order = ' + str(particle_order) ### TESTING
     
@@ -800,7 +814,7 @@ def load_state(filename):
 
     # Return the world and the seed that was used 
     # to re-seed the simulator at output
-    return w, seed
+    return w, seed, time_info
 
 
 
