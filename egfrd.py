@@ -3230,11 +3230,11 @@ rejected moves = %d
     # in loadsave.py :
 
     def save_state(self, filename, reload=False):
-    """ Save the state of the simulator after bursting
-        all domains. The latter facilitates reconstruction
-        of precisely the state saved.
-
-        Arguments:
+        """ Save the state of the simulator after bursting
+            all domains. The latter facilitates reconstruction
+            of precisely the state saved.
+            
+            Arguments:
             - filename : a string specifying the name of
                          the file that the state will be
                          saved in.
@@ -3256,14 +3256,13 @@ rejected moves = %d
 
 
     def load_state(self, filename):
-    """ Load a state previously saved via save_state()
-        and re-initialize the simulator with the loaded
-        data.
-
-        Takes the name of the save-file as an argument
-        of string-type.
-    """
-
+        """ Load a state previously saved via save_state()
+            and re-initialize the simulator with the loaded
+            data.
+            
+            Takes the name of the save-file as an argument
+            of string-type.
+        """
         # Run the load function which will return a
         # new world containing the read-in model and
         # objects in the right positions and the seed
