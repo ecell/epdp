@@ -284,8 +284,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
         Can be for example usefull when users want to first do an equilibration
         run before starting the "real experiment".
         """ #~ MW
-        self.t = 0.0
-        self.dt = 0.0
+        self.t = 0.0        
+        self.dt = 0.0        
         self.step_counter = 0
         self.single_steps = {EventType.SINGLE_ESCAPE:0,
                              EventType.SINGLE_REACTION:0,
@@ -3237,7 +3237,7 @@ rejected moves = %d
         # new world containing the read-in model and
         # objects in the right positions and the seed
         # that was used to reset the RNG at output
-        world, seed = loadsave.load_state(filename)        
+        world, seed, time_info = loadsave.load_state(filename)
 
         if __debug__:
             log.info('Loaded state from file %s \nRe-initializing the simulator...' % filename)
@@ -3246,6 +3246,12 @@ rejected moves = %d
         # from the input file
         self.reset_seed(seed)
         self.__init__(world, myrandom.rng)
+
+        # Set the simulator time to the time it had at output
+        # This is to avoid divergence between the original and the
+        # restarted simulation because of the limited floating point 
+        # precision of Python
+        self.t = time_info[0]
 
 
     ###############################
