@@ -25,6 +25,11 @@ SAFETY = 1.0 + 1e-2     # Lengths of shell in construction are divided by this s
 TOLERANCE = 1e-7
 TIME_TOLERANCE = 1e-10
 
+# Scheduler digits: the simulator will round the next-event time steps to this
+# precision before putting them into the scheduler. This was originally introduced
+# to overcome nasty divergence effects in reloaded simulations caused by limited
+# Python float precision. Put this at a high value if you want to sample accurately
+# very small time steps by purpose. 
 SCHEDULER_DIGITS = int(-1.0*numpy.log10(TIME_TOLERANCE))
 
 # Multiplication factor used for seperating 2 particles or a particle and a 
