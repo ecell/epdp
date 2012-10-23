@@ -25,6 +25,8 @@ SAFETY = 1.0 + 1e-2     # Lengths of shell in construction are divided by this s
 TOLERANCE = 1e-7
 TIME_TOLERANCE = 1e-10
 
+SCHEDULER_DIGITS = int(-1.0*numpy.log10(TIME_TOLERANCE))
+
 # Multiplication factor used for seperating 2 particles or a particle and a 
 # surface after unbinding.
 MINIMAL_SEPARATION_FACTOR = 1.0 + TOLERANCE

@@ -717,6 +717,11 @@ class EGFRDSimulator(ParticleSimulatorBase):
     # This method makes an event for domain 'domain' in the scheduler.
     # The event will have the domain_id pointing to the appropriate domain in 'domains{}'.
     # The domain will have the event_id pointing to the appropriate event in the scheduler.
+
+        # Adapt the sampled dt to the preset scheduler precision
+        dt_rounded = round(domain.dt, SCHEDULER_DIGITS)
+        domain.dt = dt_rounded
+
         event_time = self.t + domain.dt
         event_id = self.scheduler.add(
             DomainEvent(event_time, domain))
@@ -3224,14 +3229,15 @@ rejected moves = %d
     # These are just wrappers around the methods
     # in loadsave.py :
 
-    def save_state(self, filename):
+    def save_state(self, filename, reload=False):
 
         loadsave.save_state(self, filename)
 
+        if(reload):
+            self.load_state(filename)
+
 
     def load_state(self, filename):
-
-        #assert self.is_dirty == True   # TODO
 
         # Run the load function which will return a
         # new world containing the read-in model and
