@@ -3246,6 +3246,8 @@ rejected moves = %d
                          between the original and saved
                          simulations caused by limited
                          Python float precision.
+
+                         reload = False by default.
         """
         loadsave.save_state(self, filename)
 
