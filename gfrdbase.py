@@ -438,13 +438,33 @@ def place_particle(world, sid, position):
     if world.check_overlap((position, radius)):
         raise NoSpace, 'Placing particle failed: overlaps with other particle.'
 
+    # Get the IDs of all structures of the structure type that this particle species lives on
+    structure_ids = world.get_structure_ids(world.get_structure_type(species.structure_type_id))
+
+    # Get all neighboring surfaces ordered by their distance to the particle
     surfaces = get_all_surfaces(world, position, [])
     if surfaces:
-        surface, distance = surfaces[0]
+        # Get the closest surface of the structure type 
+        # for this particle species: we cannot simply take
+        # the closest structure because for a disk-bound
+        # particle this can be either the disk or cylinder
+        # => choose the one with the right structure type
+        for s in range(0, len(surfaces)):
+            surface, distance = surfaces[s]
+
+            if surface.id in structure_ids:
+                # we have found the closest surface with
+                # the required structure type
+                break;
+            else:
+                # there is no such structure, placement
+                # will be impossible
+                surface, distance = None, numpy.inf
     else:
+        # no structure around, we can't place the particle
         surface, distance = None, numpy.inf
 
-    # Check if not too close to a neighbouring structures for particles 
+    # Check if not too close to neighbouring structures for particles 
     # added to the world, or added to a self-defined box.
     if species.structure_type_id == world.get_def_structure_type_id():
         structure_id = world.get_def_structure_id()
@@ -455,8 +475,7 @@ def place_particle(world, sid, position):
                                (sid, position, distance))
     else:
         # If the particle lives on a surface then the position should be in the closest surface.
-        # The closest surface should also be of the structure_type associated with the species.
-        structure_ids = world.get_structure_ids(world.get_structure_type(species.structure_type_id))
+        # The closest surface should also be of the structure_type associated with the species.        
         if not (surface and 
                 distance < TOLERANCE*radius and 
                 surface.id in structure_ids):
