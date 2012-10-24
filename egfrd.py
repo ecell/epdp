@@ -2964,7 +2964,7 @@ rejected moves = %d
                        elif length(inter_pos_z) == 0.0:
                           total_overlap = overlap_r
                        else:
-                          total_overlap = -1.0 * sqrt(overlap_r*overlap_r + overlap_z*overlap_z)
+                          total_overlap = -1.0 * math.sqrt(overlap_r*overlap_r + overlap_z*overlap_z)
                         
                        return total_overlap
 
