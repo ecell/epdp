@@ -373,7 +373,7 @@ def save_state(simulator, filename):
         domain = simulator.domains[event.data]
 
         if __debug__:
-            log.info('Removed domain %s, particle id = %s from scheduler.' % (domain, domain.pid_particle_pair[0]) )
+            log.info('  Removed domain %s, particle id = %s from scheduler.' % (domain, domain.pid_particle_pair[0]) )
 
         # Store the events in a list
         # inserting from the beginning; thus it
@@ -393,7 +393,7 @@ def save_state(simulator, filename):
     assert simulator.scheduler.size == 0   # just to be sure
     for (event, domain) in list(eventlist):
         if __debug__:
-            log.info('Re-instering domain %s, particle id = %s into scheduler.' % (domain, domain.pid_particle_pair[0]) )
+            log.info('  Re-instering domain %s, particle id = %s into scheduler.' % (domain, domain.pid_particle_pair[0]) )
         event_id = simulator.scheduler.add(DomainEvent(event.time, domain))
         # The event_id is changed in this process, so don't forget to update the domain
         domain.event_id = event_id
@@ -438,6 +438,9 @@ def load_state(filename):
         quantities at the moment of output / saving.
     """
 
+    if __debug__:
+        log.info('Attempting to load simulator state from file %s.' % str(filename))
+
     #### DEFINE THE CONFIG PARSER OBJECT ####
     cp = CP.ConfigParser()
     cp.optionxform = str # for upper case option names
@@ -445,10 +448,14 @@ def load_state(filename):
     # Load the saved file
     # TODO Check for right format
     cp.read(filename)
-
-    print 'Sections in file : ' + str(cp.sections()) ### TESTING
+  
+    if __debug__:
+        log.info('Sections in file: ' + str(cp.sections()) )
 
     #### FIRST GET GLOBAL INFO ####
+    if __debug__:
+        log.info('Reading global info...')
+
     world_size  = cp.getfloat('WORLD', 'world_size')
     matrix_size = cp.getint('WORLD',   'matrix_size')
     N_structure_types = cp.getint('MODEL', 'N_structure_types')
@@ -456,10 +463,16 @@ def load_state(filename):
     seed        = cp.getint('SEED',  'seed')
 
     #### CREATE THE WORLD AND THE MODEL ####
+    if __debug__:
+        log.info('Creating the model...')
+
     m = model.ParticleModel(world_size)
 
 
     #### STRUCTURE_TYPES ####
+    if __debug__:
+        log.info('Reconstructing structure types...')
+
     structure_types_dict = {}  # will map the old (read-in) ID to the StructureType
 
     # First get the default structure type already defined at model creation
@@ -467,7 +480,8 @@ def load_state(filename):
     def_structure_type_id = id_to_int(m.get_def_structure_type_id())
     def_structure_type    = m.get_structure_type_by_id(m.get_def_structure_type_id())
     structure_types_dict[def_structure_type_id] = def_structure_type
-    print 'Added ' + str(def_structure_type) ### TESTING
+    if __debug__:
+        log.info('  Added %s' % str(def_structure_type) )
 
     structure_types_sections = filter_sections(cp.sections(), 'STRUCTURETYPE')
     # Now read in the the structure types and add them to the new model
@@ -490,12 +504,17 @@ def load_state(filename):
             m.add_structure_type(structure_type)
             assert id_to_int(structure_type.id) == id            
             structure_types_dict[id] = structure_type
-            print 'Added ' + str(structure_type) ### TESTING
+            if __debug__:
+                log.info('  Added %s' % str(structure_type) )
 
-    print 'structure_types_dict = ' + str(structure_types_dict) ### TESTING
+    if __debug__:
+        log.info('  structure_types_dict = %s' % str(structure_types_dict) )
 
 
     #### SPECIES ####
+    if __debug__:
+        log.info('Reconstructing species...')
+
     # Now the same for the species
     # Again we have to make sure we add the species in the right order => sort sections list
     species_dict = {}  # will map the old (read-in) ID to the Species
@@ -532,12 +551,17 @@ def load_state(filename):
         m.add_species_type(species)
         assert id_to_int(species.id) == id
         species_dict[id] = species
-        print 'Added ' + str(species) ### TESTING
+        if __debug__:
+            log.info('  Added %s' % str(species) )
 
-    print 'species_dict = ' + str(species_dict) ### TESTING
+    if __debug__:
+        log.info('  species_dict = %s' % str(species_dict) )
 
 
     #### RULES ####
+    if __debug__:
+        log.info('Reconstructing rules network...')
+
     rules_dict = {}  # will map the old (read-in) ID to the reaction rule
 
     rules_sections = filter_sections(cp.sections(), 'REACTIONRULE')
@@ -614,16 +638,24 @@ def load_state(filename):
             
             m.add_reaction_rule(rule)
             rules_dict[name_to_int(sectionname)] = rule
-            print 'Added ' + str(rule) + ', type = %s' % str(rtype) ### TESTING
+            if __debug__:
+                log.info('  Added %s, type = %s' % (rule, rtype) )
 
-    print 'rules_dict = ' + str(rules_dict) ### TESTING
+    if __debug__:
+        log.info('  rules_dict = %s' % str(rules_dict) )
 
     #### CREATE THE WORLD ####
+    if __debug__:
+        log.info('Creating the world...')
+
     w = create_world(m, matrix_size)
     # This will come in handy later
     def_structure_id = w.get_def_structure_id()
 
     #### STRUCTURES ####
+    if __debug__:
+        log.info('Reconstructing structures...')
+
     structures_dict = {}  # will map the old (read-in) ID to the structure
 
     # The default structure should be always ID 1 and has to be added
@@ -735,19 +767,25 @@ def load_state(filename):
             corner_pos = position - half_extent[0] * unit_x - half_extent[1] * unit_y
 
             # Create the structure
-            structure = model.create_planar_surface(structure_type.id, name, corner_pos, unit_x, unit_y, 2.0*half_extent[0], 2.0*half_extent[1], parent_structure.id)
+            structure = model.create_planar_surface(structure_type.id, name, corner_pos, unit_x, unit_y, \
+                                                    2.0*half_extent[0], 2.0*half_extent[1], parent_structure.id)
 
         # Add it to the world
         if structure:
             w.add_structure(structure)
             assert id_to_int(structure.id) == id # TODO
             structures_dict[id] = structure
-            print 'Added ' + str(structure) + ', type = %s, id = %s, parent = %s' \
-                        % (structure_type, structure.id, structure.structure_id) ### TESTING
+            if __debug__:
+                log.info('  Added %s, type = %s, id = %s, parent = %s' \
+                         % (structure, structure_type, structure.id, structure.structure_id) )
 
-    print 'structures_dict = ' + str(structures_dict) ### TESTING
+    if __debug__:
+        log.info('  structures_dict = %s' % str(structures_dict) )
 
     #### STRUCTURE CONNECTIONS ####
+    if __debug__:
+        log.info('Reconstructing structure connections...')
+
     connections_dict = {}  # will map the old (read-in) ID to the structure connection
 
     # Here we first read in all the connections and then figure out which sides are
@@ -784,7 +822,8 @@ def load_state(filename):
                     connections.append( (to_connect_id, side, n_id, n_side) )
                     break
 
-    print 'connections = ' + str(connections) ### TESTING
+    if __debug__:
+        log.info('  connections = %s' % str(connections) )
 
     # Establish the connections
     for struct_id0, side0, struct_id1, side1 in connections:
@@ -793,10 +832,14 @@ def load_state(filename):
         struct1 = structures_dict[struct_id1]
 
         w.connect_structures(struct0, side0, struct1, side1)
-        print 'Connected side %s of structure %s (id=%s) with side %s of structure %s (id=%s)' \
-                    % (side0, struct0, struct0.id, side1, struct1, struct1.id) ### TESTING
+        if __debug__:
+            log.info('  Connected side %s of structure %s (id=%s) with side %s of structure %s (id=%s)' \
+                     % (side0, struct0, struct0.id, side1, struct1, struct1.id) )
 
     #### PARTICLES ####
+    if __debug__:
+        log.info('Reconstructing particles...')
+
     # Here we first read in the scheduler order, i.e. the
     # order with which particles were sitting in the scheduler
     # before the output, and the particles as such.
@@ -807,6 +850,8 @@ def load_state(filename):
     # will be added to the system in the right order here.
 
     # Get the particle order and time counter values at output
+    if __debug__:
+        log.info('  Obtaining particle order in scheduler...')
     assert cp.has_section('SCHEDULER')
     particle_order = eval(cp.get('SCHEDULER', 'particle_order'))
     t  = cp.getfloat('SCHEDULER', 't')
@@ -815,9 +860,12 @@ def load_state(filename):
 
     time_info = (t, dt, step_counter)
 
-    print 'particle_order = ' + str(particle_order) ### TESTING
+    if __debug__:
+        log.info('  particle_order = %s' % str(particle_order) )
     
     # Read in the particle information
+    if __debug__:
+        log.info('  Reading particles info...')
     particles_dict = {}  # will map the old (read-in) ID to the particle info
 
     particle_sections = filter_sections(cp.sections(), 'PARTICLE')
@@ -843,13 +891,16 @@ def load_state(filename):
                    }
         particles_dict[pid] = particle
 
+    if __debug__:
+        log.info('  Placing particles...')
     for pid in particle_order:
 
         particle = particles_dict[pid]
         particle_species = species_dict[ particle['species_id'] ]
         
         placed = place_particle(w, particle_species, particle['position'])
-        print 'Placed particle %s.' % str(placed) ### TESTING
+        if __debug__:
+            log.info('  Placed particle %s' % str(placed) )
 
 
     # Return the world and the seed that was used 
