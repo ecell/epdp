@@ -60,11 +60,11 @@ from shells import (
     MixedPair1DCaptestShell,
     )
 
-import logging
-import os
-
 import loadsave
 from histograms import *
+
+import logging
+import os
 
 log = logging.getLogger('ecell')
 
@@ -3270,7 +3270,7 @@ rejected moves = %d
         world, seed, time_info = loadsave.load_state(filename)
 
         if __debug__:
-            log.info('Loaded state from file %s \nRe-initializing the simulator...' % filename)
+            log.info('Loaded state from file %s, re-initializing the simulator...' % filename)
 
         # Re-initialize the simulator using the seed
         # from the input file
