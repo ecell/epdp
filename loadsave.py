@@ -37,8 +37,13 @@ from gfrdbase import DomainEvent
 import model
 import _gfrd
 
+import logging
+
+
 __all__ = [ 'save_state', 'load_state' ]
 
+
+log = logging.getLogger('ecell')
 
 
 def save_state(simulator, filename):
@@ -51,6 +56,10 @@ def save_state(simulator, filename):
     # all the domains will mess up the EventScheduler
     # because it will reconstruct it with different
     # event IDs
+    
+    if __debug__:
+        log.info('Attempting to save the state of the simulator: running burst_all_domains()')
+
     simulator.burst_all_domains()
 
     # Re-seed the random number generator
@@ -84,6 +93,9 @@ def save_state(simulator, filename):
     cp.set('SEED', 'seed', new_seed)
 
     #### STRUCTURE TYPES ####
+    if __debug__:
+        log.info('Saving structure types...')
+
     structure_type_names = [] # will store the names in a lookup list
     for structure_type in simulator.get_structure_types():
 
@@ -108,6 +120,9 @@ def save_state(simulator, filename):
         N_structure_types += 1
 
     #### SPECIES ####
+    if __debug__:
+        log.info('Saving particle species...')
+
     for species in simulator.get_species():
 
         id_int = id_to_int(species.id)
@@ -125,6 +140,9 @@ def save_state(simulator, filename):
         N_species += 1
 
     #### RULES ####
+    if __debug__:
+        log.info('Saving rules network...')
+
     extracted_rules = []  # to avoid double-extraction
     for species0 in simulator.get_species():
 
@@ -226,6 +244,9 @@ def save_state(simulator, filename):
                     extracted_rules.append(rr.id)
 
     #### STRUCTURES ####
+    if __debug__:
+        log.info('Saving structures...')
+
     for structure in simulator.get_structures():
 
         id_int  = id_to_int(structure.id)
@@ -285,6 +306,9 @@ def save_state(simulator, filename):
 
 
     #### STRUCTURE CONNECTIVITY ####
+    if __debug__:
+        log.info('Saving structure connectivity information...')
+
     for structure in simulator.get_structures():
 
         if isinstance(structure, PlanarSurface):
@@ -303,6 +327,9 @@ def save_state(simulator, filename):
                 cp.set(sectionname, 'neighbor_id_'+str(n), nid_int)
 
     #### PARTICLES ####
+    if __debug__:
+        log.info('Saving particles...')
+
     pid_particle_pairs = list(simulator.world)
     pid_particle_pairs.sort()
 
@@ -335,12 +362,18 @@ def save_state(simulator, filename):
     # system at loading / read-in.
     # Event IDs will change but this does not matter
     # for the simulated trajectory as such.    
+    if __debug__:
+        log.info('Saving particle order in scheduler...')
+
     eventlist = []
     scheduler_order = []
     while not simulator.scheduler.size == 0 :
-
+        
         id, event = simulator.scheduler.pop()
         domain = simulator.domains[event.data]
+
+        if __debug__:
+            log.info('Removed domain %s, particle id = %s from scheduler.' % (domain, domain.pid_particle_pair[0]) )
 
         # Store the events in a list
         # inserting from the beginning; thus it
@@ -359,7 +392,8 @@ def save_state(simulator, filename):
     # Note that the eventlist already has been correctly inverted at this point
     assert simulator.scheduler.size == 0   # just to be sure
     for (event, domain) in list(eventlist):
-        print "Re-instering domain %s, pid = %s into scheduler" % (domain, domain.pid_particle_pair[0])
+        if __debug__:
+            log.info('Re-instering domain %s, particle id = %s into scheduler.' % (domain, domain.pid_particle_pair[0]) )
         event_id = simulator.scheduler.add(DomainEvent(event.time, domain))
         # The event_id is changed in this process, so don't forget to update the domain
         domain.event_id = event_id
@@ -377,10 +411,16 @@ def save_state(simulator, filename):
     cp.set(sectionname, 'step_counter', simulator.step_counter)
 
     #### ADD COUNTERS TO MODEL SECTION ####
+    if __debug__:
+        log.info('Saving object counters...')
+
     cp.set('MODEL', 'N_structure_types', N_structure_types)
     cp.set('MODEL', 'N_species', N_species)
 
     #### WRITE FILE ####
+    if __debug__:
+        log.info('Writing file...')
+
     with open(filename, 'wb') as outfile:
         cp.write(outfile)
 
