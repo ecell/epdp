@@ -355,7 +355,7 @@ public:
             //structure_id_and_distance_pair const struct_id_and_dist( 
             //    get_closest_surface( pp.second.position(), pp.second.structure_id() ) );    // only ignore structure that the particle is on.
             
-            // If structure is within specified range and this particle lives in the default structure
+            // If the structure is within a specified range
             // Here we assume that the user defined the reaction rules for allowed combinations of origin and
             // target structure type (if this is not the case the simulation will fail at a later stage when
             // propagation is attempted).
@@ -395,30 +395,56 @@ public:
                 reaction_rules const& rrules(rules.query_reaction_rule( s0.id(), s1.id() ));
                 if (::size(rrules) == 0)
                     continue;
+                
+                // Get two example structures with the structure types of the two species.
+                // This is a necessary workaround because as yet the rate functions are methods
+                // to the structures and not the structure types.
+                // If the quried structures do not exist we do not have to bother further with 
+                // this combination of species and just continue.
+//                 structure_type s0_dummy_struct, s1_dummy_struct;
+//                 try{
+//                     s0_dummy_struct = get_some_structure_of_type(s0.structure_type_id());
+//                     s1_dummy_struct = get_some_structure_of_type(s1.structure_type_id());
+//                 }
+//                 catch(not_found const&)
+//                 {
+//                     // In fact this exception should never occur because every species 
+//                     // has a uniquely defined structure type, i.e. if we have this species 
+//                     // in the multi a structure of the right type must exist.
+//                     continue;   // TODO Output a warning?
+//                 }
                                             
                 for (typename boost::range_const_iterator<reaction_rules>::type
                 it(boost::begin(rrules)), e(boost::end(rrules)); it != e; ++it)
                 {
                     const length_type r01( s0.radius() + s1.radius() );
-                    Real k;
+                    Real k0, k1;
                     
-                    if(s0.structure_type_id() != s1.structure_type_id())
-                    {
-                        if(s0.structure_type_id() == get_def_structure_type_id())
-                            k = 0.001;  // HACK k = get_structure( s0.structure_id() )->get_1D_rate_geminate( (*it).k(), r01 );
-                                        // TODO This is because we do not know the structure here, only structure type
-                                        // Use structure functions here?
-                        else
-                            k = 0.001;  // HACK k = get_structure( s1.structure_id() )->get_1D_rate_geminate( (*it).k(), r01 );
-                    }
-                    else
-                    {
-                        k = 0.001;      // HACK k = get_structure( s0.structure_id() )->get_1D_rate_geminate( (*it).k(), r01 ); 
-                    }
-                
-                    if ( k_max < k )
-                        k_max = k;
-                }          
+                    // To access the rate functions we first find some structure of the structure type of the 
+                    // species considered and then calculate the modified rate. This is a necessary workaround
+                    // because as yet the rate functions are methods to the structure, not the structure type.
+                    k0 = get_some_structure_of_type(s0.structure_type_id())->get_1D_rate_geminate( (*it).k(), r01 );
+                    k1 = get_some_structure_of_type(s1.structure_type_id())->get_1D_rate_geminate( (*it).k(), r01 );
+                    
+                    // Compare with the fasted rate found so far
+                    if ( k_max < k0 )    k_max = k0;
+                    if ( k_max < k1 )    k_max = k1;
+                 
+//                     // PREVIOUS VERSION
+//                     if(s0.structure_type_id() != s1.structure_type_id())
+//                     {
+//                         if(s0.structure_type_id() == get_def_structure_type_id())
+//                             k = 0.001;  // HACK k = get_structure( s0.structure_id() )->get_1D_rate_geminate( (*it).k(), r01 );
+//                                         // TODO This is because we do not know the structure here, only structure type
+//                                         // Use structure functions here?
+//                         else
+//                             k = 0.001;  // HACK k = get_structure( s1.structure_id() )->get_1D_rate_geminate( (*it).k(), r01 );
+//                     }
+//                     else
+//                     {
+//                         k = 0.001;      // HACK k = get_structure( s0.structure_id() )->get_1D_rate_geminate( (*it).k(), r01 ); 
+//                     }                                    
+                }
             }
             i++;
         }
