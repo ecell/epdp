@@ -394,29 +394,12 @@ public:
                 
                 reaction_rules const& rrules(rules.query_reaction_rule( s0.id(), s1.id() ));
                 if (::size(rrules) == 0)
-                    continue;
-                
-                // Get two example structures with the structure types of the two species.
-                // This is a necessary workaround because as yet the rate functions are methods
-                // to the structures and not the structure types.
-                // If the quried structures do not exist we do not have to bother further with 
-                // this combination of species and just continue.
-//                 structure_type s0_dummy_struct, s1_dummy_struct;
-//                 try{
-//                     s0_dummy_struct = get_some_structure_of_type(s0.structure_type_id());
-//                     s1_dummy_struct = get_some_structure_of_type(s1.structure_type_id());
-//                 }
-//                 catch(not_found const&)
-//                 {
-//                     // In fact this exception should never occur because every species 
-//                     // has a uniquely defined structure type, i.e. if we have this species 
-//                     // in the multi a structure of the right type must exist.
-//                     continue;   // TODO Output a warning?
-//                 }
+                    continue;   // no rule for reactions between these two species
                                             
                 for (typename boost::range_const_iterator<reaction_rules>::type
                 it(boost::begin(rrules)), e(boost::end(rrules)); it != e; ++it)
                 {
+                    // We have found a valid rule - get the rate
                     const length_type r01( s0.radius() + s1.radius() );
                     Real k0, k1;
                     
@@ -425,25 +408,19 @@ public:
                     // because as yet the rate functions are methods to the structure, not the structure type.
                     k0 = get_some_structure_of_type(s0.structure_type_id())->get_1D_rate_geminate( (*it).k(), r01 );
                     k1 = get_some_structure_of_type(s1.structure_type_id())->get_1D_rate_geminate( (*it).k(), r01 );
+                    // NOTE: If a structure of the required structure type can not be found a not_found exception
+                    // is risen. This however should never happen, because whenever a particle of species s0 (s1)
+                    // is in the system also at least one structure of the associated structure type should exist.
                     
                     // Compare with the fasted rate found so far
                     if ( k_max < k0 )    k_max = k0;
                     if ( k_max < k1 )    k_max = k1;
-                 
-//                     // PREVIOUS VERSION
-//                     if(s0.structure_type_id() != s1.structure_type_id())
-//                     {
-//                         if(s0.structure_type_id() == get_def_structure_type_id())
-//                             k = 0.001;  // HACK k = get_structure( s0.structure_id() )->get_1D_rate_geminate( (*it).k(), r01 );
-//                                         // TODO This is because we do not know the structure here, only structure type
-//                                         // Use structure functions here?
-//                         else
-//                             k = 0.001;  // HACK k = get_structure( s1.structure_id() )->get_1D_rate_geminate( (*it).k(), r01 );
-//                     }
-//                     else
-//                     {
-//                         k = 0.001;      // HACK k = get_structure( s0.structure_id() )->get_1D_rate_geminate( (*it).k(), r01 ); 
-//                     }                                    
+                    
+                    // TODO Right now we do not make any distinction here between two particles on structures of
+                    // the same type or of the different type. This way we possibly include rates here which are
+                    // higher than the actual reaction rate for this combination of species. We could improve
+                    // overall performance by dissecting the situation in a more detailed way and use the 
+                    // right function to modify the intrinsic rate.
                 }
             }
             i++;
