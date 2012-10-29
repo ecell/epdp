@@ -192,7 +192,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
     this 'world'.
     """
 
-    def __init__(self, world, rng=myrandom.rng, network_rules=None):
+    def __init__(self, world, rng=myrandom.rng, network_rules=None, reset=True):
         """Create a new EGFRDSimulator.
 
         Arguments:
@@ -260,7 +260,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
                                                 # consistent with the content of the world that it represents
                                                 # (or if we don't know for sure)
 
-        self.reset()                            # The Simulator is only initialized at the first step, allowing
+        if reset:
+            self.reset()                        # The Simulator is only initialized at the first step, allowing
                                                 # modifications to the world to be made before simulation starts
 
     def get_next_time(self):
@@ -3283,7 +3284,8 @@ rejected moves = %d
         # Re-initialize the simulator using the seed
         # from the input file
         self.reset_seed(seed)
-        self.__init__(world, myrandom.rng)
+        self.__init__(world, myrandom.rng, reset=False)
+            # reset=False ensures the statistics are not lost
 
         # Set the simulator time to the time it had at output
         # This is to avoid divergence between the original and the
