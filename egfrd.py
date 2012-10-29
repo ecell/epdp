@@ -880,6 +880,14 @@ class EGFRDSimulator(ParticleSimulatorBase):
     def burst_all_domains(self):
         # Bursts all the domains in the simulator
 
+        # First apply all changes that may have been triggered by the last event
+        # These are for example new shellmaking steps with dt==0 which logically
+        # still are part of the last update. This is also to ensure that we do not
+        # attempt to "double burst" domains, i.e. run this routine on domains which
+        # are just bursted. In that case the checks below would fail.
+        while self.dt == 0.0:
+            self.step()
+
         all_domains = self.domains.items()
         all_domain_ids =[domain_id for domain_id, _ in all_domains]
         zero_singles, ignore = self.burst_domains(all_domain_ids, [])
