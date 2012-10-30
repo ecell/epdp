@@ -401,26 +401,41 @@ public:
                 {
                     // We have found a valid rule - get the rate
                     const length_type r01( s0.radius() + s1.radius() );
-                    Real k0, k1;
+                    Real k(0.0), k0, k1;
                     
                     // To access the rate functions we first find some structure of the structure type of the 
                     // species considered and then calculate the modified rate. This is a necessary workaround
                     // because as yet the rate functions are methods to the structure, not the structure type.
-                    k0 = get_some_structure_of_type(s0.structure_type_id())->get_1D_rate_geminate( (*it).k(), r01 );
-                    k1 = get_some_structure_of_type(s1.structure_type_id())->get_1D_rate_geminate( (*it).k(), r01 );
+                    
+                    // If one of the two particles lives in the default structure (bulk) we always take the 
+                    // 3D rate, i.e. call the get_1D_rate_geminate() method of the bulk structure.
+                    if      (s0.structure_type_id() == get_def_structure_type_id() )
+                        
+                        k = get_some_structure_of_type(s0.structure_type_id())->get_1D_rate_geminate( (*it).k(), r01 );
+                    
+                    else if (s1.structure_type_id() == get_def_structure_type_id() )
+                        
+                        k = get_some_structure_of_type(s1.structure_type_id())->get_1D_rate_geminate( (*it).k(), r01 );
+                    
+                    else
+                    // If both particles live on lower dimensionality structures for now we take the maximal rate
+                    // as determined from get_1D_rate_geminate() of both structures. TODO This may lead to a maximal
+                    // rate which actually is higher than the one used in BD propagation and therefore waste resources.
+                    // Until now this case basically only comprises the rod-particle/cap-particle interaction. Since
+                    // both rates are equal in this case we do not make any approximation in that case. However, if we
+                    // allow for other types of lower dimensionality particle-particle reactions we should fix this.
+                    {
+                        k0 = get_some_structure_of_type(s0.structure_type_id())->get_1D_rate_geminate( (*it).k(), r01 );
+                        k1 = get_some_structure_of_type(s1.structure_type_id())->get_1D_rate_geminate( (*it).k(), r01 );
+                        
+                        k = k0 > k1 ? k0 : k1;
+                    }
                     // NOTE: If a structure of the required structure type can not be found a not_found exception
                     // is risen. This however should never happen, because whenever a particle of species s0 (s1)
                     // is in the system also at least one structure of the associated structure type should exist.
                     
                     // Compare with the fasted rate found so far
-                    if ( k_max < k0 )    k_max = k0;
-                    if ( k_max < k1 )    k_max = k1;
-                    
-                    // TODO Right now we do not make any distinction here between two particles on structures of
-                    // the same type or of the different type. This way we possibly include rates here which are
-                    // higher than the actual reaction rate for this combination of species. We could improve
-                    // overall performance by dissecting the situation in a more detailed way and use the 
-                    // right function to modify the intrinsic rate.
+                    k_max = k > k_max ? k : k_max;
                 }
             }
             i++;
