@@ -2035,6 +2035,9 @@ class EGFRDSimulator(ParticleSimulatorBase):
             # Draw actual pair event for iv at very last minute.
             pair.event_type = pair.draw_iv_event_type(pair.r0)
 
+            if __debug__:
+                log.info('Specified event type: IV_EVENT = %s' % pair.event_type)
+
 
         ### 3. Process the event produced by the pair
 
