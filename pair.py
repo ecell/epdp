@@ -136,8 +136,12 @@ class Pair(ProtectiveDomain, Others):
                    self.draw_single_reaction_time_tuple()) 
 
     def draw_iv_event_type(self, r0):
-        gf = self.iv_greens_function(r0)
-        event_kind = draw_event_type_wrapper(gf, self.dt)
+        gf = self.iv_greens_function(r0)        
+        if self.dt < TIME_TOLERANCE:
+            dt = TIME_TOLERANCE
+        else:
+            dt = self.dt
+        event_kind = draw_event_type_wrapper(gf, dt)
         if event_kind == PairEventKind.IV_REACTION:
             return EventType.IV_REACTION
         elif event_kind == PairEventKind.IV_ESCAPE:
