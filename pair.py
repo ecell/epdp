@@ -137,8 +137,8 @@ class Pair(ProtectiveDomain, Others):
 
     def draw_iv_event_type(self, r0):
         gf = self.iv_greens_function(r0)        
-        if self.dt < TIME_TOLERANCE:
-            dt = TIME_TOLERANCE
+        if self.dt < TIME_TOLERANCE**2:
+            dt = TIME_TOLERANCE**2
         else:
             dt = self.dt
         event_kind = draw_event_type_wrapper(gf, dt)
