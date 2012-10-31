@@ -290,7 +290,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
         self.step_counter = 0
         self.single_steps = {EventType.SINGLE_ESCAPE:0,
                              EventType.SINGLE_REACTION:0,
-                             EventType.BURST:0}
+                             EventType.BURST:0,
+                             'MAKE_NEW_DOMAIN':0}
         self.interaction_steps = {EventType.IV_INTERACTION:0,
                                   EventType.IV_ESCAPE:0,
                                   EventType.BURST:0}
@@ -1740,6 +1741,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
         if self.CREATION_HISTOGRAMS:
             self.DomainCreationHists.bin_domain(bin_domain)
 
+        self.single_steps['MAKE_NEW_DOMAIN'] += 1
+
         return domain
 
 
@@ -1936,7 +1939,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
                 # Update statistics
                 if single.event_type == EventType.SINGLE_ESCAPE or\
                    single.event_type == EventType.BURST:
-                    self.single_steps[single.event_type] += 1                
+                    self.single_steps[single.event_type] += 1
                 elif __debug__:
                     log.warning('Omitting to count a single event with unforeseen event type (%s).' % single.event_type)
                     
@@ -2679,7 +2682,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
 t = %g
 \tNonmulti: %g\tMulti: %g
 steps = %d 
-\tSingle:\t%d\t(%.2f %%)\t(escape: %d, reaction: %d, bursted: %d)
+\tSingle:\t%d\t(%.2f %%)\t(escape: %d, reaction: %d, bursted: %d, make_new_domain: %d)
 \tInteraction: %d\t(%.2f %%)\t(escape: %d, interaction: %d, bursted: %d)
 \tPair:\t%d\t(%.2f %%)\t(r-escape: %d, R-escape: %d, reaction pair: %d, single: %d, bursted: %d)
 \tMulti:\t%d\t(%.2f %%)\t(diffusion: %d, escape: %d, reaction pair: %d, single: %d, bursted: %d)
@@ -2692,6 +2695,7 @@ rejected moves = %d
                self.single_steps[EventType.SINGLE_ESCAPE],
                self.single_steps[EventType.SINGLE_REACTION],
                self.single_steps[EventType.BURST],
+               self.single_steps['MAKE_NEW_DOMAIN'],
                interaction_steps,
                (100.0*interaction_steps) / total_steps,
                self.interaction_steps[EventType.IV_ESCAPE],
