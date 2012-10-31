@@ -311,6 +311,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
         self.multi_time = 0.0
         self.nonmulti_time = 0.0
 
+        self.multi_rl = 0.0
+
         self.rejected_moves = 0
         self.reaction_events = 0
         self.last_event = None
@@ -2248,6 +2250,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
         self.multi_steps[multi.last_event] += 1
         self.multi_steps[3] += 1  # multi_steps[3]: total multi steps
         self.multi_time += multi.dt
+        self.multi_rl   += multi.reaction_length
         multi.step()
 
         if(multi.last_event == EventType.MULTI_UNIMOLECULAR_REACTION or
@@ -2671,25 +2674,28 @@ class EGFRDSimulator(ParticleSimulatorBase):
         Arguments:
             - None
 
-        """
-        total_steps = self.step_counter
+        """        
         single_steps = numpy.array(self.single_steps.values()).sum()
         interaction_steps = numpy.array(self.interaction_steps.values()).sum()
         pair_steps = numpy.array(self.pair_steps.values()).sum()
         multi_steps = self.multi_steps[3] # total multi steps
+        total_steps = single_steps + interaction_steps + pair_steps + multi_steps
 
         report = '''
 t = %g
 \tNonmulti: %g\tMulti: %g
-steps = %d 
+steps: %d 
+updates: %d
 \tSingle:\t%d\t(%.2f %%)\t(escape: %d, reaction: %d, bursted: %d, make_new_domain: %d)
 \tInteraction: %d\t(%.2f %%)\t(escape: %d, interaction: %d, bursted: %d)
 \tPair:\t%d\t(%.2f %%)\t(r-escape: %d, R-escape: %d, reaction pair: %d, single: %d, bursted: %d)
 \tMulti:\t%d\t(%.2f %%)\t(diffusion: %d, escape: %d, reaction pair: %d, single: %d, bursted: %d)
-total reactions = %d
-rejected moves = %d
+\tavg. multi time step: %d, avg. multi reaction length: %d
+total reactions: %f
+rejected moves:  %f
 ''' \
-            % (self.t, self.nonmulti_time, self.multi_time, total_steps,
+            % (self.t, self.nonmulti_time, self.multi_time,
+               self.step_counter, total_steps,
                single_steps,
                (100.0*single_steps) / total_steps,
                self.single_steps[EventType.SINGLE_ESCAPE],
@@ -2715,6 +2721,8 @@ rejected moves = %d
                self.multi_steps[EventType.MULTI_BIMOLECULAR_REACTION],
                self.multi_steps[EventType.MULTI_UNIMOLECULAR_REACTION],
                self.multi_steps[EventType.BURST],
+               1.0 * self.multi_time / multi_steps,
+               1.0 * self.multi_rl   / multi_steps,
                self.reaction_events,
                self.rejected_moves
                )
