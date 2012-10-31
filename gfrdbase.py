@@ -448,32 +448,36 @@ def place_particle(world, sid, position):
     # Get the IDs of all structures of the structure type that this particle species lives on
     structure_ids = world.get_structure_ids(world.get_structure_type(species.structure_type_id))
 
-    # Get all neighboring surfaces ordered by their distance to the particle
-    surfaces = get_all_surfaces(world, position, [])
-    if surfaces:
-        # Get the closest surface of the structure type 
-        # for this particle species. We cannot simply take
-        # the closest structure because for a disk-bound
-        # particle this can be either the disk or cylinder
-        # => choose the one with the right structure type
-        for s in range(0, len(surfaces)):
-            surface, distance = surfaces[s]
+    # If this particle does not live on the default structure first check whether
+    # the position is indeed within a structure of the right structure type
+    if species.structure_type_id != world.get_def_structure_type_id():
+        # Get all neighboring surfaces ordered by their distance to the particle
+        surfaces = get_all_surfaces(world, position, [])
+        if surfaces:
+            # Get the closest surface of the structure type 
+            # for this particle species. We cannot simply take
+            # the closest structure because for a disk-bound
+            # particle this can be either the disk or cylinder
+            # => choose the one with the right structure type
+            for s in range(0, len(surfaces)):
+                surface, distance = surfaces[s]
 
-            if surface.id in structure_ids:
-                # we have found the closest surface with
-                # the required structure type
-                break;
-            else:
-                # there is no such structure, placement
-                # will be impossible
-                surface, distance = None, numpy.inf
-                if __debug__:
-                    log.warning('  Could not find any structure with required structure type in the system!')
-    else:
-        # no structure around, we can't place the particle
-        surface, distance = None, numpy.inf
-        if __debug__:
-            log.warning('  No structures around, cannot place particle!')
+                if surface.id in structure_ids:
+                    # we have found the closest surface with
+                    # the required structure type
+                    break;
+                else:
+                    # there is no such structure, placement
+                    # will be impossible
+                    surface, distance = None, numpy.inf
+
+            if __debug__ and surface == None:
+                log.warning('  Could not find any structure with required structure type in the system!')
+        else:
+            # no structure around, we can't place the particle
+            surface, distance = None, numpy.inf
+            if __debug__:
+                log.warning('  No structures around, cannot place particle!')
 
     # Check if not too close to neighbouring structures for particles 
     # added to the world, or added to a self-defined box.
