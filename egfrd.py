@@ -2690,9 +2690,9 @@ updates: %d
 \tInteraction: %d\t(%.2f %%)\t(escape: %d, interaction: %d, bursted: %d)
 \tPair:\t%d\t(%.2f %%)\t(r-escape: %d, R-escape: %d, reaction pair: %d, single: %d, bursted: %d)
 \tMulti:\t%d\t(%.2f %%)\t(diffusion: %d, escape: %d, reaction pair: %d, single: %d, bursted: %d)
-\tavg. multi time step: %d, avg. multi reaction length: %d
-total reactions: %f
-rejected moves:  %f
+\tavg. multi time step: %e, avg. multi reaction length: %e
+total reactions: %d
+rejected moves:  %d
 ''' \
             % (self.t, self.nonmulti_time, self.multi_time,
                self.step_counter, total_steps,
