@@ -899,8 +899,7 @@ def load_state(filename):
         particle_species = species_dict[ particle['species_id'] ]
         
         placed = place_particle(w, particle_species, particle['position'])
-        if __debug__:
-            log.info('  Placed particle %s' % str(placed) )
+        # place_particle generates log info when placing
 
 
     # Return the world and the seed that was used 

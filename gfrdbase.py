@@ -429,6 +429,13 @@ def place_particle(world, sid, position):
     model.ParticleModel.add_species_type.
 
     """
+    if __debug__:
+        name = world.model.get_species_type_by_id(sid)["name"]
+        if name[0] != '(':
+            name = '(' + name + ')'
+        log.info('Attempting to place particle of species %s at position %s' %
+                 (name, position) )
+
     species = world.get_species(sid)
     radius = species.radius
 
@@ -436,7 +443,7 @@ def place_particle(world, sid, position):
 
     # check that particle doesn't overlap with other particles.
     if world.check_overlap((position, radius)):
-        raise NoSpace, 'Placing particle failed: overlaps with other particle.'
+        raise NoSpace, '  Placing particle failed: overlaps with other particle.'
 
     # Get the IDs of all structures of the structure type that this particle species lives on
     structure_ids = world.get_structure_ids(world.get_structure_type(species.structure_type_id))
@@ -470,17 +477,17 @@ def place_particle(world, sid, position):
         structure_id = world.get_def_structure_id()
         if world.check_surface_overlap((position, radius*MINIMAL_SEPARATION_FACTOR),
                                        position, structure_id, radius):#(surface and distance < surface.minimal_distance(species.radius)):
-            raise RuntimeError('Placing particle failed: %s %s. '
-                               'Too close to surface: %s.' %
-                               (sid, position, distance))
+            raise RuntimeError('  Placing particle failed: %s %s. '
+                               '  Too close to surface: %s.' %
+                                  (sid, position, distance) )
     else:
         # If the particle lives on a surface then the position should be in the closest surface.
         # The closest surface should also be of the structure_type associated with the species.        
         if not (surface and 
                 distance < TOLERANCE*radius and 
                 surface.id in structure_ids):
-            raise RuntimeError('Placing particle failed: %s %s. Position should be in structure of structure_type \"%s\".' %
-                                (sid, position, world.get_structure_type(species.structure_type_id)['name']))
+            raise RuntimeError('  Placing particle failed: %s %s. Position should be in structure of structure_type \"%s\".' %
+                                  (sid, position, world.get_structure_type(species.structure_type_id)['name']) )
         else:
             structure_id = surface.id
 
@@ -488,14 +495,14 @@ def place_particle(world, sid, position):
         name = world.model.get_species_type_by_id(sid)["name"]
         if name[0] != '(':
             name = '(' + name + ')'
-        log.info('\n\tplacing particle of type %s to structure \"%s\" at position %s' %
-                 (name, world.get_structure(structure_id).name, position))
+        log.info('  Placed particle of species %s on structure \"%s\" at position %s' %
+                    (name, world.get_structure(structure_id).name, position))
 
     position, structure_id = world.apply_boundary((position, structure_id))
     particle = world.new_particle(sid, structure_id, position)
 
     if __debug__:
-        log.info('(%s,\n %s' % (particle[0], particle[1]))
+        log.info('  Particle info: (%s, %s)' % (particle[0], particle[1]) )
 
     return particle
 
