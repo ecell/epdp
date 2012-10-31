@@ -452,7 +452,7 @@ def place_particle(world, sid, position):
     surfaces = get_all_surfaces(world, position, [])
     if surfaces:
         # Get the closest surface of the structure type 
-        # for this particle species: we cannot simply take
+        # for this particle species. We cannot simply take
         # the closest structure because for a disk-bound
         # particle this can be either the disk or cylinder
         # => choose the one with the right structure type
@@ -467,9 +467,13 @@ def place_particle(world, sid, position):
                 # there is no such structure, placement
                 # will be impossible
                 surface, distance = None, numpy.inf
+                if __debug__:
+                    log.warning('  Could not find any structure with required structure type in the system!')
     else:
         # no structure around, we can't place the particle
         surface, distance = None, numpy.inf
+        if __debug__:
+            log.warning('  No structures around, cannot place particle!')
 
     # Check if not too close to neighbouring structures for particles 
     # added to the world, or added to a self-defined box.
