@@ -876,7 +876,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
         # Then we may want to burst in a cylindrical volume, not a sphere.
         # Same for the 1D particles on rods.
 
-        neighbor_ids = self.geometrycontainer.get_neighbors_within_radius_no_sort(pos, radius, ignore)
+        neighbor_ids = self.geometrycontainer.get_neighbors_within_radius_no_sort(pos, SAFETY*radius, ignore)
 
         return self.burst_domains(neighbor_ids, ignore)
 
@@ -1086,7 +1086,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
             if not ((product_pos_list[0] == reactant_pos).all()) or product_radius > reactant_radius:
                 product_pos = self.world.apply_boundary(product_pos_list[0])
                 radius = self.world.distance(product_pos, reactant_pos) + product_radius
-                zero_singles, ignore = self.burst_volume(product_pos, radius, ignore)
+                zero_singles, ignore = self.burst_volume(product_pos, radius*SINGLE_SHELL_FACTOR, ignore)
 
             # 3. check that there is space for the products (try different positions if possible)
             # accept the new positions if there is enough space.
@@ -1307,7 +1307,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
             product2_pos = self.world.apply_boundary(product_pos_list[0][1])
             radius = max(self.world.distance(product1_pos, reactant_pos) + product1_radius,
                          self.world.distance(product2_pos, reactant_pos) + product2_radius)
-            zero_singles, ignore = self.burst_volume(reactant_pos, radius, ignore)
+            zero_singles, ignore = self.burst_volume(reactant_pos, radius*SINGLE_SHELL_FACTOR, ignore)
 
             # 3. check that there is space for the products (try different positions if possible)
             # accept the new positions if there is enough space.
@@ -1419,7 +1419,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
             #    reactant particle moving into the surface.
             #    Note that the burst is recursive!!
             if product_radius > reactant_radius:
-                zero_singles, ignore = self.burst_volume(product_pos, product_radius, ignore)
+                zero_singles, ignore = self.burst_volume(product_pos, product_radius*SINGLE_SHELL_FACTOR, ignore)
 
             # 3. check that there is space for the products 
             # Note that we do not check for interfering surfaces (we assume this is no problem)
@@ -1518,7 +1518,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
             # 2.1 if the product particle sticks out of the shell
 
             #if self.world.distance(old_com, product_pos) > (pair.get_shell_size() - product_radius): # TODO What is that?
-            zero_singles, ignore = self.burst_volume(product_pos, product_radius, ignore)
+            zero_singles, ignore = self.burst_volume(product_pos, product_radius*SINGLE_SHELL_FACTOR, ignore)
 
             # 3. check that there is space for the products ignoring the reactants
             # Note that we do not check for interfering surfaces (we assume this is no problem)

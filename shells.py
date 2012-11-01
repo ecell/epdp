@@ -92,9 +92,9 @@ class Others(object):
     def shell_list_for_single(self):
         # The shell dimensions for the Other classes are unmodified, regardless of the asker.
         return self.shell_list
+
     def shell_list_for_other(self):
         return self.shell_list
-
 
     # The next method is only relevant for TESTSHELL subclasses that derive from this class.
     def get_neighbor_shell_list(self, neighbor):
@@ -108,7 +108,7 @@ class NonInteractionSingles(object):
         pass    # do nothing
 
     # The next two methods are only relevant for HASSHELL subclasses that derive from this class.
-    # NOTE below two methods have quite a different purpose!
+    # NOTE the two methods below have quite a different purpose!
     def shell_list_for_single(self):
         # In case the asker is also a NonInteractionSingle, the shell dimensions of the current domain
         # is modified such that the domain is at least the size of the Multi shell.
@@ -132,8 +132,8 @@ class NonInteractionSingles(object):
         # NOTE: Since the burst radius is spherical, a spherical shell of the size of the burst radius is returned
         # when the real shell is small enough to fit inside the burst radius. When the real shell no longer fits inside
         # the burst radius the real shell is returned.
-        # This means that more bursting will take place than necessary because cylindrical domain do not keep the domains
-        # that are out of the 'diffusion dimension' at the proper distance -> TODO
+        # This means that more bursting will take place than necessary because cylindrical domains do not keep the 
+        # domains that are out of the 'diffusion dimension' at the proper distance -> TODO
 
         pass    # needs to be specified in the subclass
 
