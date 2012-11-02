@@ -54,6 +54,10 @@ __all__ = [
     'MixedPair1DCaptestShell',
     ]
 
+import logging
+log = logging.getLogger('ecell')
+
+
 # These are exceptions that are raise when trying to make a new domain
 class ShellmakingError(Exception):
     # This ShellmakingError is raised when a Spherical or Cylindrical shell could
@@ -271,6 +275,9 @@ class testSimplePair(testPair):
     def do_transform(self):
         # transform the pos1 and pos2 of particles1 and 2 to the CoM and IV vectors
 
+        if __debug__:
+            log.info('Running testSimplePair.do_transform()')
+
         pos1 = self.pid_particle_pair1[1].position
         pos2 = self.pid_particle_pair2[1].position
         D_1 = self.pid_particle_pair1[1].D
@@ -283,6 +290,7 @@ class testSimplePair(testPair):
 
         pos2t = self.world.cyclic_transpose(pos2, pos1)
         iv = pos2t - pos1
+        log.info('pos1=%s, pos2=%s, iv=%s, sigma=%s' % (pos1, pos2, iv, self.sigma))
 
         return com, iv
 
