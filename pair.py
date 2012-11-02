@@ -26,6 +26,9 @@ __all__ = [
     'MixedPair1DCap',
     ]
 
+import logging
+log = logging.getLogger('ecell')
+
 
 class Pair(ProtectiveDomain, Others):
     """There are 3 types of pairs:
