@@ -64,9 +64,9 @@ import loadsave
 from histograms import *
 
 import logging
-import os
-
 log = logging.getLogger('ecell')
+
+import os
 
 ### Singles
 def create_default_single(domain_id, shell_id, pid_particle_pair, structure, reaction_rules, geometrycontainer, domains):
