@@ -143,8 +143,8 @@ class Pair(ProtectiveDomain, Others):
         gf = self.iv_greens_function(r0)
 
         if self.dt < TIME_TOLERANCE**2:
-            log.warning('Ridiculously small pair next-event time: pair.dt < TIME_TOLERANCE^2, setting pair.dt = TIME_TOLERANCE^2 = %s' \
-                       % str(TIME_TOLERANCE**2))
+            log.warning('Ridiculously small pair next-event time: pair.dt = %.30g < TIME_TOLERANCE^2, setting pair.dt = TIME_TOLERANCE^2 = %.30g' \
+                       % (self.dt, TIME_TOLERANCE**2) )
             dt = TIME_TOLERANCE**2
         else:
             dt = self.dt
