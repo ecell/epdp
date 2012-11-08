@@ -1560,7 +1560,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
     def fire_move(self, single, reactant_pos, reactant_structure_id, ignore_p=None):
         # No reactions/Interactions have taken place -> no identity change of the particle
-        # Just only move the particles and process putative structure change
+        # Just move the particles and process putative structure change
 
         # Note that the reactant_structure_id is the id of the structure on which the particle was located at the time of the move.
 
@@ -2051,6 +2051,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
         ### 3.1 Get new position and current structures of particles
         if pair.dt > 0.0:
+            log.debug('process_pair_event: Entering routine that calls pair.draw_new_positions(), dt=%s' % str(pair.dt))  ## TESTING remove when done
             newpos1, newpos2, struct1_id, struct2_id = pair.draw_new_positions(pair.dt, pair.r0, pair.iv, pair.event_type)
             newpos1, struct1_id = self.world.apply_boundary((newpos1, struct1_id))
             newpos2, struct2_id = self.world.apply_boundary((newpos2, struct2_id))
@@ -2969,7 +2970,41 @@ rejected moves:  %d
 
                 # If the unit_z of cylinder1 (disk1) is perpendicular to the axis of cylinder2 (disk2).
                 if feq(relative_orientation, 0.0):
-                    return 1                                      # TODO Why does this always return 1 ?
+
+                    # Project the inter-cylinder distance on the axes of the two cylinders (disks)
+                    inter_pos_proj_1 = numpy.dot(inter_pos, shape1.unit_z) * shape1.unit_z
+                    inter_pos_proj_2 = numpy.dot(inter_pos, shape2.unit_z) * shape2.unit_z
+                    # Also calculate the part orthogonal to both projections
+                    inter_pos_proj_3 = inter_pos - inter_pos_proj_1 - inter_pos_proj_2
+
+                    delta_1 = length(inter_pos_proj_1)
+                    delta_2 = length(inter_pos_proj_2)
+                    delta_3 = length(inter_pos_proj_3)                    
+
+                    # Collision is impossible if the half-length of the cylinder that we projected on
+                    # plus the radius of the other cylinder are smaller then the projected distance
+                    if delta_1 > shape1_hl + shape2.radius:
+                        return 1
+                    # Also check for the vice-versa projection
+                    if delta_2 > shape2_hl + shape1.radius:
+                        return 1                                                                               
+
+                    # Treat the obvious collisions:
+                    # If the following criterion is fulfilled we certainly have one
+                    if delta_3 <= shape1.radius + shape2.radius and \
+                       shape1_hl > delta_1 and shape2_hl > delta_2:
+
+                        return -1
+
+                    else:
+                        # The cylinders overlap in one of the planes defined by the cylinder axes
+                        # as plane normal vectors. That does not necessarily mean that they also overlap
+                        # in 3D precisely because of the missing corner volume (when compared to a box).
+                        # Collision here of course is possible but it is nontrivial to calculate it
+                        # in a generic way. For now we just warn.
+                        # TODO We need really sth. more sophisticated here!
+                        log.warning('check_shape_overlap: Incomplete check for orthogonal cylinders overlap.')
+                        return 1
 
                 # If the two objects (cylinder or disk) are parallel
                 elif feq(abs(relative_orientation), 1.0):
