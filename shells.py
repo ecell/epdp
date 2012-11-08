@@ -1328,6 +1328,7 @@ def get_dr_dzright_dzleft_to_CylindricalShape(shape, testShell, r, z_right, z_le
                                        #math.sqrt(shell_radius_sq - (ss_sq * sin_angle_diff * sin_angle_diff) ))
             
             assert scale_center_to_shell >= shell_radius # should never fail
+            #ss_angle = math.asin(math.sin(angle_diff)*scale_center_to_shell/shell_radius) ## TESTING Old version
             ss_angle = math.pi - math.asin(math.sin(angle_diff)*scale_center_to_shell/shell_radius)
             assert(ss_angle >= math.pi/2.0), 'EDGE_HITS_BARREL: ss_angle must be >= Pi/2.0; ss_angle = %s' % str(ss_angle)
                     # We know that this angle must be larger than Pi/2 here by construction of the problem
@@ -1337,9 +1338,9 @@ def get_dr_dzright_dzleft_to_CylindricalShape(shape, testShell, r, z_right, z_le
                                               % str(scale_center_shell_dist)
 
             # Check whether the calculated distance is within the forseen bounds and warn if not
-            if not scale_center_shell_dist <= scale_center_to_shell_y && scale_center_shell_dist <= scale_center_to_shell_z:
-                log.warning('EDGE_HITS_BARREL: scale-center-to-shell distance is out of forseen bounds, distance=%s') \
-                              % str(scale_center_shell_dist)
+            if not(scale_center_shell_dist <= scale_center_to_shell_y and scale_center_shell_dist <= scale_center_to_shell_z):
+                log.warning('EDGE_HITS_BARREL: scale-center-to-shell distance is out of forseen bounds, distance=%s' \
+                              % str(scale_center_shell_dist) )
 
             if scale_angle <= Pi/4.0:
                 cos_scale_angle = math.cos(scale_angle)
