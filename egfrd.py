@@ -2035,7 +2035,6 @@ class EGFRDSimulator(ParticleSimulatorBase):
         oldpos1 = pid_particle_pair1[1].position
         oldpos2 = pid_particle_pair2[1].position
 
-
         if pair.event_type == EventType.IV_EVENT:
             # Draw actual pair event for iv at very last minute.
             pair.event_type = pair.draw_iv_event_type(pair.r0)
@@ -2051,7 +2050,6 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
         ### 3.1 Get new position and current structures of particles
         if pair.dt > 0.0:
-            log.debug('process_pair_event: Entering routine that calls pair.draw_new_positions(), dt=%s' % str(pair.dt))  ## TESTING remove when done
             newpos1, newpos2, struct1_id, struct2_id = pair.draw_new_positions(pair.dt, pair.r0, pair.iv, pair.event_type)
             newpos1, struct1_id = self.world.apply_boundary((newpos1, struct1_id))
             newpos2, struct2_id = self.world.apply_boundary((newpos2, struct2_id))
