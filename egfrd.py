@@ -940,16 +940,20 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
                 if isinstance(domain, NonInteractionSingle) and domain.is_reset():
                     # If the domain was already bursted, but was not on the ignore list yet, put it there.
-                    # NOTE: we assume that the domain has already bursted around it when it was made!
+                    # NOTE: we assume that the domain has already bursted around it when it was made!                    
                     ignore.append(domain_id)
 
-                elif (not isinstance(domain, Multi)) and (self.t != domain.last_time):
+                elif (not isinstance(domain, Multi)): #and (self.t != domain.last_time): ## TESTING TESTING TESTING
                     # Burst domain only if (AND):
                     # -within burst radius
                     # -not already bursted before (not on 'ignore' list)
                     # -domain is not zero dt NonInteractionSingle
                     # -domain is not a multi
-                    # -domain has time passed
+                    # -domain has time passed # TESTING we switch this off because sometimes indeed it is needed to
+                                              # burst newly created domains. For example, when two Multis are dissolved
+                                              # at the same time. Then the first Multi-breakup will result in the creation
+                                              # of new domains that will not be bursted at the second Multi-breakup 
+                                              # because dt=0. This may lead to overlaps.
  
                     # add the domain_id to the list of domains that is already bursted (ignore list),
                     # and burst the domain.
@@ -2501,7 +2505,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
 
         # Add all partner domains (multi and dt=0 NonInteractionSingles) in the horizon to the multi
-        for partner in neighbors:
+        for partner in neighbors:            
             if (isinstance(partner, NonInteractionSingle) and partner.is_reset()) or \
                isinstance(partner, Multi):
                 self.add_to_multi_recursive(partner, multi)
@@ -2530,7 +2534,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
 
         if __debug__:
-            log.debug('add_to_multi_recursive.\n domain: %s, multi: %s' % (domain, multi))
+            log.debug('add_to_multi_recursive:\t domain: %s, multi: %s' % (domain, multi))
 
         if isinstance(domain, NonInteractionSingle):
             assert domain.is_reset()        # domain must be zero-dt NonInteractionSingle
@@ -2560,6 +2564,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
             #    - are Multi or
             #    - are just bursted (initialized) NonInteractionSingles
             for neighbor, dist_to_shell in neighbor_distances:
+
                 if (isinstance (neighbor, NonInteractionSingle) and neighbor.is_reset()):
                     multi_horizon = (domain.pid_particle_pair[1].radius + neighbor.pid_particle_pair[1].radius) * \
                                     MULTI_SHELL_FACTOR
@@ -2608,7 +2613,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
     # adding a single to the multi instead of creating a pair or interaction out of single(s)
 
         if __debug__:
-            log.info('add to multi:\n  %s\n  %s' % (single, multi))
+            log.info('add_to_multi:\t Adding %s to %s' % (single, multi))
 
         shell_id = self.shell_id_generator()
         shell = multi.create_new_shell(single.pid_particle_pair[1].position,
@@ -2625,7 +2630,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
     def merge_multis(self, multi1, multi2):
         # merge multi1 into multi2. multi1 will be removed.
         if __debug__:
-            log.info('merging %s to %s' % (multi1.domain_id, multi2.domain_id))
+            log.info('merge_multis: merging %s to %s' % (multi1.domain_id, multi2.domain_id))
             log.info('  %s' % multi1)
             log.info('  %s' % multi2)
 
