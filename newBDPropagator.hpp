@@ -861,11 +861,13 @@ private:
                         LOG_DEBUG(("  Note: product_structure_type_id = %s", boost::lexical_cast<std::string>( product_structure_type_id).c_str() ));                        
                         LOG_DEBUG(("  Note: reactants_CoM=%s", boost::lexical_cast<std::string>(reactants_CoM).c_str() ));
                         
-                        const position_structid_pair_type product_pos_struct_id( reactant0_structure->get_pos_sid_pair_2o(*reactant1_structure, product_structure_type_id,
-                                                                                                                          reactants_CoM, typical_length, reaction_length_, rng_ ) );
+                        const position_structid_pair_type product_info_in_reactant_structure( reactant0_structure->get_pos_sid_pair_2o(*reactant1_structure,
+                                                                                                                                        product_structure_type_id,
+                                                                                                                                        reactants_CoM, typical_length, 
+                                                                                                                                        reaction_length_, rng_ ) );
                         // Apply the boundary conditions; this is particularly important here because the CoM projection as produced by the function above
                         // in some cases might end up out of the target_structure (e.g. in case the two reactants are coming from adjacent planes
-                        tx_.apply_boundary(product_pos_struct_id);
+                        const position_structid_pair_type product_pos_struct_id = tx_.apply_boundary(product_info_in_reactant_structure);
                           // TODO cyclic_transpose ?
                           // TODO check whether the new position is in the target structure?
                           
