@@ -1196,18 +1196,30 @@ def get_dr_dzright_dzleft_to_CylindricalShape(shape, testShell, r, z_right, z_le
                         #rhs = (scale_center_to_shell_z - \
                               #math.sqrt(shell_radius**2 - (scale_center_to_shell_y - math.sqrt( (x*tan_scale_angle)**2 - (scale_center_to_shell_x - shell_half_length)**2 ) )**2 ) )
 
-                        eq_value = (scale_center_to_shell_z - x)**2 - shell_radius_sq +\
-                                  (scale_center_to_shell_y - math.sqrt( (x*tan_scale_angle)**2 - scale_center_to_shell_edge_x**2 ) )**2
-
                         # TODO TESTING REMOVE THIS WHEN DONE
-                        #print "***** ROOTFINDER CALL: Calling h1_eq() with: *****"
-                        #print "  h1 = %s, value = %s" % (x, eq_value )
-                        #print "  r1 = %s" % (r1_function(x+scale_center_z))
-                        #print "  lambda = %s" % (math.sqrt( (x*tan_scale_angle)**2 - (scale_center_to_shell_x - shell_half_length)**2 ))
-                        #print "  Dy-lambda = %s" % (scale_center_to_shell_y - math.sqrt( (x*tan_scale_angle)**2 - (scale_center_to_shell_x - shell_half_length)**2 ))
-                        #print "  (Dy-lambda)^2 = %s" % ((scale_center_to_shell_y - math.sqrt( (x*tan_scale_angle)**2 - (scale_center_to_shell_x - shell_half_length)**2 ))**2 )
-                        #print "  outer = %s" % (shell_radius**2 - (scale_center_to_shell_y - math.sqrt( (x*tan_scale_angle)**2 - (scale_center_to_shell_x - shell_half_length)**2 ) )**2)
-                                            
+                        #log.debug( "***** ROOTFINDER CALL: Calling h1_eq() with: *****" )
+                        #log.debug( "  r1 = %s" % (r1_function(x+scale_center_z)) )
+                        #log.debug( "  sqrt_arg = %s" % ((x*tan_scale_angle)**2 - scale_center_to_shell_edge_x**2) )
+                        #log.debug( "    tan_scale_angle = %s" % (tan_scale_angle) )
+                        #log.debug( "    x*tan_scale_angle = %s" % (x*tan_scale_angle) )
+                        #log.debug( "    scale_center_to_shell_edge_x = %s" % scale_center_to_shell_edge_x )
+
+                        # We will take the square root of the following below
+                        sqrt_arg = (x*tan_scale_angle)**2 - scale_center_to_shell_edge_x**2
+
+                        if sqrt_arg < 0.0 and abs(sqrt_arg) <= TOLERANCE*scale_center_to_shell_edge_x**2:
+
+                            sqrt_arg = 0.0      # This safety check is to prevent math domain errors
+                                                # in case sqrt_arg is close to zero and taking the
+                                                # difference results in very small negative numbers
+                            log.warn('Orthogonal cylinder scaling, EDGE_HITS_EDGE case: Setting negative sqrt argument to zero within TOLERANCE.')
+
+                        eq_value = (scale_center_to_shell_z - x)**2 - shell_radius_sq +\
+                                      (scale_center_to_shell_y - math.sqrt( sqrt_arg ))**2
+                        
+                        # TODO TESTING REMOVE THIS WHEN DONE                    
+                        #log.debug( "  h1 = %s, value = %s" % (x, eq_value ) )
+
                         return eq_value
 
                     # Self-adaptive initial value guessing for the rootfinder procedure:
@@ -1232,13 +1244,13 @@ def get_dr_dzright_dzleft_to_CylindricalShape(shape, testShell, r, z_right, z_le
                     assert(h1_interval_end   >= h1_interval_end)
 
                     # TODO TESTING REMOVE THIS WHEN DONE
-                    #print "***** NEW ROOTFINDER ITERATION *****"
-                    #print "  Dy-r2 = %s" % (scale_center_to_shell_y-shell_radius)
-                    #print "  Dx-h2 = %s" % scale_center_to_shell_edge_x
-                    #print "  h1_interval_start = %s" % h1_interval_start
-                    #print "  h1_interval_end = %s"   % h1_interval_end
-                    #print "  h1(i_start) = %s"       % h1_eq(h1_interval_start)
-                    #print "  h1(i_end) = %s"         % h1_eq(h1_interval_end)
+                    #log.debug( "***** NEW ROOTFINDER ITERATION *****" )
+                    #log.debug( "  Dy-r2 = %s" % (scale_center_to_shell_y-shell_radius) )
+                    #log.debug( "  Dx-h2 = %s" % scale_center_to_shell_edge_x )
+                    #log.debug( "  h1_interval_start = %s" % h1_interval_start )
+                    #log.debug( "  h1_interval_end = %s"   % h1_interval_end )
+                    #log.debug( "  h1(i_start) = %s"       % h1_eq(h1_interval_start) )
+                    #log.debug( "  h1(i_end) = %s"         % h1_eq(h1_interval_end) )
 
                     h_touch = scale_center_z + findroot(h1_eq, h1_interval_start, h1_interval_end)
                     z1_new = min(z1, h_touch)
@@ -1248,13 +1260,24 @@ def get_dr_dzright_dzleft_to_CylindricalShape(shape, testShell, r, z_right, z_le
                     # This uses the same rootfinding equation and interval as above with r1=h1/tan_scale_angle
                     # instead of h1; notice that scale_angle > 0 here, so we can divide by it
                     def r1_eq(x):
+
+                        # We will take the square root of the following below
+                        sqrt_arg = x**2 - scale_center_to_shell_edge_x**2
+
+                        if sqrt_arg < 0.0 and abs(sqrt_arg) <= TOLERANCE*scale_center_to_shell_edge_x**2:
+
+                            sqrt_arg = 0.0      # This safety check is to prevent math domain errors
+                                                # in case sqrt_arg is close to zero and taking the
+                                                # difference results in very small negative numbers
+                            log.warn('Orthogonal cylinder scaling, EDGE_HITS_EDGE case: Setting negative sqrt argument to zero within TOLERANCE.')
+
                         eq_value = (scale_center_to_shell_z - x/tan_scale_angle)**2 - shell_radius_sq +\
-                                  (scale_center_to_shell_y - math.sqrt( x**2 - scale_center_to_shell_edge_x**2 ) )**2
+                                      (scale_center_to_shell_y - math.sqrt( sqrt_arg ) )**2
 
                         # TODO TESTING REMOVE THIS WHEN DONE
-                        #print "***** ROOTFINDER CALL: Calling r1_eq() with: *****"
-                        #print "  r1 = %s, value = %s" % (x, eq_value )
-                        #print "  h1 = %s" % (z1_function(x))
+                        #log.debug( "***** ROOTFINDER CALL: Calling r1_eq() with: *****" )
+                        #log.debug( "  r1 = %s, value = %s" % (x, eq_value ) )
+                        #log.debug( "  h1 = %s" % (z1_function(x)) )
 
                         return eq_value
 
@@ -1321,11 +1344,6 @@ def get_dr_dzright_dzleft_to_CylindricalShape(shape, testShell, r, z_right, z_le
             angle_diff = abs(shell_angle_yz - scale_angle)
             sin_angle_diff = math.sin(angle_diff)
             cos_angle_diff = math.cos(angle_diff)
-
-            # TODO TESTING Laurens' version, remove when the other works well
-            # Remove this when it is certain that the new version does not fail
-            #scale_center_shell_dist = (scale_center_to_shell * cos_angle_diff -
-                                       #math.sqrt(shell_radius_sq - (ss_sq * sin_angle_diff * sin_angle_diff) ))
             
             assert scale_center_to_shell >= shell_radius # should never fail
             #ss_angle = math.asin(math.sin(angle_diff)*scale_center_to_shell/shell_radius) ## TESTING Old version
@@ -1338,9 +1356,10 @@ def get_dr_dzright_dzleft_to_CylindricalShape(shape, testShell, r, z_right, z_le
                                               % str(scale_center_shell_dist)
 
             # Check whether the calculated distance is within the forseen bounds and warn if not
-            if not(scale_center_shell_dist <= scale_center_to_shell_y and scale_center_shell_dist <= scale_center_to_shell_z):
-                log.warning('EDGE_HITS_BARREL: scale-center-to-shell distance is out of forseen bounds, distance=%s' \
-                              % str(scale_center_shell_dist) )
+            if scale_center_shell_dist > math.sqrt(scale_center_to_shell_y**2+scale_center_to_shell_z**2)*(1.0+TOLERANCE):
+                log.warning('Orthogonal cylinder scaling, EDGE_HITS_BARREL case: scale-center-to-shell distance is out of foreseen bounds:')
+                log.warning('   distance=%s, scale_center_to_shell_y=%s, scale_center_to_shell_z=%s' \
+                             % (scale_center_shell_dist, scale_center_to_shell_y, scale_center_to_shell_z) )
 
             if scale_angle <= Pi/4.0:
                 cos_scale_angle = math.cos(scale_angle)
