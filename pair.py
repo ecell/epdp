@@ -871,9 +871,9 @@ class MixedPair2D3D(Pair, hasCylindricalShell):
         self.target_structure = self.testShell.target_structure
 
     def determine_radii(self):
-        # determines the dimensions of the domains used for the Green's functions 
+        # Determines the dimensions of the domains used for the Green's functions 
         # from the dimensions of the cylindrical shell.
-        # Note that the function assumes that the cylinder is dimensioned properly
+        # Note that the function assumes that the cylinder is dimensioned properly.
         radius2D = self.particle2D.radius
         radius3D = self.particle3D.radius
         D_2D = self.particle2D.D
@@ -881,9 +881,11 @@ class MixedPair2D3D(Pair, hasCylindricalShell):
 
         shell_radius      = self.shell.shape.radius
         shell_half_length = self.shell.shape.half_length
+        z_left            = radius2D
+        z_right           = 2.0*shell_half_length - z_left
 
         # Use class methods to check dimensions of the cylinder
-        r_check  = self.testShell.r_right(2.0*shell_half_length - radius2D)  # FIXME that can't work, can it???
+        r_check  = self.testShell.r_right(z_right)
         hl_check = (self.testShell.z_right(shell_radius) + self.testShell.z_left(shell_radius)) / 2.0
         if __debug__:
             assert feq(r_check, shell_radius) and feq(hl_check, shell_half_length), \
@@ -892,17 +894,17 @@ class MixedPair2D3D(Pair, hasCylindricalShell):
                  (FORMAT_DOUBLE % shell_radius, FORMAT_DOUBLE % shell_half_length,
                   FORMAT_DOUBLE % r_check,      FORMAT_DOUBLE % hl_check)
 
-
         # Partition the space in the protective domain over the IV and the CoM domains
-        z_left  = radius2D
-        z_right = 2.0*shell_half_length - z_left
+        # The outer bound of the interparticle vector is set by the particle diffusing in 3D via:
         a_r = (z_right - radius3D) * self.z_scaling_factor
 
-        # calculate the maximal displacement of a particle given an interparticle vector bound a_r.
-        # Also include its radius.
+        # Calculate the maximal displacement of a particle given an interparticle vector bound a_r
+        # taking into account the radius for both the 2D and 3D particle. This sets the remaining
+        # space for the CoM diffusion.
         space_for_iv = max( (D_2D/self.D_tot) * a_r + radius2D,
                             (D_3D/self.D_tot) * a_r + radius3D)
-        # This determines the CoM vector bound via
+
+        # It then determines the CoM vector bound via
         a_R = shell_radius - space_for_iv
 
         # Print the domain sizes and their estimated first passage times.
