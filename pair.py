@@ -971,7 +971,7 @@ class MixedPair2D3D(Pair, hasCylindricalShell):
 
     @ classmethod
     def calc_z_scaling_factor(cls, D_2D, D_3D):
-        # calculates the scaling factor to make the anisotropic diffusion problem into a isotropic one
+        # calculates the scaling factor to make the anisotropic diffusion problem into an isotropic one
         return math.sqrt( (D_2D + D_3D) / D_3D)
 
     def choose_pair_greens_function(self, r0, t):
