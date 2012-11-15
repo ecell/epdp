@@ -321,8 +321,15 @@ class testMixedPair2D3D(testPair):
     def __init__(self, single2D, single3D):
 
         # First define for clarity:
+        self.single2D = single2D
+        self.single3D = single3D
+        self.ppp2D      = single2D.pid_particle_pair
+        self.ppp3D      = single3D.pid_particle_pair
+        self.particle2D = single2D.pid_particle_pair[1]
+        self.particle3D = single3D.pid_particle_pair[1]
+
         self.structure2D = single2D.structure   # equal to self.structure1
-        self.structure3D = single3D.structure   # equal to self.structure2        
+        self.structure3D = single3D.structure   # equal to self.structure2
 
         # These methods need above definitions.
         if __debug__: 
@@ -330,13 +337,11 @@ class testMixedPair2D3D(testPair):
                 assert isinstance(single3D.structure, CuboidalRegion)
         testPair.__init__(self, single2D, single3D)
           # note: this makes self.single1/self.pid_particle_pair1/self.structure1 for the 2D particle
-          #              and self.single2/self.pid_particle_pair2/self.structure2 for the 3D particle
+          #              and self.single2/self.pid_particle_pair2/self.structure2 for the 3D particle              
 
-        # Again for clarity define:
-        self.ppp2D      = self.pid_particle_pair1
-        self.ppp3D      = self.pid_particle_pair2
-        self.particle2D = self.ppp2D[1]
-        self.particle3D = self.ppp3D[1]
+        assert self.single2D == self.single1           and self.single3D == self.single2
+        assert self.ppp2D == self.pid_particle_pair1   and self.ppp3D == self.pid_particle_pair2
+        assert self.structure2D == self.structure1     and self.structure3D == self.structure2
 
         # The following will be needed by some domain overlap checking functions
         # TODO: modification by Martijn Wehrens (jintram@gmail.com)
@@ -345,15 +350,19 @@ class testMixedPair2D3D(testPair):
         self.target_structure = self.structure2D        
 
     def get_sigma(self):
-        # rescale sigma to correct for the rescaling of the coordinate system
+        # rescale sigma to correct for the rescaling of the coordinate system.
         # This is the sigma that is used for the evaluation of the Green's function and is in this case 
-        # slightly different than the sums of the radii of the particles
+        # slightly different from the sums of the radii of the particles. We rescale sigma in a way
+        # that the total flux over the reactive surface of the prolate spheroidal boundary with greater radius
+        # sigma is equal to the total flux over a spherical reactive surface with radius = rescaled sigma.
         xi = self.get_scaling_factor()
         xi_inv = 1.0/xi
         alpha = math.acos(xi_inv)
+
         sigma = self.particle2D.radius + self.particle3D.radius
-        rho = abs(sigma * math.sqrt(0.5 + (alpha * xi/(2.0*math.sin(alpha)))))
-        return rho
+        rescaled_sigma = abs(sigma * math.sqrt(0.5 + (alpha * xi/(2.0*math.sin(alpha)))))
+
+        return rescaled_sigma
     sigma = property(get_sigma)
 
     def do_transform(self):
@@ -393,8 +402,8 @@ class testMixedPair2D3D(testPair):
     def get_scaling_factor(self):
         # This returns the scaling factor needed to make the anisotropic diffusion problem of the IV
         # into a isotropic one.
-        D_3D = self.pid_particle_pair3D[1].D    # 3D particle is the only contributor to diffusion
-                                                # normal to the plane
+        D_3D = self.particle3D.D    # 3D particle is the only contributor to diffusion
+                                    # normal to the plane
         return math.sqrt(self.D_r/D_3D)
 
 class testMixedPair1DCap(testPair):
@@ -2428,31 +2437,33 @@ class MixedPair2D3DtestShell(CylindricaltestShell, testMixedPair2D3D):
         # initialize commonly used constants
         self.sqrt_DRDr = math.sqrt((2*self.D_R)/(3*self.D_r))
 
-        # initialize the scaling parameters
-        bla = self.get_scaling_factor() * ( self.sqrt_DRDr + max( self.pid_particle_pair1[1].D/self.D_tot,
-                                                                  self.pid_particle_pair2[1].D/self.D_tot ))
-        minimum = self.r0+self.pid_particle_pair1[1].radius
+        # initialize the scaling parameters        
+        minimum = self.r0 + self.particle2D.radius
         self.drdz_right = self.r_right(minimum + 1.0) - self.r_right(minimum)
-        assert feq(bla, self.drdz_right), 'bla= %s, drdz_right=%s' % (bla, self.drdz_right)
+        self.dzdr_right = 1.0/self.drdz_right
 
-        bla2 = self.z_right(minimum + 1.0) - self.z_right(minimum)
+        #bla = self.get_scaling_factor() * ( self.sqrt_DRDr + max( self.particle2D.D/self.D_tot,
+                                                                  #self.particle3D.D/self.D_tot ))
+        #assert feq(bla, self.drdz_right), 'bla= %s, drdz_right=%s' % (bla, self.drdz_right)
+        #bla2 = self.z_right(minimum + 1.0) - self.z_right(minimum)
 
         minr, minz_right, _ = self.get_min_dr_dzright_dzleft()
-        self.dzdr_right = 1.0/self.drdz_right
-        assert feq(self.dzdr_right, bla2), 'bla2= %s, dzdr_right= %s' % (bla2, self.dzdr_right)
+
+        #assert feq(self.dzdr_right, bla2), 'bla2= %s, dzdr_right= %s' % (bla2, self.dzdr_right)
+
         self.r0_right   = 0.0
         self.z0_right   = self.z_right(self.r0_right)
         self.dzdr_left  = 0.0
         self.drdz_left  = numpy.inf
         self.r0_left    = 0.0
-        self.z0_left    = self.pid_particle_pair1[1].radius
+        self.z0_left    = self.particle2D.radius
 
         # This will determine if the shell is possible.
         # If possible, it will write the dr, dz_right, dz_left defining the dimensions of the cylindrical shell.
         # If not possible, it throws an exception and the construction of the testShell IS ABORTED!
         try:
             self.dr, self.dz_right, self.dz_left = \
-                            self.determine_possible_shell(self.structure3D.id, [self.single1.domain_id, self.single2.domain_id],
+                            self.determine_possible_shell(self.structure3D.id, [self.single2D.domain_id, self.single3D.domain_id],
                                                           [self.structure2D.id])
         except ShellmakingError as e:
             raise testShellError('(MixedPair2D3D). %s' %
@@ -2465,7 +2476,7 @@ class MixedPair2D3DtestShell(CylindricaltestShell, testMixedPair2D3D):
 
     def get_searchpoint(self):
         # TODO this can be improved, now same as PlanarSurfaceInteraction
-        search_distance = self.get_searchradius()/math.sqrt(2) - self.z0_left
+        search_distance = self.get_searchradius()/math.sqrt(2.0) - self.z0_left
         return self.get_referencepoint() + search_distance * self.get_orientation_vector()
 
     def get_referencepoint(self):
@@ -2475,15 +2486,15 @@ class MixedPair2D3DtestShell(CylindricaltestShell, testMixedPair2D3D):
         # defines the minimum parameters of the testShell.
         # Note that also the minimum testShell must obey the scaling rules
 
-        radius1 = self.pid_particle_pair1[1].radius
-        radius2 = self.pid_particle_pair2[1].radius
-        D_1 = self.pid_particle_pair1[1].D
-        D_2 = self.pid_particle_pair2[1].D
+        radius2D = self.particle2D.radius
+        radius3D = self.particle3D.radius
+        D_2D = self.particle2D.D
+        D_3D = self.particle3D.D
 
 
         ### calculate the minimal height z_right1 of the shell including burst radius
         iv_z = self.r0      # approximation, actually the height of the domain can be slightly lower.
-        dz_right1 = iv_z + radius2 * SINGLE_SHELL_FACTOR
+        dz_right1 = iv_z + radius3D * SINGLE_SHELL_FACTOR
         # with the accompanying radius r1
         dr_1 = self.r_right(dz_right1)
 
@@ -2509,8 +2520,9 @@ class MixedPair2D3DtestShell(CylindricaltestShell, testMixedPair2D3D):
         dr = dr_1
         dz_right = dz_right1
 
-        dz_left  = self.pid_particle_pair1[1].radius
+        dz_left  = self.particle2D.radius
 #        print "min= ", dr, dz_right, dz_left
+
         return dr, dz_right, dz_left
         
     def get_max_dr_dzright_dzleft(self):
@@ -2518,7 +2530,7 @@ class MixedPair2D3DtestShell(CylindricaltestShell, testMixedPair2D3D):
         dr_sr    = self.get_searchradius()/math.sqrt(2)
         dr_edge  = self.min_dist_proj_to_edge
         dr       = min(dr_sr, dr_edge)
-        dz_left  = self.pid_particle_pair1[1].radius
+        dz_left  = self.particle2D.radius
 
         # now adjust dz_right such that they obey the scaling laws and are still within the search_radius
         # We assume that dz_right needs to be adjusted to dr and not the other way around since the cylinder is
@@ -2534,23 +2546,23 @@ class MixedPair2D3DtestShell(CylindricaltestShell, testMixedPair2D3D):
     def z_right(self, r_right):
         # This calculates the height z_right of the newly constructed domain
         # (above the plane) if the radius r is known
-        radius1 = self.pid_particle_pair1[1].radius
-        radius2 = self.pid_particle_pair2[1].radius
-        D_1 = self.pid_particle_pair1[1].D
-        D_2 = self.pid_particle_pair2[1].D
+        radius2D = self.particle2D.radius
+        radius3D = self.particle3D.radius
+        D_2D = self.particle2D.D
+        D_3D = self.particle3D.D
 
         # calculate a_r such that the expected first-passage for the CoM and IV are equal        
-        #sqrt_DRDr_1 = math.sqrt( 2.0/3.0 * self.D_R/D_1 )  # TESTING
-        #sqrt_DRDr_2 = math.sqrt( 2.0/3.0 * self.D_R/D_2 )
-        a_r1 = (r_right - radius1 + self.r0*self.sqrt_DRDr ) / (self.sqrt_DRDr + (D_1/self.D_tot) )
-        a_r2 = (r_right - radius2 + self.r0*self.sqrt_DRDr ) / (self.sqrt_DRDr + (D_2/self.D_tot) )        
+        #sqrt_DRDr_2D = math.sqrt( 2.0/3.0 * self.D_R/D_2D )  # TESTING
+        #sqrt_DRDr_3D = math.sqrt( 2.0/3.0 * self.D_R/D_3D )
+        a_r_2D = (r_right - radius2D + self.r0*self.sqrt_DRDr ) / (self.sqrt_DRDr + (D_2D/self.D_tot) )
+        a_r_3D = (r_right - radius3D + self.r0*self.sqrt_DRDr ) / (self.sqrt_DRDr + (D_3D/self.D_tot) )        
         # take the smallest that, if entered in the function for r below, would lead to this z_right
-        a_r = min (a_r1, a_r2)        
+        a_r = min (a_r_2D, a_r_3D)
 
-        z_right = (a_r/self.get_scaling_factor()) + radius2
+        z_right = (a_r/self.get_scaling_factor()) + radius3D
 
         ## Debug output for TESTING
-        #log.debug( " a_r1=%s, a_r2=%s, z_right=%s, r_right=%s" % (a_r1, a_r2, z_right, r_right))
+        #log.debug( " a_r_2D=%s, a_r_3D=%s, z_right=%s, r_right=%s" % (a_r_2D, a_r_3D, z_right, r_right))
 
         #assert feq(self.r_right(z_right), r_right), 'inconsistent z_right function \
                                                     #r_right= %s, r_right(z_right)=%s ' % \
@@ -2560,15 +2572,15 @@ class MixedPair2D3DtestShell(CylindricaltestShell, testMixedPair2D3D):
     def r_right(self, z_right):
         # This calculates the radius r of the newly constructed domain
         # if the height z_right is known
-        radius1 = self.pid_particle_pair1[1].radius
-        radius2 = self.pid_particle_pair2[1].radius
-        D_1 = self.pid_particle_pair1[1].D
-        D_2 = self.pid_particle_pair2[1].D
+        radius2D = self.particle2D.radius
+        radius3D = self.particle3D.radius
+        D_2D = self.particle2D.D
+        D_3D = self.particle3D.D
 
         # We first calculate the a_r, since it is the only radius that depends on z_right only.
         # The dependence is given by the scaling factor that converts spherical coordinates into
         # prolate spheroidal coordinates
-        a_r = (z_right - radius2) * self.get_scaling_factor()
+        a_r = (z_right - radius3D) * self.get_scaling_factor()
 
         # We equalize the estimated first passage time for the CoM (2D) and IV (3D) for a given a_r
         # via a_R/(a_r-self.r0) == sqrt(4 D_R t)/sqrt(6 D_r t) (for an arbitrary t).
@@ -2577,8 +2589,8 @@ class MixedPair2D3DtestShell(CylindricaltestShell, testMixedPair2D3D):
         a_R = (a_r - self.r0)*self.sqrt_DRDr
 
         # We calculate the maximum space needed for particles A and B based on maximum IV displacement
-        iv_max = max( (D_1/self.D_tot * a_r + radius1),
-                      (D_2/self.D_tot * a_r + radius2))
+        iv_max = max( (D_2D/self.D_tot * a_r + radius2D),
+                      (D_3D/self.D_tot * a_r + radius3D))
 
         # The total domain radius is then given by the sum of the max. IV displacement and
         # the estimated a_R value for the same first passage time
@@ -2590,7 +2602,7 @@ class MixedPair2D3DtestShell(CylindricaltestShell, testMixedPair2D3D):
         return r_right
 
     def apply_safety(self, r, z_right, z_left):
-        SAFETY = 1.1 # FIXME What is that? Why is that not the standard?
+        SAFETY = 1.1 # FIXME What the hell is that? Why is that not the standard?
         return r/SAFETY, self.z_right(r/SAFETY)/SAFETY, z_left
 
 
