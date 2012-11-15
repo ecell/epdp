@@ -2556,17 +2556,26 @@ class MixedPair2D3DtestShell(CylindricaltestShell, testMixedPair2D3D):
         #sqrt_DRDr_3D = math.sqrt( 2.0/3.0 * self.D_R/D_3D )
         a_r_2D = (r_right - radius2D + self.r0*self.sqrt_DRDr ) / (self.sqrt_DRDr + (D_2D/self.D_tot) )
         a_r_3D = (r_right - radius3D + self.r0*self.sqrt_DRDr ) / (self.sqrt_DRDr + (D_3D/self.D_tot) )        
-        # take the smallest that, if entered in the function for r below, would lead to this z_right
-        a_r = min (a_r_2D, a_r_3D)
+        # take the smaller a_r that, if entered in the function for r below, would lead to this r_right
+        a_r = min(a_r_2D, a_r_3D)
 
         z_right = (a_r/self.get_scaling_factor()) + radius3D
 
         ## Debug output for TESTING
         #log.debug( " a_r_2D=%s, a_r_3D=%s, z_right=%s, r_right=%s" % (a_r_2D, a_r_3D, z_right, r_right))
+        #log.debug('r_right= %s, r_right(z_right)=%s, z_right=%s' % (r_right, self.r_right(z_right), z_right) )
 
-        #assert feq(self.r_right(z_right), r_right), 'inconsistent z_right function \
-                                                    #r_right= %s, r_right(z_right)=%s ' % \
-                                                    #(r_right, self.r_right(z_right))
+        #assert feq(self.r_right(z_right), r_right), 'Inconsistent z_right function in MixedPair2D3DtestShell: \
+                                                     #r_right= %s, r_right(z_right)=%s, z_right=%s' % \
+                                                     #(r_right, self.r_right(z_right), z_right)
+
+        if r_right < 0.0 or z_right <0.0:
+            log.warning('Negative cylinder dimensions in MixedPair2D3DtestShell: z_right= %s, r_right=%s' % (z_right, r_right) )
+
+        if abs(z_right) < abs(r_right) * TOLERANCE:
+            log.warning('Setting z_right to zero within TOLERANCE in MixedPair2D3DtestShell, z_right=%s' % str(z_right))
+            z_right = 0.0
+
         return z_right
 
     def r_right(self, z_right):
@@ -2589,6 +2598,7 @@ class MixedPair2D3DtestShell(CylindricaltestShell, testMixedPair2D3D):
         a_R = (a_r - self.r0)*self.sqrt_DRDr
 
         # We calculate the maximum space needed for particles A and B based on maximum IV displacement
+        # taking into account the particle radii
         iv_max = max( (D_2D/self.D_tot * a_r + radius2D),
                       (D_3D/self.D_tot * a_r + radius3D))
 
@@ -2596,14 +2606,27 @@ class MixedPair2D3DtestShell(CylindricaltestShell, testMixedPair2D3D):
         # the estimated a_R value for the same first passage time
         r_right = a_R + iv_max
 
-        assert feq(self.z_right(r_right), z_right), 'inconsistent r_right function \
-                                                     z_right= %s, z_right(r_right)=%s ' % \
-                                                     (z_right, self.z_right(r_right))
+        ### TESTING
+        log.info('MixedPair2D3DtestShell: z_right= %s, z_right(r_right)=%s, r_right=%s' % (z_right, self.z_right(r_right), r_right) )
+
+        if r_right < 0.0 or z_right <0.0:
+            log.warning('Negative cylinder dimensions in MixedPair2D3DtestShell: z_right= %s, r_right=%s' % (z_right, r_right) )
+
+        assert feq(self.z_right(r_right), z_right), 'Inconsistent r_right function in MixedPair2D3DtestShell: \
+                                                     z_right= %s, z_right(r_right)=%s, r_right=%s' % \
+                                                     (z_right, self.z_right(r_right), r_right)
+
+        if abs(r_right) < abs(z_right) * TOLERANCE:
+            log.warning('Setting r_right to zero within TOLERANCE in MixedPair2D3DtestShell, r_right=%s' % str(r_right))
+            r_right = 0.0
+
         return r_right
 
     def apply_safety(self, r, z_right, z_left):
         SAFETY = 1.1 # FIXME What the hell is that? Why is that not the standard?
-        return r/SAFETY, self.z_right(r/SAFETY)/SAFETY, z_left
+        # Make sure to keep the right scaling ratio when applying SAFETY
+        # because we determine the math. domains for IV and CoM from the shell dimensions
+        return r/SAFETY, self.z_right(r/SAFETY), z_left
 
 
 class MixedPair1DCaptestShell(CylindricaltestShell, testMixedPair1DCap):
