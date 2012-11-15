@@ -890,9 +890,11 @@ class MixedPair2D3D(Pair, hasCylindricalShell):
         if __debug__:
             assert feq(r_check, shell_radius) and feq(hl_check, shell_half_length), \
                 'MixedPair2D3D: Domain did not obey scaling relationship. ' \
-                'shell_radius = %s, shell_half_length = %s, radius_check = %s, half_length_check = %s' % \
+                'shell_radius = %s, shell_half_length = %s, radius_check = %s, half_length_check = %s, ' \
+                'z_left = %s, z_right = %s' % \
                  (FORMAT_DOUBLE % shell_radius, FORMAT_DOUBLE % shell_half_length,
-                  FORMAT_DOUBLE % r_check,      FORMAT_DOUBLE % hl_check)
+                  FORMAT_DOUBLE % r_check,      FORMAT_DOUBLE % hl_check,
+                  FORMAT_DOUBLE % z_left,       FORMAT_DOUBLE % z_right          )
 
         # Partition the space in the protective domain over the IV and the CoM domains
         # The outer bound of the interparticle vector is set by the particle diffusing in 3D via:
