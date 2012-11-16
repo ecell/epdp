@@ -2426,30 +2426,23 @@ class MixedPair2D3DtestShell(CylindricaltestShell, testMixedPair2D3D):
         CylindricaltestShell.__init__(self, geometrycontainer, domains)  # this must be first because of world definition
         # The initialization of r0 can fail in testPair.__init__
 
-#        raise testShellError('(MixedPair2D3D).')
-
         try:
             testMixedPair2D3D.__init__(self, single2D, single3D)
         except protoDomainError as e:
             raise testShellError('(MixedPair2D3D). %s' %
                                  (str(e)))
 
-        # initialize commonly used constants
+        # Initialize commonly used constants
         self.sqrt_DRDr = math.sqrt((2*self.D_R)/(3*self.D_r))
 
-        # initialize the scaling parameters        
-        minimum = self.r0 + self.particle2D.radius
-        self.drdz_right = self.r_right(minimum + 1.0) - self.r_right(minimum)
-        self.dzdr_right = 1.0/self.drdz_right
-
-        #bla = self.get_scaling_factor() * ( self.sqrt_DRDr + max( self.particle2D.D/self.D_tot,
-                                                                  #self.particle3D.D/self.D_tot ))
-        #assert feq(bla, self.drdz_right), 'bla= %s, drdz_right=%s' % (bla, self.drdz_right)
-        #bla2 = self.z_right(minimum + 1.0) - self.z_right(minimum)
-
-        minr, minz_right, _ = self.get_min_dr_dzright_dzleft()
-
-        #assert feq(self.dzdr_right, bla2), 'bla2= %s, dzdr_right= %s' % (bla2, self.dzdr_right)
+        # Initialize the scaling parameters
+        # To determine the scale angle we calculate the radius r corresponding to the minimal z_right
+        # of the cylinder in a way that the first passage time of the CoM (towards r) and of the
+        # interparticle vector (towards z_right) are equal (see self.r_right(), self.z_right() below).
+        self.iv_z_minimum = self.r0 + self.particle3D.radius * SINGLE_SHELL_FACTOR
+            # this is an upper bound, actually the height of the domain could be slightly lower than this
+        self.drdz_right = self.r_right(self.iv_z_minimum) / self.iv_z_minimum
+        self.dzdr_right = 1.0/self.drdz_right        
 
         self.r0_right   = 0.0
         self.z0_right   = self.z_right(self.r0_right)
@@ -2457,6 +2450,16 @@ class MixedPair2D3DtestShell(CylindricaltestShell, testMixedPair2D3D):
         self.drdz_left  = numpy.inf
         self.r0_left    = 0.0
         self.z0_left    = self.particle2D.radius
+
+        log.info(' MixedPair2D3D: Initalized shellscaling: scale_angle = %s, drdz  = %s' % (self.right_scalingangle, self.drdz_right))
+        log.info('                                         r0_right = %s, z0_right = %s' % (self.r0_right, self.z0_right))
+        log.info('                                         r0_left  = %s, z0_left  = %s' % (self.r0_left,  self.z0_left))
+
+        log.info('      min_dr_dzright_dzleft = %s' % str(self.get_min_dr_dzright_dzleft() ))
+        log.info('      max_dr_dzright_dzleft = %s' % str(self.get_max_dr_dzright_dzleft() ))
+
+        # TODO This is probably not needed any more:
+        min_r, min_dz_right, _ = self.get_min_dr_dzright_dzleft()
 
         # This will determine if the shell is possible.
         # If possible, it will write the dr, dz_right, dz_left defining the dimensions of the cylindrical shell.
@@ -2493,8 +2496,7 @@ class MixedPair2D3DtestShell(CylindricaltestShell, testMixedPair2D3D):
 
 
         ### calculate the minimal height z_right1 of the shell including burst radius
-        iv_z = self.r0      # approximation, actually the height of the domain can be slightly lower.
-        dz_right1 = iv_z + radius3D * SINGLE_SHELL_FACTOR
+        dz_right1 = self.iv_z_minimum
         # with the accompanying radius r1
         dr_1 = self.r_right(dz_right1)
 
@@ -2521,7 +2523,6 @@ class MixedPair2D3DtestShell(CylindricaltestShell, testMixedPair2D3D):
         dz_right = dz_right1
 
         dz_left  = self.particle2D.radius
-#        print "min= ", dr, dz_right, dz_left
 
         return dr, dz_right, dz_left
         
@@ -2546,6 +2547,12 @@ class MixedPair2D3DtestShell(CylindricaltestShell, testMixedPair2D3D):
     def z_right(self, r_right):
         # This calculates the height z_right of the newly constructed domain
         # (above the plane) if the radius r is known
+
+        # The trivial case
+        if r_right == 0.0:
+            return 0.0
+
+        # Some constants that we need
         radius2D = self.particle2D.radius
         radius3D = self.particle3D.radius
         D_2D = self.particle2D.D
@@ -2581,6 +2588,12 @@ class MixedPair2D3DtestShell(CylindricaltestShell, testMixedPair2D3D):
     def r_right(self, z_right):
         # This calculates the radius r of the newly constructed domain
         # if the height z_right is known
+
+        # The trivial case
+        if z_right == 0.0:
+            return 0.0
+
+        # Some constants that we need
         radius2D = self.particle2D.radius
         radius3D = self.particle3D.radius
         D_2D = self.particle2D.D
