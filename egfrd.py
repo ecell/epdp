@@ -2685,6 +2685,13 @@ class EGFRDSimulator(ParticleSimulatorBase):
         multi_steps = self.multi_steps[3] # total multi steps
         total_steps = single_steps + interaction_steps + pair_steps + multi_steps
 
+        if multi_steps:
+            avg_multi_time = 1.0 * self.multi_time / multi_steps
+            avg_multi_rl   = 1.0 * self.multi_rl   / multi_steps
+        else:
+            avg_multi_time = None
+            avg_multi_rl   = None
+
         report = '''
 t = %g
 \tNonmulti: %g\tMulti: %g
@@ -2725,8 +2732,8 @@ rejected moves:  %d
                self.multi_steps[EventType.MULTI_BIMOLECULAR_REACTION],
                self.multi_steps[EventType.MULTI_UNIMOLECULAR_REACTION],
                self.multi_steps[EventType.BURST],
-               1.0 * self.multi_time / multi_steps,
-               1.0 * self.multi_rl   / multi_steps,
+               avg_multi_time,
+               avg_multi_rl,
                self.reaction_events,
                self.rejected_moves
                )
