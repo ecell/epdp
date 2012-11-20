@@ -2689,8 +2689,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
             avg_multi_time = 1.0 * self.multi_time / multi_steps
             avg_multi_rl   = 1.0 * self.multi_rl   / multi_steps
         else:
-            avg_multi_time = None
-            avg_multi_rl   = None
+            avg_multi_time = 0.0
+            avg_multi_rl   = 0.0
 
         report = '''
 t = %g
