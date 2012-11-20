@@ -199,16 +199,14 @@ class testInteractionSingle(testSingle, Others):
             # Compare to the largest component of the difference vector
             # If a component is TOLERANCE times smaller, regard it as zero
             # This is to avoid calculation errors when the distance to the
-            # surface is very small
+            # surface is very small / has very small nonzero components
             max_component = max(diff_vector, key = lambda x : abs(x))
             for c in range(0,3):
-                if abs(diff_vector[c]) <= 1.0e-6 * abs(max_component):  # FIXME using TOLERANCE does not always work here
+                if abs(diff_vector[c]) <= 1.0e-6 * abs(max_component):  # FIXME using TOLERANCE does not always work here                    
+                    log.warning('Setting component %s of difference vector %s to zero.' % (c, diff_vector))
                     diff_vector[c] = 0.0
-                    log.debug('Setting diff-vector component %s to zero.' % str(c))   ### TESTING
 
             self.reference_vector = normalize(diff_vector)
-            log.debug('setting reference_vector = %s, pos=%s, pos_transposed=%s, reference_point=%s, pos_transposed-reference_point=%s' \
-                      % (self.reference_vector, self.pid_particle_pair[1].position, pos_transposed, self.reference_point, pos_transposed-self.reference_point) )   ### TESTING
         else:
             self.reference_vector = 0
             raise testShellError('(testInteractionSingle). reference vector = 0.')
@@ -1465,7 +1463,7 @@ def get_dr_dzright_dzleft_to_PlanarShape(shape, testShell, r, z_right, z_left):
 
     # determine what parameter of the cylinder (dr of dz) to scale.
     relative_orientation = numpy.dot(orientation_vector, shape.unit_z)
-    log.debug('relative_orientation = %s, orientation_vector = %s, shape.unit_z = %s' % (relative_orientation, orientation_vector, shape.unit_z) )   ### TESTING
+
     if feq(relative_orientation, 0):
 
         distance = testShell.world.distance(shape, reference_point)
