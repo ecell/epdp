@@ -202,7 +202,7 @@ class testInteractionSingle(testSingle, Others):
             # surface is very small
             max_component = max(diff_vector, key = lambda x : abs(x))
             for c in range(0,3):
-                if abs(diff_vector[c]) <= TOLERANCE * abs(max_component):                    
+                if abs(diff_vector[c]) <= 1.0e-6 * abs(max_component):  # FIXME using TOLERANCE does not always work here
                     diff_vector[c] = 0.0
                     log.debug('Setting diff-vector component %s to zero.' % str(c))   ### TESTING
 
