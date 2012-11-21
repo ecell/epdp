@@ -2082,7 +2082,7 @@ class DiskSurfaceSingletestShell(CylindricaltestShell, testNonInteractionSingle)
         #       - dz_left stays constant and is equal to the cap-bound particle radius
         #       - dz_right can be scaled, minimum is set accordingly
         # - dr stays constant and is determined by the maximal radius involved
-        self.dr_const   = max(self.pid_particle_pair[1].radius*CYLINDER_R_FACTOR, self.structure.shape.radius)
+        self.dr_const   = self.pid_particle_pair[1].radius*CYLINDER_R_FACTOR
 
         self.dzdr_right = numpy.inf
         self.drdz_right = 0.0
@@ -2316,8 +2316,7 @@ class CylindricalSurfaceCapInteractiontestShell(CylindricaltestShell, testIntera
         #       - dz_left stays constant and is equal to the cap-bound particle radius * a safety factor
         #       - dz_right can be scaled, minimum is set accordingly
         # - dr stays constant and is determined by the maximal radius involved
-        self.dr_const   = max([self.pid_particle_pair[1].radius * CYLINDER_R_FACTOR, \
-                               self.origin_structure.shape.radius, self.target_structure.shape.radius])
+        self.dr_const   = self.pid_particle_pair[1].radius * CYLINDER_R_FACTOR
 
         self.dzdr_right = numpy.inf
         self.drdz_right = 0.0
@@ -2674,8 +2673,7 @@ class MixedPair1DCaptestShell(CylindricaltestShell, testMixedPair1DCap):
         #       - dz_right can be scaled, minimum is set accordingly
         # - dr stays constant and is determined by the maximal radius involved
         CRF             = CYLINDER_R_FACTOR
-        self.dr_const   = max([CRF * self.cap_particle.radius, CRF * self.particle1D.radius,\
-                               self.cap_structure.shape.radius, self.structure1D.shape.radius])
+        self.dr_const   = max([CRF * self.cap_particle.radius, CRF * self.particle1D.radius])
 
         self.dzdr_right = numpy.inf
         self.drdz_right = 0.0
