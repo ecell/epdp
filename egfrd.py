@@ -761,6 +761,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
     # - list of zero_singles that was the result of the bursting
     # - updated ignore list
 
+        log.debug('  Bursting domain %s, ignore=%s' % (domain, ignore)) ### TESTING
         domain_id = domain.domain_id
 
         if __debug__:
@@ -1568,23 +1569,33 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
         # Note that the reactant_structure_id is the id of the structure on which the particle was located at the time of the move.
 
-        if __debug__:
+        if __debug__:            
             assert isinstance(single, Single)
 
         # 0. get reactant info
         reactant = single.pid_particle_pair
+        log.debug('  Enter fire_move for %s' % str(single))   ### TESTING            
+        log.debug('  reactant_pos=%s, reactant_radius=%s' % (reactant_pos, reactant[1].radius))   ### TESTING
         # 1. No product->no info
         # 1.5 No additional positional/structure change is needed
         # 2. Position is in protective shell
 
         # 3. check that there is space for the reactants
         if ignore_p:
-            if self.world.check_overlap((reactant_pos, reactant[1].radius),
-                                        reactant[0], ignore_p[0]):
+            co = self.world.check_overlap((reactant_pos, reactant[1].radius),
+                                        reactant[0], ignore_p[0])
+            log.debug('co = %s, list(co) = %s' % (co, list(co)) )
+            for pp, d in co:
+              log.debug('  check_overlap = (%s, %s), ignore_p = %s' % (pp, d, ignore_p[0]) )   ### TESTING
+            if co:
                 raise RuntimeError('fire_move: particle overlap failed.')
         else:
-            if self.world.check_overlap((reactant_pos, reactant[1].radius),
-                                        reactant[0]):
+            co = self.world.check_overlap((reactant_pos, reactant[1].radius),
+                                        reactant[0])
+            log.debug('co = %s, list(co) = %s' % (co, list(co)) )
+            for pp, d in co:
+                log.debug('  check_overlap = (%s, %s)' % (pp, d) )   ### TESTING
+            if co:
                 raise RuntimeError('fire_move: particle overlap failed.')
 
         # 4. process the changes (move particles, change structure)
@@ -1904,18 +1915,20 @@ class EGFRDSimulator(ParticleSimulatorBase):
             # in case of an interaction domain: determine real event before doing anything
             if single.event_type == EventType.IV_EVENT:
                 single.event_type = single.draw_iv_event_type()
-
-
+            
             # get the (new) position and structure on which the particle is located.
             if single.getD() != 0 and single.dt > 0.0:
                 # If the particle had the possibility to diffuse
                 newpos, struct_id = single.draw_new_position(single.dt, single.event_type)
+                log.debug('  draw: newpos, struct_id = (%s, %s)' % (newpos, struct_id))   ### TESTING
                 newpos, struct_id = self.world.apply_boundary((newpos,struct_id))
+                log.debug('  after apply_boundary: newpos, struct_id = (%s, %s)' % (newpos, struct_id))   ### TESTING
             else:
                 # no change in position has taken place
                 newpos    = pid_particle_pair[1].position
                 struct_id = pid_particle_pair[1].structure_id
             # TODO? Check if the new positions are within domain
+            log.debug('  final: newpos, struct_id = (%s, %s)' % (newpos, struct_id))   ### TESTING
 
             # newpos now hold the new position of the particle (not yet committed to the world)
             # if we would here move the particles and make new shells, then it would be similar to a propagate
@@ -1940,6 +1953,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
                     particles, zero_singles_b, ignore = self.fire_interaction(single, newpos, struct_id, ignore)
 
             else:
+                log.debug('  Calling fire_move with single=%s, newpos=%s, struct_id=%s' % (single, newpos, struct_id) )   ### TESTING
                 particles = self.fire_move(single, newpos, struct_id)
                 zero_singles_b = []   # no bursting takes place, ignore list remains unchanged
                 # Update statistics
@@ -2054,9 +2068,12 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
         ### 3.1 Get new position and current structures of particles
         if pair.dt > 0.0:
+            
             newpos1, newpos2, struct1_id, struct2_id = pair.draw_new_positions(pair.dt, pair.r0, pair.iv, pair.event_type)
+            log.debug('  draw: newpos1, newpos2, sid1, sid2 = (%s, %s, %s, %s)' % (newpos1, newpos2, struct1_id, struct2_id))   ### TESTING
             newpos1, struct1_id = self.world.apply_boundary((newpos1, struct1_id))
             newpos2, struct2_id = self.world.apply_boundary((newpos2, struct2_id))
+            log.debug('  after apply_boundary: newpos1, newpos2, sid1, sid2 = (%s, %s, %s, %s)' % (newpos1, newpos2, struct1_id, struct2_id))   ### TESTING
 
             # check that the particles do not overlap with any other particles in the world
             assert not self.world.check_overlap((newpos1, pid_particle_pair1[1].radius),
@@ -2204,6 +2221,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
         ### 6. Recursively burst around the newly made zero-dt NonInteractionSingles that surround the particles.
         for zero_single in zero_singles:
+            log.debug('  Starting recursive burst for zero_single %s' % str(zero_single))   ### TESTING
             more_zero_singles, ignore = self.burst_non_multis(zero_single.pid_particle_pair[1].position,
                                                               zero_single.pid_particle_pair[1].radius*SINGLE_SHELL_FACTOR,
                                                               ignore)
