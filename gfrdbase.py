@@ -242,6 +242,14 @@ def create_box(world, structure_type, center, size, one_sided=True):
 
     # Update the connectivity container
     # This has to follow the plane side convention strictly!
+    # The convention is:
+    #
+    # - neighbor 0 is the one in positive unit_y direction ("top neighbor")
+    # - neighbor 1 is the one in negative unit_y direction ("bottom neighbor")
+    # - neighbor 2 is the one in negative unit_x direction ("left neighbor")
+    # - neighbor 3 is the one in positive unit_x direction ("right neighbor")
+    #
+    # See StructureContainer.hpp for more details.
     world.connect_structures( front, 3, top, 2)
     world.connect_structures( front, 2, bottom, 1)
     world.connect_structures( front, 1, left, 2)

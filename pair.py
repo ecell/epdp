@@ -676,8 +676,14 @@ class PlanarSurfaceTransitionPair(SimplePair, hasSphericalShell):
         # In some cases the new positions may end up on adjacent planar surfaces.
         # This may lead to an overlap which has to be checked for and removed if present
         # in the next step.
+        log.debug('    do_back_transform: Sampling new positions:')   ### TESTING
         new_pos1, new_sid1 = world.apply_boundary((pos1, structure1.id))
         new_pos2, new_sid2 = world.apply_boundary((pos2, structure1.id))
+
+        log.debug('    pos_and_sid1 = (%s, %s), pos_and_sid2 = (%s, %s)' \
+                                        % (pos1, structure1.id, pos2, structure1.id) )   ### TESTING
+        log.debug('    new_pos_and_sid1 = (%s, %s), new_pos_and_sid2 = (%s, %s) (after apply_boundary)' \
+                                        % (new_pos1, new_sid1, new_pos2, new_sid2) )   ### TESTING
 
         # If the new positions lead to an overlap we have to enlarge the IV by a safety factor
         if world.distance(new_pos1, new_pos2) <= (radius1+radius2) * MINIMAL_SEPARATION_FACTOR :
