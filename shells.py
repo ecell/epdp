@@ -953,10 +953,6 @@ def get_dr_dzright_dzleft_to_CylindricalShape(shape, testShell, r, z_right, z_le
             # If this is the case, we have the flat side of cyl. 1 hitting the barrel of cyl. 2. Else we have the edge hitting the barrel.
             r1_touch = (scale_center_to_shell_z - shell_radius)*tan_scale_angle
 
-            # TODO Probably not needed any more, remove!
-            dist_to_projected_edge_1 = math.sqrt(scale_center_to_shell_y**2 + (shell_half_length + scale_center_to_shell_y)**2)
-            dist_to_projected_edge_2 = math.sqrt(scale_center_to_shell_y**2 + (shell_half_length - scale_center_to_shell_y)**2)
-
             if r1_touch >= scale_center_to_shell_y:
                 # At least a part of the projected axis is within r_touch => flat side of scaled cyl. hits the barrel of cyl. 2
                 # Note that we know that at least a part of the shell is above the top side of the scaled cylinder (quadrant 1 condition)
