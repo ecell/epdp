@@ -1873,7 +1873,7 @@ class CylindricaltestShell(testShell):
         else:
             right_scaling_angle = math.atan(self.drdz_right)
         return right_scaling_angle
-    right_scalingangle = property(get_right_scalingangle)
+    right_scalingangle = property(get_right_scalingangle)    
 
     def get_left_scalingangle(self):
         if self.drdz_left == numpy.inf:
@@ -1884,6 +1884,12 @@ class CylindricaltestShell(testShell):
             left_scaling_angle = math.atan(self.drdz_left)
         return left_scaling_angle
     left_scalingangle = property(get_left_scalingangle)
+
+    def get_tan right_scalingangle(self):
+        return self.tan_right_scalingangle
+
+    def get_tan left_scalingangle(self):
+        return self.tan_left_scalingangle
 
     def get_min_dr_dzright_dzleft(self):
         # This defines the minimal dimensions in terms of r, z_right, z_left of the cylindrical domain
@@ -1919,6 +1925,13 @@ class PlanarSurfaceSingletestShell(CylindricaltestShell, testNonInteractionSingl
         self.drdz_left  = numpy.inf
         self.r0_left    = 0.0
         self.z0_left    = self.pid_particle_pair[1].radius
+
+        # Now we can also define the scaling angle
+        self.right_scalingangle = self.get_right_scalingangle()
+        self.left_scalingangle  = self.get_left_scalingangle()
+        # In particular store the tangent, because math.tan is expensive!
+        self.tan_right_scalingangle = math.tan(self.right_scalingangle)
+        self.tan_left_scalingangle  = math.tan(self.left_scalingangle)
 
         # sizing up the shell to a zero shell
         self.dz_right = self.pid_particle_pair[1].radius
@@ -1973,6 +1986,13 @@ class PlanarSurfacePairtestShell(CylindricaltestShell, testSimplePair):
         self.drdz_left  = numpy.inf
         self.r0_left    = 0.0
         self.z0_left    = self.z0_right
+
+        # Now we can also define the scaling angle
+        self.right_scalingangle = self.get_right_scalingangle()
+        self.left_scalingangle  = self.get_left_scalingangle()
+        # In particular store the tangent, because math.tan is expensive!
+        self.tan_right_scalingangle = math.tan(self.right_scalingangle)
+        self.tan_left_scalingangle  = math.tan(self.left_scalingangle)
 
         # This will determine if the shell is possible.
         # If possible, it will write the dr, dz_right, dz_left defining the dimensions of the cylindrical shell.
@@ -2030,6 +2050,13 @@ class CylindricalSurfaceSingletestShell(CylindricaltestShell, testNonInteraction
         self.drdz_left  = 0.0
         self.r0_left    = self.dr_const
         self.z0_left    = 0.0
+
+        # Now we can also define the scaling angle
+        self.right_scalingangle = self.get_right_scalingangle()
+        self.left_scalingangle  = self.get_left_scalingangle()
+        # In particular store the tangent, because math.tan is expensive!
+        self.tan_right_scalingangle = math.tan(self.right_scalingangle)
+        self.tan_left_scalingangle  = math.tan(self.left_scalingangle)
 
         # Sizing up the shell to a zero shell
         # Important: leave this as it is, because we always want to construct
@@ -2096,6 +2123,13 @@ class DiskSurfaceSingletestShell(CylindricaltestShell, testNonInteractionSingle)
         self.r0_left    = self.dr_const
         self.z0_left    = 0.0
 
+        # Now we can also define the scaling angle
+        self.right_scalingangle = self.get_right_scalingangle()
+        self.left_scalingangle  = self.get_left_scalingangle()
+        # In particular store the tangent, because math.tan is expensive!
+        self.tan_right_scalingangle = math.tan(self.right_scalingangle)
+        self.tan_left_scalingangle  = math.tan(self.left_scalingangle)
+
         # Sizing up the shell to a zero shell
         # Important: leave this as it is, because we always want to construct
         # a zero-single by default!
@@ -2148,6 +2182,13 @@ class CylindricalSurfacePairtestShell(CylindricaltestShell, testSimplePair):
         self.drdz_left  = 0.0
         self.r0_left    = self.dr_const
         self.z0_left    = 0.0
+
+        # Now we can also define the scaling angle
+        self.right_scalingangle = self.get_right_scalingangle()
+        self.left_scalingangle  = self.get_left_scalingangle()
+        # In particular store the tangent, because math.tan is expensive!
+        self.tan_right_scalingangle = math.tan(self.right_scalingangle)
+        self.tan_left_scalingangle  = math.tan(self.left_scalingangle)
 
         # This will determine if the shell is possible.
         # If possible, it will write the dr, dz_right, dz_left defining the dimensions of the cylindrical shell.
@@ -2208,6 +2249,13 @@ class PlanarSurfaceInteractiontestShell(CylindricaltestShell, testInteractionSin
         self.r0_left    = 0.0
         self.z0_left    = self.pid_particle_pair[1].radius
 
+        # Now we can also define the scaling angle
+        self.right_scalingangle = self.get_right_scalingangle()
+        self.left_scalingangle  = self.get_left_scalingangle()
+        # In particular store the tangent, because math.tan is expensive!
+        self.tan_right_scalingangle = math.tan(self.right_scalingangle)
+        self.tan_left_scalingangle  = math.tan(self.left_scalingangle)
+
         # This will determine if the shell is possible.
         # If possible, it will write the dr, dz_right, dz_left defining the dimensions of the cylindrical shell.
         # If not possible, it throws an exception and the construction of the testShell IS ABORTED!
@@ -2265,6 +2313,13 @@ class CylindricalSurfaceInteractiontestShell(CylindricaltestShell, testInteracti
         self.drdz_left  = self.drdz_right
         self.r0_left    = self.r0_right
         self.z0_left    = self.z0_right
+
+        # Now we can also define the scaling angle
+        self.right_scalingangle = self.get_right_scalingangle()
+        self.left_scalingangle  = self.get_left_scalingangle()
+        # In particular store the tangent, because math.tan is expensive!
+        self.tan_right_scalingangle = math.tan(self.right_scalingangle)
+        self.tan_left_scalingangle  = math.tan(self.left_scalingangle)
 
         # This will determine if the shell is possible.
         # If possible, it will write the dr, dz_right, dz_left defining the dimensions of the cylindrical shell.
@@ -2330,6 +2385,13 @@ class CylindricalSurfaceCapInteractiontestShell(CylindricaltestShell, testIntera
         self.r0_left    = self.dr_const
         self.z0_left    = self.pid_particle_pair[1].radius * math.sqrt(MULTI_SHELL_FACTOR**2 - 1.0)
 
+        # Now we can also define the scaling angle
+        self.right_scalingangle = self.get_right_scalingangle()
+        self.left_scalingangle  = self.get_left_scalingangle()
+        # In particular store the tangent, because math.tan is expensive!
+        self.tan_right_scalingangle = math.tan(self.right_scalingangle)
+        self.tan_left_scalingangle  = math.tan(self.left_scalingangle)
+
         # This will determine if the shell is possible.
         # If possible, it will write the dr, dz_right, dz_left defining the dimensions of the cylindrical shell.
         # If not possible, it throws an exception and the construction of the testShell IS ABORTED!
@@ -2384,6 +2446,13 @@ class CylindricalSurfaceSinktestShell(CylindricaltestShell, testInteractionSingl
         self.drdz_left  = self.drdz_right
         self.r0_left    = self.dr_const
         self.z0_left    = self.z0_right
+
+        # Now we can also define the scaling angle
+        self.right_scalingangle = self.get_right_scalingangle()
+        self.left_scalingangle  = self.get_left_scalingangle()
+        # In particular store the tangent, because math.tan is expensive!
+        self.tan_right_scalingangle = math.tan(self.right_scalingangle)
+        self.tan_left_scalingangle  = math.tan(self.left_scalingangle)
 
         # This will determine if the shell is possible.
         # If possible, it will write the dr, dz_right, dz_left defining the dimensions of the cylindrical shell.
@@ -2475,6 +2544,13 @@ class MixedPair2D3DtestShell(CylindricaltestShell, testMixedPair2D3D):
 
         # TODO This is probably not needed any more:
         min_r, min_dz_right, _ = self.get_min_dr_dzright_dzleft()
+
+        # Now we can also define the scaling angle
+        self.right_scalingangle = self.get_right_scalingangle()
+        self.left_scalingangle  = self.get_left_scalingangle()
+        # In particular store the tangent, because math.tan is expensive!
+        self.tan_right_scalingangle = math.tan(self.right_scalingangle)
+        self.tan_left_scalingangle  = math.tan(self.left_scalingangle)
 
         # This will determine if the shell is possible.
         # If possible, it will write the dr, dz_right, dz_left defining the dimensions of the cylindrical shell.
@@ -2686,6 +2762,13 @@ class MixedPair1DCaptestShell(CylindricaltestShell, testMixedPair1DCap):
         self.drdz_left  = 0.0
         self.r0_left    = self.dr_const
         self.z0_left    = self.cap_particle.radius * SINGLE_SHELL_FACTOR
+
+        # Now we can also define the scaling angle
+        self.right_scalingangle = self.get_right_scalingangle()
+        self.left_scalingangle  = self.get_left_scalingangle()
+        # In particular store the tangent, because math.tan is expensive!
+        self.tan_right_scalingangle = math.tan(self.right_scalingangle)
+        self.tan_left_scalingangle  = math.tan(self.left_scalingangle)
 
         # This will determine if the shell is possible.
         # If possible, it will write the dr, dz_right, dz_left defining the dimensions of the cylindrical shell.
