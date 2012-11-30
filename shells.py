@@ -2533,13 +2533,6 @@ class MixedPair2D3DtestShell(CylindricaltestShell, testMixedPair2D3D):
         self.r0_left    = 0.0
         self.z0_left    = self.particle2D.radius
 
-        log.info(' MixedPair2D3D: Initalized shellscaling: scale_angle = %s, drdz  = %s' % (self.right_scalingangle, self.drdz_right))
-        log.info('                                         r0_right = %s, z0_right = %s' % (self.r0_right, self.z0_right))
-        log.info('                                         r0_left  = %s, z0_left  = %s' % (self.r0_left,  self.z0_left))
-
-        log.info('      min_dr_dzright_dzleft = %s' % str(self.get_min_dr_dzright_dzleft() ))
-        log.info('      max_dr_dzright_dzleft = %s' % str(self.get_max_dr_dzright_dzleft() ))
-
         # TODO This is probably not needed any more:
         min_r, min_dz_right, _ = self.get_min_dr_dzright_dzleft()
 
@@ -2549,6 +2542,15 @@ class MixedPair2D3DtestShell(CylindricaltestShell, testMixedPair2D3D):
         # In particular store the tangent, because math.tan is expensive!
         self.tan_right_scalingangle = math.tan(self.right_scalingangle)
         self.tan_left_scalingangle  = math.tan(self.left_scalingangle)
+
+        ### TESTING TESTING TESTING remove when done
+        log.info(' MixedPair2D3D: Initalized shellscaling: scale_angle = %s, drdz  = %s' % (self.right_scalingangle, self.drdz_right))
+        log.info('                                         r0_right = %s, z0_right = %s' % (self.r0_right, self.z0_right))
+        log.info('                                         r0_left  = %s, z0_left  = %s' % (self.r0_left,  self.z0_left))
+
+        log.info('      min_dr_dzright_dzleft = %s' % str(self.get_min_dr_dzright_dzleft() ))
+        log.info('      max_dr_dzright_dzleft = %s' % str(self.get_max_dr_dzright_dzleft() ))
+
 
         # This will determine if the shell is possible.
         # If possible, it will write the dr, dz_right, dz_left defining the dimensions of the cylindrical shell.
