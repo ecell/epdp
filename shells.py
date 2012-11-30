@@ -1871,7 +1871,7 @@ class CylindricaltestShell(testShell):
         else:
             right_scaling_angle = math.atan(self.drdz_right)
         return right_scaling_angle
-    right_scalingangle = property(get_right_scalingangle)    
+    # property self.right_scalingangle set by constructor of derived classes
 
     def get_left_scalingangle(self):
         if self.drdz_left == numpy.inf:
@@ -1881,7 +1881,7 @@ class CylindricaltestShell(testShell):
         else:
             left_scaling_angle = math.atan(self.drdz_left)
         return left_scaling_angle
-    left_scalingangle = property(get_left_scalingangle)
+    # property self.left_scalingangle set by constructor of derived classes
 
     def get_tan_right_scalingangle(self):
         return self.tan_right_scalingangle
