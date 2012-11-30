@@ -684,6 +684,9 @@ def get_dr_dzright_dzleft_to_SphericalShape(shape, testShell, r, z_right, z_left
     scale_center_to_shell_r = ref_to_shell_r - scale_center_r
     scale_center_to_shell_z = ref_to_shell_z - scale_center_z
 
+    # Get tangent of the scale_angle
+    tan_scale_angle = math.tan(scale_angle)
+
     # calculate the angle 'shell_angle' of the vector from the 'scale_center' to the shell with the vector
     # from the 'reference_point' to the 'scale_center' (which is +- the orientation_vector).
     shell_angle = math.atan(scale_center_to_shell_r/scale_center_to_shell_z)
@@ -709,7 +712,7 @@ def get_dr_dzright_dzleft_to_SphericalShape(shape, testShell, r, z_right, z_left
             scale_center_to_shell_z_thres = 0
         else:
             # scale_angle == 0 should not get here
-            scale_center_to_shell_z_thres = abs(scale_center_to_shell_r)/math.tan(scale_angle)
+            scale_center_to_shell_z_thres = abs(scale_center_to_shell_r)/tan_scale_angle
 
         shell_radius_thres = scale_center_to_shell_z - scale_center_to_shell_z_thres
         if shell_radius < shell_radius_thres:
@@ -719,7 +722,7 @@ def get_dr_dzright_dzleft_to_SphericalShape(shape, testShell, r, z_right, z_left
 
     elif scale_angle <= shell_angle and shell_angle < Pi/2.0:
     # The (spherical) shell can touch the cylinder on its edge or its radial side
-        tan_scale_angle = math.tan(scale_angle)                             # scale_angle == Pi/2 should not get here
+        # scale_angle == Pi/2 should not get here
         shell_radius_thres = scale_center_to_shell_r - scale_center_to_shell_z * tan_scale_angle  # TODO same here
 
         if shell_radius > shell_radius_thres:
@@ -858,6 +861,9 @@ def get_dr_dzright_dzleft_to_CylindricalShape(shape, testShell, r, z_right, z_le
     # This must always be the case:
     assert scale_angle >= 0.0
 
+    # Get tangent of the scale angle
+    tan_scale_angle = math.tan(scale_angle)
+
     # Check how the cylinders are oriented with respect to each other
     relative_orientation = abs(numpy.dot(orientation_vector, shape.unit_z))
 
@@ -937,9 +943,6 @@ def get_dr_dzright_dzleft_to_CylindricalShape(shape, testShell, r, z_right, z_le
         # of the scaled cylinder:
         BARREL_HITS_FLAT, EDGE_HITS_EDGE, BARREL_HITS_EDGE, FLAT_HITS_BARREL, EDGE_HITS_BARREL, BARREL_HITS_BARREL = range(6)
         situation_string = ["BARREL_HITS_FLAT", "EDGE_HITS_EDGE", "BARREL_HITS_EDGE", "FLAT_HITS_BARREL", "EDGE_HITS_BARREL", "BARREL_HITS_BARREL"]
-
-        # Define some constants
-        tan_scale_angle = math.tan(scale_angle)
 
         #### (1) Now first determine which type of collision happens:
 
@@ -1025,7 +1028,7 @@ def get_dr_dzright_dzleft_to_CylindricalShape(shape, testShell, r, z_right, z_le
                             scale_angle < scale_center_to_shell_low_angle_y
                     situation = EDGE_HITS_EDGE
                     r1_min = (scale_center_to_shell_x - shell_half_length)*(1.0+TOLERANCE)
-                    h1_min = r1_min/math.tan(scale_angle)
+                    h1_min = r1_min/tan_scale_angle
 
         elif (ref_to_shell_x2 < 0) and (ref_to_shell_y2 >= 0):
             # Quadrant 3
@@ -1139,7 +1142,7 @@ def get_dr_dzright_dzleft_to_CylindricalShape(shape, testShell, r, z_right, z_le
                     assert scale_center_to_shell_crit_angle_xy < scale_angle and scale_angle < scale_center_to_shell_low_angle_xy and scale_angle > 0.0
                     situation = EDGE_HITS_EDGE
                     r1_min = math.sqrt((scale_center_to_shell_x-shell_half_length)**2 + (scale_center_to_shell_y-shell_radius)**2)*(1.0+TOLERANCE)
-                    h1_min = r1_min/math.tan(scale_angle)
+                    h1_min = r1_min/tan_scale_angle
 
         ##TODO TESTING Debug info
         #log.info("  *** QUADRANT = %s ***" % str(quadrant) )
