@@ -656,7 +656,8 @@ def get_dr_dzright_dzleft_to_SphericalShape(shape, testShell, r, z_right, z_left
     if ref_to_shell_z >= 0:
         direction = 1           # improve direction specification such that following calculations still work
                                 # Otherwise problems when direction = 0
-        scale_angle = testShell.right_scalingangle
+        scale_angle     = testShell.right_scalingangle
+        tan_scale_angle = testShell.tan_right_scalingangle
         scale_center_r, scale_center_z = testShell.right_scalingcenter 
         r1_function =  testShell.r_right
         z1_function = testShell.z_right
@@ -667,6 +668,7 @@ def get_dr_dzright_dzleft_to_SphericalShape(shape, testShell, r, z_right, z_left
     else:
         direction = -1
         scale_angle = testShell.left_scalingangle
+        tan_scale_angle = testShell.tan_left_scalingangle
         scale_center_r, scale_center_z = testShell.left_scalingcenter 
         r1_function =  testShell.r_left
         z1_function = testShell.z_left
@@ -683,9 +685,6 @@ def get_dr_dzright_dzleft_to_SphericalShape(shape, testShell, r, z_right, z_left
     # calculate the distances in r/z from the scaling center to the shell
     scale_center_to_shell_r = ref_to_shell_r - scale_center_r
     scale_center_to_shell_z = ref_to_shell_z - scale_center_z
-
-    # Get tangent of the scale_angle
-    tan_scale_angle = math.tan(scale_angle)
 
     # calculate the angle 'shell_angle' of the vector from the 'scale_center' to the shell with the vector
     # from the 'reference_point' to the 'scale_center' (which is +- the orientation_vector).
@@ -840,7 +839,8 @@ def get_dr_dzright_dzleft_to_CylindricalShape(shape, testShell, r, z_right, z_le
     if ref_to_shell_z >= 0:
         direction = 1           # improve direction specification such that following calculations still work
                                 # Otherwise problems when direction = 0
-        scale_angle = testShell.right_scalingangle
+        scale_angle     = testShell.right_scalingangle
+        tan_scale_angle = testShell.tan_right_scalingangle
         scale_center_r, scale_center_z = testShell.right_scalingcenter 
         r1_function = testShell.r_right
         z1_function = testShell.z_right
@@ -850,7 +850,8 @@ def get_dr_dzright_dzleft_to_CylindricalShape(shape, testShell, r, z_right, z_le
     # else -> use z_left
     else:
         direction = -1
-        scale_angle = testShell.left_scalingangle
+        scale_angle     = testShell.left_scalingangle
+        tan_scale_angle = testShell.tan_left_scalingangle
         scale_center_r, scale_center_z = testShell.left_scalingcenter 
         r1_function = testShell.r_left
         z1_function = testShell.z_left
@@ -860,9 +861,6 @@ def get_dr_dzright_dzleft_to_CylindricalShape(shape, testShell, r, z_right, z_le
     
     # This must always be the case:
     assert scale_angle >= 0.0
-
-    # Get tangent of the scale angle
-    tan_scale_angle = math.tan(scale_angle)
 
     # Check how the cylinders are oriented with respect to each other
     relative_orientation = abs(numpy.dot(orientation_vector, shape.unit_z))
