@@ -1883,10 +1883,10 @@ class CylindricaltestShell(testShell):
         return left_scaling_angle
     left_scalingangle = property(get_left_scalingangle)
 
-    def get_tan right_scalingangle(self):
+    def get_tan_right_scalingangle(self):
         return self.tan_right_scalingangle
 
-    def get_tan left_scalingangle(self):
+    def get_tan_left_scalingangle(self):
         return self.tan_left_scalingangle
 
     def get_min_dr_dzright_dzleft(self):
