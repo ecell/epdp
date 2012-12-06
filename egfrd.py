@@ -1186,25 +1186,20 @@ class EGFRDSimulator(ParticleSimulatorBase):
                     # NOTE surface lists have format (surface, distance_to_surface_from_reactant_position)
                     neighbor_surfaces = get_neighbor_surfaces(self.world, reactant_pos, reactant_structure.id, ignores=[])
 
+                    # Code snippet to get surfaces that might bound the dissociation positions;
+                    # not used at the moment...
                     # Determine which of the neighbor surfaces set bounds to the dissociation region
-                    bounding_surfaces = []
-                    for surface, surface_distance in neighbor_surfaces:
+                    #bounding_surfaces = []
+                    #for surface, surface_distance in neighbor_surfaces:
 
-                        if isinstance(surface, PlanarSurface) and \
-                            feq(numpy.dot(surface.shape.unit_z, reactant_structure.shape.unit_z), 0.0) :
+                        #if isinstance(surface, PlanarSurface) and \
+                            #feq(numpy.dot(surface.shape.unit_z, reactant_structure.shape.unit_z), 0.0) :
 
-                            bounding_surfaces.append( (surface, surface_distance) )
+                            #bounding_surfaces.append( (surface, surface_distance) )
 
                     # OK, now sample new positions
                     product_pos_list = []
-                    for _ in range(self.dissociation_retry_moves):
-                        # draw the random angle for the 3D particle relative to the particle left in the membrane
-
-                        # do the backtransform with a random iv with length such that the particles are at contact
-                        # Note we make the iv slightly longer because otherwise the anisotropic transform will produce illegal
-                        # positions
-                        iv = random_vector(particle_radius12 * MixedPair2D3D.calc_z_scaling_factor(DA, DB))
-                        iv *= MINIMAL_SEPARATION_FACTOR
+                    for _ in range(self.dissociation_retry_moves):                        
 
                         # determine the side of the membrane the dissociation takes place
                         if(reactant_structure.shape.is_one_sided):
@@ -1215,27 +1210,29 @@ class EGFRDSimulator(ParticleSimulatorBase):
                         Ns = 0
                         positions_legal = False
                         while not positions_legal:
+
+                            # draw the random angle for the 3D particle relative to the particle left in the membrane
+                            # do the backtransform with a random iv with length such that the particles are at contact
+                            # Note we make the iv slightly longer because otherwise the anisotropic transform will produce illegal
+                            # positions
+                            iv = random_vector(particle_radius12 * MixedPair2D3D.calc_z_scaling_factor(DA, DB))
+                            iv *= MINIMAL_SEPARATION_FACTOR
+
                             # calculate the new positions and structure IDs
-                            newposA, newposB, sidA, sidB = MixedPair2D3D.do_back_transform(reactant_pos, iv, DA, DB,
-                                                                                       productA_radius, productB_radius,
-                                                                                       reactant_structure, reactant_structure,
-                                                                                       unit_z, self.world)
+                            newposA, newposB, _, _ = MixedPair2D3D.do_back_transform(reactant_pos, iv, DA, DB,
+                                                                                     productA_radius, productB_radius,
+                                                                                     reactant_structure, reactant_structure,
+                                                                                     unit_z, self.world)
                             # the second reactant_structure parameter passed is ignored here
+                            # therefore also the structure IDs returned by the classmethod will not be right
 
-                            # Test whether the created positions are within the bounds imposed by 
-                            # neighboring orthogonal planar surfaces                          
-                            dist_to_proj_posA = length( reactant_structure.project_point(newposA)[0] - reactant_pos )
-                            dist_to_proj_posB = length( reactant_structure.project_point(newposB)[0] - reactant_pos )
+                            # Test whether the created positions are above the plane
+                            # This is to ensure that 3D particles will stay inside a box made from planes
+                            dist_to_edgeA = reactant_structure.project_point(newposA)[1][1]
+                            dist_to_edgeB = reactant_structure.project_point(newposB)[1][1]                            
 
-                            if sidA == reactant_structure_id and sidB == reactant_structure_id:
-                                # Both particles end up back on the surface, apply_boundary should
-                                # take care of reflection etc. correctly, thus here we pass
-                                positions_legal = True
-
-                            elif all([dist_to_proj_posA < sd[1] for sd in bounding_surfaces]) and\
-                                 all([dist_to_proj_posB < sd[1] for sd in bounding_surfaces]):
-                                    # sd[1] is the distance to the surface from reactant_pos
-
+                            if dist_to_edgeA < 0.0 and dist_to_edgeB < 0.0 :
+                                # Note that project_point()[1][1] returns the negative length to the closest edge
                                 positions_legal = True
 
                             elif __debug__:
@@ -1263,10 +1260,10 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
                         unit_z = reactant_structure.shape.unit_z
 
-                        newposA, newposB, sidA, sidB = MixedPair1D3D.do_back_transform(reactant_pos, iv, DA, DB,
-                                                                                       productA_radius, productB_radius,
-                                                                                       reactant_structure, reactant_structure,
-                                                                                       unit_z, self.world)
+                        newposA, newposB, _, _ = MixedPair1D3D.do_back_transform(reactant_pos, iv, DA, DB,
+                                                                                 productA_radius, productB_radius,
+                                                                                 reactant_structure, reactant_structure,
+                                                                                 unit_z, self.world)
                         # the second reactant_structure parameter passed is ignored here
                         # unit_z is passed here for completeness but not used in the method
 
