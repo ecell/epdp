@@ -1226,12 +1226,17 @@ class EGFRDSimulator(ParticleSimulatorBase):
                             # neighboring orthogonal planar surfaces                          
                             dist_to_proj_posA = length( reactant_structure.project_point(newposA)[0] - reactant_pos )
                             dist_to_proj_posB = length( reactant_structure.project_point(newposB)[0] - reactant_pos )
-                            
-                            if all([dist_to_proj_posA < sd[1] for sd in bounding_surfaces]) and\
-                               all([dist_to_proj_posB < sd[1] for sd in bounding_surfaces]):
-                                  # sd[1] is the distance to the surface from reactant_pos
 
-                                  positions_legal = True
+                            if sidA == reactant_structure_id and sidB == reactant_structure_id:
+                                # Both particles end up back on the surface, apply_boundary should
+                                # take care of reflection etc. correctly, thus here we pass
+                                positions_legal = True
+
+                            elif all([dist_to_proj_posA < sd[1] for sd in bounding_surfaces]) and\
+                                 all([dist_to_proj_posB < sd[1] for sd in bounding_surfaces]):
+                                    # sd[1] is the distance to the surface from reactant_pos
+
+                                positions_legal = True
 
                             elif __debug__:
                             
