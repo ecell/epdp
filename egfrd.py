@@ -1242,7 +1242,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
                             
                                 log.warning('Dissociation positions in fire_single on PlanarSurface with two products out of bounds => resampling')
 
-                            Ns++
+                            Ns = Ns + 1
                             if Ns > self.MAX_NUM_DT0_STEPS:
                                 raise RuntimeError('Too many resampling attempts in fire_single on PlanarSurface with two products: Ns = %s > %s' \
                                                     % (Ns, self.MAX_NUM_DT0_STEPS) )
