@@ -498,7 +498,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
                     raise RuntimeError('too many dt=zero steps. '
                                        'Simulator halted?'
                                     'dt= %.10g-%.10g' % (self.scheduler.top[1].time, self.t))
-                    log.warning('dt=zero step, working in s.t >> dt~0 Python limit.')
+
+                log.warning('dt=zero step, working in s.t >> dt~0 Python limit.')
             else:
                 self.zero_steps = 0
 
@@ -1180,6 +1181,21 @@ class EGFRDSimulator(ParticleSimulatorBase):
                     # draw a number of new positions for the two product particles
                     # TODO make this a generator
 
+                    # Make sure that the new positions lie within the region bounded by neighboring orthogonal
+                    # planes to avoid particles leaking out of a box
+                    # NOTE surface lists have format (surface, distance_to_surface_from_reactant_position)
+                    neighbor_surfaces = get_neighbor_surfaces(self.world, reactant_pos, reactant_structure.id, ignores=[])
+
+                    # Determine which of the neighbor surfaces set bounds to the dissociation region
+                    bounding_surfaces = []
+                    for surface, surface_distance in neighbor_surfaces:
+
+                        if isinstance(surface, PlanarSurface) and \
+                            feq(numpy.dot(surface.unit_z, reactant_structure.unit_z), 0.0) :
+
+                            bounding_surfaces.append( (surface, surface_distance) )
+
+                    # OK, now sample new positions
                     product_pos_list = []
                     for _ in range(self.dissociation_retry_moves):
                         # draw the random angle for the 3D particle relative to the particle left in the membrane
@@ -1195,13 +1211,37 @@ class EGFRDSimulator(ParticleSimulatorBase):
                             unit_z = reactant_structure.shape.unit_z
                         else:
                             unit_z = reactant_structure.shape.unit_z * myrandom.choice(-1, 1)
-
-                        # calculate the new positions and structure IDs
-                        newposA, newposB, sidA, sidB = MixedPair2D3D.do_back_transform(reactant_pos, iv, DA, DB,
+                        
+                        Ns = 0
+                        positions_legal = False
+                        while not positions_legal:
+                            # calculate the new positions and structure IDs
+                            newposA, newposB, sidA, sidB = MixedPair2D3D.do_back_transform(reactant_pos, iv, DA, DB,
                                                                                        productA_radius, productB_radius,
                                                                                        reactant_structure, reactant_structure,
                                                                                        unit_z, self.world)
-                        # the second reactant_structure parameter passed is ignored here
+                            # the second reactant_structure parameter passed is ignored here
+
+                            # Test whether the created positions are within the bounds imposed by 
+                            # neighboring orthogonal planar surfaces                          
+                            dist_to_proj_posA = length( reactant_structure.project_point(newposA)[0] - reactant_pos )
+                            dist_to_proj_posB = length( reactant_structure.project_point(newposB)[0] - reactant_pos )
+                            
+                            if all([dist_to_proj_posA < sd[1] for sd in bounding_surfaces]) and\
+                               all([dist_to_proj_posB < sd[1] for sd in bounding_surfaces]):
+                                  # sd[1] is the distance to the surface from reactant_pos
+
+                                  positions_legal = True
+
+                            elif __debug__:
+                            
+                                log.warning('Dissociation positions in fire_single on PlanarSurface with two products out of bounds => resampling')
+
+                            Ns++
+                            if Ns > self.MAX_NUM_DT0_STEPS:
+                                raise RuntimeError('Too many resampling attempts in fire_single on PlanarSurface with two products: Ns = %s > %s' \
+                                                    % (Ns, self.MAX_NUM_DT0_STEPS) )
+                                # TODO This should not raise RuntimeError but just a warning; this is for TESTING only; replace by something better
 
                         if default:
                             newpos1, newpos2 = newposA, newposB
