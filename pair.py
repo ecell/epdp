@@ -963,8 +963,8 @@ class MixedPair2D3D(Pair, hasCylindricalShell):
 
         iv_z = unit_z * iv_z_length
 
-        pos1 = com - weight1 * (iv_x + iv_y)
-        pos2 = com + weight2 * (iv_x + iv_y) + iv_z 
+        pos1 = com - weight1 * (iv_x + iv_y)            # the new 2D particle position
+        pos2 = com + weight2 * (iv_x + iv_y) + iv_z     # the new 3D particle position
 
         # Class method; so don't use self.(..)
         return pos1, pos2, structure2D.id, structure3D.id
