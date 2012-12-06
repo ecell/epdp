@@ -1191,7 +1191,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
                     for surface, surface_distance in neighbor_surfaces:
 
                         if isinstance(surface, PlanarSurface) and \
-                            feq(numpy.dot(surface.unit_z, reactant_structure.unit_z), 0.0) :
+                            feq(numpy.dot(surface.shape.unit_z, reactant_structure.shape.unit_z), 0.0) :
 
                             bounding_surfaces.append( (surface, surface_distance) )
 
