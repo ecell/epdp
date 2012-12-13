@@ -934,11 +934,7 @@ class MixedPair2D3D(Pair, hasCylindricalShell):
     # here we assume that the com and iv are really in the structure and no adjustments have to be
     # made
     #
-    # structure3D is not used here but has to be passed because of the classmethod property
-
-        ### TESTING
-        log.debug('MixedPair2D3D: Entering draw_new_positions')
-        log.debug('  com = %s, iv = %s, length(iv) = %s, radius1 = %s, radius2 = %s' % (com, iv, length(iv), radius1, radius2) )        
+    # structure3D is not used here but has to be passed because of the classmethod property        
 
         D_tot = D1 + D2
         weight1 = D1 / D_tot
@@ -975,10 +971,10 @@ class MixedPair2D3D(Pair, hasCylindricalShell):
                                  / (iv_z_length_btf*iv_z_length_btf)
 
             assert(z_safety_factor_sq >= 0.0)
+            log.warn('MixedPair2D3D: Applying z_safety_factor = %s to enlarge too small interparticle vector.' % str(math.sqrt(z_safety_factor_sq)) )
 
             iv_z_length_btf = math.sqrt( z_safety_factor_sq ) * iv_z_length_btf
-
-            log.debug('  z_safety_factor = %s' % str(math.sqrt(z_safety_factor_sq)) )
+            
 
         # TODO Also check for membrane overlapping?
 
@@ -987,8 +983,6 @@ class MixedPair2D3D(Pair, hasCylindricalShell):
 
         pos1 = com - weight1 * (iv_x + iv_y)            # the new 2D particle position
         pos2 = com + weight2 * (iv_x + iv_y) + iv_z     # the new 3D particle position
-
-        log.debug('  new_iv = %s, new_iv_length = %s, iv_z_length = %s, iv_z_length_btf = %s' % (pos2-pos1, length(pos2-pos1), iv_z_length, iv_z_length_btf) )
 
         # Class method; so don't use self.(..)
         return pos1, pos2, structure2D.id, structure3D.id
