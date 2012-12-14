@@ -2692,7 +2692,7 @@ class MixedPair2D3DtestShell(CylindricaltestShell, testMixedPair2D3D):
         # the estimated a_R value for the same first passage time
         r_right = a_R + iv_max
 
-        if r_right < 0.0 or z_right <0.0:  ### TESTING; remove when stable
+        if r_right < 0.0 or z_right <0.0:  ### TESTING; remove when stable (or should we keep it?)
             log.warning('Negative cylinder dimensions in MixedPair2D3DtestShell: z_right= %s, r_right=%s' % (z_right, r_right) )
 
         assert feq(self.z_right(r_right), z_right), 'Inconsistent r_right function in MixedPair2D3DtestShell: \
