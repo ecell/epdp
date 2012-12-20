@@ -289,14 +289,14 @@ class ParticleModel(_gfrd.ParticleModel):
                 a ReactionRule created by one of the functions
                 model.create_<>_reaction_rule.
 
-        """        
-        if safe and reaction_rule['k'] == 0:
+        """
+        if safe and float(reaction_rule['k']) == 0.0:
 
-            log.warn('Warning: Omitting to add reaction rule with zero reaction rate..')
+            log.warn('Omitting to add reaction rule with zero reaction rate..')
 
-        else if reaction_rule['k'] == 0:
+        elif float(reaction_rule['k']) == 0.0:
 
-            log.warn('Warning: adding reaction rule with zero reaction rate. That creates unnecessary overhead and should be avoided.')
+            log.warn('Adding reaction rule with zero reaction rate. That creates unnecessary overhead and should be avoided.')
             self.network_rules.add_reaction_rule(reaction_rule)
 
         else:
