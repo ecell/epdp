@@ -135,7 +135,7 @@ public:
             ++rejected_move_count_;
             return true;
         }
-        
+        LOG_DEBUG(("Continue..." ));   // TESTING
 
         /*** 3. COLLECT INFO ***/
         // Get info of the particle
@@ -149,6 +149,7 @@ public:
         structure_id_type               new_structure_id( old_struct_id );
 
         /*** 2. DISPLACEMENT TRIAL ***/
+        LOG_DEBUG(("Displacement trial..." ));   // TESTING
         /* Sample a potential move, and check if the particle _core_ has overlapped with another 
            particle or surface. If this is the case the particle bounces, and is returned
            to it's original position. For a particle with D = 0, new_pos = old_pos 
@@ -167,6 +168,7 @@ public:
         }
 
         /*** 4. CHECK OVERLAPS ***/
+        LOG_DEBUG(("Check overlaps..." ));   // TESTING
         bool bounced( false );
         // Get all the particles that are in the reaction volume at the new position (and that may consequently also be in the core)
         /* Use a spherical shape with radius = particle_radius + reaction_length.
@@ -199,6 +201,7 @@ public:
         }
          
         /*** 5. TREAT BOUNCING => CHECK FOR POTENTIAL REACTIONS / INTERACTIONS ***/
+        LOG_DEBUG(("Treat bouncing..." ));   // TESTING
         /* If particle is bounced, restore old position and check reaction_volume for reaction partners at old_pos. */
         if(bounced)
         {
@@ -228,6 +231,8 @@ public:
         
 
         /*** 6. REACTIONS & INTERACTIONS ***/
+        LOG_DEBUG(("Reaction trials..." ));   // TESTING
+        LOG_DEBUG(("   with structures..." ));   // TESTING
         /* Attempt a reaction (and/or interaction) with all the particles (and/or a surface) that 
            are/is inside the reaction volume. */
         Real accumulated_prob (0);
@@ -309,6 +314,7 @@ public:
         }
         
         //// 6.1 REACTIONS WITH OTHER PARTICLES
+        LOG_DEBUG(("   with particles..." ));   // TESTING
         /* Now attempt a reaction with all particles inside the reaction volume. */
         j = 0;
         prob_increase = 0;
@@ -372,6 +378,7 @@ public:
         }
         
         /*** 7. DEFAULT CASE: ACCEPT DISPLACEMENT TRIAL ***/
+        LOG_DEBUG(("Default: Accept displacement..." ));   // TESTING
         // If the particle did neither react, interact or bounce, update it to it's new position.
         if(!bounced)
         {   
@@ -381,19 +388,23 @@ public:
                                                                      new_structure_id,
                                                                      pp_species.D(),
                                                                      pp_species.v()) );
-                
-            if (vc_)
+                                                                     
+            LOG_DEBUG(("Defined particle to update" ));   // TESTING    
+            if (vc_)            
             {
+                LOG_DEBUG(("Volume clearer present" ));   // TESTING    
                 if (!(*vc_)(particle_to_update.second.shape(), particle_to_update.first))
                 {
                     log_.info("propagation move rejected.");
                     return true;
                 }
             }
-                
+
+            LOG_DEBUG(("Calling update_particle" ));   // TESTING
             tx_.update_particle(particle_to_update);
         }
 
+        LOG_DEBUG(("Done. Return true" ));   // TESTING
         return true;
     }
 
@@ -416,16 +427,18 @@ private:
     bool attempt_single_reaction(particle_id_pair const& pp)
     // Handles all monomolecular reactions
     {
+        LOG_DEBUG(("Attempting single reaction with species %s",
+                    boost::lexical_cast<std::string>(pp.second.sid()).c_str() ));       // TESTING
         reaction_rules const& rules(rules_.query_reaction_rule(pp.second.sid()));
         if (::size(rules) == 0)
         {
             return false;
         }
-
+     
         const Real rnd(rng_() / dt_);
         Real k_cumm = 0.;
 
-        // select one of the available reaction rules that led to the monomolecular reaction
+        // select one of the available reaction rules that led to the monomolecular reaction        
         for (typename boost::range_const_iterator<reaction_rules>::type
                 i(boost::begin(rules)), e(boost::end(rules)); i != e; ++i)
         {
@@ -435,7 +448,7 @@ private:
             if (k_cumm > rnd)
             // We have found the reaction rule that is in effect
             {
-                // get the products
+                // get the products                
                 typename reaction_rule_type::species_id_range products(reaction_rule.get_products());
 
                 switch (::size(products))
@@ -747,7 +760,8 @@ private:
                 return true;
             }
         }
-        // No monomolecular reaction has taken place. 
+        // No monomolecular reaction has taken place.
+        LOG_DEBUG(("Returning false ..." ));   // TESTING
         return false;
     }
 
