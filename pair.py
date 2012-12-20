@@ -109,11 +109,17 @@ class Pair(ProtectiveDomain, Others):
         """Returns a (event time, event type, reactingsingle=None) tuple.
         
         """
+        log.debug('*** Entering draw_com_escape_or_iv_event_time_tuple')   ### TESTING
+        log.debug('*** draw com time')   ### TESTING
         dt_com = draw_time_wrapper(self.com_greens_function())
+        log.debug('*** draw iv time')   ### TESTING
         dt_iv = draw_time_wrapper(self.iv_greens_function(r0))  # uses the full solution to draw IV first event time
+        log.debug('*** Done.')   ### TESTING
         if dt_com < dt_iv:
+            log.debug('*** dt_com < dt_iv')   ### TESTING
             return dt_com, EventType.COM_ESCAPE, None
         else:
+            log.debug('*** dt_iv < dt_com')   ### TESTING
             # Note: we are not calling pair.draw_iv_event_type yet, but 
             # postpone it to the very last minute (when this event is 
             # executed in fire_pair). So IV_EVENT can still be an iv 
@@ -124,6 +130,7 @@ class Pair(ProtectiveDomain, Others):
         """Return a (reaction time, event type, reactingsingle)-tuple.
 
         """
+        log.debug('*** Entering draw_single_reaction_time_tuple')   ### TESTING
         dt_reaction1, event_type1 = self.single1.draw_reaction_time_tuple()
         dt_reaction2, event_type2 = self.single2.draw_reaction_time_tuple()
         if dt_reaction1 < dt_reaction2:
