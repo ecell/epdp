@@ -98,16 +98,18 @@ class Multi(Domain, hasSphericalShell, Others):
 
             def __call__(self, shape, ignore0, ignore1=None):
                 log.debug('Call to clear_volume()')  ### TESTING
-                test_wr = self.outer_.sphere_container.get_neighbors_within_radius(
+                log.debug('  test call')   ### TESTING
+                within_radius = self.outer_.sphere_container.get_neighbors_within_radius(
                                shape.position, -(shape.radius + self.outer_.reaction_length) )
-                log_debug('  determined test_wr')       ### TESTING
-                log_debug('  test_wr = %s' % str(test_wr))      ### TESTING
+                log.debug('  determined test_wr')       ### TESTING
+                log.debug('  test_wr = %s' % str(list(test_wr)))      ### TESTING                
 
-                within_radius = bool(
-                    self.outer_.sphere_container.get_neighbors_within_radius(
-                        shape.position, -(shape.radius + self.outer_.reaction_length) ))
-                log.debug('  determined within_radius')  ### TESTING
-                if not within_radius:
+                if not list(test_wr) == []:
+                    log.debug('  test_wr is not empty')
+
+                if list(within_radius) == []:
+                   # Convert to list first because of tricky C++/Python binding here
+                   # Type casting bool(within_radius) caused segfaults in some simulations                                                
                     log.debug('  not within_radius')  ### TESTING
                     main = self.outer_.main()
                     if self.outer_.last_event == EventType.MULTI_DIFFUSION: #None:
