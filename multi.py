@@ -92,40 +92,28 @@ class Multi(Domain, hasSphericalShell, Others):
 
         class clear_volume(object):
             def __init__(self, outer):
-                log.debug('Init clear_volume')  ### TESTING
                 self.outer_ = outer
-                log.debug('  clear_volume.outer_ = %s' % str(self.outer_))  ### TESTING
 
             def __call__(self, shape, ignore0, ignore1=None):
-                log.debug('Call to clear_volume()')  ### TESTING
-                log.debug('  test call')   ### TESTING
+
                 within_radius = self.outer_.sphere_container.get_neighbors_within_radius(
                                shape.position, -(shape.radius + self.outer_.reaction_length) )
-                log.debug('  determined test_wr')       ### TESTING
-                log.debug('  test_wr = %s' % str(list(test_wr)))      ### TESTING                
-
-                if not list(test_wr) == []:
-                    log.debug('  test_wr is not empty')
 
                 if list(within_radius) == []:
                    # Convert to list first because of tricky C++/Python binding here
-                   # Type casting bool(within_radius) caused segfaults in some simulations                                                
-                    log.debug('  not within_radius')  ### TESTING
+                   # Type casting bool(within_radius) caused segfaults in some simulations
                     main = self.outer_.main()
                     if self.outer_.last_event == EventType.MULTI_DIFFUSION: #None:
                         self.outer_.last_event = EventType.MULTI_ESCAPE
                     main.burst_volume(shape.position, shape.radius, 
                                       ignore=[self.outer_.domain_id, ])
                     if ignore1 is None:
-                        log.debug('  ignore1 = %s' % str(ignore1) )  ### TESTING
                         return not main.world.check_overlap(
                             (shape.position, shape.radius), ignore0)
                     else:
-                        log.debug('  ignore1 = %s' % str(ignore1) )  ### TESTING
                         return not main.world.check_overlap(
                             (shape.position, shape.radius), ignore0, ignore1)
 
-                log.debug('  return True' )  ### TESTING
                 return True
 
         cr = check_reaction()
