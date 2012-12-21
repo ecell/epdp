@@ -430,6 +430,8 @@ private:
         LOG_DEBUG(("Attempting single reaction with species %s",
                     boost::lexical_cast<std::string>(pp.second.sid()).c_str() ));       // TESTING
         reaction_rules const& rules(rules_.query_reaction_rule(pp.second.sid()));
+        
+        LOG_DEBUG(("size(rules)=%f", (double)::size(rules) ))   // TESTING
         if (::size(rules) == 0)
         {
             return false;
