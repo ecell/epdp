@@ -392,7 +392,7 @@ public:
             LOG_DEBUG(("Defined particle to update" ));   // TESTING    
             if (vc_)            
             {
-                LOG_DEBUG(("Volume clearer present" ));   // TESTING    
+                LOG_DEBUG(("Volume clearer present" ));   // TESTING
                 if (!(*vc_)(particle_to_update.second.shape(), particle_to_update.first))
                 {
                     log_.info("propagation move rejected.");
@@ -431,8 +431,8 @@ private:
                     boost::lexical_cast<std::string>(pp.second.sid()).c_str() ));       // TESTING
         reaction_rules const& rules(rules_.query_reaction_rule(pp.second.sid()));
         
-        LOG_DEBUG(("size(rules)=%f", (double)::size(rules) ))   // TESTING
-        if (::size(rules) == 0)
+        LOG_DEBUG(("size(rules)=%u", (int)::size(rules) ));   // TESTING
+        if ((int)::size(rules) == 0)
         {
             return false;
         }

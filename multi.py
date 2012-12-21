@@ -92,24 +92,38 @@ class Multi(Domain, hasSphericalShell, Others):
 
         class clear_volume(object):
             def __init__(self, outer):
+                log.debug('Init clear_volume')  ### TESTING
                 self.outer_ = outer
+                log.debug('  clear_volume.outer_ = %s' % str(self.outer_))  ### TESTING
 
             def __call__(self, shape, ignore0, ignore1=None):
+                log.debug('Call to clear_volume()')  ### TESTING
+                test_wr = self.outer_.sphere_container.get_neighbors_within_radius(
+                               shape.position, -(shape.radius + self.outer_.reaction_length) )
+                log_debug('  determined test_wr')       ### TESTING
+                log_debug('  test_wr = %s' % str(test_wr))      ### TESTING
+
                 within_radius = bool(
                     self.outer_.sphere_container.get_neighbors_within_radius(
                         shape.position, -(shape.radius + self.outer_.reaction_length) ))
+                log.debug('  determined within_radius')  ### TESTING
                 if not within_radius:
+                    log.debug('  not within_radius')  ### TESTING
                     main = self.outer_.main()
                     if self.outer_.last_event == EventType.MULTI_DIFFUSION: #None:
                         self.outer_.last_event = EventType.MULTI_ESCAPE
                     main.burst_volume(shape.position, shape.radius, 
                                       ignore=[self.outer_.domain_id, ])
                     if ignore1 is None:
+                        log.debug('  ignore1 = %s' % str(ignore1) )  ### TESTING
                         return not main.world.check_overlap(
                             (shape.position, shape.radius), ignore0)
                     else:
+                        log.debug('  ignore1 = %s' % str(ignore1) )  ### TESTING
                         return not main.world.check_overlap(
                             (shape.position, shape.radius), ignore0, ignore1)
+
+                log.debug('  return True' )  ### TESTING
                 return True
 
         cr = check_reaction()

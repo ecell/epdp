@@ -10,6 +10,8 @@
 #include <string>
 #include <vector>
 
+#include <iostream>
+
 #include <boost/shared_ptr.hpp>
 #include <boost/tuple/tuple.hpp>
 #include <boost/type_traits.hpp>
@@ -369,11 +371,14 @@ public:
 
         typename Builders::result_type retval(alloc);
 
+        std::cerr << "get_neighbors_within_radius_cyclic: invoking build_neighbors_array()" << std::endl;
         Builders::build_neighbors_array_cyclic(retval, impl,
                 ::Sphere<length_type>( pos, radius ) );
 
         // take over the ownership of the arrays to the Numpy facility
+        std::cerr << "get_neighbors_within_radius_cyclic: giveup_ownership()" << std::endl;
         alloc.giveup_ownership();
+        std::cerr << "get_neighbors_within_radius_cyclic: return" << std::endl;
         return retval;
     }
 
