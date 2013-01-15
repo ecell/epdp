@@ -1259,18 +1259,34 @@ def get_dr_dzright_dzleft_to_CylindricalShape(shape, testShell, r, z_right, z_le
 
                         return eq_value
 
-                    # Self-adaptive initial value guessing for the rootfinder procedure:
-                    # Start with prefactors (1+TOLERANCE), (1-TOLERANCE) and check whether the h1_eq values for these
-                    # interval boundaries have different signs; if not, slightly enlarge the interval.
+                    # To ensure that we always search on an interval within which h1_eq() contains only one zero root
+                    # we enlarge the rootfinder interval, starting from safe bounds, towards the bounds beyond which we
+                    # know there are unwanted solutions. We stop the enlargement when function h1_eq() certainly 
+                    # changes sign within the interval.
+                    # We use a multiplicative factor tau to enlarge the domain. tau is set such that 
+                    # (1-tau)*h1_interval_max - (1+tau)*h1_interval_min >= 0.5*(h1_interval_max-h1_interval_min)
+                    # in order to ensure that the interval is nonzero and positive in the first iteration.
+
+                    # Set some repeating and default values
+                    # r1_interval min, r1_interval_max are the outer interval bounds for which there is only one root
+                    h1_interval_min = z1_function(scale_center_to_shell_edge_x) - scale_center_z
+                    h1_interval_max = z1_function( math.sqrt( scale_center_to_shell_y*scale_center_to_shell_y + \
+                                                      scale_center_to_shell_edge_x*scale_center_to_shell_edge_x ) ) - scale_center_z
+                    h1_interval_start = h1_interval_min
+                    h1_interval_end   = h1_interval_max
+                    # Set the enlargement factor; we want it to be at least as small as TOLERANCE
+                    tau = min(TOLERANCE, 0.5*(h1_interval_max-h1_interval_min)/(h1_interval_max+h1_interval_min))
+                    assert tau>0.0 and tau<1.0
+
+                    # Start the iteration
                     n=1
                     nmax=100
-                    h1_eq_product = 1
-                    assert TOLERANCE>0.0 and TOLERANCE<1.0
+                      # Since tau is very small, the iteration hardly ever should get to nmax; but to be safe...
+                    h1_eq_product = 1                    
                     while h1_eq_product > 0.0:
 
-                        h1_interval_start = (1.0+TOLERANCE**n) * (z1_function(scale_center_to_shell_edge_x) - scale_center_z)
-                        h1_interval_end   = (1.0-TOLERANCE**n) * (z1_function( math.sqrt( scale_center_to_shell_y*scale_center_to_shell_y + \
-                                                                                          scale_center_to_shell_edge_x*scale_center_to_shell_edge_x ) ) - scale_center_z)
+                        h1_interval_start = (1.0+tau**n) * h1_interval_min
+                        h1_interval_end   = (1.0-tau**n) * h1_interval_max
                         h1_eq_product     = h1_eq(h1_interval_start) * h1_eq(h1_interval_end)
 
                         n = n+1
@@ -1290,6 +1306,7 @@ def get_dr_dzright_dzleft_to_CylindricalShape(shape, testShell, r, z_right, z_le
                     #log.debug( "  h1(i_start) = %s"       % h1_eq(h1_interval_start) )
                     #log.debug( "  h1(i_end) = %s"         % h1_eq(h1_interval_end) )
 
+                    # Finally, start the rootfinding
                     h_touch = scale_center_z + findroot(h1_eq, h1_interval_start, h1_interval_end)
                     z1_new = min(z1, h_touch)
                     r_new  = min(r,  r1_function(z1_new))
@@ -1319,16 +1336,37 @@ def get_dr_dzright_dzleft_to_CylindricalShape(shape, testShell, r, z_right, z_le
 
                         return eq_value
 
+                    # To ensure that we always search on an interval within which r1_eq() contains only one zero root
+                    # we enlarge the rootfinder interval, starting from safe bounds, towards the bounds beyond which we
+                    # know there are unwanted solutions. We stop the enlargement when function r1_eq() certainly 
+                    # changes sign within the interval.
+                    # We use a multiplicative factor tau to enlarge the domain. tau is set such that 
+                    # (1-tau)*r1_interval_max - (1+tau)*r1_interval_min >= 0.5*(r1_interval_max-r1_interval_min)
+                    # in order to ensure that the interval is nonzero and positive in the first iteration.
+
+                    # Set some repeating and default values
+                    # r1_interval min, r1_interval_max are the outer interval bounds for which there is only one root
+                    r1_interval_min = scale_center_to_shell_edge_x
+                    r1_interval_max = math.sqrt( scale_center_to_shell_y*scale_center_to_shell_y + \
+                                                    scale_center_to_shell_edge_x*scale_center_to_shell_edge_x )
+                    r1_interval_start = r1_interval_min
+                    r1_interval_end   = r1_interval_max
+                    # Set the enlargement factor; we want it to be at least as small as TOLERANCE
+                    tau = min(TOLERANCE, 0.5*(r1_interval_max-r1_interval_min)/(r1_interval_max+r1_interval_min))
+                    assert tau>0.0 and tau<1.0
+
+                    # Start the iteration
                     n=1
                     nmax=100
+                      # Since tau is very small, the iteration hardly ever should get to nmax; but to be safe...
                     r1_eq_product = 1
-                    assert TOLERANCE>0.0 and TOLERANCE<1.0
                     while r1_eq_product > 0.0:
 
-                        r1_interval_start = (1.0+TOLERANCE**n) * scale_center_to_shell_edge_x
-                        r1_interval_end   = (1.0-TOLERANCE**n) * math.sqrt( scale_center_to_shell_y*scale_center_to_shell_y + \
-                                                                            scale_center_to_shell_edge_x*scale_center_to_shell_edge_x )
+                        r1_interval_start = (1.0+tau**n) * r1_interval_min
+                        r1_interval_end   = (1.0-tau**n) * r1_interval_max
                         r1_eq_product     = r1_eq(r1_interval_start) * r1_eq(r1_interval_end)
+
+			print n, r1_eq(r1_interval_start), r1_eq(r1_interval_end)	# DEBUG TODO REMOVE
                         
                         n = n+1
 
@@ -1338,8 +1376,8 @@ def get_dr_dzright_dzleft_to_CylindricalShape(shape, testShell, r, z_right, z_le
                     # Non-adaptive version; TODO Remove this after TESTING
                     #r1_interval_start = scale_center_to_shell_edge_x
                     #r1_interval_end   = math.sqrt( scale_center_to_shell_y**2 + scale_center_to_shell_edge_x**2 )
-                    assert(r1_interval_start >= 0)
-                    assert(r1_interval_end   >= r1_interval_start)
+                    assert(r1_interval_start >= 0), 'r1_interval_start = %s, n_iterations=%s' % (r1_interval_start, n)
+                    assert(r1_interval_end   >= r1_interval_start), 'r1_interval_start = %s, r1_interval_end=%s, n_iterations=%s' % (r1_interval_start, r1_interval_end, n)
 
                     # TODO TESTING REMOVE THIS WHEN DONE
                     #print "***** NEW ROOTFINDER ITERATION *****"
@@ -1350,6 +1388,7 @@ def get_dr_dzright_dzleft_to_CylindricalShape(shape, testShell, r, z_right, z_le
                     #print "  r1(i_start) = %s"       % r1_eq(scale_center_to_shell_edge_x)
                     #print "  r1(i_end) = %s"         % r1_eq(math.sqrt( scale_center_to_shell_y**2 + scale_center_to_shell_edge_x**2))
 
+                    # Finally, start the rootfinding
                     r_touch = findroot(r1_eq, r1_interval_start, r1_interval_end)
                               
                     r_new  = min(r, r_touch)
