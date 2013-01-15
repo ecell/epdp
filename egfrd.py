@@ -2909,9 +2909,13 @@ rejected moves:  %d
             ### Check that shells do not overlap with non associated surfaces
             surfaces = get_all_surfaces(self.world, shell.shape.position, ignores + associated)
             for surface, _ in surfaces:
-                assert self.check_shape_overlap(shell.shape, surface.shape) >= -1.0*overlap_tolerance, \
-                    '%s (%s) overlaps with %s.' % \
-                    (str(domain), str(shell), str(surface))
+                overlap = self.check_shape_overlap(shell.shape, surface.shape)
+                if __debug__ and overlap < 0.0:
+                            log.warn('%s (%s) overlaps with %s by %s.' % \
+                                      (str(domain), str(shell), str(surface), FORMAT_DOUBLE % overlap) )
+                assert overlap >= -1.0*overlap_tolerance, \
+                    'Overlap out of overlap_tolerance = %s.' % str(overlap_tolerance)
+                    
 
             ### Check that shells DO overlap with associated surfaces.
             surfaces = get_all_surfaces(self.world, shell.shape.position, ignores)
@@ -2935,9 +2939,11 @@ rejected moves:  %d
 
                     for _, neighbor_shell in neighbor.shell_list:
                         overlap = self.check_shape_overlap(shell.shape, neighbor_shell.shape)
+                        if __debug__ and overlap < 0.0:
+                            log.warn('%s (%s) overlaps with %s (%s) by %s.' %\
+                                      (domain, str(shell), str(neighbor), str(neighbor_shell), FORMAT_DOUBLE % overlap) )
                         assert overlap >= -1.0*overlap_tolerance, \
-                            '%s (%s) overlaps with %s (%s) by %s.' % \
-                            (domain, str(shell), str(neighbor), str(neighbor_shell), FORMAT_DOUBLE % overlap)
+                            'Overlap out of overlap_tolerance = %s.' % str(overlap_tolerance)
 
             ### Check if the shell does not exceed the maximum size
             assert shell_size <= self.geometrycontainer.get_user_max_shell_size(), \
