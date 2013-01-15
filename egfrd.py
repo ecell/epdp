@@ -705,6 +705,13 @@ class EGFRDSimulator(ParticleSimulatorBase):
         return new_pid_particle_pair
 
 
+    def remove_overlap(self, pid_particle_pair, target_position, ignore_p):
+
+        #co = self.world.check_overlap((reactant_pos, reactant[1].radius),
+        #                                        reactant[0], ignore_p[0])
+
+        pass
+
     def remove_domain(self, obj):
         # Removes all the ties to a domain (single, pair, multi) from the system.
         # Note that the particles that it represented still exist
@@ -1554,7 +1561,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
 
             # 1.5 get new position and structure_id for product particle
-            product_pos = pair.draw_new_com (pair.dt, pair.event_type)
+            product_pos = pair.draw_new_com(pair.dt, pair.event_type)
             product_pos = self.world.apply_boundary(product_pos)
 
             # select the structure_id for the product particle to live on.
@@ -1631,14 +1638,22 @@ class EGFRDSimulator(ParticleSimulatorBase):
             if co:
                 for c in co:
                     log.debug('fire_move: detected overlap with %s' % str(c))
-                raise RuntimeError('fire_move: particle overlap failed.')
+
+                if REMOVE_OVERLAPS:
+                    self.remove_overlap(reactant, reactant_pos, ignore_p)
+                else:
+                    raise RuntimeError('fire_move: particle overlap failed.')
         else:
             co = self.world.check_overlap((reactant_pos, reactant[1].radius),
                                         reactant[0])            
             if co:
                 for c in co:
                     log.debug('fire_move: detected overlap with %s' % str(c))
-                raise RuntimeError('fire_move: particle overlap failed.')
+
+                if REMOVE_OVERLAPS:
+                    self.remove_overlap(reactant, reactant_pos, ignore_p)
+                else:
+                    raise RuntimeError('fire_move: particle overlap failed.')
 
         # 4. process the changes (move particles, change structure)
         moved_reactant = self.move_particle(reactant, reactant_pos, reactant_structure_id)
@@ -2170,7 +2185,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
         #
         elif pair.event_type == EventType.IV_REACTION:
 
-            particles, zero_singles_b, ignore = self.fire_pair_reaction (pair, newpos1, newpos2, struct1_id, struct2_id, ignore)
+            particles, zero_singles_b, ignore = self.fire_pair_reaction(pair, newpos1, newpos2, struct1_id, struct2_id, ignore)
 
             # Make new NonInteractionSingle domains for every particle after the reaction.
             zero_singles = []
