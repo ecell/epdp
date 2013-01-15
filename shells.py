@@ -866,7 +866,7 @@ def get_dr_dzright_dzleft_to_CylindricalShape(shape, testShell, r, z_right, z_le
     relative_orientation = abs(numpy.dot(orientation_vector, shape.unit_z))
 
     if feq(relative_orientation, 1.0):
-    #### If the cylinders are oriented parallelly ####
+    #### If the cylinders are parallel ####
 
         # calculate ref_to_shell_r/z in the cylindrical coordinate system on the right/left side
         ref_to_shell_z_vec = ref_to_shell_z * orientation_vector
@@ -1365,8 +1365,6 @@ def get_dr_dzright_dzleft_to_CylindricalShape(shape, testShell, r, z_right, z_le
                         r1_interval_start = (1.0+tau**n) * r1_interval_min
                         r1_interval_end   = (1.0-tau**n) * r1_interval_max
                         r1_eq_product     = r1_eq(r1_interval_start) * r1_eq(r1_interval_end)
-
-			print n, r1_eq(r1_interval_start), r1_eq(r1_interval_end)	# DEBUG TODO REMOVE
                         
                         n = n+1
 
