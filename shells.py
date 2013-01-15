@@ -484,8 +484,10 @@ class testPlanarSurfaceTransitionPair(testPair):
         if __debug__: 
                 assert isinstance(single1.structure, PlanarSurface) 
                 assert isinstance(single2.structure, PlanarSurface) 
-
-        testPair.__init__(self, single1, single2) # note: this makes self.single1/self.pid_particle_pair1 and the same for particle2
+        
+        testPair.__init__(self, single1, single2) # Note: this makes self.single1/self.pid_particle_pair1 and the same for particle2
+                                                  # and also will run do_transform(); do_transform sets self.com_with_apply_bnd which
+                                                  # will be the position at which the shell will be later constructed.
         self.structure  = self.structure1         # some pair methods need this to be defined
 
     def get_sigma(self):
@@ -497,8 +499,9 @@ class testPlanarSurfaceTransitionPair(testPair):
 
     def do_transform(self):
         # Transform the pos1 and pos2 of particles1 and 2 to the CoM and IV vectors
-        # As an indermediate step project position of single2 into plane of single1 and add its
+        # As an intermediate step project position of single2 into plane of single1 and add its
         # orthogonal component rotated by 90 deg. to transform the whole problem into a single 2D plane
+        # The latter is now taken care of by world.cyclic_transpose()
         pos1 = self.pid_particle_pair1[1].position
 #        pos2 = self.structure1.deflect_back(self.pid_particle_pair2[1].position, self.structure2.shape.unit_z)
         pos2, _ = self.world.cyclic_transpose((self.pid_particle_pair2[1].position, self.pid_particle_pair2[1].structure_id), self.structure1)
@@ -507,8 +510,25 @@ class testPlanarSurfaceTransitionPair(testPair):
 
         com = self.world.calculate_pair_CoM(pos1, pos2, D_1, D_2)
         com = self.world.apply_boundary(com)
+        # Attention! This is the CoM in plane1! It may well lie outside of the structure if it is
+        # closer to particle2 than to particle1. This is correct since we want to perform the whole
+        # calculation in structure1 and later correctly project the results if necessary.
         # TODO make sure that the com is in the structure of the particle
         # (assume that this is done correctly in calculate_pair_CoM)
+
+        # We also want the "real" CoM, i.e. projected to structure2 if outside of structure1.
+        # The test shell will be constructed with its center at this point
+        dist_to_edge_of_struct1 = self.structure1.project_point(com)[1][1]   # returns the negative length to the closest edge of structure1
+
+        if dist_to_edge_of_struct1 > 0.0: # com is outside of plane1
+            com_struct = self.structure2
+        else:
+            com_struct = self.structure1
+
+        self.com_with_apply_bnd, self.com_struct_id = self.world.apply_boundary( (com, self.structure1.id) )
+
+        log.debug('PSTP: self.com = %s, self.com_with_apply_bnd = %s, pos1=%s, pos2=%s, com_struct_id=%s, p1_sid=%s, p2_sid=%s, dist_com_s1_edge=%s' % \
+                  (com, self.com_with_apply_bnd, pos1, pos2, self.com_struct_id, self.pid_particle_pair1[1].structure_id, self.pid_particle_pair2[1].structure_id, dist_to_edge_of_struct1)) # DEBUG TODO REMOVE THIS
 
         pos2t = self.world.cyclic_transpose(pos2, pos1)
         iv = pos2t - pos1
@@ -1760,7 +1780,8 @@ class PlanarSurfaceTransitionPairtestShell(SphericaltestShell, testPlanarSurface
             raise testShellError('(PlanarSurfaceTransitionPair). %s' %
                                  (str(e)))
 
-        self.center = self.com
+        self.center = self.com_with_apply_bnd
+        log.debug('PSTP: Setting self.center = %s' % str(self.center))       # DEBUG TODO REMOVE THIS
         try:
             self.radius = self.determine_possible_shell(self.structure1.id, [self.single1.domain_id, self.single2.domain_id],
                                                         [self.structure2.id])
