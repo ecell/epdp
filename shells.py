@@ -517,18 +517,10 @@ class testPlanarSurfaceTransitionPair(testPair):
         # (assume that this is done correctly in calculate_pair_CoM)
 
         # We also want the "real" CoM, i.e. projected to structure2 if outside of structure1.
-        # The test shell will be constructed with its center at this point
-        dist_to_edge_of_struct1 = self.structure1.project_point(com)[1][1]   # returns the negative length to the closest edge of structure1
-
-        if dist_to_edge_of_struct1 > 0.0: # com is outside of plane1
-            com_struct = self.structure2
-        else:
-            com_struct = self.structure1
-
+        # The test shell will be constructed with its center at this point.
+        # To construct this point we need to take into account a possible change to the other plane.
+        # apply_boundary() called with the structure into which the problem was transformed does the job:
         self.com_with_apply_bnd, self.com_struct_id = self.world.apply_boundary( (com, self.structure1.id) )
-
-        log.debug('PSTP: self.com = %s, self.com_with_apply_bnd = %s, pos1=%s, pos2=%s, com_struct_id=%s, p1_sid=%s, p2_sid=%s, dist_com_s1_edge=%s' % \
-                  (com, self.com_with_apply_bnd, pos1, pos2, self.com_struct_id, self.pid_particle_pair1[1].structure_id, self.pid_particle_pair2[1].structure_id, dist_to_edge_of_struct1)) # DEBUG TODO REMOVE THIS
 
         pos2t = self.world.cyclic_transpose(pos2, pos1)
         iv = pos2t - pos1
@@ -1781,7 +1773,7 @@ class PlanarSurfaceTransitionPairtestShell(SphericaltestShell, testPlanarSurface
                                  (str(e)))
 
         self.center = self.com_with_apply_bnd
-        log.debug('PSTP: Setting self.center = %s' % str(self.center))       # DEBUG TODO REMOVE THIS
+        
         try:
             self.radius = self.determine_possible_shell(self.structure1.id, [self.single1.domain_id, self.single2.domain_id],
                                                         [self.structure2.id])
