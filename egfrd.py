@@ -706,9 +706,11 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
 
     def remove_overlap(self, pid_particle_pair, target_position, ignore_p):
+    # TODO
 
-        #co = self.world.check_overlap((reactant_pos, reactant[1].radius),
-        #                                        reactant[0], ignore_p[0])
+        # Get overlaps when moved to target position
+        #co = self.world.check_overlap((target_pos, reactant[1].radius),
+        #                                           reactant[0], ignore_p[0])
 
         pass
 
@@ -1641,6 +1643,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
                 if REMOVE_OVERLAPS:
                     self.remove_overlap(reactant, reactant_pos, ignore_p)
+                        # not implemented yet
                 else:
                     raise RuntimeError('fire_move: particle overlap failed.')
         else:
@@ -1652,6 +1655,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
                 if REMOVE_OVERLAPS:
                     self.remove_overlap(reactant, reactant_pos, ignore_p)
+                        # not implemented yet
                 else:
                     raise RuntimeError('fire_move: particle overlap failed.')
 
