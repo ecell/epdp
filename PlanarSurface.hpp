@@ -126,7 +126,7 @@ public:
     
     // Vector used to determine whether a particle has crossed the structure
     // For the plane the normal vector is the natural choice
-    virtual position_type const& crossing_comparison_vector() const
+    virtual position_type const& side_comparison_vector() const
     {
         return base_type::shape().unit_z();
     }

@@ -730,7 +730,7 @@ private:
                                 const structure_id_pair_and_distance & close_struct( close_structures->at(j) );
                                 // and its center point and normal vector
                                 position_type cs_center( close_struct.first.second->position() );
-                                position_type cs_comp_v( close_struct.first.second->crossing_comparison_vector() );
+                                position_type cs_comp_v( close_struct.first.second->side_comparison_vector() );
                                 
                                 // project the distance of reactant and product positions to the center
                                 // onto the normal vector of the structure
@@ -743,7 +743,7 @@ private:
                                 // set of new positions
                                 if( deltaR * delta0 < 0.0 || deltaR * delta1 < 0.0)
                                 {
-                                      LOG_WARNING(("Rejecting new product positions because of structure crossing." ));
+                                      LOG_WARNING(("Rejecting new product positions because of structure side crossing." ));
                                       continue;   // try other positions pair
                                 }
                             
