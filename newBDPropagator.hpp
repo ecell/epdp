@@ -706,12 +706,7 @@ private:
                                 continue;   // try other positions pair
                             }
                                                         
-                            //// 1c - CHECK FOR PLANE CROSSINGS                            
-                            // FIXME As it is now, this also rejects new positions that end up on
-                            // different "sides" of cylinders or disks
-                            // To fix this we have to define a plane-specific check
-                            // (=> old problem: how to find out it's a plane...)
-                            
+                            //// 1c - CHECK FOR PLANE CROSSINGS
                             // first determine which one is the largest involved particle radius
                             length_type max_radius( pp.second.radius() ); // initialized with the reactant radius
                             if( product0_species.radius() > max_radius)         max_radius = product0_species.radius();
