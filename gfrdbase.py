@@ -37,6 +37,7 @@ __all__ = [
     'create_world',
     'create_box',
     'create_rod',
+    'periodic_connect',
     'ParticleSimulatorBase',
     'get_all_surfaces',
     'get_neighbor_surfaces',
@@ -341,6 +342,17 @@ def create_rod(world, cyl_structure_type, cap_structure_type, name, position, ra
     world.add_structure(back_cap)    
 
     return rod.id
+
+def periodic_connect(world, planar_surface):
+    """ Makes connections between the opposite edges of a plane.
+
+        Use this to simulate particles on an infinite plane
+        with periodic boundary conditions.
+        
+    """
+    world.connect_structures(planar_surface, 0, planar_surface, 1)
+    world.connect_structures(planar_surface, 2, planar_surface, 3)
+    # TODO bind this function into world directly
 
 def create_network_rules_wrapper(model):
     return _gfrd.NetworkRulesWrapper(model.network_rules)
