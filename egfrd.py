@@ -2851,8 +2851,10 @@ updates: %d
 \tPair:\t%d\t(%.2f %%)\t(r-escape: %d, R-escape: %d, reaction pair: %d, single: %d, bursted: %d)
 \tMulti:\t%d\t(%.2f %%)\t(diffusion: %d, escape: %d, reaction pair: %d, single: %d, bursted: %d)
 \tavg. multi time step: %e, avg. multi reaction length: %e
-total reactions: %d
-rejected moves:  %d
+total reactions:     %d
+rejected moves:      %d
+overlap remover was: %s
+max. overlap error:  %g
 ''' \
             % (self.t, self.nonmulti_time, self.multi_time,
                self.step_counter, total_steps,
@@ -2884,7 +2886,9 @@ rejected moves:  %d
                avg_multi_time,
                avg_multi_rl,
                self.reaction_events,
-               self.rejected_moves
+               self.rejected_moves,
+               ('active' if self.REMOVE_OVERLAPS else 'inactive'),
+               self.max_overlap_error               
                )
 
         print >> out, report
