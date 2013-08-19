@@ -235,6 +235,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
                                                 # Take care: This is for testing only! Keep this at a negative value for normal sims!
 
         self.REMOVE_OVERLAPS = True             # Ignore overlaps, only warn when they happen and move particles apart
+        self.max_overlap_error = 0.0            # This remembers the largest relative error produced by removing overlaps
 
         # used datastructrures
         self.scheduler = EventScheduler()       # contains the events. Note that every domains has exactly one event
@@ -708,7 +709,6 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
 
     def remove_overlap(self, reactant, target_position, ignore_p=None):
-    # TODO
 
         # Get overlaps when moved to target position
         if ignore_p:
@@ -720,33 +720,47 @@ class EGFRDSimulator(ParticleSimulatorBase):
         # Extract the overlap data for the closest particle
         closest = co[0]
         overlap_PID      = closest[0][0]
-        overlap_particle = closest[0][1]        
-        overlap_length = closest[1]
+        overlap_particle = closest[0][1]
+        overlap_length   = closest[1]
 
-        log.debug('Target position: %s', target_position)
-        log.debug('Overlapping particle: %s, overlap: %s', overlap_particle, overlap_length)
-        log.debug('ID: %s',  overlap_PID)
-        log.debug('pos: %s', overlap_particle.position)
+        log.warn('Removing overlap: reported overlap length = %s', overlap_length)
+
+        #log.debug('Target position: %s', target_position)
+        #log.debug('Overlapping particle: %s, overlap: %s', overlap_particle, overlap_length)
+        #log.debug('ID: %s',  overlap_PID)
+        #log.debug('pos: %s', overlap_particle.position)
+        # TODO remove that debugging stuff
 
         target_position_t = self.world.cyclic_transpose(target_position, overlap_particle.position)
-        corr_vector = target_position_t - overlap_particle.position
-        correction       = 1.1 * overlap_length        
+        IP_vector         = target_position_t - overlap_particle.position
+        correction        = SAFETY * (reactant[1].radius + overlap_particle.radius)
 
-        new_position = self.world.apply_boundary( target_position + correction * normalize(corr_vector) )
+        new_position = self.world.apply_boundary( target_position + correction * normalize(IP_vector) )
+        # TODO: Check that new position is in reactant structure!!!
 
-        log.debug('IP vector = %s, length = %s', corr_vector, length(corr_vector))
-        log.debug('new_pos = %s', new_position) 
+        #log.debug('target_position_t = %s', target_position_t) 
+        #log.debug('IP_vector = %s, length = %s, normalized = %s', IP_vector, length(IP_vector), normalize(IP_vector) )
+        #log.debug('new_pos = %s', new_position)
+        # TODO remove that debugging stuff
 
         co = self.world.check_overlap((new_position, reactant[1].radius), reactant[0])
         
         if co:
+
             for c in co:
+                # Failed to remove overlap, sth. serious going on
                 log.debug('remove_overlap: RE-detected overlap with %s' % str(c))
+                RuntimeError('remove_overlap: failed.')
+
         else:
-            log.debug('Overlap removed!')
 
-
-        raise RuntimeError('fire_move: particle overlap failed.')
+            # The overlap error is defined as the artificially added displacement divided by the smallest particle radius involved
+            overlap_error = abs(correction - length(IP_vector)) / min(reactant[1].radius, overlap_particle.radius)            
+            self.max_overlap_error = max(self.max_overlap_error, overlap_error)
+            # Drop a warning
+            log.warn('Removing overlap: error = %s, maximal error of overlap removal = %s', overlap_error, self.max_overlap_error)
+            
+            return new_position            
 
 
     def remove_domain(self, obj):
@@ -1702,8 +1716,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
                     log.debug('fire_move: detected overlap with %s' % str(c))
 
                 if self.REMOVE_OVERLAPS:
-                    self.remove_overlap(reactant, reactant_pos, ignore_p)
-                        # not implemented yet
+                    reactant_pos = self.remove_overlap(reactant, reactant_pos, ignore_p)
+                        # still TESTING
                 else:
                     raise RuntimeError('fire_move: particle overlap failed.')
         else:
@@ -1714,13 +1728,13 @@ class EGFRDSimulator(ParticleSimulatorBase):
                     log.debug('fire_move: detected overlap with %s' % str(c))
 
                 if self.REMOVE_OVERLAPS:
-                    self.remove_overlap(reactant, reactant_pos)
-                        # not implemented yet
+                    reactant_pos = self.remove_overlap(reactant, reactant_pos)
+                        # still TESTING
                 else:
                     raise RuntimeError('fire_move: particle overlap failed.')
 
         # 4. process the changes (move particles, change structure)
-        moved_reactant = self.move_particle(reactant, reactant_pos, reactant_structure_id)
+        moved_reactant = self.move_particle(reactant, reactant_pos, reactant_structure_id)        
         # 5. No counting
         # 6. No Logging
         return [moved_reactant]
