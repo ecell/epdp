@@ -349,10 +349,11 @@ def periodic_connect(world, planar_surface):
         Use this to simulate particles on an infinite plane
         with periodic boundary conditions.
         
-    """
-    world.connect_structures(planar_surface, 0, planar_surface, 1)
-    world.connect_structures(planar_surface, 2, planar_surface, 3)
-    # TODO bind this function into world directly
+    """    
+    #world.connect_structures(planar_surface, 0, planar_surface, 1)
+    #world.connect_structures(planar_surface, 2, planar_surface, 3)    
+    pass 
+    # FIXME DOES NOT YET WORK CORRECTLY, THE STRUCTURE CONTAINER IS ASSUMING TRANSFER TO ADJACENT PLANES ONLY!
 
 def create_network_rules_wrapper(model):
     return _gfrd.NetworkRulesWrapper(model.network_rules)

@@ -808,17 +808,16 @@ def load_state(filename):
                                            neighbor_id_2, neighbor_id_3] 
 
     # Figure out which sides are connected
-    # First treat the special case in which a plane is connected to itself (periodic BCs)
-    # Then all neighbor_id's are identical to to_connect_id, and we use a special
-    # function from gfrdbase.py to establish the connections automatically.
+    connections = []
+
     if [ to_connect_id==i for i in connections_dict[to_connect_id] ]:
 
-        periodic_connect(w, structures_dict[to_connect_id])
-        log.info('  Running periodic_connect for %s' % structures_dict[to_connect_id])
+        # Drop a warning in case someone tries to connect a plane to itself (currently unsupported)
+        log.warn('  Avoiding connecting plane to itself. This may result in incorrectly applied boundary conditions and further errors!')
 
     else:
-
-        connections = []
+        
+        # Everything fine, find the connections
         for to_connect_id, neighbor_list in connections_dict.iteritems():
 
             # For each neighbor_id find the side with which the neighbor is
@@ -834,21 +833,21 @@ def load_state(filename):
                     if nn_id == to_connect_id:
                     # We have found the neighbor_id that links to con_id
                         connections.append( (to_connect_id, side, n_id, n_side) )
-                        break
+                        break        
 
+    if __debug__:
+        log.info('  connections = %s' % str(connections) )
+
+    # Establish the connections
+    for struct_id0, side0, struct_id1, side1 in connections:
+
+        struct0 = structures_dict[struct_id0]
+        struct1 = structures_dict[struct_id1]
+
+        w.connect_structures(struct0, side0, struct1, side1)
         if __debug__:
-            log.info('  connections = %s' % str(connections) )
-
-        # Establish the connections
-        for struct_id0, side0, struct_id1, side1 in connections:
-
-            struct0 = structures_dict[struct_id0]
-            struct1 = structures_dict[struct_id1]
-
-            w.connect_structures(struct0, side0, struct1, side1)
-            if __debug__:
-                log.info('  Connected side %s of structure %s (id=%s) with side %s of structure %s (id=%s)' \
-                        % (side0, struct0, struct0.id, side1, struct1, struct1.id) )
+            log.info('  Connected side %s of structure %s (id=%s) with side %s of structure %s (id=%s)' \
+                    % (side0, struct0, struct0.id, side1, struct1, struct1.id) )
 
     #### PARTICLES ####
     if __debug__:
