@@ -212,10 +212,10 @@ public:
         // TODO Clean this up when it is clear that cyclic_transpose is unnecessary here.
         const position_structid_pair_type cyc_pos_struct_id( pos_struct_id );
         // Get the structure
-        const boost::shared_ptr<const structure_type> structure (get_structure(pos_struct_id.second));
+        const boost::shared_ptr<const structure_type> structure( get_structure(pos_struct_id.second) );
         // The generalized boundary condition application first:
         // 1. applies the boundary of the structure/surface (go around the corner etc)
-        const position_structid_pair_type new_pos_struct_id(structure->apply_boundary(cyc_pos_struct_id, structures_));
+        const position_structid_pair_type new_pos_struct_id( structure->apply_boundary(cyc_pos_struct_id, structures_) );
         
         // 2. Then also apply the boundary condition of the world
         return std::make_pair(apply_boundary(new_pos_struct_id.first), new_pos_struct_id.second);

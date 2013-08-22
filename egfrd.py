@@ -1445,10 +1445,11 @@ class EGFRDSimulator(ParticleSimulatorBase):
                             if __debug__:
                                 log.info('single reaction: product crosses plane, reaction will be rejected.')
 
+                log.debug('BEFORE: newpos1=%s, newpos2=%s, distance=%s, radii=%s', newpos1, newpos2, self.world.distance(newpos1, newpos2), particle_radius12 )
                 newpos1 = self.world.apply_boundary(newpos1)
                 newpos2 = self.world.apply_boundary(newpos2)
 
-                log.debug('newpos1=%s, newpos2=%s, distance=%s', newpos1, newpos2, self.world.distance(newpos1, newpos2) )
+                log.debug('AFTER: newpos1=%s, newpos2=%s, distance=%s, radii=%s', newpos1, newpos2, self.world.distance(newpos1, newpos2), particle_radius12 )
                 # TODO Remove, this is for DEBUGGING only
 
                 if __debug__:

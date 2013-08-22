@@ -683,16 +683,23 @@ class PlanarSurfaceTransitionPair(SimplePair, hasSphericalShell):
         # in the next step.
         new_pos1, new_sid1 = world.apply_boundary((pos1, structure1.id))
         new_pos2, new_sid2 = world.apply_boundary((pos2, structure1.id))
+        # FIXME Make sure this does not result in odd output in case a plane is NOT connected to any other!
+        # This may be in particular problematic if a "periodic" plane is as large as the world.
+        # To avoid problems, define a plane that is supposed to be periodic larger than the world.
 
         new_structure1 = world.get_structure(new_sid1)
         new_structure2 = world.get_structure(new_sid2)
 
+        log.debug('com=%s, iv=%s; parameters: radius1=%s, radius2=%s, D1=%s, D2=%s, D_tot=%s', com, iv, radius1, radius2, D1, D2, D_tot)
+        log.debug('pos1=%s, pos2=%s, sid=%s', pos1, pos2, structure1.id)
+        log.debug('new_pos1=%s, new_pos2=%s, new_sid1=%s, new_sid2=%s', new_pos1, new_pos2, new_sid1, new_sid2)
+
         # If the new positions lead to an overlap we have to enlarge the IV by a safety factor
-        # Only to this correction if the two planes are really orthogonal
+        # Only to this correction if the two planes are really orthogonal (assumed in the calculation)
         if  world.distance(new_pos1, new_pos2) <= (radius1+radius2) * MINIMAL_SEPARATION_FACTOR \
         and feq( numpy.dot(new_structure1.shape.unit_z, new_structure2.shape.unit_z), 0.0 ) :
 
-            log.warn('do_back_transform: Removing overlap resulting from deflection for particles ending up on orthogonal planes.')
+            log.warn('do_back_transform: Removing overlap resulting from deflection of particles at the edge of orthogonal planes.')
             
             # Calculate the distances from the two new positions to the edge between the planes
             # in which the particles temporarily ended up
