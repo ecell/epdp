@@ -375,9 +375,11 @@ protected:
 //// functions for Planes
 template<typename Ttraits_ >
 inline std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type>
-apply_boundary (std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type> const& pos_structure_id,
-                PlanarSurface<Ttraits_> const& planar_surface,
-                StructureContainer<typename Ttraits_::structure_type, typename Ttraits_::structure_id_type, Ttraits_> const& sc)
+apply_boundary (std::pair<typename Ttraits_::position_type,
+                          typename Ttraits_::structure_id_type> const&                     pos_structure_id,
+                PlanarSurface<Ttraits_> const&                                             planar_surface,
+                StructureContainer<typename Ttraits_::structure_type, 
+                                   typename Ttraits_::structure_id_type, Ttraits_> const&  sc)
 // The template needs to be parameterized with the appropriate shape (which then parameterizes the type
 // of the ConnectivityContainer that we use.
 // We supply the structure container as an argument so that we can get the structures that we need, and to
@@ -397,16 +399,16 @@ apply_boundary (std::pair<typename Ttraits_::position_type, typename Ttraits_::s
     // Note that we assume that the new position is in the plane (dot(pos, unit_z)==0)
     // and that the position is already transposed for the plane.
     const plane_type origin_plane( planar_surface.shape() );
-    boost::array<length_type, 2> half_extents( origin_plane.half_extent() );
+    const boost::array<length_type, 2> half_extents( origin_plane.half_extent() );
 
     const position_type pos_vector( subtract(pos_structure_id.first, origin_plane.position()) );
-    const length_type component_x ( dot_product(pos_vector, origin_plane.unit_x()) );
-    const length_type component_y ( dot_product(pos_vector, origin_plane.unit_y()) );
+    const length_type   component_x ( dot_product(pos_vector, origin_plane.unit_x()) );
+    const length_type   component_y ( dot_product(pos_vector, origin_plane.unit_y()) );
 
     // declare the variables that will be written
-    structure_id_type new_id(pos_structure_id.second);
-    position_type neighbor_plane_par;
-    position_type neighbor_plane_inl;
+    structure_id_type new_id( pos_structure_id.second );
+    position_type     neighbor_plane_par;
+    position_type     neighbor_plane_inl;
 
     if ( abs(component_x) <= half_extents[0] && abs(component_y) <= half_extents[1] )
     {
@@ -469,7 +471,9 @@ apply_boundary (std::pair<typename Ttraits_::position_type, typename Ttraits_::s
         const position_type new_pos ( add(origin_plane.position(), add(neighbor_plane_par, neighbor_plane_inl)));
 
         // Check if we are in one of the corners. If yes -> do another round of border crossing from neighboring plane.
-        if ( abs(component_x) > half_extents[0] && abs(component_y) > half_extents[1] )
+        // Only do this if the particle does not end up on another side of the same plane (the scenario of one plane 
+        // with periodic BCs), as this may cause infinite loops.
+        if( not new_id==pos_structure_id.second && abs(component_x) > half_extents[0] && abs(component_y) > half_extents[1] )
         {
             return sc.get_structure(new_id)->apply_boundary(std::make_pair(new_pos, new_id), sc);
         }
