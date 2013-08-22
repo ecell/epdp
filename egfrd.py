@@ -1448,6 +1448,9 @@ class EGFRDSimulator(ParticleSimulatorBase):
                 newpos1 = self.world.apply_boundary(newpos1)
                 newpos2 = self.world.apply_boundary(newpos2)
 
+                log.debug('newpos1=%s, newpos2=%s, distance=%s', newpos1, newpos2, self.world.distance(newpos1, newpos2) )
+                # TODO Remove, this is for DEBUGGING only
+
                 if __debug__:
                     assert (self.world.distance(newpos1, newpos2) >= particle_radius12)
 
