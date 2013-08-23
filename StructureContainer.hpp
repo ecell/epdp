@@ -141,7 +141,7 @@ public:
         if ( update_structure_base(structid_plane))
         {
             // We now assume that the structure was not already in the boundary_conditions_thing
-            // add to Connectivity container for planar surfaces and set reflective boundary conditions.
+            // add to Connectivity container for planar surfaces and set *reflective* boundary conditions. // TODO This may cause many problems in single reactions!!! Overthink!!!
             planar_structs_bc_.set_neighbor_info(structid_plane.first, 0, std::make_pair(structid_plane.first, multiply(structid_plane.second->shape().unit_y(), -1.0) ));
             planar_structs_bc_.set_neighbor_info(structid_plane.first, 1, std::make_pair(structid_plane.first,          structid_plane.second->shape().unit_y() ));
             planar_structs_bc_.set_neighbor_info(structid_plane.first, 2, std::make_pair(structid_plane.first,          structid_plane.second->shape().unit_x() ));

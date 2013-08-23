@@ -855,7 +855,7 @@ def load_state(filename):
     else: # sc_sections empty
 
         if __debug__:
-            log.info('No connections found in input file.')
+            log.info('  No connections found in input file.')
 
 
     #### PARTICLES ####
