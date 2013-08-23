@@ -3,6 +3,7 @@
 
 #include <boost/lexical_cast.hpp>
 #include "exceptions.hpp"
+#include "Logger.hpp"
 #include "linear_algebra.hpp"
 #include "ConnectivityContainer.hpp"
 #include "CuboidalRegion.hpp"
@@ -366,12 +367,19 @@ protected:
     cylindrical_surface_bc_type cylindrical_structs_bc_;
     planar_surface_bc_type      planar_structs_bc_;
     cuboidal_region_bc_type     cuboidal_structs_bc_;
-};
+    static Logger&              log_;
+    
+}; // end of class definition
 
+
+//////// Link logger to the global logging system
+template <typename Tobj_, typename Tid_, typename Ttraits_>
+Logger& StructureContainer<Tobj_, Tid_, Ttraits_>::log_(Logger::get_logger("ecell.newBDPropagator"));
+//////// Also define one that can be used by the inline functions below
+static Logger& log_(Logger::get_logger("ecell.newBDPropagator"));
 
 
 //////// Inline functions applicable to the StructureContainer
-
 //// functions for Planes
 template<typename Ttraits_ >
 inline std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type>
@@ -409,8 +417,21 @@ apply_boundary (std::pair<typename Ttraits_::position_type,
     structure_id_type new_id( pos_structure_id.second );
     position_type     neighbor_plane_par;
     position_type     neighbor_plane_inl;
-
-    if ( abs(component_x) <= half_extents[0] && abs(component_y) <= half_extents[1] )
+    
+    // Check for (currently unsupported) self-connections
+    for( int i=0; i<4; i++ )
+    {
+        const neighbor_id_vector_type neighbor_id_vector (sc.get_neighbor_info(planar_surface, 0));
+        new_id = neighbor_id_vector.first;
+        
+        if( new_id == pos_structure_id.second )
+        {
+            log_.warn("Plane is connected to itself, which is unsupported; no boundary condition will be applied at this call.");
+            return pos_structure_id;
+        }
+    };
+    
+    if( (abs(component_x) <= half_extents[0] && abs(component_y) <= half_extents[1]) )
     {
         // we are still in the plane (did not pass any of the boundaries)
         // don't have to do anything
