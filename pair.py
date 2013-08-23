@@ -681,18 +681,13 @@ class PlanarSurfaceTransitionPair(SimplePair, hasSphericalShell):
         # In some cases the new positions may end up on adjacent planar surfaces.
         # This may lead to an overlap which has to be checked for and removed if present
         # in the next step.
+        # Note that this will be also done for unconnected planes, so it has to be
+        # made sure that apply_boundary does work correctly in these cases.
         new_pos1, new_sid1 = world.apply_boundary((pos1, structure1.id))
-        new_pos2, new_sid2 = world.apply_boundary((pos2, structure1.id))
-        # FIXME Make sure this does not result in odd output in case a plane is NOT connected to any other!
-        # This may be in particular problematic if a "periodic" plane is as large as the world.
-        # To avoid problems, define a plane that is supposed to be periodic larger than the world.
+        new_pos2, new_sid2 = world.apply_boundary((pos2, structure1.id))        
 
         new_structure1 = world.get_structure(new_sid1)
         new_structure2 = world.get_structure(new_sid2)
-
-        log.debug('com=%s, iv=%s, length=%s; parameters: radius1=%s, radius2=%s, D1=%s, D2=%s, D_tot=%s', com, iv, length(iv), radius1, radius2, D1, D2, D_tot)
-        log.debug('pos1=%s, pos2=%s, sid=%s, distance=%s', pos1, pos2, structure1.id, length(pos2-pos1))
-        log.debug('new_pos1=%s, new_pos2=%s, new_sid1=%s, new_sid2=%s', new_pos1, new_pos2, new_sid1, new_sid2)
 
         # If the new positions lead to an overlap we have to enlarge the IV by a safety factor
         # Only to this correction if the two planes are really orthogonal (assumed in the calculation)
