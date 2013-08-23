@@ -690,8 +690,8 @@ class PlanarSurfaceTransitionPair(SimplePair, hasSphericalShell):
         new_structure1 = world.get_structure(new_sid1)
         new_structure2 = world.get_structure(new_sid2)
 
-        log.debug('com=%s, iv=%s; parameters: radius1=%s, radius2=%s, D1=%s, D2=%s, D_tot=%s', com, iv, radius1, radius2, D1, D2, D_tot)
-        log.debug('pos1=%s, pos2=%s, sid=%s', pos1, pos2, structure1.id)
+        log.debug('com=%s, iv=%s, length=%s; parameters: radius1=%s, radius2=%s, D1=%s, D2=%s, D_tot=%s', com, iv, length(iv), radius1, radius2, D1, D2, D_tot)
+        log.debug('pos1=%s, pos2=%s, sid=%s, distance=%s', pos1, pos2, structure1.id, length(pos2-pos1))
         log.debug('new_pos1=%s, new_pos2=%s, new_sid1=%s, new_sid2=%s', new_pos1, new_pos2, new_sid1, new_sid2)
 
         # If the new positions lead to an overlap we have to enlarge the IV by a safety factor
