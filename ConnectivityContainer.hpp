@@ -51,7 +51,7 @@ public:
             throw illegal_argument(std::string("Index out of range for neighbor (n= ") + boost::lexical_cast<std::string>(n) + "), max= " + boost::lexical_cast<std::string>(max));
 
         typename obj_neighbor_objdata_array_map::const_iterator it(neighbor_mapping_.find(id));
-        std::cout << "Checking neighbor info, id=" << boost::lexical_cast<std::string>(id) << ", it=" << it->first << std::endl; // TODO remove after debugging
+        //std::cout << "Checking neighbor info, id=" << boost::lexical_cast<std::string>(id) << ", it=" << it->first << std::endl; // TODO remove after debugging
         if (it==neighbor_mapping_.end())
         {
             throw not_found(std::string("Object not found(id=") + boost::lexical_cast<std::string>(id) + ")");
