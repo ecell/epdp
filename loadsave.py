@@ -813,7 +813,7 @@ def load_state(filename):
         # Figure out which sides are connected
         connections = []
 
-        if [ to_connect_id==i for i in connections_dict[to_connect_id] ]:
+        if any([ to_connect_id==i for i in connections_dict[to_connect_id] ]):
 
             # Drop a warning in case someone tries to connect a plane to itself (currently unsupported)
             log.warn('  Avoiding connecting plane to itself. This may result in incorrectly applied boundary conditions and further errors!')
