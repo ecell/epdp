@@ -708,6 +708,32 @@ class EGFRDSimulator(ParticleSimulatorBase):
         return new_pid_particle_pair
 
 
+    def activate_overlap_remover():
+        """
+        Sets internal variable REMOVE_OVERLAPS to True (False by default),
+        activating the removal of overlaps while monitoring the relative 
+        error produced by that.
+
+        The rel. error is defined as the separation added between particles 
+        divided by the largest involved radius.
+
+        Use deactivate_overlap_remover() to reverse this.
+        """
+
+        self.REMOVE_OVERLAPS = True
+
+
+    def deactivate_overlap_remover():
+        """
+        Sets internal variable REMOVE_OVERLAPS to False, 
+        deactivating the removal of overlaps.
+        
+        Use activate_overlap_remover() to activate it.
+        """
+
+        self.REMOVE_OVERLAPS = False
+
+
     def remove_overlap(self, reactant, target_position, ignore_p=None):
 
         # Get overlaps when moved to target position
