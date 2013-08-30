@@ -1167,8 +1167,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
                     # cannot decay from 3D to other structure
                     raise RuntimeError('fire_single_reaction: Can not decay from 3D to other structure')
 
-                product_structure_id = self.world.get_def_structure_id()    # product structure is always the default structure (bulk)
-                # FIXME This should rather be the parent structure!
+                #product_structure_id = self.world.get_def_structure_id()    # product structure is always the default structure (bulk)
+                product_structure_id = reactant_structure.structure_id    # product structure is always the parent structure; in most cases this is the bulk
 
             # If decay happens to same structure_type
             else:
@@ -1249,7 +1249,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
                 if (product2_structure_type_id == self.world.get_def_structure_type_id()):
                     # product2 goes to 3D and is now particleB (product1 is particleA and is on the surface)
                     product1_structure_id = reactant_structure_id # TODO after the displacement the structure can change!
-                    product2_structure_id = self.world.get_def_structure_id() # FIXME see above
+                    product2_structure_id = reactant_structure.structure_id     # the parent structure
                     productA_radius = product1_radius
                     productB_radius = product2_radius
                     DA = D1
@@ -1258,7 +1258,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
                 else:
                     # product1 goes to 3D and is now particleB (product2 is particleA)
                     product2_structure_id = reactant_structure_id
-                    product1_structure_id = self.world.get_def_structure_id() # FIXME see above
+                    product1_structure_id = reactant_structure.structure_id     # the parent structure
                     productA_radius = product2_radius
                     productB_radius = product1_radius
                     DA = D2
