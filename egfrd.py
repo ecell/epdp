@@ -1119,7 +1119,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
             product_structure_type_id = product_species.structure_type_id
 
             # 1.5 get new position and structure_id of particle
-            # If the particle falls off a surface (non CuboidalRegion)
+            # If the particle falls off a surface (other than CuboidalRegion)
             if product_structure_type_id != reactant_structure_type_id:
                 assert (product_structure_type_id == self.world.get_def_structure_type_id())
 
@@ -1153,6 +1153,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
                     #vector_length = 1.0*product_radius * MINIMAL_SEPARATION_FACTOR
                     #vector        = reactant_pos + vector_length * reactant_structure.shape.unit_z
                     #product_pos_list.append(vector)
+
                     # unbinding perpendicularly to disk unit vector (i.e. like on cylinder)
                     vector_length = (product_radius + reactant_structure.shape.radius) * MINIMAL_SEPARATION_FACTOR
                     for _ in range(self.dissociation_retry_moves):
@@ -1167,6 +1168,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
                     raise RuntimeError('fire_single_reaction: Can not decay from 3D to other structure')
 
                 product_structure_id = self.world.get_def_structure_id()    # product structure is always the default structure (bulk)
+                # FIXME This should rather be the parent structure!
 
             # If decay happens to same structure_type
             else:
@@ -1242,12 +1244,12 @@ class EGFRDSimulator(ParticleSimulatorBase):
                 assert ((product1_structure_type_id == self.world.get_def_structure_type_id()) ^ \
                         (product2_structure_type_id == self.world.get_def_structure_type_id()))
 
-                # Figure out which product stays in the surface and which one goes to 3D
+                # Figure out which product stays in the surface and which one goes to 3D # FIXME It rather should go to the parent structure!
                 # Note that A is a particle in the surface and B is in the 3D
                 if (product2_structure_type_id == self.world.get_def_structure_type_id()):
                     # product2 goes to 3D and is now particleB (product1 is particleA and is on the surface)
                     product1_structure_id = reactant_structure_id # TODO after the displacement the structure can change!
-                    product2_structure_id = self.world.get_def_structure_id()
+                    product2_structure_id = self.world.get_def_structure_id() # FIXME see above
                     productA_radius = product1_radius
                     productB_radius = product2_radius
                     DA = D1
@@ -1256,13 +1258,27 @@ class EGFRDSimulator(ParticleSimulatorBase):
                 else:
                     # product1 goes to 3D and is now particleB (product2 is particleA)
                     product2_structure_id = reactant_structure_id
-                    product1_structure_id = self.world.get_def_structure_id()
+                    product1_structure_id = self.world.get_def_structure_id() # FIXME see above
                     productA_radius = product2_radius
                     productB_radius = product1_radius
                     DA = D2
                     DB = D1
                     default = False
 
+                # We have to readjust this again in the end, when creating product positions, etc.
+                # This is handled by the following function.
+                def conditional_swap(newposA, newposB):
+
+                    if default:
+                        return (newposA, newposB)
+                    else:
+                        return (newposB, newposA)
+
+                # Initialize product positions list
+                product_pos_list = []
+
+                # OK.
+                # Now let's check what actually happens.
                 if isinstance(reactant_structure, PlanarSurface):
                     # draw a number of new positions for the two product particles
                     # TODO make this a generator
@@ -1284,8 +1300,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
                             #bounding_surfaces.append( (surface, surface_distance) )
 
                     # OK, now sample new positions
-                    product_pos_list = []
-                    for _ in range(self.dissociation_retry_moves):                        
+                    for _ in range(self.dissociation_retry_moves):
 
                         # determine the side of the membrane the dissociation takes place
                         if(reactant_structure.shape.is_one_sided):
@@ -1333,15 +1348,10 @@ class EGFRDSimulator(ParticleSimulatorBase):
                                                   # TODO This should not necessarily raise RuntimeError but just a warning;
                                                   # this is for TESTING only; replace by something better
 
-                        if default:
-                            newpos1, newpos2 = newposA, newposB
-                        else:
-                            newpos1, newpos2 = newposB, newposA
-                        product_pos_list.append((newpos1, newpos2))
+                        product_pos_list.append(conditional_swap(newposA, newposB))
 
                 elif isinstance(reactant_structure, CylindricalSurface):
 
-                    product_pos_list = []
                     for _ in range(self.dissociation_retry_moves):
                         iv = random_vector(particle_radius12 * MixedPair1D3D.calc_r_scaling_factor(DA, DB))
                         iv *= MINIMAL_SEPARATION_FACTOR
@@ -1359,15 +1369,9 @@ class EGFRDSimulator(ParticleSimulatorBase):
                         if __debug__:
                             assert (self.world.distance(reactant_structure.shape, newposB) >= productB_radius)
 
-                        if default:
-                            newpos1, newpos2 = newposA, newposB
-                        else:
-                            newpos1, newpos2 = newposB, newposA
-                        product_pos_list.append((newpos1, newpos2))
+                        product_pos_list.append(conditional_swap(newposA, newposB))
 
                 elif isinstance(reactant_structure, DiskSurface):
-
-                    product_pos_list = []
 
                     # productA always must stay on the disk, in the position of the reactant
                     newposA = reactant_pos
@@ -1381,15 +1385,12 @@ class EGFRDSimulator(ParticleSimulatorBase):
                                         (reactant_structure.shape.unit_z * numpy.dot(unit_vector3D, reactant_structure.shape.unit_z)))
                         newposB = reactant_pos + vector_length * unit_vector2D                    
 
-                        if default:
-                            newpos1, newpos2 = newposA, newposB
-                        else:
-                            newpos1, newpos2 = newposB, newposA
-                        product_pos_list.append((newpos1, newpos2))
+                        product_pos_list.append(conditional_swap(newposA, newposB))
 
                 else:
                     # cannot decay from 3D to other structure
                     raise RuntimeError('fire_single_reaction: Can not decay from 3D to other structure')
+
 
             # 1.5 Get new positions and structure_ids of particles
             #     If the two particles stay on the same structure type as the reactant
