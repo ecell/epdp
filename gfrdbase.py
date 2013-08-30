@@ -264,7 +264,9 @@ def create_box(world, structure_type, center, size, one_sided=True):
     world.connect_structures(bottom, 3, right, 2)
     world.connect_structures(bottom, 2, left, 1)
 
-def create_rod(world, cyl_structure_type, cap_structure_type, name, position, radius, orientation, length, front_cap_structure_type=None, back_cap_structure_type=None):
+def create_rod(world, cyl_structure_type, cap_structure_type, name, position, radius, orientation, length, \
+               front_cap_structure_type=None,   back_cap_structure_type=None,  \
+               front_cap_parent_structure=None, back_cap_parent_structure=None ):
     """ Creates a cylinder with two disk-caps at its ends and adds it to the world.
 
         The function ensures that the orientation vectors of the disks point
@@ -299,11 +301,15 @@ def create_rod(world, cyl_structure_type, cap_structure_type, name, position, ra
                 the rod length
 
         Optional arguments:
-            - front_cap = [True/False]
-                if set to false, the front cap will not be placed;
-                True by default
-            - back_cap = [True/False]
-                same as above
+            - front_cap_structure_type
+                overrides the default structure type for the front cap
+            - back_cap_structure_type
+                same for the back cap
+            - front_cap_parent_structure
+                overrides the default parent structure (= the created rod)
+                of the front cap
+            - back_cap_parent_structure
+                same for the back cap
     """    
     # Assert that the location and size is ok
     position = numpy.array(position)
@@ -326,19 +332,29 @@ def create_rod(world, cyl_structure_type, cap_structure_type, name, position, ra
     if front_cap_structure_type:
         front_cap_sid = front_cap_structure_type.id
     if back_cap_structure_type:
-        back_cap_sid  = back_cap_structure_type.id
+        back_cap_sid  = back_cap_structure_type.id    
          
     # Create the cylinder of the rod
     rod = model.create_cylindrical_surface(cyl_sid, name+'_cylinder', position, radius, orientation, length, def_struct_id)
     world.add_structure(rod) # This must happen directly here otherwise rod.id will be undefined
-
+    
+    # By default the parent structure of the caps is the rod:
+    front_cap_parent_id = rod.id
+    back_cap_parent_id = rod.id
+    # Check whether the user wishes to make the caps child structures of sth. else than the rod
+    if front_cap_parent_structure:
+        front_cap_parent_id = front_cap_parent_structure.id
+    # same for the other cap
+    if back_cap_parent_structure:
+        back_cap_parent_id = back_cap_parent_structure.id
+    
     # Create the caps
     front_cap_pos = [p[0]+l*o[0], p[1]+l*o[1], p[2]+l*o[2]]
-    front_cap = model.create_disk_surface(front_cap_sid, name+'_front_cap', front_cap_pos, radius, orientation, rod.id)
+    front_cap = model.create_disk_surface(front_cap_sid, name+'_front_cap', front_cap_pos, radius, orientation, front_cap_parent_id)
     world.add_structure(front_cap)
 
     back_cap_pos = position
-    back_cap = model.create_disk_surface(back_cap_sid, name+'_back_cap', back_cap_pos, radius, [-o[0],-o[1],-o[2]], rod.id)
+    back_cap = model.create_disk_surface(back_cap_sid, name+'_back_cap', back_cap_pos, radius, [-o[0],-o[1],-o[2]], back_cap_parent_id)
     world.add_structure(back_cap)    
 
     return rod.id
