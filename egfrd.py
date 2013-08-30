@@ -234,7 +234,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
                                                 # to calculate ridiculously small timesteps, but will break detail balance.
                                                 # Take care: This is for testing only! Keep this at a negative value for normal sims!
 
-        self.REMOVE_OVERLAPS = True             # Ignore overlaps, only warn when they happen and move particles apart
+        self.REMOVE_OVERLAPS = False            # Ignore overlaps, only warn when they happen and move particles apart
         self.max_overlap_error = 0.0            # This remembers the largest relative error produced by removing overlaps
 
         # used datastructrures
