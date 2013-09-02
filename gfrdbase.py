@@ -359,10 +359,10 @@ def create_rod(world, cyl_structure_type, cap_structure_type, name, position, ra
     front_cap_parent_id = rod.id
     back_cap_parent_id = rod.id
     # Check whether the user wishes to make the caps child structures of sth. else than the rod
-    if front_cap_parent_structure:
+    if front_cap_parent_structure_id:
         front_cap_parent_id = front_cap_parent_structure_id
     # same for the other cap
-    if back_cap_parent_structure:
+    if back_cap_parent_structure_id:
         back_cap_parent_id = back_cap_parent_structure_id
     
     # Create the caps
