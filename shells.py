@@ -49,6 +49,7 @@ __all__ = [
     'PlanarSurfaceInteractiontestShell',
     'CylindricalSurfaceInteractiontestShell',
     'CylindricalSurfaceCapInteractiontestShell',
+    'CylindricalSurfacePlanarSurfaceTransitionSingletestShell',
     'CylindricalSurfaceSinktestShell',
     'MixedPair2D3DtestShell',
     'MixedPair1DCaptestShell',
@@ -2481,6 +2482,23 @@ class CylindricalSurfaceCapInteractiontestShell(CylindricaltestShell, testIntera
 
     def apply_safety(self, r, z_right, z_left):
         return r, z_right/SAFETY, z_left
+
+class CylindricalSurfacePlanarSurfaceTransitionSingletestShell(CylindricalSurfaceCapInteractiontestShell):
+
+    def __init__(self, single, target_structure, geometrycontainer, domains):
+        CylindricalSurfaceCapInteractiontestShell.__init__(self, single, target_structure, geometrycontainer, domains)
+        # This is essentially the same as CylindricalSurfaceCapInteractiontestShell, only that
+        # the orientation vector has to be calculated in a different way.
+
+        assert isinstance(target_structure, PlanarSurface)
+
+    def get_orientation_vector(self):
+        # The orientation vector is the (normalized) difference vector pointing from
+        # the particle position towards its projection onto the plane
+        particle_position = self.pid_particle_pair[1].position
+        projected_position = self.target_structure.project_point(particle_position)[0]
+        log.debug('%s, %s' % (particle_position, projected_position))
+        return normalize(particle_position - projected_position)
 
 class CylindricalSurfaceSinktestShell(CylindricaltestShell, testInteractionSingle):
 
