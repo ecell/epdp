@@ -199,6 +199,9 @@ def create_world(m, matrix_size=10):
 def create_box(world, structure_type, center, size, one_sided=True):
     """ Creates a box of PlanarSurface sections and adds it to the world.
 
+        Returns a list of the IDs of the separate planes in the following
+        order: [front.id, back.id, left.id, right.id, top.id, bottom.id].
+
         Arguments:
             - world
                 the world that the geometry is constructed in
@@ -264,9 +267,13 @@ def create_box(world, structure_type, center, size, one_sided=True):
     world.connect_structures(bottom, 3, right, 2)
     world.connect_structures(bottom, 2, left, 1)
 
+    # Return a list containing the IDs of the created planes
+    # in case that the user wishes to operate on them separately
+    return [front.id, back.id, left.id, right.id, top.id, bottom.id]
+
 def create_rod(world, cyl_structure_type, cap_structure_type, name, position, radius, orientation, length, \
-               front_cap_structure_type=None,   back_cap_structure_type=None,  \
-               front_cap_parent_structure=None, back_cap_parent_structure=None ):
+               front_cap_structure_type=None,      back_cap_structure_type=None,  \
+               front_cap_parent_structure_id=None, back_cap_parent_structure_id=None ):
     """ Creates a cylinder with two disk-caps at its ends and adds it to the world.
 
         The function ensures that the orientation vectors of the disks point
@@ -343,10 +350,10 @@ def create_rod(world, cyl_structure_type, cap_structure_type, name, position, ra
     back_cap_parent_id = rod.id
     # Check whether the user wishes to make the caps child structures of sth. else than the rod
     if front_cap_parent_structure:
-        front_cap_parent_id = front_cap_parent_structure.id
+        front_cap_parent_id = front_cap_parent_structure_id
     # same for the other cap
     if back_cap_parent_structure:
-        back_cap_parent_id = back_cap_parent_structure.id
+        back_cap_parent_id = back_cap_parent_structure_id
     
     # Create the caps
     front_cap_pos = [p[0]+l*o[0], p[1]+l*o[1], p[2]+l*o[2]]
