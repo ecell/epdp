@@ -419,6 +419,7 @@ private:
         
         if ((int)::size(rules) == 0)
         {
+            LOG_DEBUG(("No single reaction rules." ));
             return false;
         }
      
@@ -431,6 +432,8 @@ private:
         {
             reaction_rule_type const& reaction_rule(*i);
             k_cumm += reaction_rule.k();
+            
+            LOG_DEBUG(("k_cumm=%g", k_cumm));
 
             if (k_cumm > rnd)
             // We have found the reaction rule that is in effect
