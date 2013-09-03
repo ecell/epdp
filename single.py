@@ -32,6 +32,7 @@ __all__ = [
     'CylindricalSurfaceInteraction',
     'CylindricalSurfaceCapInteraction',
     'CylindricalSurfacePlanarSurfaceInteractionSingle',
+    'CylindricalSurfacePlanarSurfaceInterfaceSingle',
     'CylindricalSurfaceSink',
     'PlanarSurfaceInteraction',
     'TransitionSingle',
@@ -587,7 +588,8 @@ class DiskSurfaceSingle(NonInteractionSingle, hasCylindricalShell):
     """
     def __init__(self, domain_id, shell_id, testShell, reactionrules):
 
-        assert isinstance(testShell, DiskSurfaceSingletestShell)
+        assert isinstance(testShell, DiskSurfaceSingletestShell) or \
+               isinstance(testShell,CylindricalSurfacePlanarSurfaceInterfaceSingletestShell)
         hasCylindricalShell.__init__(self, testShell, domain_id)
         NonInteractionSingle.__init__(self, domain_id, shell_id, reactionrules)
 
@@ -1167,6 +1169,67 @@ class CylindricalSurfacePlanarSurfaceInteractionSingle(CylindricalSurfaceCapInte
         CylindricalSurfaceCapInteraction.__init__(self, domain_id, shell_id, testShell, reactionrules, interactionrules)
         # For now this just does the same as the cap interaction, but the test shells
         # slightly differ and we like to keep things apart and organized.
+
+    def __str__(self):
+        return 'CylindricalSurfacePlanarSurfaceInteraction ' + Single.__str__(self)
+
+class CylindricalSurfacePlanarSurfaceInterfaceSingle(CylindricalSurfaceCapInteraction):
+    """1 Particle inside a (cylindrical) shell at the interface of a
+       PlanarSurface and CylindricalSurface.
+
+        * Particle coordinates on surface: z.
+        * Domain: cartesian z.
+        * Initial position: z = 0.
+        * Selected randomly when drawing displacement vector: none.
+    """
+    def __init__(self, domain_id, shell_id, testShell, reactionrules, interactionrules):
+
+        assert isinstance(testShell, CylindricalSurfacePlanarSurfaceInterfaceSingletestShell)
+        CylindricalSurfaceCapInteraction.__init__(self, domain_id, shell_id, testShell, reactionrules, interactionrules)
+
+    def getv(self):
+        
+        pass
+
+    def get_inner_dz_left(self):
+       
+        pass
+
+    def get_inner_dz_right(self):
+        
+        pass
+
+    def determine_next_event(self):
+        """Return an (event_time, event_type)-tuple.
+
+        """
+        return self.draw_reaction_time_tuple() # can only produce SINGLE_REACTION events
+
+    def iv_greens_function(self):
+
+        # We do not draw new positions in this domain anyhow
+        # TODO Do we really have to define that here?
+        inner_half_length = self.pid_particle_pair[1].position
+        return GreensFunction1DAbsAbs(0.0, 0.0, 0.0, -inner_half_length, inner_half_length)
+
+    def draw_new_position(self, dt, event_type):
+
+        if event_type == EventType.SINGLE_REACTION and len(self.reactionrule.products) == 1:
+
+            # The particle does not move in this domain, but upon monomolecular reaction it is
+            # placed in contact with the cylinder that hits the plane, at a random angle.
+            # Since the origin structure (plane) does not change, we have to sample this position here.
+            x, y = random_vector2D( (self.target_structure.shape.radius + self.pid_particle_pair[1].radius) * MINIMAL_SEPARATION_FACTOR)
+            displacement = x * self.origin_structure.shape.unit_x + y * self.origin_structure.shape.unit_y
+            new_pos = self.pid_particle_pair[1].position + displacement
+
+            return new_pos, self.origin_structure.id
+
+        else:
+            raise Exception('Disallowed event type other than SINGLE_REACTION or wrong no. of products in CylindricalSurfacePlanarSurfaceInterfaceSingle.')
+
+    def __str__(self):
+        return 'CylindricalSurfacePlanarSurfaceInterface ' + Single.__str__(self)
 
 class TransitionSingle(Single, TransitionTools, Others):
     """TransitionSingles are used when a particle changes from

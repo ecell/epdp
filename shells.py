@@ -50,6 +50,7 @@ __all__ = [
     'CylindricalSurfaceInteractiontestShell',
     'CylindricalSurfaceCapInteractiontestShell',
     'CylindricalSurfacePlanarSurfaceInteractionSingletestShell',
+    'CylindricalSurfacePlanarSurfaceInterfaceSingletestShell',
     'CylindricalSurfaceSinktestShell',
     'MixedPair2D3DtestShell',
     'MixedPair1DCaptestShell',
@@ -180,7 +181,7 @@ class testInteractionSingle(testSingle, Others):
 
         ### initialize some constants that are common for the testInteractionSingle domains.
 
-        # calculate the Projected_point and distance to the target_structure
+        # Calculate the projected_point and distance to the target_structure
         # Cyclic transpose needed when calling target_structure.project_point!
         pos_transposed = self.world.cyclic_transpose(self.pid_particle_pair[1].position,
                                                      self.target_structure.shape.position)
@@ -210,7 +211,7 @@ class testInteractionSingle(testSingle, Others):
             self.reference_vector = normalize(diff_vector)
         else:
             self.reference_vector = 0
-            raise testShellError('(testInteractionSingle). reference vector = 0.')
+            log.warning('(testInteractionSingle). reference vector = 0.')
 
 class testTransitionSingle(testSingle, Others):
 
@@ -2497,8 +2498,48 @@ class CylindricalSurfacePlanarSurfaceInteractionSingletestShell(CylindricalSurfa
         # the particle position towards its projection onto the plane
         particle_position = self.pid_particle_pair[1].position
         projected_position = self.target_structure.project_point(particle_position)[0]
-        log.debug('%s, %s' % (particle_position, projected_position))
         return normalize(particle_position - projected_position)
+
+class CylindricalSurfacePlanarSurfaceInterfaceSingletestShell(CylindricalSurfaceCapInteractiontestShell):
+
+    def __init__(self, single, target_structure, geometrycontainer, domains):
+
+        # We want to form this domain only when the particle just arrived onto the plane exiting from a perpendicular cylinder
+        # Here we check in advance whether the particle is on the cylinder axis by projecting the difference vector between
+        # particle position and cylinder midpoint onto the plane (the projection is zero if both lie on the cyl. axis)
+        distance_from_axis = target_structure.project_point(single.pid_particle_pair[1].position)[1][0]
+        if not feq(distance_from_axis, 0.0, typical=single.pid_particle_pair[1].radius):
+
+            raise testShellError(('Particle is not directly below cylinder, distance from axis = %s' % distance_from_axis))
+
+        # If everything seems OK, we can proceed with creating the test shell
+        CylindricalSurfaceCapInteractiontestShell.__init__(self, single, target_structure, geometrycontainer, domains)               
+
+        # Override the shellsize determined for CylindricalSurfacePlanarSurfaceInteractionSingletestShell
+        # This one has the size of a zero single; the scaling parameters can stay the same, since we are not scaling anyhow
+        self.dz_right = self.pid_particle_pair[1].radius
+        self.dz_left  = self.pid_particle_pair[1].radius
+        self.dr       = self.pid_particle_pair[1].radius
+
+    def get_searchpoint(self):
+        return self.pid_particle_pair[1].position
+
+    def get_referencepoint(self):
+        return self.pid_particle_pair[1].position
+
+    def get_min_dr_dzright_dzleft(self):
+        # TODO This will never be called, right? Why do dz_right/dz_left have value larger than particle_radius?
+        dr       = self.dr_const
+        dz_right = self.pid_particle_pair[1].radius * math.sqrt(MULTI_SHELL_FACTOR**2 - 1.0)
+        dz_left  = dz_right
+        return dr, dz_right, dz_left
+        
+    def get_max_dr_dzright_dzleft(self):
+        # Radius is not scaled here so we do not to check for distance to shape edge
+        dr       = self.dr_const
+        dz_right = self.pid_particle_pair[1].radius * math.sqrt(MULTI_SHELL_FACTOR**2 - 1.0) # same as the minimum, i.e. no scaling of this length
+        dz_left  = dz_right
+        return dr, dz_right, dz_left
 
 class CylindricalSurfaceSinktestShell(CylindricaltestShell, testInteractionSingle):
 
