@@ -49,7 +49,7 @@ __all__ = [
     'PlanarSurfaceInteractiontestShell',
     'CylindricalSurfaceInteractiontestShell',
     'CylindricalSurfaceCapInteractiontestShell',
-    'CylindricalSurfacePlanarSurfaceTransitionSingletestShell',
+    'CylindricalSurfacePlanarSurfaceInteractionSingletestShell',
     'CylindricalSurfaceSinktestShell',
     'MixedPair2D3DtestShell',
     'MixedPair1DCaptestShell',
@@ -2483,7 +2483,7 @@ class CylindricalSurfaceCapInteractiontestShell(CylindricaltestShell, testIntera
     def apply_safety(self, r, z_right, z_left):
         return r, z_right/SAFETY, z_left
 
-class CylindricalSurfacePlanarSurfaceTransitionSingletestShell(CylindricalSurfaceCapInteractiontestShell):
+class CylindricalSurfacePlanarSurfaceInteractionSingletestShell(CylindricalSurfaceCapInteractiontestShell):
 
     def __init__(self, single, target_structure, geometrycontainer, domains):
         CylindricalSurfaceCapInteractiontestShell.__init__(self, single, target_structure, geometrycontainer, domains)

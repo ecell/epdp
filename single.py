@@ -31,7 +31,7 @@ __all__ = [
     'InteractionSingle',
     'CylindricalSurfaceInteraction',
     'CylindricalSurfaceCapInteraction',
-    'CylindricalSurfacePlanarSurfaceTransitionSingle',
+    'CylindricalSurfacePlanarSurfaceInteractionSingle',
     'CylindricalSurfaceSink',
     'PlanarSurfaceInteraction',
     'TransitionSingle',
@@ -1151,7 +1151,7 @@ class CylindricalSurfaceCapInteraction(InteractionSingle):
     def __str__(self):
         return 'CylindricalSurfaceCapInteraction ' + Single.__str__(self)
 
-class CylindricalSurfacePlanarSurfaceTransitionSingle(CylindricalSurfaceCapInteraction):
+class CylindricalSurfacePlanarSurfaceInteractionSingle(CylindricalSurfaceCapInteraction):
     """1 Particle inside a (Cylindrical) shell on a CylindricalSurface
        limited by a plane. The plane is a reactive surface to the particle
        and its intersection with the cylinder axis defines the exit point 
@@ -1163,7 +1163,7 @@ class CylindricalSurfacePlanarSurfaceTransitionSingle(CylindricalSurfaceCapInter
     """
     def __init__(self, domain_id, shell_id, testShell, reactionrules, interactionrules):
 
-        assert isinstance(testShell, CylindricalSurfacePlanarSurfaceTransitionSingletestShell)
+        assert isinstance(testShell, CylindricalSurfacePlanarSurfaceInteractionSingletestShell)
         CylindricalSurfaceCapInteraction.__init__(self, domain_id, shell_id, testShell, reactionrules, interactionrules)
         # For now this just does the same as the cap interaction, but the test shells
         # slightly differ and we like to keep things apart and organized.
