@@ -1225,8 +1225,15 @@ class CylindricalSurfacePlanarSurfaceInterfaceSingle(CylindricalSurfaceCapIntera
 
             return new_pos, self.origin_structure.id
 
+        elif event_type == EventType.BURST:
+
+            # When we burst it nothing happens to the particle
+            new_pos = self.pid_particle_pair[1].position
+
+            return new_pos, self.origin_structure.id            
+
         else:
-            raise Exception('Disallowed event type other than SINGLE_REACTION or wrong no. of products in CylindricalSurfacePlanarSurfaceInterfaceSingle.')
+            raise Exception('Disallowed event type or wrong no. of products in CylindricalSurfacePlanarSurfaceInterfaceSingle.')
 
     def __str__(self):
         return 'CylindricalSurfacePlanarSurfaceInterface ' + Single.__str__(self)
