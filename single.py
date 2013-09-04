@@ -1225,6 +1225,8 @@ class CylindricalSurfacePlanarSurfaceInterfaceSingle(CylindricalSurfaceCapIntera
 
             return new_pos, self.origin_structure.id
 
+        # TODO What if we have 2 products? Compare to DiskSurfaceSingle
+
         elif event_type == EventType.BURST:
 
             # When we burst it nothing happens to the particle
