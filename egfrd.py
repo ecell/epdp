@@ -1389,7 +1389,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
                     newposA = reactant_pos
 
                     # Create the position of the particle that goes into the bulk (productB)
-                    # This is the same as for the single reaction of a disk-bound particle (see above)
+                    # This is the same as for the single reaction of a completely dissociating disk-bound particle (see above)
                     vector_length = (productB_radius + max(productA_radius, reactant_structure.shape.radius)) * MINIMAL_SEPARATION_FACTOR
                     for _ in range(self.dissociation_retry_moves):
                         unit_vector3D = random_unit_vector()

@@ -2047,15 +2047,17 @@ class PlanarSurfacePairtestShell(CylindricaltestShell, testSimplePair):
         self.left_scalingangle  = self.get_left_scalingangle()
         # In particular store the tangent, because math.tan is expensive!
         self.tan_right_scalingangle = math.tan(self.right_scalingangle)
-        self.tan_left_scalingangle  = math.tan(self.left_scalingangle)
+        self.tan_left_scalingangle  = math.tan(self.left_scalingangle)        
 
         # This will determine if the shell is possible.
         # If possible, it will write the dr, dz_right, dz_left defining the dimensions of the cylindrical shell.
         # If not possible, it throws an exception and the construction of the testShell IS ABORTED!
+        self.ignored_structures = self.set_structure_ignore_list()
+
         try:
             self.dr, self.dz_right, self.dz_left = \
                             self.determine_possible_shell(self.structure.id, [self.single1.domain_id, self.single2.domain_id],
-                                                          [])
+                                                          self.ignored_structures)
         except ShellmakingError as e:
             raise testShellError('(PlanarSurfacePair). %s' %
                                  (str(e)))
@@ -2086,6 +2088,36 @@ class PlanarSurfacePairtestShell(CylindricaltestShell, testSimplePair):
 
     def apply_safety(self, r, z_right, z_left):
         return r/SAFETY, z_right, z_left
+
+    def set_structure_ignore_list(self):
+
+        ignored_structures = [] # by default
+
+        # The "interface pair", i.e. one of the particles is static (D=0) and located below
+        # the cylinder from which it moved on the membrane. In that case we want to ignore 
+        # the cylindrical surface.
+        if self.pid_particle_pair1[1].D == 0 or self.pid_particle_pair2[1].D == 0:
+
+            ignored_structures = [s.id for s in self.world.structures if isinstance(s, CylindricalSurface)]
+            # TODO This should check whether the static particle is also indeed below a cylinder,
+            # and only ignore that cylinder!
+
+        return ignored_structures
+
+####
+class CylindricalSurfacePlanarSurfaceInterfacePairtestShell(PlanarSurfacePairtestShell):
+
+    def __init__(self, single1, single2, geometrycontainer, domains):
+
+        # This special domain is constructed when a 2D particle tries to interact with a static
+        # particle located at the interface between a cylinder and a plane.
+        # In that case we have to ignore the cylindrical structure at shell construction.
+        # Otherwise it does the same as the regular PlanarSurfacePair.
+
+        self.ignored_structures = [s.id for s in self.world.structures if isinstance(s, CylindricalSurface)]
+        # TODO only ignore the cylinder closest to the "static" single
+
+        PlanarSurfacePairtestShell(self, single1, single2, geometrycontainer, domains)
 
 #####
 class CylindricalSurfaceSingletestShell(CylindricaltestShell, testNonInteractionSingle):
@@ -2421,6 +2453,10 @@ class CylindricalSurfaceCapInteractiontestShell(CylindricaltestShell, testIntera
         CylindricaltestShell.__init__(self, geometrycontainer, domains)  # this must be first because of world definition
         testInteractionSingle.__init__(self, single, single.structure, target_structure)
 
+        # We want to form this domain only if the cap actually is a substructure of the cylinder of origin
+        #if not target_structure.id == single.structure.structure_id:
+            #raise testShellError('(CylindricalSurfaceCapInteraction). Target structure is not a substructure of the origin structure.')
+
         # Initialize scaling parameters
         # - the reference point is at the cap disk position
         # - the orientation vector points from the cap towards the rod particle, i.e.:
@@ -2510,7 +2546,7 @@ class CylindricalSurfacePlanarSurfaceInterfaceSingletestShell(CylindricalSurface
         distance_from_axis = target_structure.project_point(single.pid_particle_pair[1].position)[1][0]
         if not feq(distance_from_axis, 0.0, typical=single.pid_particle_pair[1].radius):
 
-            raise testShellError(('Particle is not directly below cylinder, distance from axis = %s' % distance_from_axis))
+            raise testShellError(('(CylindricalSurfacePlanarSurfaceInterfaceSingle) Particle is not directly below cylinder, distance from axis = %s' % distance_from_axis))
 
         # If everything seems OK, we can proceed with creating the test shell
         CylindricalSurfaceCapInteractiontestShell.__init__(self, single, target_structure, geometrycontainer, domains)               
