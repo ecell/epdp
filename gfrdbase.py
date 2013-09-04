@@ -264,18 +264,18 @@ def create_box(world, structure_type, center, size, one_sided=True):
     # - neighbor 3 is the one in positive unit_x direction ("right neighbor")
     #
     # See StructureContainer.hpp for more details.
-    world.connect_structures( front, 3, top, 2)
-    world.connect_structures( front, 2, bottom, 1)
-    world.connect_structures( front, 1, left, 2)
-    world.connect_structures( front, 0, right, 1)
-    world.connect_structures(  back, 3, right, 0)
-    world.connect_structures(  back, 2, left, 3)
-    world.connect_structures(  back, 1, bottom, 0)
-    world.connect_structures(  back, 0, top, 3)
-    world.connect_structures(   top, 1, left, 0)
-    world.connect_structures(   top, 0, right, 3)
-    world.connect_structures(bottom, 3, right, 2)
-    world.connect_structures(bottom, 2, left, 1)
+    world.connect_structures( left, 3, top, 2)
+    world.connect_structures( left, 2, bottom, 1)
+    world.connect_structures( left, 1, back, 2)
+    world.connect_structures( left, 0, front, 1)
+    world.connect_structures(  right, 3, front, 0)
+    world.connect_structures(  right, 2, back, 3)
+    world.connect_structures(  right, 1, bottom, 0)
+    world.connect_structures(  right, 0, top, 3)
+    world.connect_structures(   top, 1, back, 0)
+    world.connect_structures(   top, 0, front, 3)
+    world.connect_structures(bottom, 3, front, 2)
+    world.connect_structures(bottom, 2, back, 1)
 
     # Return a list containing the IDs of the created planes
     # in case that the user wishes to operate on them separately
