@@ -3005,7 +3005,7 @@ max. overlap error:  %g
             ignores = [s.id for s in self.world.structures if isinstance(s, PlanarSurface)]
             associated = []
         elif isinstance(domain, DiskSurfaceSingle):
-            # Particles bound to DiskSurfaces ignore all rods for now. TODO Only ignore neighboring structure
+            # Particles bound to DiskSurfaces ignore all rods for now. TODO Only ignore neighboring/parent rods
             ignores = [s.id for s in self.world.structures if isinstance(s, CylindricalSurface)]
             associated = [domain.structure.id]
         elif isinstance(domain, CylindricalSurfaceInteraction):
@@ -3016,6 +3016,11 @@ max. overlap error:  %g
             # Ignore surface of the particle and interaction surface
             ignores = []
             associated = [domain.origin_structure.id, domain.target_structure.id]
+        elif isinstance(domain, PlanarSurfacePair):
+            # PlanarSurface domains sometimes are formed with a particle that just exited from a rod onto the plane.
+            # In these cases, the rod shall be ignored.
+            ignores = domain.ignored_structures # this is a list already
+            associated = [domain.structure.id]
         elif isinstance(domain, PlanarSurfaceTransitionSingle) or isinstance(domain, PlanarSurfaceTransitionPair):
             # Ignore surface of the particle and interaction surface
             ignores = []
