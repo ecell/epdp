@@ -957,6 +957,74 @@ class CylindricalSurfaceInteraction(InteractionSingle):
                'radius = %s, half_length = %s' %
                 (self.shell.shape.radius, self.shell.shape.half_length))
 
+class PlanarSurfaceCylindricalSurfaceInteraction(CylindricalSurfaceInteraction):
+    """1 Particle on a PlanarSurface close to a CylindricalSurface, 
+       inside a cylindrical shell that surrounds the CylindricalSurface.
+
+        * Particle coordinates inside shell: r, theta, z.
+        * Domains: composite r-theta, cartesian z.
+        * Initial position: r = r, theta = 0, z = z.
+        * Selected randomly when drawing displacement vector: none.
+
+    """
+    def __init__(self, domain_id, shell_id, testShell, reactionrules, interactionrules):
+
+        # This domain is basically equivalent to CylindricalSurfaceInteraction. It uses
+        # the same Green's function for binding, but the particle's z-coordinate does not
+        # change here. Thus we have to modify draw_new_position() accordingly.
+        assert isinstance(testShell, PlanarSurfaceCylindricalSurfaceInteractiontestShell)
+        # Initialize the parent class. This should be fine since the test shell also has
+        # CylindricalSurfaceInteractiontestShell as a parent class.
+        CylindricalSurfaceInteraction.__init__(self, domain_id, shell_id, testShell, reactionrules, interactionrules)
+
+    def draw_new_position(self, dt, event_type):
+        oldpos = self.pid_particle_pair[1].position
+
+        if self.D == 0:
+            newpos = oldpos
+        elif event_type == EventType.SINGLE_REACTION and len(self.reactionrule.products) == 0:
+            newpos = oldpos
+        else:
+            # 1) Draw z.
+            # Here z does not change, the particle stays on the plane
+            # => do nothing here
+
+            # The rest is the same as in the parent class.
+
+            # 2) Draw r and theta.
+            # If the event was not yet fully specified
+            if event_type == EventType.IV_EVENT:        
+                self.event_type = self.draw_iv_event_type()
+                event_type = self.event_type
+
+            sigma = self.get_inner_sigma()
+            a_r = self.get_inner_a()
+            gf_iv = self.iv_greens_function()
+
+            if event_type == EventType.IV_ESCAPE:
+                r = a_r
+            elif event_type == EventType.IV_INTERACTION:
+                r = sigma
+            else:
+                r = draw_r_wrapper(gf_iv, dt, a_r, sigma)
+            theta = draw_theta_wrapper(gf_iv, r, dt)
+
+            r_vector = r * rotate_vector(self.unit_r, self.shell.shape.unit_z,
+                                     theta)
+
+            # Add displacement to shell.shape.position, not to particle.position.  
+            newpos = self.shell.shape.position + r_vector
+
+        # The structure on which the particle ended is always the same as on which it began.
+        structure_id = self.origin_structure.id
+
+        return newpos, structure_id
+
+    def __str__(self):
+        return ('PlanarSurfaceCylindricalSurfaceInteraction' + Single.__str__(self) + \
+               'radius = %s, half_length = %s' %
+                (self.shell.shape.radius, self.shell.shape.half_length))
+
 
 class CylindricalSurfaceSink(InteractionSingle):
     """1 Particle inside a (Cylindrical) shell on a CylindricalSurface.
