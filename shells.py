@@ -2099,7 +2099,11 @@ class PlanarSurfacePairtestShell(CylindricaltestShell, testSimplePair):
         if self.pid_particle_pair1[1].D == 0 or self.pid_particle_pair2[1].D == 0:
 
             ignored_structures = [s.id for s in self.world.structures if isinstance(s, CylindricalSurface)]
-            # TODO This should check whether the static particle is also indeed below a cylinder,
+
+            if __debug__:
+                log.info('(PlanarSurfacePair). Ignoring cylindrical structures, ignore list = %s' % str(ignored_structures))
+
+            # TODO FIXME This should check whether the static particle is also indeed below a cylinder,
             # and only ignore that cylinder!
 
         return ignored_structures
@@ -2446,6 +2450,44 @@ class CylindricalSurfaceInteractiontestShell(CylindricaltestShell, testInteracti
 
     def apply_safety(self, r, z_right, z_left):
         return r/SAFETY, self.z_right(r/SAFETY)/SAFETY, self.z_left(r/SAFETY)/SAFETY
+
+class PlanarSurfaceCylindricalSurfaceInteractiontestShell(CylindricalSurfaceInteractiontestShell):
+
+    # This class is in essence the same as CylindricalSurfaceInteractiontestShell, but with
+    # different shellscaling parameters. Therefore a new constructor has to be defined.
+    def __init__(self, single, target_structure, geometrycontainer, domains):
+        CylindricaltestShell.__init__(self, geometrycontainer, domains)  # this must be first because of world definition
+        testInteractionSingle.__init__(self, single, single.structure, target_structure)
+        
+        # Initialize the scaling parameters
+        # These are copied from PlanarSurfacePairtestShell
+        self.dzdr_right = 0.0
+        self.drdz_right = numpy.inf
+        self.r0_right   = 0.0
+        self.z0_right   = self.pid_particle_pair[1].radius
+        self.dzdr_left  = 0.0
+        self.drdz_left  = numpy.inf
+        self.r0_left    = 0.0
+        self.z0_left    = self.z0_right
+
+        # Now we can also define the scaling angle
+        self.right_scalingangle = self.get_right_scalingangle()
+        self.left_scalingangle  = self.get_left_scalingangle()
+        # In particular store the tangent, because math.tan is expensive!
+        self.tan_right_scalingangle = math.tan(self.right_scalingangle)
+        self.tan_left_scalingangle  = math.tan(self.left_scalingangle)
+
+        # This will determine if the shell is possible.
+        # If possible, it will write the dr, dz_right, dz_left defining the dimensions of the cylindrical shell.
+        # If not possible, it throws an exception and the construction of the testShell IS ABORTED!
+        # Note that here we know all structures that have to be ignored (origin and target structure).
+        try:
+            self.dr, self.dz_right, self.dz_left = \
+                            self.determine_possible_shell(self.origin_structure.id, [self.single.domain_id], [self.target_structure.id])
+        except ShellmakingError as e:
+            raise testShellError('(PlanarSurfaceCylindricalSurfaceInteraction). %s' %
+                                 (str(e)))
+    
 
 class CylindricalSurfaceCapInteractiontestShell(CylindricaltestShell, testInteractionSingle):
 
