@@ -43,6 +43,7 @@ __all__ = [
     'PlanarSurfacePairtestShell',
     'PlanarSurfaceTransitionSingletestShell',
     'PlanarSurfaceTransitionPairtestShell',
+    'PlanarSurfaceCylindricalSurfaceInteractiontestShell',
     'CylindricalSurfaceSingletestShell',
     'DiskSurfaceSingletestShell',
     'CylindricalSurfacePairtestShell',
@@ -836,7 +837,7 @@ def get_dr_dzright_dzleft_to_CylindricalShape(shape, testShell, r, z_right, z_le
 
     # Get the reference point and orientation of the domain to scale
     reference_point = testShell.get_referencepoint()
-    orientation_vector = testShell.get_orientation_vector()
+    orientation_vector = testShell.get_orientation_vector()    
 
     # FIXME DIRTY HACK TO MAKE DOMAINS LESS GREEDY
 #    r = min(r, testShell.world.distance(shape.position, reference_point)/2)
@@ -874,7 +875,7 @@ def get_dr_dzright_dzleft_to_CylindricalShape(shape, testShell, r, z_right, z_le
         z2 = z_right
     
     # This must always be the case:
-    assert scale_angle >= 0.0
+    assert scale_angle >= 0.0    
 
     # Check how the cylinders are oriented with respect to each other
     relative_orientation = abs(numpy.dot(orientation_vector, shape.unit_z))
@@ -887,7 +888,6 @@ def get_dr_dzright_dzleft_to_CylindricalShape(shape, testShell, r, z_right, z_le
         ref_to_shell_r_vec = ref_to_shell_vec - ref_to_shell_z_vec
         ref_to_shell_r = length(ref_to_shell_r_vec)         # the radius is always positive
         ref_to_shell_z = ref_to_shell_z * direction         # ref_to_shell_z is positive on the scaling side (right/left)
-
 
         # calculate the distances in r/z from the scaling center to the shell
         scale_center_to_shell_r = ref_to_shell_r - scale_center_r
@@ -2477,6 +2477,8 @@ class PlanarSurfaceCylindricalSurfaceInteractiontestShell(CylindricalSurfaceInte
         self.tan_right_scalingangle = math.tan(self.right_scalingangle)
         self.tan_left_scalingangle  = math.tan(self.left_scalingangle)
 
+        log.debug('left_scalingangle = %s, right_scalingangle = %s' % (self.left_scalingangle, self.right_scalingangle) )
+
         # This will determine if the shell is possible.
         # If possible, it will write the dr, dz_right, dz_left defining the dimensions of the cylindrical shell.
         # If not possible, it throws an exception and the construction of the testShell IS ABORTED!
@@ -2488,6 +2490,20 @@ class PlanarSurfaceCylindricalSurfaceInteractiontestShell(CylindricalSurfaceInte
             raise testShellError('(PlanarSurfaceCylindricalSurfaceInteraction). %s' %
                                  (str(e)))
     
+    def get_min_dr_dzright_dzleft(self):        
+        dr       = self.pid_particle_pair[1].radius * SINGLE_SHELL_FACTOR + (self.particle_surface_distance + self.target_structure.shape.radius)
+        dz_right = self.pid_particle_pair[1].radius
+        dz_left  = dz_right
+        return dr, dz_right, dz_left
+
+    def get_max_dr_dzright_dzleft(self): # same as for PlanarSurfaceSingletestShell
+        dz_right = self.pid_particle_pair[1].radius
+        dz_left  = dz_right
+        dr_sr    = math.sqrt((self.get_searchradius())**2 - dz_right**2) # stay within the searchradius
+#        dr_edge  = self.structure.min_dist_proj_to_edge(self.get_referencepoint()) # TODO rethink this
+#        dr       = min(dr_sr, dr_edge)
+        dr = dr_sr
+        return dr, dz_right, dz_left
 
 class CylindricalSurfaceCapInteractiontestShell(CylindricaltestShell, testInteractionSingle):
 
@@ -2591,7 +2607,7 @@ class CylindricalSurfacePlanarSurfaceInterfaceSingletestShell(CylindricalSurface
             raise testShellError(('(CylindricalSurfacePlanarSurfaceInterfaceSingle) Particle is not directly below cylinder, distance from axis = %s' % distance_from_axis))
 
         # If everything seems OK, we can proceed with creating the test shell
-        CylindricalSurfaceCapInteractiontestShell.__init__(self, single, target_structure, geometrycontainer, domains)               
+        CylindricalSurfaceCapInteractiontestShell.__init__(self, single, target_structure, geometrycontainer, domains)
 
         # Override the shellsize determined for CylindricalSurfacePlanarSurfaceInteractionSingletestShell
         # This one has the size of a zero single; the scaling parameters can stay the same, since we are not scaling anyhow
