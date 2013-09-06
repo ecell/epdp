@@ -39,6 +39,7 @@ from constants import *
 from shellcontainer import ShellContainer
 from shells import (
     testShellError,
+    ShellmakingError,
     testPair,
     testInteractionSingle,
     hasSphericalShell,
@@ -53,6 +54,7 @@ from shells import (
     CylindricalSurfacePairtestShell,
     DiskSurfaceSingletestShell,
     PlanarSurfaceInteractiontestShell,
+    PlanarSurfaceCylindricalSurfaceInteractiontestShell,
     CylindricalSurfaceInteractiontestShell,
     CylindricalSurfaceCapInteractiontestShell,
     CylindricalSurfacePlanarSurfaceInteractionSingletestShell,
@@ -100,8 +102,17 @@ def try_default_testinteraction(single, target_structure, geometrycontainer, dom
             raise testShellError('(Interaction). Combination of (3D particle, target_structure) is not supported')
     elif isinstance(single.structure, PlanarSurface):
         if isinstance(target_structure, CylindricalSurface):
-            return CylindricalSurfacePlanarSurfaceInterfaceSingletestShell (single, target_structure, geometrycontainer, domains)
-        raise testShellError('(Interaction). Combination of (2D particle, target_structure) is not supported')
+            # here we have 2 possibilities; first we try the less probable one (special conditions apply that are checked
+            # upon test shell construction), then the more common one.
+            try:
+                return CylindricalSurfacePlanarSurfaceInterfaceSingletestShell (single, target_structure, geometrycontainer, domains)
+            except testShellError as e:
+                if __debug__:
+                    log.warn('Could not make CylindricalSurfacePlanarSurfaceInterfaceSingletestShell, %s; now trying PlanarSurfaceCylindricalSurfaceInteractiontestShell.' % str(e))
+                return PlanarSurfaceCylindricalSurfaceInteractiontestShell (single, target_structure, geometrycontainer, domains)
+                # if both shells do not work in this situation the second try will result in raising another shellmaking exception
+        else:
+            raise testShellError('(Interaction). Combination of (2D particle, target_structure) is not supported')
     elif isinstance(single.structure, CylindricalSurface):
         if isinstance(target_structure, DiskSurface):
             return CylindricalSurfaceCapInteractiontestShell (single, target_structure, geometrycontainer, domains)
@@ -115,13 +126,15 @@ def try_default_testinteraction(single, target_structure, geometrycontainer, dom
         raise testShellError('(Interaction). structure of particle was of invalid type')
 
 def create_default_interaction(domain_id, shell_id, testShell, reaction_rules, interaction_rules):
-    if isinstance(testShell, CylindricalSurfaceInteractiontestShell):
+    if isinstance(testShell, PlanarSurfaceCylindricalSurfaceInteractiontestShell): # must be first because it is a special case of CylindricalSurfaceInteractiontestShell
+        return PlanarSurfaceCylindricalSurfaceInteraction (domain_id, shell_id, testShell, reaction_rules, interaction_rules)
+    elif isinstance(testShell, CylindricalSurfaceInteractiontestShell):
         return CylindricalSurfaceInteraction    (domain_id, shell_id, testShell, reaction_rules, interaction_rules)
     elif isinstance(testShell, PlanarSurfaceInteractiontestShell):
         return PlanarSurfaceInteraction         (domain_id, shell_id, testShell, reaction_rules, interaction_rules)
     elif isinstance(testShell, CylindricalSurfacePlanarSurfaceInteractionSingletestShell): # must be first because it is a special case of CylindricalSurfaceCapInteractiontestShell
         return CylindricalSurfacePlanarSurfaceInteractionSingle (domain_id, shell_id, testShell, reaction_rules, interaction_rules)
-    elif isinstance(testShell, CylindricalSurfacePlanarSurfaceInterfaceSingletestShell): # this is actually not really an interaction, but we need to put it here to ignore the target structure
+    elif isinstance(testShell, CylindricalSurfacePlanarSurfaceInterfaceSingletestShell): # this is actually not a regular interaction, but we need to put it here to ignore the target structure
         return CylindricalSurfacePlanarSurfaceInterfaceSingle (domain_id, shell_id, testShell, reaction_rules, interaction_rules)
     elif isinstance(testShell, CylindricalSurfaceCapInteractiontestShell):
         return CylindricalSurfaceCapInteraction (domain_id, shell_id, testShell, reaction_rules, interaction_rules)
