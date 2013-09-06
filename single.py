@@ -35,6 +35,7 @@ __all__ = [
     'CylindricalSurfacePlanarSurfaceInterfaceSingle',
     'CylindricalSurfaceSink',
     'PlanarSurfaceInteraction',
+    'PlanarSurfaceCylindricalSurfaceInteraction',
     'TransitionSingle',
     'PlanarSurfaceTransitionSingle',
     ]
@@ -976,6 +977,12 @@ class PlanarSurfaceCylindricalSurfaceInteraction(CylindricalSurfaceInteraction):
         # Initialize the parent class. This should be fine since the test shell also has
         # CylindricalSurfaceInteractiontestShell as a parent class.
         CylindricalSurfaceInteraction.__init__(self, domain_id, shell_id, testShell, reactionrules, interactionrules)
+
+    def draw_escape_time_tuple(self):
+        # This draws the time for escape in z-direction; since the particle in this domain
+        # remains bound to the plane, we do not want to draw any z-escape time and just
+        # return t=infinity for the SINGLE_ESCAPE event here.
+        return numpy.inf, EventType.SINGLE_ESCAPE
 
     def draw_new_position(self, dt, event_type):
         oldpos = self.pid_particle_pair[1].position
