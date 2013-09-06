@@ -978,6 +978,8 @@ class PlanarSurfaceCylindricalSurfaceInteraction(CylindricalSurfaceInteraction):
         # CylindricalSurfaceInteractiontestShell as a parent class.
         CylindricalSurfaceInteraction.__init__(self, domain_id, shell_id, testShell, reactionrules, interactionrules)
 
+        self.product_structure = self.origin_structure
+
     def draw_escape_time_tuple(self):
         # This draws the time for escape in z-direction; since the particle in this domain
         # remains bound to the plane, we do not want to draw any z-escape time and just

@@ -1587,7 +1587,16 @@ class EGFRDSimulator(ParticleSimulatorBase):
             # 1. get product info
             product_species      = self.world.get_species(rr.products[0])
             product_radius       = product_species.radius
-            product_structure    = single.target_structure
+            # In some special domains that are formally an interaction the product actually stays
+            # behind on the origin structure (e.g. in the PlanarSurfaceCylindricalSurfaceInteraction,
+            # which is a plane particle interacting with a cylinder touching the plane).
+            # Therefore we have to make a distinction here. TODO FIXME this is not very elegant!
+            if single.product_structure:
+                product_structure    = single.product_structure # treating some special cases
+                target_structure     = single.target_structure
+            else:
+                product_structure    = single.target_structure # the default
+                target_structure     = single.target_structure
 
             # TODO make sure that the product species lives on the same type of the interaction surface
            #product_structure_type = self.world.get_structure(product_species.structure_id)
@@ -1596,8 +1605,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
             # 1.5 get new position and structure_id of particle
             transposed_pos       = self.world.cyclic_transpose(reactant_pos, product_structure.shape.position)
-            product_pos, _       = product_structure.project_point(transposed_pos)
-            product_pos          = self.world.apply_boundary(product_pos)        # not sure this is still necessary
+            product_pos, _       = target_structure.project_point(transposed_pos) # we always project on the target structure, even if it is not the product structure
+            product_pos          = self.world.apply_boundary(product_pos)         # not sure this is still necessary
             product_structure_id = product_structure.id
 
             # 2. burst the volume that will contain the products.
