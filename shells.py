@@ -428,6 +428,7 @@ class testMixedPair1DStatic(testPair):
         if __debug__: 
                 assert isinstance(single1D.structure, CylindricalSurface) 
                 assert isinstance(static_single.structure, DiskSurface) or isinstance(static_single.structure, PlanarSurface)
+                
         testPair.__init__(self, single1D, static_single)
           # note: this makes self.single1/self.pid_particle_pair1/self.structure1 for the 1D particle
           #              and self.single2/self.pid_particle_pair2/self.structure2 for the cap particle
@@ -447,6 +448,11 @@ class testMixedPair1DStatic(testPair):
         # to give the proper results for this case.
         assert self.static_particle.D == 0
         assert self.static_particle.v == 0
+
+        # If the static particle is on a disk, make sure that its position coincides
+        # with the disk position
+        if isinstance(static_structure, DiskSurface) and __debug__:
+                assert all(static_structure.shape.position - static_particle.position == 0.0)
 
     def get_sigma(self):
         # Copied from SimplePair
@@ -2996,7 +3002,7 @@ class MixedPair1DStatictestShell(CylindricaltestShell, testMixedPair1DStatic):
     def get_searchpoint(self):
         return self.particle1D.position
 
-    def get_referencepoint(self):        
+    def get_referencepoint(self):
         return self.static_particle.position
 
     def get_min_dr_dzright_dzleft(self):
