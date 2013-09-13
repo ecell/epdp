@@ -61,7 +61,7 @@ from shells import (
     CylindricalSurfacePlanarSurfaceInterfaceSingletestShell,
     CylindricalSurfaceSinktestShell,
     MixedPair2D3DtestShell,
-    MixedPair1DCaptestShell,
+    MixedPair1DStatictestShell,
     )
 
 import loadsave
@@ -175,9 +175,13 @@ def try_default_testpair(single1, single2, geometrycontainer, domains):
     elif (isinstance(single2.structure, PlanarSurface) and isinstance(single1.structure, CuboidalRegion)):
         return MixedPair2D3DtestShell(single2, single1, geometrycontainer, domains)
     elif (isinstance(single1.structure, CylindricalSurface) and isinstance(single2.structure, DiskSurface)):
-        return MixedPair1DCaptestShell(single1, single2, geometrycontainer, domains)
+        return MixedPair1DStatictestShell(single1, single2, geometrycontainer, domains)
     elif (isinstance(single2.structure, CylindricalSurface) and isinstance(single1.structure, DiskSurface)):
-        return MixedPair1DCaptestShell(single2, single1, geometrycontainer, domains)
+        return MixedPair1DStatictestShell(single2, single1, geometrycontainer, domains)
+    elif (isinstance(single1.structure, CylindricalSurface) and isinstance(single2.structure, PlanarSurface)):
+        return MixedPair1DStatictestShell(single1, single2, geometrycontainer, domains)
+    elif (isinstance(single2.structure, CylindricalSurface) and isinstance(single1.structure, PlanarSurface)):
+        return MixedPair1DStatictestShell(single2, single1, geometrycontainer, domains)
     else:
         # another mixed pair was supposed to be formed -> unsupported
         raise testShellError('(MixedPair). combination of structures not supported')
@@ -195,8 +199,8 @@ def create_default_pair(domain_id, shell_id, testShell, reaction_rules):
     # or MixedPair (3D/2D or 1D/Cap)
     elif isinstance(testShell, MixedPair2D3DtestShell):
         return MixedPair2D3D               (domain_id, shell_id, testShell, reaction_rules)
-    elif isinstance(testShell, MixedPair1DCaptestShell):
-        return MixedPair1DCap              (domain_id, shell_id, testShell, reaction_rules)
+    elif isinstance(testShell, MixedPair1DStatictestShell):
+        return MixedPair1DStatic           (domain_id, shell_id, testShell, reaction_rules)
 
 class Delegate(object):
     def __init__(self, obj, method, arg):
@@ -3034,7 +3038,7 @@ max. overlap error:  %g
             # Ignore surface of the particle and interaction surface and all DiskSurfaces for now.
             ignores = [s.id for s in self.world.structures if isinstance(s, DiskSurface)]
             associated = [domain.origin_structure.id, domain.target_structure.id]
-        elif isinstance(domain, InteractionSingle) or isinstance(domain, MixedPair2D3D) or isinstance(domain, MixedPair1DCap):
+        elif isinstance(domain, InteractionSingle) or isinstance(domain, MixedPair2D3D) or isinstance(domain, MixedPair1DStatic):
             # Ignore surface of the particle and interaction surface
             ignores = []
             associated = [domain.origin_structure.id, domain.target_structure.id]
