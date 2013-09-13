@@ -176,9 +176,11 @@ class testInteractionSingle(testSingle, Others):
         testSingle.__init__(self, single.pid_particle_pair, origin_structure)
         # Note: for the Others superclass nothing is to be initialized.
 
-        self.single           = single
-        self.origin_structure = origin_structure
-        self.target_structure = target_structure
+        self.single            = single
+        self.origin_structure  = origin_structure
+        self.target_structure  = target_structure
+        self.product_structure = target_structure
+                                 # by default; we allow for exceptions, though.
 
         ### initialize some constants that are common for the testInteractionSingle domains.
 

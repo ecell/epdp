@@ -696,7 +696,9 @@ class InteractionSingle(Single, hasCylindricalShell, Others):
 
         self.origin_structure = self.testShell.origin_structure
         self.target_structure = self.testShell.target_structure 
-             # The surface with which the particle is trying to interact                         
+             # The surface with which the particle is trying to interact
+        self.product_structure = self.testShell.product_structure
+             # The surface that later will hold the product (= target_structure in almost all cases)
 
     def get_interaction_rule(self):
         if self.intrule == None:
