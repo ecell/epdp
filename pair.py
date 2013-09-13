@@ -476,7 +476,7 @@ class PlanarSurfacePair(SimplePair, hasCylindricalShell):
         self.LD_MAX = 20 # Required by SimplePair.__init__
         SimplePair.__init__(self, domain_id, shell_id, rrs)
 
-        self.ignored_structures = testShell.ignored_structures
+        self.ignored_structure_ids = testShell.ignored_structure_ids
 
     def com_greens_function(self):
         return GreensFunction2DAbsSym(self.D_R, self.a_R)

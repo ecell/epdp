@@ -2052,12 +2052,12 @@ class PlanarSurfacePairtestShell(CylindricaltestShell, testSimplePair):
         # This will determine if the shell is possible.
         # If possible, it will write the dr, dz_right, dz_left defining the dimensions of the cylindrical shell.
         # If not possible, it throws an exception and the construction of the testShell IS ABORTED!
-        self.ignored_structures = self.set_structure_ignore_list()
+        self.ignored_structure_ids = self.set_structure_ignore_list()
 
         try:
             self.dr, self.dz_right, self.dz_left = \
                             self.determine_possible_shell(self.structure.id, [self.single1.domain_id, self.single2.domain_id],
-                                                          self.ignored_structures)
+                                                          self.ignored_structure_ids)
         except ShellmakingError as e:
             raise testShellError('(PlanarSurfacePair). %s' %
                                  (str(e)))
@@ -2091,22 +2091,48 @@ class PlanarSurfacePairtestShell(CylindricaltestShell, testSimplePair):
 
     def set_structure_ignore_list(self):
 
-        ignored_structures = [] # by default
+        ignored_structure_ids = [] # by default
 
         # The "interface pair", i.e. one of the particles is static (D=0) and located below
         # the cylinder from which it moved on the membrane. In that case we want to ignore 
         # the cylindrical surface.
         if self.pid_particle_pair1[1].D == 0 or self.pid_particle_pair2[1].D == 0:
 
-            ignored_structures = [s.id for s in self.world.structures if isinstance(s, CylindricalSurface)]
+            non_cylindrical_structures = [s.id for s in self.world.structures if not(isinstance(s, CylindricalSurface))]
 
-            if __debug__:
-                log.info('(PlanarSurfacePair). Ignoring cylindrical structures, ignore list = %s' % str(ignored_structures))
+            # Determine which particle is the one that is probably below the cylinder
+            if self.pid_particle_pair1[1].D == 0 and self.pid_particle_pair2[1].D > 0:
+                static_particle = self.pid_particle_pair1[1]
+                search_pos = self.pid_particle_pair1[1].position
+            elif self.pid_particle_pair2[1].D == 0 and self.pid_particle_pair1[1].D > 0:
+                static_particle = self.pid_particle_pair2[1]
+                search_pos = self.pid_particle_pair2[1].position
+            else:
+                raise testShellError('Both diffusion constants zero in Pair, something is wrong.')           
 
-            # TODO FIXME This should check whether the static particle is also indeed below a cylinder,
-            # and only ignore that cylinder!
+            # Determine the distance to the closest cylinder
+            # First get all close cylinders, then sort, then get the distance to the closest
+            close_structures = get_neighbor_surfaces(self.world, search_pos, self.structure.id, [])
+            close_cylindrical_structures = [surface_and_dist for surface_and_dist in close_structures if isinstance(surface_and_dist[0], CylindricalSurface)]
 
-        return ignored_structures
+            if close_cylindrical_structures != []:
+                sorted_close_cylindrical_structures = sorted(close_cylindrical_structures, key=lambda surface_and_dist : surface_and_dist[1])
+
+                closest_cylindrical_struct         = sorted_close_cylindrical_structures[0][0]
+                closest_cylindrical_struct_dist    = sorted_close_cylindrical_structures[0][1]
+
+                distance_from_closest_axis = closest_cylindrical_struct.project_point(search_pos)[1][0]
+
+                if feq(distance_from_closest_axis, 0.0, typical = static_particle.radius):
+                    ignored_structure_ids = [closest_cylindrical_struct.id]    
+
+                    if __debug__:
+                        log.info('(PlanarSurfacePair). Ignoring cylindrical structure, distance = %s, ignore list = %s' % (distance_from_closest_axis, ignored_structure_ids))
+
+                elif __debug__:
+                        log.info('(PlanarSurfacePair). Static particle is not below closest cyl. structure, distance = %s' % str(distance_from_closest_axis))
+
+        return ignored_structure_ids
 
 ####
 class CylindricalSurfacePlanarSurfaceInterfacePairtestShell(PlanarSurfacePairtestShell):
@@ -2118,7 +2144,7 @@ class CylindricalSurfacePlanarSurfaceInterfacePairtestShell(PlanarSurfacePairtes
         # In that case we have to ignore the cylindrical structure at shell construction.
         # Otherwise it does the same as the regular PlanarSurfacePair.
 
-        self.ignored_structures = [s.id for s in self.world.structures if isinstance(s, CylindricalSurface)]
+        self.ignored_structure_ids = [s.id for s in self.world.structures if isinstance(s, CylindricalSurface)]
         # TODO only ignore the cylinder closest to the "static" single
 
         PlanarSurfacePairtestShell(self, single1, single2, geometrycontainer, domains)
@@ -2477,7 +2503,7 @@ class PlanarSurfaceCylindricalSurfaceInteractiontestShell(CylindricalSurfaceInte
         self.tan_right_scalingangle = math.tan(self.right_scalingangle)
         self.tan_left_scalingangle  = math.tan(self.left_scalingangle)
 
-        log.debug('left_scalingangle = %s, right_scalingangle = %s' % (self.left_scalingangle, self.right_scalingangle) )
+        log.debug('left_scalingangle = %s, right_scalingangle = %s' % (self.left_scalingangle, self.right_scalingangle) ) # TODO DEBUG remove
 
         # This will determine if the shell is possible.
         # If possible, it will write the dr, dz_right, dz_left defining the dimensions of the cylindrical shell.

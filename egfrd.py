@@ -3041,7 +3041,7 @@ max. overlap error:  %g
         elif isinstance(domain, PlanarSurfacePair):
             # PlanarSurface domains sometimes are formed with a particle that just exited from a rod onto the plane.
             # In these cases, the rod shall be ignored.
-            ignores = domain.ignored_structures # this is a list already
+            ignores = domain.ignored_structure_ids # this is a list already
             associated = [domain.structure.id]
         elif isinstance(domain, PlanarSurfaceTransitionSingle) or isinstance(domain, PlanarSurfaceTransitionPair):
             # Ignore surface of the particle and interaction surface
