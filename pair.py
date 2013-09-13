@@ -23,7 +23,7 @@ __all__ = [
     'SimplePair',
     'MixedPair2D3D',
     'MixedPair1D3D',
-    'MixedPair1DCap',
+    'MixedPair1DStatic',
     ]
 
 import logging
@@ -1126,9 +1126,9 @@ class MixedPair1D3D(Pair):
         return math.sqrt((D1 + D2)/D2)
 
 
-class MixedPair1DCap(Pair, hasCylindricalShell):
+class MixedPair1DStatic(Pair, hasCylindricalShell):
     # This domain is for the interaction of a particle drifting and diffusing on a cylinder (1D particle)
-    # and another (static) particle which is bound to a cap of the same cylinder.
+    # and another (static) particle which is bound to a cap of the same cylinder or its interface with a plane.
     # Since the cap particle is immobile, we effectively have a one-particle problem
     # and the CoM is not used. The displacement of the 1D particle is sampled via iv_greens_function.
     # However, we have to make this a pair domain because we have two particles involved which
@@ -1138,28 +1138,28 @@ class MixedPair1DCap(Pair, hasCylindricalShell):
     def __init__(self, domain_id, shell_id, testShell, rrs):
         # Calls required parent inits and sets variables.
         #
-        # Sets:             particle1D, structure1D, cap_particle, cap_structure
+        # Sets:             particle1D, structure1D, static_particle, static_structure
         # Requires:         nothing to be set       
 
-        assert isinstance(testShell, MixedPair1DCaptestShell)
+        assert isinstance(testShell, MixedPair1DStatictestShell)
         hasCylindricalShell.__init__(self, testShell, domain_id)
         Pair.__init__(self, domain_id, shell_id, rrs)
 
-        assert isinstance(self.testShell, MixedPair1DCaptestShell)
+        assert isinstance(self.testShell, MixedPair1DStatictestShell)
 
         # Some useful definitions 
         self.particle1D    = self.testShell.particle1D
         self.structure1D   = self.testShell.structure1D
-        self.cap_particle  = self.testShell.cap_particle
-        self.cap_structure = self.testShell.cap_structure
+        self.static_particle  = self.testShell.static_particle
+        self.static_structure = self.testShell.static_structure
 
         # The latter is defined for completeness and used by check_domain() in egfrd.py:
         self.origin_structure = self.structure1D
-        self.target_structure = self.cap_structure
+        self.target_structure = self.static_structure
 
-        # The cap_particle should be immobile; check to be sure:
-        assert self.cap_particle.D == 0
-        assert self.cap_particle.v == 0
+        # The static_particle should be immobile; check to be sure:
+        assert self.static_particle.D == 0
+        assert self.static_particle.v == 0
         # D_r and D_R are inherited from Pair class;
         # This results in D_r = particle1D.D and D_R = 0
 
@@ -1171,7 +1171,7 @@ class MixedPair1DCap(Pair, hasCylindricalShell):
     def get_a_r(self):
       
         ref_pt = self.testShell.get_referencepoint()
-        assert ( all(self.cap_structure.shape.position - ref_pt == 0) )
+        assert ( all(self.static_particle.position - ref_pt == 0) )
 
         return abs(self.testShell.dz_right) - self.particle1D.radius
     a_r = property(get_a_r)
@@ -1209,15 +1209,15 @@ class MixedPair1DCap(Pair, hasCylindricalShell):
 
     @ classmethod
     def do_back_transform(cls, com, iv, D1, D2, radius1, radius2, structure1, structure2, unit_z, world):
-    # here we assume that structure1 = structure1D and structure2 = cap_structure
+    # here we assume that structure1 = structure1D and structure2 = static_structure
     # and that com has been correctly initialized with the initial (and constant) position
-    # of the cap particle.
+    # of the static particle.
 
-        pos2 = com          # cap particle (no. 2) stays in place
+        pos2 = com          # static particle (no. 2) stays in place
         pos1 = pos2 - iv    # IV always points from particle1 to particle2      
 
         return pos1, pos2, structure1.id, structure2.id
-        # TODO Does this give the correct new positions in case of a single reaction of cap_particle ?
+        # TODO Does this give the correct new positions in case of a single reaction of static_particle ?
 
     def create_com_vector(self, z):        
     # This returns the displacement of the com, which is zero here.
@@ -1238,5 +1238,5 @@ class MixedPair1DCap(Pair, hasCylindricalShell):
         return new_iv_z
 
     def __str__(self):
-        return 'MixedPair1DCap' + Pair.__str__(self)
+        return 'MixedPair1DStatic' + Pair.__str__(self)
 

@@ -427,7 +427,7 @@ class testMixedPair1DStatic(testPair):
 
         if __debug__: 
                 assert isinstance(single1D.structure, CylindricalSurface) 
-                assert isinstance(static_single.structure, DiskSurface)
+                assert isinstance(static_single.structure, DiskSurface) or isinstance(static_single.structure, PlanarSurface)
         testPair.__init__(self, single1D, static_single)
           # note: this makes self.single1/self.pid_particle_pair1/self.structure1 for the 1D particle
           #              and self.single2/self.pid_particle_pair2/self.structure2 for the cap particle
