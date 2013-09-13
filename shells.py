@@ -34,7 +34,7 @@ __all__ = [
     'testSimplePair',
     'testPlanarSurfaceTransitionPair',
     'testMixedPair2D3D',
-    'testMixedPair1DCap',
+    'testMixedPair1DStatic',
     'hasSphericalShell',
     'hasCylindricalShell',   
     'SphericalSingletestShell',
@@ -54,7 +54,7 @@ __all__ = [
     'CylindricalSurfacePlanarSurfaceInterfaceSingletestShell',
     'CylindricalSurfaceSinktestShell',
     'MixedPair2D3DtestShell',
-    'MixedPair1DCaptestShell',
+    'MixedPair1DStatictestShell',
     ]
 
 import logging
@@ -421,14 +421,14 @@ class testMixedPair2D3D(testPair):
                                     # normal to the plane
         return math.sqrt(self.D_r/D_3D)
 
-class testMixedPair1DCap(testPair):
+class testMixedPair1DStatic(testPair):
 
-    def __init__(self, single1D, cap_single):
+    def __init__(self, single1D, static_single):
 
         if __debug__: 
                 assert isinstance(single1D.structure, CylindricalSurface) 
-                assert isinstance(cap_single.structure, DiskSurface)
-        testPair.__init__(self, single1D, cap_single)
+                assert isinstance(static_single.structure, DiskSurface)
+        testPair.__init__(self, single1D, static_single)
           # note: this makes self.single1/self.pid_particle_pair1/self.structure1 for the 1D particle
           #              and self.single2/self.pid_particle_pair2/self.structure2 for the cap particle
 
@@ -436,17 +436,17 @@ class testMixedPair1DCap(testPair):
         self.single1D       = single1D
         self.particle1D     = self.pid_particle_pair1[1]
         self.structure1D    = single1D.structure    # equal to self.structure1  
-        self.cap_single     = cap_single
-        self.cap_particle   = self.pid_particle_pair2[1]        
-        self.cap_structure  = cap_single.structure  # equal to self.structure2
-        # This will be inherited by MixedPair1DCaptestShell and MixedPair1DCap.
+        self.static_single     = static_single
+        self.static_particle   = self.pid_particle_pair2[1]        
+        self.static_structure  = static_single.structure  # equal to self.structure2
+        # This will be inherited by MixedPair1DStatictestShell and MixedPair1DStatic.
         # Note that we have to use pid_particle_pair1(2) in the methods defined below
         # because they are called at the initialization of testPair().
 
         # Make sure cap particle is immobile; this is required for testSimplePair routines
         # to give the proper results for this case.
-        assert self.cap_particle.D == 0
-        assert self.cap_particle.v == 0
+        assert self.static_particle.D == 0
+        assert self.static_particle.v == 0
 
     def get_sigma(self):
         # Copied from SimplePair
@@ -462,7 +462,7 @@ class testMixedPair1DCap(testPair):
         D_1 = self.pid_particle_pair1[1].D
         D_2 = self.pid_particle_pair2[1].D
 
-        # In the MixedPair1DCap only the 1D particle moves. We therefore use
+        # In the MixedPair1DStatic only the 1D particle moves. We therefore use
         # iv to sample its position and com for the position of the static
         # cap particle; this is initialized here:
         com = pos2
@@ -2941,15 +2941,15 @@ class MixedPair2D3DtestShell(CylindricaltestShell, testMixedPair2D3D):
         return r/SAFETY, self.z_right(r/SAFETY), z_left
 
 
-class MixedPair1DCaptestShell(CylindricaltestShell, testMixedPair1DCap):
+class MixedPair1DStatictestShell(CylindricaltestShell, testMixedPair1DStatic):
 
     def __init__(self, single1D, cap_single, geometrycontainer, domains): # TODO Do we need target_structure (for the ignore list)?
         CylindricaltestShell.__init__(self, geometrycontainer, domains)  # this must be first because of world definition
-        testMixedPair1DCap.__init__(self, single1D, cap_single)
+        testMixedPair1DStatic.__init__(self, single1D, cap_single)
 
-        # NOTE: The following is already defined by testMixedPair1DCap:
+        # NOTE: The following is already defined by testMixedPair1DStatic:
         # - self.single1D, self.structure1D, self.particle1D
-        # - self.cap_single, self.cap_structure, self.cap_particle
+        # - self.static_single, self.static_structure, self.static_particle
 
         # Initialize scaling parameters
         # - the reference point is at the cap disk position
@@ -2960,7 +2960,7 @@ class MixedPair1DCaptestShell(CylindricaltestShell, testMixedPair1DCap):
         #       - dz_right can be scaled, minimum is set accordingly
         # - dr stays constant and is determined by the maximal radius involved
         CRF             = CYLINDER_R_FACTOR
-        self.dr_const   = max([CRF * self.cap_particle.radius, CRF * self.particle1D.radius])
+        self.dr_const   = max([CRF * self.static_particle.radius, CRF * self.particle1D.radius])
 
         self.dzdr_right = numpy.inf
         self.drdz_right = 0.0
@@ -2969,7 +2969,7 @@ class MixedPair1DCaptestShell(CylindricaltestShell, testMixedPair1DCap):
         self.dzdr_left  = numpy.inf
         self.drdz_left  = 0.0
         self.r0_left    = self.dr_const
-        self.z0_left    = self.cap_particle.radius * SINGLE_SHELL_FACTOR
+        self.z0_left    = self.static_particle.radius * SINGLE_SHELL_FACTOR
 
         # Now we can also define the scaling angle
         self.right_scalingangle = self.get_right_scalingangle()
@@ -2983,31 +2983,31 @@ class MixedPair1DCaptestShell(CylindricaltestShell, testMixedPair1DCap):
         # If not possible, it throws an exception and the construction of the testShell IS ABORTED!
         try:
             self.dr, self.dz_right, self.dz_left = \
-                            self.determine_possible_shell(self.structure1D.id, [self.single1D.domain_id, self.cap_single.domain_id], [self.cap_structure.id])
+                            self.determine_possible_shell(self.structure1D.id, [self.single1D.domain_id, self.static_single.domain_id], [self.static_structure.id])
         except ShellmakingError as e:
-            raise testShellError('(MixedPair1DCap). %s' %
+            raise testShellError('(MixedPair1DStatic). %s' %
                                  (str(e)))
 
     def get_orientation_vector(self):        
         # The orientation vector is the (normalized) vector that points from the cap
         # towards the particle on the rod
-        return normalize(self.particle1D.position - self.cap_structure.shape.position)
+        return normalize(self.particle1D.position - self.static_particle.position)
 
     def get_searchpoint(self):
         return self.particle1D.position
 
     def get_referencepoint(self):        
-        return self.cap_structure.shape.position
+        return self.static_particle.position
 
     def get_min_dr_dzright_dzleft(self):
         dr       = self.dr_const
-        dz_left  = self.cap_particle.radius * SINGLE_SHELL_FACTOR
+        dz_left  = self.static_particle.radius * SINGLE_SHELL_FACTOR
         dz_right = self.get_min_pair_size() # TODO make sure this does the right thing!
         return dr, dz_right, dz_left
         
     def get_max_dr_dzright_dzleft(self):
         dr       = self.dr_const
-        dz_left  = self.cap_particle.radius * SINGLE_SHELL_FACTOR # same as the minimum, i.e. no scaling of this length
+        dz_left  = self.static_particle.radius * SINGLE_SHELL_FACTOR # same as the minimum, i.e. no scaling of this length
         dz_right = math.sqrt((self.get_searchradius())**2 - dr**2) # stay within the searchradius
         return dr, dz_right, dz_left
 
@@ -3022,9 +3022,9 @@ class MixedPair1DCaptestShell(CylindricaltestShell, testMixedPair1DCap):
         # CylindricalSurfacePair -> size = half_length
 
         D_1 = self.particle1D.D
-        D_2 = self.cap_particle.D
+        D_2 = self.static_particle.D
         radius1 = self.particle1D.radius
-        radius2 = self.cap_particle.radius
+        radius2 = self.static_particle.radius
 
         dist_from_com1 = self.r0 * D_1 / self.D_tot     # particle distance from CoM
         dist_from_com2 = self.r0 * D_2 / self.D_tot
