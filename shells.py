@@ -446,8 +446,10 @@ class testMixedPair1DStatic(testPair):
 
         # Make sure cap particle is immobile; this is required for testSimplePair routines
         # to give the proper results for this case.
-        assert self.static_particle.D == 0
-        assert self.static_particle.v == 0
+        if not(self.static_particle.D == 0 and self.static_particle.v == 0):
+            raise testShellError('Particle %s is not static in testMixedPair1DStatic.' % str(self.static_particle))
+
+        # TODO Check whether particles are both on the cylinder axis
 
         # If the static particle is on a disk, make sure that its position coincides
         # with the disk position
