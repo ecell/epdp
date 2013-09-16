@@ -5,6 +5,8 @@
 #include <boost/algorithm/string/join.hpp>
 #include <boost/foreach.hpp>
 
+#include <gsl/gsl_math.h>
+
 #include "exceptions.hpp"
 #include "Domain.hpp"
 #include "ParticleContainer.hpp"
@@ -315,20 +317,65 @@ public:
             species_.size());
     }
     
-    /* Returns largest diffusion constant en smallest particle radius inside the mpc. */
-    real_pair maxD_minsigma() const
+    /* Determines the largest diffusion constant and largest drift coefficient inside the mpc. 
+       and whether movement is dominated by diffusion or drift for a given length scale.
+       Then it returns the typical time to travel that length scale based on which type
+       of movement is dominant.                                                             */
+    Real get_min_tau_Dv(Real r_typical) const
     {
-        Real D_max(0.), radius_min(std::numeric_limits<Real>::max());
+        Real D(0.0), v(0.0), tau_D(0.0), tau_v(0.0);
+        Real tau_dominant(0.0), tau_min(-1.0); // keep tau_min negative initially!
+        
+        const Real LARGE_PREF( GSL_POSINF );
+        assert( r_typical > 0.0 );
+                
+        BOOST_FOREACH(species_type s, get_species_in_multi())
+        {            
+            // First we calculate the typical times to travel r_typical by
+            // diffusion and convection, respectively.
+            if( s.D()==0 && s.v()==0)
+              
+                tau_dominant = GSL_POSINF; // static particle, will never move
+            
+            else{
+              
+                tau_D = s.D() > 0.0 ? 2.0 * gsl_pow_2(r_typical) / s.D() : LARGE_PREF * r_typical / s.v();
+                tau_v = s.v() > 0.0 ? r_typical / s.v() : LARGE_PREF * 2.0 * gsl_pow_2(r_typical) / s.D() ;
+                
+                tau_dominant = tau_v < 0.1 * tau_D ? tau_v : tau_D;
+                // We believe that convective movement is dominant if it takes a tenth of the
+                // time to travel the typical distance by convection as compared to diffusion,
+                // and then also the associated time is the relevant timescale.
+                // Note that the 0.1 prefactor is to ensure that we pick the convective
+                // timescale only when the movement is clearly dominated by convection,
+                // i.e. when both timescales are comparable we prefer the diffusion timescale.
+                LOG_DEBUG(("tau_v = %g, tau_D = %g, v=%g, D=%g", tau_v, tau_D, s.v(), s.D() ));
+            }
+            
+            // Now compare if within the current set of species this is the
+            // smallest time scale.
+            assert( tau_dominant > 0.0 );
+            if( tau_min < 0.0 || tau_dominant < tau_min )
+                  tau_min = tau_dominant;
+        }
+        
+        assert( tau_min > 0.0 );
+        
+        return tau_min;
+    }
+    
+    /* Returns smallest particle radius inside the mpc. */
+    Real get_min_radius() const
+    {
+        Real radius_min(std::numeric_limits<Real>::max());
 
         BOOST_FOREACH(species_type s, get_species_in_multi())
         {
-            if (D_max < s.D())
-                D_max = s.D();
             if (radius_min > s.radius())
                 radius_min = s.radius();
         }
         
-        return real_pair(D_max, radius_min);
+        return radius_min;
     }
     
     /* Functions returns largest _1D_ intrinsic reaction rate in the multi. */
@@ -372,6 +419,8 @@ public:
                 it(boost::begin(rrules)), e(boost::end(rrules)); it != e; ++it)
                 {
                     Real const k( struct_and_dist.first->get_1D_rate_surface( (*it).k(), s.radius() ) ); 
+                    
+                    LOG_DEBUG(("k=%g, radius=%g", k, s.radius() ));
 
                     if ( k_max < k )
                         k_max = k;
@@ -428,6 +477,8 @@ public:
                         k0 = get_some_structure_of_type(s0.structure_type_id())->get_1D_rate_geminate( (*it).k(), r01 );
                         k1 = get_some_structure_of_type(s1.structure_type_id())->get_1D_rate_geminate( (*it).k(), r01 );
                         
+                        LOG_DEBUG(("k0=%g, k1=%g, k=%g", k0, k1, (*it).k() ));
+                        
                         k = k0 > k1 ? k0 : k1;
                     }
                     // NOTE: If a structure of the required structure type can not be found a not_found exception
@@ -460,26 +511,33 @@ public:
     */    
     real_pair determine_dt_and_reaction_length(network_rules_type const& rules, Real const& step_size_factor, Real const& dt_hardcore_min = -1.0) const
     {               
-        const real_pair maxD_minr( maxD_minsigma() );
+        
         const Real k_max( get_max_rate(rules) );
-        const Real D_max( maxD_minr.first );
-        const Real r_min( maxD_minr.second );
+        const Real r_min( get_min_radius() );
+        
+        // The following gives us the typical timescale to travel the length step_size_factor * r_min,
+        // taking into account all species in the Multi and automatically comparing whether their movement
+        // is dominated by convection or diffusion, respectively.
+        const Real tau_Dv( get_min_tau_Dv(step_size_factor * r_min) );
+        
         const Real Pacc_max( 0.1 ); // Maximum allowed value of the acceptance probability. // TESTING was 0.01
                                     // This should be kept very low (max. 0.01), otherwise the approximation of
-                                    // treating the reaction as two sequential attempts fails
-        Real dt;
-        const Real tau_D( 2. * gsl_pow_2(step_size_factor * r_min) / D_max );
+                                    // treating the reaction as two sequential attempts (first move, then react)
+                                    // might break down!
+        Real dt, dt_temp;
         
         if( k_max > 0)
         {
             // step_size_factor * r_min is the reaction length
             // Here it is assumed that the RL is linear in any dimension,
             // which requires it to be very small!
-            Real dt_temp( 2. * Pacc_max * step_size_factor * r_min / k_max );
-            dt = std::min( dt_temp, tau_D ); // tau_D is upper limit of dt.
+            dt_temp = 2. * Pacc_max * step_size_factor * r_min / k_max;
+            dt = std::min( dt_temp, tau_Dv ); // tau_Dv is upper limit of dt.
         }
         else
-            dt = tau_D;
+            dt = tau_Dv;
+        
+        LOG_DEBUG(("tau_Dv = %g, tau_k = %g, k_max = %g, r_min = %g, ssf = %g", tau_Dv, dt_temp, k_max, r_min, step_size_factor));
         
         if( dt < dt_hardcore_min )      dt = dt_hardcore_min;
 
