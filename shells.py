@@ -2658,14 +2658,14 @@ class CylindricalSurfacePlanarSurfaceInterfaceSingletestShell(CylindricalSurface
     def get_min_dr_dzright_dzleft(self):
         # TODO This will never be called, right? Why do dz_right/dz_left have value larger than particle_radius?
         dr       = self.dr_const
-        dz_right = self.pid_particle_pair[1].radius * math.sqrt(MULTI_SHELL_FACTOR**2 - 1.0)
+        dz_right = self.pid_particle_pair[1].radius
         dz_left  = dz_right
         return dr, dz_right, dz_left
         
     def get_max_dr_dzright_dzleft(self):
         # Radius is not scaled here so we do not to check for distance to shape edge
         dr       = self.dr_const
-        dz_right = self.pid_particle_pair[1].radius * math.sqrt(MULTI_SHELL_FACTOR**2 - 1.0) # same as the minimum, i.e. no scaling of this length
+        dz_right = self.pid_particle_pair[1].radius # same as the minimum, i.e. no scaling of this length
         dz_left  = dz_right
         return dr, dz_right, dz_left
 
