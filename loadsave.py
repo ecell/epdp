@@ -158,7 +158,12 @@ def save_state(simulator, filename):
                   r0 = rr.reactants[0]
                   reactant_ids = ( id_to_int(r0), )
 
-                  if len(rr.products) == 1:
+                  if len(rr.products) == 0:
+
+                      rtype = 'decay'
+                      product_ids  = ()
+
+                  elif len(rr.products) == 1:
 
                       rtype = 'unimolecular'
                       p0 = rr.products[0]
@@ -573,7 +578,19 @@ def load_state(filename):
         product_ids  = eval(cp.get(sectionname, 'product_ids'))
 
         rule = None
-        if rtype == 'unimolecular':
+        if rtype == 'decay':
+
+            assert len(reactant_ids) == 1 and reactant_ids[0] != None and \
+                   len(product_ids)  == 0, \
+                     'Saved reaction rule does not have the proper signature: rule = %s' % sectionname
+
+            # Get the reactant species
+            reactant = species_dict[int(reactant_ids[0])]
+
+            # Create the decay rule
+            rule = model.create_decay_reaction_rule(reactant, rate)
+
+        elif rtype == 'unimolecular':
 
             assert len(reactant_ids) == 1 and reactant_ids[0] != None and \
                    len(product_ids)  == 1 and product_ids[0]  != None, \
