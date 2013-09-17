@@ -372,14 +372,26 @@ class testMixedPair2D3D(testPair):
         # slightly different from the sums of the radii of the particles. We rescale sigma in a way
         # that the total flux over the reactive surface of the prolate spheroidal boundary with greater radius
         # sigma is equal to the total flux over a spherical reactive surface with radius = rescaled sigma.
-        xi = self.get_scaling_factor()
-        xi_inv = 1.0/xi
-        alpha = math.acos(xi_inv)
-
+        xi    = self.get_scaling_factor()
         sigma = self.particle2D.radius + self.particle3D.radius
-        rescaled_sigma = abs(sigma * math.sqrt(0.5 + (alpha * xi/(2.0*math.sin(alpha)))))
+
+        if feq(xi, 1.0, typical=1.0):
+
+            # If the scaling factor happens to be equal to one (i.e. no rescaling) alpha and sin(alpha)
+            # in the rescaling formula for sigma below will be zero and cause zero-division problems.
+            # However, if xi=1 we know that we do not have to rescale sigma at all.
+            # The case xi=1 usually means that the 2D particle is static (D_2D=0).
+            rescaled_sigma = sigma
+
+        else:
+
+            xi_inv = 1.0/xi
+            alpha  = math.acos(xi_inv)
+            
+            rescaled_sigma = abs(sigma * math.sqrt(0.5 + (alpha * xi/(2.0*math.sin(alpha)))))
 
         return rescaled_sigma
+
     sigma = property(get_sigma)
 
     def do_transform(self):
@@ -2880,11 +2892,19 @@ class MixedPair2D3DtestShell(CylindricaltestShell, testMixedPair2D3D):
         D_2D = self.particle2D.D
         D_3D = self.particle3D.D
 
-        # calculate a_r such that the expected first-passage for the CoM and IV are equal        
-        a_r_2D = (r_right - radius2D + self.r0*self.sqrt_DRDr ) / (self.sqrt_DRDr + (D_2D/self.D_tot) )
-        a_r_3D = (r_right - radius3D + self.r0*self.sqrt_DRDr ) / (self.sqrt_DRDr + (D_3D/self.D_tot) )        
-        # take the smaller a_r that, if entered in the function for r below, would lead to this r_right
-        a_r = min(a_r_2D, a_r_3D)
+        # Calculate a_r, the maximally available length for r-diffusion, by equalizing
+        # equalizing the expected first-passage for the CoM and IV diffusion.
+        # First, treat the special case in which the 2D particle is static; then D_2D=0,
+        # implying D_R=0, D_tot=D_3D and sqrt_DRDr=0, and a_r is determined only by the
+        # 3D diffusion time / free path for 3D diffusion.
+        if self.D_R==0:
+            a_r_3D = r_right - radius3D
+            a_r    = a_r_3D
+        else: # standard case, D_R>0, D_r>0
+            a_r_2D = (r_right - radius2D + self.r0*self.sqrt_DRDr ) / (self.sqrt_DRDr + (D_2D/self.D_tot) )
+            a_r_3D = (r_right - radius3D + self.r0*self.sqrt_DRDr ) / (self.sqrt_DRDr + (D_3D/self.D_tot) )        
+            # take the smaller a_r that, if entered in the function for r below, would lead to this r_right
+            a_r = min(a_r_2D, a_r_3D)
 
         z_right = (a_r/self.get_scaling_factor()) + radius3D
 
