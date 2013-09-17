@@ -323,8 +323,8 @@ public:
        of movement is dominant.                                                             */
     Real get_min_tau_Dv(Real r_typical) const
     {
-        Real D(0.0), v(0.0), tau_D(0.0), tau_v(0.0);
-        Real tau_dominant(0.0), tau_min(-1.0); // keep tau_min negative initially!
+        Real tau_D(0.0), tau_v(0.0); // the estimated times to travel r_typical by diffusion / convection
+        Real tau_dominant(0.0), tau_min(-1.0); // always keep tau_min negative initially!
         
         const Real LARGE_PREF( GSL_POSINF );
         assert( r_typical > 0.0 );
@@ -349,11 +349,9 @@ public:
                 // Note that the 0.1 prefactor is to ensure that we pick the convective
                 // timescale only when the movement is clearly dominated by convection,
                 // i.e. when both timescales are comparable we prefer the diffusion timescale.
-                LOG_DEBUG(("tau_v = %g, tau_D = %g, v=%g, D=%g", tau_v, tau_D, s.v(), s.D() ));
             }
             
-            // Now compare if within the current set of species this is the
-            // smallest time scale.
+            // Now compare if within the current set of species this is the smallest time scale.
             assert( tau_dominant > 0.0 );
             if( tau_min < 0.0 || tau_dominant < tau_min )
                   tau_min = tau_dominant;
@@ -371,8 +369,8 @@ public:
 
         BOOST_FOREACH(species_type s, get_species_in_multi())
         {
-            if (radius_min > s.radius())
-                radius_min = s.radius();
+            if(radius_min > s.radius())
+                    radius_min = s.radius();
         }
         
         return radius_min;
@@ -418,9 +416,7 @@ public:
                 for (typename boost::range_const_iterator<reaction_rules>::type
                 it(boost::begin(rrules)), e(boost::end(rrules)); it != e; ++it)
                 {
-                    Real const k( struct_and_dist.first->get_1D_rate_surface( (*it).k(), s.radius() ) ); 
-                    
-                    LOG_DEBUG(("k=%g, radius=%g", k, s.radius() ));
+                    Real const k( struct_and_dist.first->get_1D_rate_surface( (*it).k(), s.radius() ) );                     
 
                     if ( k_max < k )
                         k_max = k;
@@ -467,25 +463,40 @@ public:
                         k = get_some_structure_of_type(s1.structure_type_id())->get_1D_rate_geminate( (*it).k(), r01 );
                     
                     else
-                    // If both particles live on lower dimensionality structures for now we take the maximal rate
-                    // as determined from get_1D_rate_geminate() of both structures. TODO This may lead to a maximal
-                    // rate which actually is higher than the one used in BD propagation and therefore waste resources.
+                    // If both particles live on lower dimensionality structures more care has to be taken in determining
+                    // what is the right modifier function for the bare rate.
+                    // For now by default we take the maximal rate as determined from get_1D_rate_geminate() of both structures.
+                    // However, if one of the two interacting species is static (D=0, v=0), the "dimensionality" of the motion
+                    // is exclusively determined by the mobile species, and we have to take the modifier function of that one.
+                    // FIXME Taking the max by default may lead to a rate which actually is higher than the one that should
+                    // be used in BD propagation and therefore wastes resources.
                     // Until now this case basically only comprises the rod-particle/cap-particle interaction. Since
                     // both rates are equal in this case we do not make any approximation in that case. However, if we
                     // allow for other types of lower dimensionality particle-particle reactions we should fix this.
                     {
-                        k0 = get_some_structure_of_type(s0.structure_type_id())->get_1D_rate_geminate( (*it).k(), r01 );
-                        k1 = get_some_structure_of_type(s1.structure_type_id())->get_1D_rate_geminate( (*it).k(), r01 );
+                        // In case that one of the two particles is static, make sure we modify the rate using the
+                        // modifier function of the structure that holds the *mobile* species:
+                        if(s0.D()==0.0 and s0.v()==0.0) // s1 is the mobile species
+                          k = get_some_structure_of_type(s1.structure_type_id())->get_1D_rate_geminate( (*it).k(), r01 );
                         
-                        LOG_DEBUG(("k0=%g, k1=%g, k=%g", k0, k1, (*it).k() ));
+                        else if(s1.D()==0.0 and s1.v()==0.0) // s0 is the mobile species
+                          k = get_some_structure_of_type(s0.structure_type_id())->get_1D_rate_geminate( (*it).k(), r01 );
                         
-                        k = k0 > k1 ? k0 : k1;
+                        else{
+                            // Pick the higher of the modified rates
+                            k0 = get_some_structure_of_type(s0.structure_type_id())->get_1D_rate_geminate( (*it).k(), r01 );
+                            k1 = get_some_structure_of_type(s1.structure_type_id())->get_1D_rate_geminate( (*it).k(), r01 );                            
+                                                    
+                            k = k0 > k1 ? k0 : k1;
+                            // FIXME This is not very elegant yet and may cause that a rate that is way too high is picked 
+                            // if the species' structures have different dimensionalities
+                        }                        
                     }
                     // NOTE: If a structure of the required structure type can not be found a not_found exception
                     // is risen. This however should never happen, because whenever a particle of species s0 (s1)
                     // is in the system also at least one structure of the associated structure type should exist.
                     
-                    // Compare with the fasted rate found so far
+                    // Compare with the fastest rate found so far
                     k_max = k > k_max ? k : k_max;
                 }
             }
@@ -537,7 +548,7 @@ public:
         else
             dt = tau_Dv;
         
-        LOG_DEBUG(("tau_Dv = %g, tau_k = %g, k_max = %g, r_min = %g, ssf = %g", tau_Dv, dt_temp, k_max, r_min, step_size_factor));
+        //LOG_DEBUG(("tau_Dv = %g, tau_k = %g, k_max = %g, r_min = %g, ssf = %g", tau_Dv, dt_temp, k_max, r_min, step_size_factor)); TODO Cleanup
         
         if( dt < dt_hardcore_min )      dt = dt_hardcore_min;
 
