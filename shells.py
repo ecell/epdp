@@ -2594,8 +2594,7 @@ class CylindricalSurfaceCapInteractiontestShell(CylindricaltestShell, testIntera
             self.dr, self.dz_right, self.dz_left = \
                             self.determine_possible_shell(self.origin_structure.id, [self.single.domain_id], [self.target_structure.id])
         except ShellmakingError as e:
-            raise testShellError('(CylindricalSurfaceCapInteraction). %s' %
-                                 (str(e)))
+            raise testShellError('(CylindricalSurfaceCapInteraction). %s' % (str(e)) )
 
     def get_orientation_vector(self):
         # The orientation vector is the (normalized) vector that points from the cap
@@ -2630,8 +2629,15 @@ class CylindricalSurfacePlanarSurfaceInteractionSingletestShell(CylindricalSurfa
         CylindricalSurfaceCapInteractiontestShell.__init__(self, single, target_structure, geometrycontainer, domains)
         # This is essentially the same as CylindricalSurfaceCapInteractiontestShell, only that
         # the orientation vector has to be calculated in a different way.
-
+        
         assert isinstance(target_structure, PlanarSurface)
+        assert isinstance(self.origin_structure, CylindricalSurface)
+
+        try:
+            self.daughter_disk = self.find_daughter_disk()
+
+        except testShellError as e:
+            raise testShellError('(CylindricalSurfacePlanarSurfaceInteractionSingle) %s' % (str(e)) )
 
     def get_orientation_vector(self):
         # The orientation vector is the (normalized) difference vector pointing from
@@ -2639,6 +2645,56 @@ class CylindricalSurfacePlanarSurfaceInteractionSingletestShell(CylindricalSurfa
         particle_position = self.pid_particle_pair[1].position
         projected_position = self.target_structure.project_point(particle_position)[0]
         return normalize(particle_position - projected_position)
+
+    def find_daughter_disk(self):
+
+        # Determine the distance to the closest disk
+        # First get all close disk surfaces, then sort, then get the distance to the closest
+        search_pos = self.pid_particle_pair[1].position
+        close_surfaces      = get_neighbor_surfaces(self.world, search_pos, self.structure.id, [])
+        close_disk_surfaces = [surface_and_dist for surface_and_dist in close_surfaces if isinstance(surface_and_dist[0], DiskSurface)]
+
+        found_good_disk = False
+
+        if close_disk_surfaces != []:
+
+            # To be sure, sort the list again by increasing distance
+            sorted_close_disk_surfaces = sorted(close_disk_surfaces, key=lambda surface_and_dist : surface_and_dist[1])
+
+            # Get the closest disk and its properties
+            closest_disk      = sorted_close_disk_surfaces[0][0]
+            closest_disk_dist = sorted_close_disk_surfaces[0][1]
+
+            disk_parent_structure       = self.world.get_structure(closest_disk.structure_id)
+            log.debug('disk_parent_structure = %s' % str(disk_parent_structure))
+            distance_from_plane         = self.target_structure.project_point(closest_disk.shape.position)[1][0]
+            distance_from_cylinder_axis = self.origin_structure.project_point(closest_disk.shape.position)[1][0]            
+            
+            # Check whether the disk is fulfilling the requirements
+            if not disk_parent_structure.id == self.target_structure.id:
+
+                found_good_disk = False
+                if __debug__:
+                    log.warn('(CylindricalSurfacePlanarSurfaceInteractionSingle) Disk surface does not have target plane as parent structure.')
+
+            if not feq(distance_from_plane, 0.0, typical = closest_disk.shape.radius):
+
+                found_good_disk = False
+                if __debug__:
+                    log.warn('(CylindricalSurfacePlanarSurfaceInteractionSingle) Disk surface is not situated in target plane.')
+
+            if not feq(distance_from_cylinder_axis, 0.0, typical = self.origin_structure.shape.radius):
+
+                found_good_disk = False
+                if __debug__:
+                    log.warn('(CylindricalSurfacePlanarSurfaceInteractionSingle) Disk surface is not situated below cylinder.')
+
+        # OK, if everything is good, return the disk. If not, we don't make this domain and the plane is an obstacle.
+        if found_good_disk:
+            return closest_disk
+
+        else:
+            raise testShellError('Could not find correct disk surface at the interface between cylinder and plane.')
 
 class CylindricalSurfacePlanarSurfaceInterfaceSingletestShell(CylindricalSurfaceCapInteractiontestShell):
 
