@@ -2651,7 +2651,7 @@ class CylindricalSurfacePlanarSurfaceInteractionSingletestShell(CylindricalSurfa
         # Determine the distance to the closest disk
         # First get all close disk surfaces, then sort, then get the distance to the closest
         search_pos = self.pid_particle_pair[1].position
-        close_surfaces      = get_neighbor_surfaces(self.world, search_pos, self.structure.id, [])
+        close_surfaces      = get_neighbor_surfaces(self.world, search_pos, self.target_structure.id, [])        
         close_disk_surfaces = [surface_and_dist for surface_and_dist in close_surfaces if isinstance(surface_and_dist[0], DiskSurface)]
 
         found_good_disk = False
@@ -2663,14 +2663,15 @@ class CylindricalSurfacePlanarSurfaceInteractionSingletestShell(CylindricalSurfa
 
             # Get the closest disk and its properties
             closest_disk      = sorted_close_disk_surfaces[0][0]
-            closest_disk_dist = sorted_close_disk_surfaces[0][1]
+            closest_disk_dist = sorted_close_disk_surfaces[0][1]            
 
-            disk_parent_structure       = self.world.get_structure(closest_disk.structure_id)
-            log.debug('disk_parent_structure = %s' % str(disk_parent_structure))
+            disk_parent_structure       = self.world.get_structure(closest_disk.structure_id)            
             distance_from_plane         = self.target_structure.project_point(closest_disk.shape.position)[1][0]
-            distance_from_cylinder_axis = self.origin_structure.project_point(closest_disk.shape.position)[1][0]            
+            distance_from_cylinder_axis = self.origin_structure.project_point(closest_disk.shape.position)[1][0]
+
+            found_good_disk = True
             
-            # Check whether the disk is fulfilling the requirements
+            # Check whether the disk indeed fulfills all requirements, if not drop warnings.
             if not disk_parent_structure.id == self.target_structure.id:
 
                 found_good_disk = False
