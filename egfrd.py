@@ -1109,12 +1109,15 @@ class EGFRDSimulator(ParticleSimulatorBase):
         if __debug__:
             assert isinstance(single, Single)
 
-        # 0. get reactant info
+        # 0. Get reactant info
         reactant                    = single.pid_particle_pair
         reactant_radius             = reactant[1].radius
-        species                     = self.world.get_species(reactant[1].sid)
-        reactant_structure_type_id  = species.structure_type_id
+        reactant_species            = self.world.get_species(reactant[1].sid)
+        reactant_structure_type_id  = reactant_species.structure_type_id
         reactant_structure          = self.world.get_structure(reactant_structure_id)
+        reactant_structure_parent_id = reactant_structure.structure_id
+        reactant_structure_parent_structure = self.world.get_structure(reactant_structure_parent_id)
+        # Get reaction rule
         rr = single.reactionrule
 
         # The zero_singles are the NonInteractionSingles that are the total result of the recursive
@@ -1150,7 +1153,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
             # 1.5 get new position and structure_id of particle
             # If the particle falls off a surface (other than CuboidalRegion)
             if product_structure_type_id != reactant_structure_type_id:
-                assert (product_structure_type_id == self.world.get_def_structure_type_id())
+                assert (product_structure_type_id == self.world.get_def_structure_type_id()  \
+                     or product_structure_type_id == reactant_structure_parent_structure.sid )
 
                 # produce a number of new possible positions for the product particle
                 # TODO make these generators for efficiency
@@ -1201,8 +1205,17 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
             # If decay happens to same structure_type
             else:
-                product_pos_list     = [reactant_pos]           # no change of position is required if structure_type doesn't change
-                product_structure_id = reactant_structure_id    # The product structure is the structure where the reaction takes place.
+
+                # The following case has to be treated in a special way because particle "unbind" as if they came from a cylinder
+                # FIXME Make this more elegant; this whole method should be cleaned up and unified!
+                if isinstance(single, CylindricalSurfacePlanarSurfaceInterfaceSingle):
+                    product_pos, product_structure_id = single.draw_new_position(dt=0.0, event_type=EventType.SINGLE_REACTION)
+
+                else: # standard case
+                    product_pos = reactant_pos
+                    product_structure_id = reactant_structure_id
+
+                product_pos_list     = [product_pos]           # no change of position is required if structure_type doesn't change
 
 
             # 2. make space for the products (kinda brute force, but now we only have to burst once).
@@ -1917,11 +1930,15 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
             # Also add surfaces
             for surface, distance in surface_distances:
-                if isinstance(surface, PlanarSurface):
-                    # with a planar surface it is the center of mass that 'looks around'
+                if isinstance(surface, PlanarSurface) and single.structure.id == self.world.get_def_structure_id():
+                    # With a planar surface it is the center of mass that 'looks around',
+                    # but only for the classical situation of a 3D/bulk particle interacting with a plane.
+                    # In all other situations the horizon for surface collisions should be measured from
+                    # from the particle radius, otherwise we get situations in which a single cannot be
+                    # constructed any more, yet a close plane will not be identified as a Multi partner.
                     surface_horizon = single_radius * (MULTI_SHELL_FACTOR - 1.0)
                 else:
-                    # with a cylindrical surface it is the surface of the particle
+                    # With a cylindrical surface it is the surface of the particle
                     surface_horizon = single_radius * MULTI_SHELL_FACTOR
 
                 multi_partners.append((surface, distance - surface_horizon))
