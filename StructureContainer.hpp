@@ -285,9 +285,14 @@ public:
     }
     structure_id_set get_visible_structures(structure_id_type const& id) const
     {
+        // This function returns all structures that are visible form the structure with
+        // the ID passed to the function.
+        // A structure is visible if it is a substructure or if it has the same parent
+        // structure as the current structure.
         structure_id_set visible_structures;
 
         const boost::shared_ptr<const structure_type> structure(get_structure(id));
+        // First check the "sibling" structures
         if (structure->structure_id() == id)
         {
             visible_structures = structure_id_set();
@@ -297,8 +302,11 @@ public:
             visible_structures = get_visible_structures(structure->structure_id());
             visible_structures.erase(id);
         }
+        
+        // Now the substructures
         const structure_id_set substructures (get_substructure_ids(id));
         visible_structures.insert(substructures.begin(), substructures.end());
+        
         return visible_structures;
     }
 

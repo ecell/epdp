@@ -135,7 +135,7 @@ struct StructureUtils
         BOOST_ASSERT(is_cartesian_versor(unit_z));
 
         return new disk_surface_type(name, sid, parent_struct_id,
-                disk_type(center, radius, unit_z));
+                                     disk_type(center, radius, unit_z));
     }
 
     static cuboidal_region_type* create_cuboidal_region(
