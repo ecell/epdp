@@ -105,12 +105,14 @@ def try_default_testinteraction(single, target_structure, geometrycontainer, dom
             # here we have 2 possibilities; first we try the less probable one (special conditions apply that are checked
             # upon test shell construction), then the more common one.
             try:
-                return CylindricalSurfacePlanarSurfaceInterfaceSingletestShell (single, target_structure, geometrycontainer, domains)
+                pass # TODO TODO TODO Fix this
             except testShellError as e:
                 if __debug__:
                     log.warn('Could not make CylindricalSurfacePlanarSurfaceInterfaceSingletestShell, %s; now trying PlanarSurfaceCylindricalSurfaceInteractiontestShell.' % str(e))
                 return PlanarSurfaceCylindricalSurfaceInteractiontestShell (single, target_structure, geometrycontainer, domains)
-                # if both shells do not work in this situation the second try will result in raising another shellmaking exception
+                # if both shells do not work in this situation the second try will result in raising another shellmaking exception       
+        elif isinstance(target_structure, DiskSurface):
+            return CylindricalSurfacePlanarSurfaceInterfaceSingletestShell (single, target_structure, geometrycontainer, domains)
         else:
             raise testShellError('(Interaction). Combination of (2D particle, target_structure) is not supported')
     elif isinstance(single.structure, CylindricalSurface):
@@ -3047,7 +3049,7 @@ max. overlap error:  %g
             # 3D NonInteractionSingles can overlap with planar surfaces but not with rods
             ignores = [s.id for s in self.world.structures if isinstance(s, PlanarSurface)]
             associated = []
-        elif isinstance(domain, DiskSurfaceSingle):
+        elif isinstance(domain, DiskSurfaceSingle) or isinstance(domain, CylindricalSurfacePlanarSurfaceInterfaceSingle):
             # Particles bound to DiskSurfaces ignore all rods for now. TODO Only ignore neighboring/parent rods!
             ignores = [s.id for s in self.world.structures if isinstance(s, CylindricalSurface)]
             associated = [domain.structure.id]
