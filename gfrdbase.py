@@ -149,10 +149,10 @@ def get_neighbor_structures(world, pos, current_struct_id, ignores=[], structure
     else:
         ignore = world.get_def_structure_id()
 
-    if structure_class != None:
+    if structure_class is not None:
         # The user has specified a restriction of the search to a particular geometric class
         assert(    structure_class==CuboidalRegion     or structure_class==PlanarSurface       \
-                or structure_class==Disk Surface       or structure_class==CylindricalSurface  \
+                or structure_class==DiskSurface        or structure_class==CylindricalSurface  \
                 or structure_class==SphericalSurface                                           )
 
         structure_distances = [(structure, distance) for ((id, structure), distance) \
@@ -186,9 +186,12 @@ def get_closest_structure(world, pos, current_struct_id, ignores=[], structure_c
                   CuboidalRegion, PlanarSurface, CylindricalSurface, DiskSurface, SphericalSurface
     """
     sorted_close_structures = \
-            get_neighbor_structures(self.world, pos, current_struct_id, ignores, structure_class)
+            get_neighbor_structures(world, pos, current_struct_id, ignores, structure_class)
 
-    return sorted_close_structures[0]
+    if sorted_close_structures != []:
+        return sorted_close_structures[0]
+    else:
+        return None
 
 
 def create_world(m, matrix_size=10):
