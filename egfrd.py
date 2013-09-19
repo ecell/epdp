@@ -1330,7 +1330,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
                     # Make sure that the new positions lie within the region bounded by neighboring orthogonal
                     # planes to avoid particles leaking out of a box
                     # NOTE surface lists have format (surface, distance_to_surface_from_reactant_position)
-                    neighbor_surfaces = get_neighbor_surfaces(self.world, reactant_pos, reactant_structure.id, ignores=[])
+                    neighbor_surfaces = get_neighbor_structures(self.world, reactant_pos, reactant_structure.id, ignores=[])
 
                     # Code snippet to get surfaces that might bound the dissociation positions;
                     # not used at the moment...
@@ -1496,7 +1496,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
                 # First, for each neighboring plane, we check whether the new positions lie 
                 # on the same side of the plane as the reactant; if not, this trial will be rejected                
                 product_crossed_plane = False # by default everything is OK
-                neighbor_surfaces = get_neighbor_surfaces(self.world, reactant_pos, reactant_structure.id, ignores=[])
+                neighbor_surfaces = get_neighbor_structures(self.world, reactant_pos, reactant_structure.id, ignores=[])
                     # NOTE surface lists have format (surface, distance_to_surface_from_reactant_position)
                 for surface, surf_dist in neighbor_surfaces:
                 
@@ -1849,7 +1849,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
         # 1.0 Get neighboring domains and surfaces
         neighbor_distances = self.geometrycontainer.get_neighbor_domains(single_pos, self.domains, ignore=[single.domain_id, ])        
         # Get also surfaces but only if the particle is in 3D
-        surface_distances = get_neighbor_surfaces(self.world, single_pos, single.structure.id, ignores=[])
+        surface_distances = get_neighbor_structures(self.world, single_pos, single.structure.id, ignores=[])
 
         # 2.3 We prefer to make NonInteractionSingles for efficiency.
         #     But if objects (Shells and surfaces) get close enough (closer than

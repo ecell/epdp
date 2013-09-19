@@ -18,7 +18,7 @@ from _gfrd import (
 
 from utils import *
 from gfrdbase import (
-    get_neighbor_surfaces,
+    get_neighbor_structures,
     )
 
 __all__ = [
@@ -1645,7 +1645,7 @@ class testShell(object):
         radius = self.get_searchradius()
 
         neighbor_domains  = self.geometrycontainer.get_neighbor_domains(searchpoint, self.domains, ignore)
-        neighbor_surfaces = get_neighbor_surfaces(self.world, searchpoint, base_structure_id, ignores)
+        neighbor_surfaces = get_neighbor_structures(self.world, searchpoint, base_structure_id, ignores)
         return neighbor_domains, neighbor_surfaces
 
     def get_orientation_vector(self):
@@ -2134,7 +2134,7 @@ class PlanarSurfacePairtestShell(CylindricaltestShell, testSimplePair):
 
             # Determine the distance to the closest cylinder
             # First get all close cylinders, then sort, then get the distance to the closest
-            close_structures = get_neighbor_surfaces(self.world, search_pos, self.structure.id, [])
+            close_structures = get_neighbor_structures(self.world, search_pos, self.structure.id, [])
             close_cylindrical_structures = [surface_and_dist for surface_and_dist in close_structures if isinstance(surface_and_dist[0], CylindricalSurface)]
 
             if close_cylindrical_structures != []:
@@ -2651,7 +2651,7 @@ class CylindricalSurfacePlanarSurfaceInteractionSingletestShell(CylindricalSurfa
         # Determine the distance to the closest disk
         # First get all close disk surfaces, then sort, then get the distance to the closest
         search_pos = self.pid_particle_pair[1].position
-        close_surfaces      = get_neighbor_surfaces(self.world, search_pos, self.target_structure.id, [])        
+        close_surfaces      = get_neighbor_structures(self.world, search_pos, self.target_structure.id, [])        
         close_disk_surfaces = [surface_and_dist for surface_and_dist in close_surfaces if isinstance(surface_and_dist[0], DiskSurface)]
 
         found_good_disk = False

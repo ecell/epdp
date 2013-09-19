@@ -40,7 +40,7 @@ __all__ = [
     'periodic_connect',
     'ParticleSimulatorBase',
     'get_all_surfaces',
-    'get_neighbor_surfaces',
+    'get_neighbor_structures',
     'get_closest_structure',
     'create_network_rules_wrapper',
     ]
@@ -84,7 +84,9 @@ setup_logging()
 
 
 def p_free(r, t, D):
+    """ The free Gaussian propagator.
 
+    """
     Dt4 = D * t * 4.0
     Pi4Dt = numpy.pi * Dt4
     rsq = r * r
@@ -98,30 +100,30 @@ def p_free(r, t, D):
 
 def get_all_surfaces(world, pos, ignores=[]):
     """ Returns a list of all surfaces in the world, sorted by increasing distance.
-        The output format is (structure, distance from search position).
+        The output format is (surface, distance from search position).
         
         Arguments:
             - world
-                  the world that contains the structures
+                  the world that contains the surfaces
             - pos
                   the search position
             - ignores (optional)
-                  a list of structure IDs that will define structures that will be
+                  a list of structure IDs that will define surfaces that will be
                   ignored in the search        
     """
-    surface_distances = []
+    surfaces_distances = []
 
-    for surface in world.structures:
-        if isinstance(surface, _gfrd.Surface) and surface.id not in ignores:
-            pos_transposed = \
-                world.cyclic_transpose(pos, surface.shape.position)
-            distance = world.distance(surface.shape, pos_transposed)
-            surface_distances.append((surface, distance))
+    for surf in world.structures:
+        if isinstance(surf, _gfrd.Surface) and surf.id not in ignores:
 
-    return sorted(surface_distances, key=lambda surface_and_dist: surface_and_dist[1])
+            pos_transposed = world.cyclic_transpose(pos, surf.shape.position)
+            distance = world.distance(surf.shape, pos_transposed)
+            surfaces_distances.append((surf, distance))
+
+    return sorted(surfaces_distances, key=lambda surf_and_dist: surf_and_dist[1])
 
 
-def get_neighbor_surfaces(world, pos, current_struct_id, ignores=[], structure_class=None):
+def get_neighbor_structures(world, pos, current_struct_id, ignores=[], structure_class=None):
     """ Returns a list of neighboring structures, optionally restricted to type 'structure_class',
         sorted by increasing distance from the search position.
         The output format is (structure, distance from search position).
@@ -136,7 +138,8 @@ def get_neighbor_surfaces(world, pos, current_struct_id, ignores=[], structure_c
                   (this defines which other structures are 'visible' from that point)
             - ignores (optional)
                   a list of structure IDs that will define structures that will be
-                  ignored in the search
+                  ignored in the search; the world's default structure will be ignored
+                  by default
             - structure_class (optional)
                   restrict the search to a certain structure class; must be one of
                   CuboidalRegion, PlanarSurface, DiskSurface, CylindricalSurface, SphericalSurface
@@ -144,7 +147,7 @@ def get_neighbor_surfaces(world, pos, current_struct_id, ignores=[], structure_c
     if ignores:
         ignore = ignores[0] # FIXME world.get_close_structures currently only supports one ignored structure
     else:
-        ignore = world.get_def_structure_id() # Is that a good convention?
+        ignore = world.get_def_structure_id()
 
     if structure_class != None:
         # The user has specified a restriction of the search to a particular geometric class
@@ -152,13 +155,15 @@ def get_neighbor_surfaces(world, pos, current_struct_id, ignores=[], structure_c
                 or structure_class==Disk Surface       or structure_class==CylindricalSurface  \
                 or structure_class==SphericalSurface                                           )
 
-        surface_distances = [(structure, distance) for ((id, structure), distance) in world.get_close_structures(pos, current_struct_id, ignore) \
-                                                                                                      if isinstance(structure, structure_class)]
+        structure_distances = [(structure, distance) for ((id, structure), distance) \
+                                  in world.get_close_structures(pos, current_struct_id, ignore) \
+                                  if isinstance(structure, structure_class)]
     else:
-        # Take into account all surface types
-        surface_distances = [(structure, distance) for ((id, structure), distance) in world.get_close_structures(pos, current_struct_id, ignore)]
+        # Take into account all structure types
+        structure_distances = [(structure, distance) for ((id, structure), distance) \
+                                  in world.get_close_structures(pos, current_struct_id, ignore)]
 
-    return sorted(surface_distances, key=lambda surface_and_dist: surface_and_dist[1])
+    return sorted(structure_distances, key=lambda struct_and_dist: struct_and_dist[1])
 
 
 def get_closest_structure(world, pos, current_struct_id, ignores=[], structure_class=None):
@@ -180,9 +185,10 @@ def get_closest_structure(world, pos, current_struct_id, ignores=[], structure_c
                   restrict the search to a certain structure class; must be one of
                   CuboidalRegion, PlanarSurface, CylindricalSurface, DiskSurface, SphericalSurface
     """
-    sorted_close_surfaces = get_neighbor_surfaces(self.world, pos, current_struct_id, ignores, structure_class)
+    sorted_close_structures = \
+            get_neighbor_structures(self.world, pos, current_struct_id, ignores, structure_class)
 
-    return sorted_close_surfaces[0]
+    return sorted_close_structures[0]
 
 
 def create_world(m, matrix_size=10):
@@ -264,6 +270,7 @@ def create_world(m, matrix_size=10):
     world.model = m
     return world
 
+
 def create_box(world, structure_type, center, size, one_sided=True):
     """ Creates a box of PlanarSurface sections and adds it to the world.
 
@@ -311,12 +318,18 @@ def create_box(world, structure_type, center, size, one_sided=True):
         create_planar_surface = model.create_double_sided_planar_surface
 
     # Create the planes and add them to the world                          
-    front  = create_planar_surface(sid, name+'_front', [center[0] + size[0]/2, center[1] - size[1]/2, center[2] - size[2]/2], [0, 0, 1], [0, 1, 0], size[2], size[1], def_struct_id) 
-    back   = create_planar_surface(sid, name+'_back',  [center[0] - size[0]/2, center[1] - size[1]/2, center[2] - size[2]/2], [0, 1, 0], [0, 0, 1], size[1], size[2], def_struct_id)
-    left   = create_planar_surface(sid, name+'_left',  [center[0] - size[0]/2, center[1] - size[1]/2, center[2] - size[2]/2], [0, 0, 1], [1, 0, 0], size[2], size[0], def_struct_id)
-    right  = create_planar_surface(sid, name+'_right', [center[0] - size[0]/2, center[1] + size[1]/2, center[2] - size[2]/2], [1, 0, 0], [0, 0, 1], size[0], size[2], def_struct_id)
-    top    = create_planar_surface(sid, name+'_top',   [center[0] - size[0]/2, center[1] - size[1]/2, center[2] + size[2]/2], [0, 1, 0], [1, 0, 0], size[1], size[0], def_struct_id)
-    bottom = create_planar_surface(sid, name+'_bottom',[center[0] - size[0]/2, center[1] - size[1]/2, center[2] - size[2]/2], [1, 0, 0], [0, 1, 0], size[0], size[1], def_struct_id)
+    front  = create_planar_surface(sid, name+'_front', [center[0] + size[0]/2, center[1] - size[1]/2, center[2] - size[2]/2], \
+                                      [0, 0, 1], [0, 1, 0], size[2], size[1], def_struct_id)
+    back   = create_planar_surface(sid, name+'_back',  [center[0] - size[0]/2, center[1] - size[1]/2, center[2] - size[2]/2], \
+                                      [0, 1, 0], [0, 0, 1], size[1], size[2], def_struct_id)
+    left   = create_planar_surface(sid, name+'_left',  [center[0] - size[0]/2, center[1] - size[1]/2, center[2] - size[2]/2], \
+                                      [0, 0, 1], [1, 0, 0], size[2], size[0], def_struct_id)
+    right  = create_planar_surface(sid, name+'_right', [center[0] - size[0]/2, center[1] + size[1]/2, center[2] - size[2]/2], \
+                                      [1, 0, 0], [0, 0, 1], size[0], size[2], def_struct_id)
+    top    = create_planar_surface(sid, name+'_top',   [center[0] - size[0]/2, center[1] - size[1]/2, center[2] + size[2]/2], \
+                                      [0, 1, 0], [1, 0, 0], size[1], size[0], def_struct_id)
+    bottom = create_planar_surface(sid, name+'_bottom',[center[0] - size[0]/2, center[1] - size[1]/2, center[2] - size[2]/2], \
+                                      [1, 0, 0], [0, 1, 0], size[0], size[1], def_struct_id)
 
     world.add_structure(front)
     world.add_structure(back)
@@ -351,6 +364,7 @@ def create_box(world, structure_type, center, size, one_sided=True):
     # Return a list containing the IDs of the created planes
     # in case that the user wishes to operate on them separately
     return [front.id, back.id, left.id, right.id, top.id, bottom.id]
+
 
 def create_rod(world, cyl_structure_type, cap_structure_type, name, \
                position, radius, orientation, length, \
@@ -438,7 +452,8 @@ def create_rod(world, cyl_structure_type, cap_structure_type, name, \
         parent_id = parent_structure_id
 
     # Create the cylinder of the rod
-    rod = model.create_cylindrical_surface(cyl_sid, name+'_cylinder', position, radius, orientation, length, parent_id)
+    rod = model.create_cylindrical_surface(cyl_sid, name+'_cylinder', \
+                                                position, radius, orientation, length, parent_id)
     world.add_structure(rod) # This must happen directly here otherwise rod.id will be undefined
     
     # By default the parent structure of the caps is the rod:
@@ -454,15 +469,18 @@ def create_rod(world, cyl_structure_type, cap_structure_type, name, \
     # Create the caps
     if place_front_cap:
         front_cap_pos = [p[0]+l*o[0], p[1]+l*o[1], p[2]+l*o[2]]
-        front_cap = model.create_disk_surface(front_cap_sid, name+'_front_cap', front_cap_pos, radius, orientation, front_cap_parent_id)
+        front_cap = model.create_disk_surface(front_cap_sid, name+'_front_cap', front_cap_pos, \
+                                                  radius, orientation, front_cap_parent_id)
         world.add_structure(front_cap)
 
     if place_back_cap:
         back_cap_pos = position
-        back_cap = model.create_disk_surface(back_cap_sid, name+'_back_cap', back_cap_pos, radius, [-o[0],-o[1],-o[2]], back_cap_parent_id)
+        back_cap = model.create_disk_surface(back_cap_sid, name+'_back_cap', back_cap_pos, \
+                                                  radius, [-o[0],-o[1],-o[2]], back_cap_parent_id)
         world.add_structure(back_cap)
 
     return rod.id
+
 
 def periodic_connect(world, planar_surface):
     """ Makes connections between the opposite edges of a plane.
@@ -476,8 +494,10 @@ def periodic_connect(world, planar_surface):
     pass 
     # FIXME DOES NOT YET WORK CORRECTLY, THE STRUCTURE CONTAINER IS ASSUMING TRANSFER TO ADJACENT PLANES ONLY!
 
+
 def create_network_rules_wrapper(model):
     return _gfrd.NetworkRulesWrapper(model.network_rules)
+
 
 def throw_in_particles(world, sid, n, bound_1=[0,0,0], bound_2=[0,0,0]):
     """Add n particles of a certain Species to the specified world.
@@ -568,6 +588,7 @@ def throw_in_particles(world, sid, n, bound_1=[0,0,0], bound_2=[0,0,0]):
                 log.info('\t%d-th particle rejected. Too close to surface. I will keep trying.' % i)
             if out_of_bounds:
                 log.info('\t%d-th particle rejected. Out of bounding box. I will keep trying.' % i)
+
 
 def place_particle(world, sid, position):
     """Place a particle of a certain Species at a specific position in 
