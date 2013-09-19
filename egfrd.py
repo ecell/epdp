@@ -1184,12 +1184,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
                         product_pos_list.append(vector)
 
                 elif isinstance(reactant_structure, DiskSurface):
-                    # unbinding in direction of disk unit vector
-                    #vector_length = 1.0*product_radius * MINIMAL_SEPARATION_FACTOR
-                    #vector        = reactant_pos + vector_length * reactant_structure.shape.unit_z
-                    #product_pos_list.append(vector)
-
-                    # unbinding perpendicularly to disk unit vector (i.e. like on cylinder)
+                    # The particle unbinds perpendicularly to disk unit vector (i.e. like on cylinder)
                     vector_length = (product_radius + reactant_structure.shape.radius) * MINIMAL_SEPARATION_FACTOR
                     for _ in range(self.dissociation_retry_moves):
                         unit_vector3D = random_unit_vector()
@@ -1207,17 +1202,9 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
             # If decay happens to same structure_type
             else:
-
-                # The following case has to be treated in a special way because particle "unbind" as if they came from a cylinder
-                # FIXME Make this more elegant; this whole method should be cleaned up and unified!
-                if isinstance(single, CylindricalSurfacePlanarSurfaceInterfaceSingle):
-                    product_pos, product_structure_id = single.draw_new_position(dt=0.0, event_type=EventType.SINGLE_REACTION)
-
-                else: # standard case
-                    product_pos = reactant_pos
-                    product_structure_id = reactant_structure_id
-
-                product_pos_list     = [product_pos]           # no change of position is required if structure_type doesn't change
+                
+                product_structure_id = reactant_structure_id
+                product_pos_list     = [reactant_pos]           # no change of position is required if structure_type doesn't change
 
 
             # 2. make space for the products (kinda brute force, but now we only have to burst once).

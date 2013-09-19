@@ -1292,25 +1292,14 @@ class CylindricalSurfacePlanarSurfaceInterfaceSingle(CylindricalSurfaceCapIntera
 
     def draw_new_position(self, dt, event_type):
 
-        if event_type == EventType.SINGLE_REACTION and len(self.reactionrule.products) == 1:
+        if event_type == EventType.SINGLE_REACTION or event_type == EventType.BURST:
 
-            # The particle does not move in this domain, but upon monomolecular reaction it is
-            # placed in contact with the cylinder that hits the plane, at a random angle.
-            # Since the origin structure (plane) does not change, we have to sample this position here.
-            x, y = random_vector2D( (self.target_structure.shape.radius + self.pid_particle_pair[1].radius) * MINIMAL_SEPARATION_FACTOR)
-            displacement = x * self.origin_structure.shape.unit_x + y * self.origin_structure.shape.unit_y
-            new_pos = self.pid_particle_pair[1].position + displacement
-
-            return new_pos, self.origin_structure.id
-
-        # TODO What if we have 2 products? Compare to DiskSurfaceSingle
-
-        elif event_type == EventType.BURST:
-
-            # When we burst it nothing happens to the particle
+            # The particle does not move within this domain, in particular when bursted
+            # The displacement created when unbinding from the disk is treated in
+            # fire_single_reaction() in egfrd.py
             new_pos = self.pid_particle_pair[1].position
 
-            return new_pos, self.origin_structure.id            
+            return new_pos, self.origin_structure.id
 
         else:
             raise Exception('Disallowed event type or wrong no. of products in CylindricalSurfacePlanarSurfaceInterfaceSingle.')
