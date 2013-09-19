@@ -44,7 +44,7 @@ __all__ = [
     'PlanarSurfacePairtestShell',
     'PlanarSurfaceTransitionSingletestShell',
     'PlanarSurfaceTransitionPairtestShell',
-    'PlanarSurfaceCylindricalSurfaceInteractiontestShell',
+    'PlanarSurfaceDiskSurfaceInteractiontestShell',
     'CylindricalSurfaceSingletestShell',
     'DiskSurfaceSingletestShell',
     'CylindricalSurfacePairtestShell',
@@ -2078,7 +2078,6 @@ class PlanarSurfacePairtestShell(CylindricaltestShell, testSimplePair):
         # If possible, it will write the dr, dz_right, dz_left defining the dimensions of the cylindrical shell.
         # If not possible, it throws an exception and the construction of the testShell IS ABORTED!
         self.ignored_structure_ids = self.set_structure_ignore_list()
-
         try:
             self.dr, self.dz_right, self.dz_left = \
                             self.determine_possible_shell(self.structure.id, [self.single1.domain_id, self.single2.domain_id],
@@ -2506,9 +2505,11 @@ class CylindricalSurfaceInteractiontestShell(CylindricaltestShell, testInteracti
         # This will determine if the shell is possible.
         # If possible, it will write the dr, dz_right, dz_left defining the dimensions of the cylindrical shell.
         # If not possible, it throws an exception and the construction of the testShell IS ABORTED!
+        self.ignored_structure_ids = self.set_structure_ignore_list()
         try:
             self.dr, self.dz_right, self.dz_left = \
-                            self.determine_possible_shell(self.origin_structure.id, [self.single.domain_id], [self.target_structure.id])
+                            self.determine_possible_shell(self.origin_structure.id, [self.single.domain_id], \
+                                                                                    self.ignored_structure_ids)
         except ShellmakingError as e:
             raise testShellError('(CylindricalSurfaceInteraction). %s' %
                                  (str(e)))
@@ -2542,11 +2543,16 @@ class CylindricalSurfaceInteractiontestShell(CylindricaltestShell, testInteracti
     def apply_safety(self, r, z_right, z_left):
         return r/SAFETY, self.z_right(r/SAFETY)/SAFETY, self.z_left(r/SAFETY)/SAFETY
 
-class PlanarSurfaceCylindricalSurfaceInteractiontestShell(CylindricalSurfaceInteractiontestShell):
+    def set_structure_ignore_list(self):
+
+        return [self.target_structure.id]
+
+class PlanarSurfaceDiskSurfaceInteractiontestShell(CylindricalSurfaceInteractiontestShell):
 
     # This class is in essence the same as CylindricalSurfaceInteractiontestShell, but with
     # different shellscaling parameters. Therefore a new constructor has to be defined.
     def __init__(self, single, target_structure, geometrycontainer, domains):
+        assert isinstance(target_structure, DiskSurface)
         CylindricaltestShell.__init__(self, geometrycontainer, domains)  # this must be first because of world definition
         testInteractionSingle.__init__(self, single, single.structure, target_structure)
         
@@ -2570,13 +2576,14 @@ class PlanarSurfaceCylindricalSurfaceInteractiontestShell(CylindricalSurfaceInte
 
         # This will determine if the shell is possible.
         # If possible, it will write the dr, dz_right, dz_left defining the dimensions of the cylindrical shell.
-        # If not possible, it throws an exception and the construction of the testShell IS ABORTED!
-        # Note that here we know all structures that have to be ignored (origin and target structure).
+        # If not possible, it throws an exception and the construction of the testShell IS ABORTED!        
+        self.ignored_structure_ids = self.set_structure_ignore_list()
         try:
             self.dr, self.dz_right, self.dz_left = \
-                            self.determine_possible_shell(self.origin_structure.id, [self.single.domain_id], [self.target_structure.id])
+                            self.determine_possible_shell(self.origin_structure.id, [self.single.domain_id], \
+                                                                                    self.ignored_structure_ids)
         except ShellmakingError as e:
-            raise testShellError('(PlanarSurfaceCylindricalSurfaceInteraction). %s' %
+            raise testShellError('(PlanarSurfaceDiskSurfaceInteraction). %s' %
                                  (str(e)))
     
     def get_min_dr_dzright_dzleft(self):        
@@ -2593,6 +2600,33 @@ class PlanarSurfaceCylindricalSurfaceInteractiontestShell(CylindricalSurfaceInte
 #        dr       = min(dr_sr, dr_edge)
         dr = dr_sr
         return dr, dz_right, dz_left
+
+    def set_structure_ignore_list(self):
+        # In this special domain we want to ignore the (disk) target structure and the cylinder that
+        # is closest to it. Since we assume that the disk is capping the closest cylinder we double-check
+        # here whether this is actually the case.
+        disk_pos    = self.target_structure.shape.position
+        disk_radius = self.target_structure.shape.radius
+        search_pos  = disk_pos
+
+        closest_cyl, closest_cyl_dist = \
+                get_closest_structure(self.world, search_pos, self.target_structure.id, [], structure_class=CylindricalSurface)
+
+        disk_to_cylinder_axis_distance = closest_cyl.project_point(disk_pos)[1][0]
+        if not feq(disk_to_cylinder_axis_distance, 0.0, typical=disk_radius):
+
+              raise testShellError('(PlanarSurfaceDiskSurfaceInteraction) Disk is not below closest cylinder, distance to axis = %s' \
+                                                                                                                % disk_to_cylinder_axis_distance)
+              # TODO Maybe we do not want to keep this requirement
+
+        if closest_cyl is not None:
+            ignore_list = [self.target_structure.id, closest_cyl.id]
+        else:
+            ignore_list = [self.target_structure.id]
+        
+        return ignore_list
+        # NOTE copied from CylindricalSurfacePlanarSurfaceIntermediateSingle
+        
 
 class CylindricalSurfaceCapInteractiontestShell(CylindricaltestShell, testInteractionSingle):
 

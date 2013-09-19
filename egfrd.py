@@ -54,7 +54,7 @@ from shells import (
     CylindricalSurfacePairtestShell,
     DiskSurfaceSingletestShell,
     PlanarSurfaceInteractiontestShell,
-    PlanarSurfaceCylindricalSurfaceInteractiontestShell,
+    PlanarSurfaceDiskSurfaceInteractiontestShell,
     CylindricalSurfaceInteractiontestShell,
     CylindricalSurfaceCapInteractiontestShell,
     CylindricalSurfacePlanarSurfaceInteractionSingletestShell,
@@ -110,17 +110,17 @@ def try_default_testinteraction(single, target_structure, geometrycontainer, dom
             raise testShellError('(Interaction). Combination of (3D particle, target_structure) is not supported')
     elif isinstance(single.structure, PlanarSurface):
         if isinstance(target_structure, CylindricalSurface):
-            # here we have 2 possibilities; first we try the less probable one (special conditions apply that are checked
+            raise testShellError('(Interaction). Combination of (2D particle, target_structure) is not supported')
+        elif isinstance(target_structure, DiskSurface):
+            # Here we have 2 possibilities; first we try the less probable one (special conditions apply that are checked
             # upon test shell construction), then the more common one.
             try:
-                pass # TODO TODO TODO Fix this
+                return CylindricalSurfacePlanarSurfaceIntermediateSingletestShell (single, target_structure, geometrycontainer, domains)
             except testShellError as e:
                 if __debug__:
-                    log.warn('Could not make CylindricalSurfacePlanarSurfaceIntermediateSingletestShell, %s; now trying PlanarSurfaceCylindricalSurfaceInteractiontestShell.' % str(e))
-                return PlanarSurfaceCylindricalSurfaceInteractiontestShell (single, target_structure, geometrycontainer, domains)
+                    log.warn('Could not make CylindricalSurfacePlanarSurfaceIntermediateSingletestShell, %s; now trying PlanarSurfaceDiskSurfaceInteractiontestShell.' % str(e))
+                return PlanarSurfaceDiskSurfaceInteractiontestShell (single, target_structure, geometrycontainer, domains)
                 # if both shells do not work in this situation the second try will result in raising another shellmaking exception       
-        elif isinstance(target_structure, DiskSurface):
-            return CylindricalSurfacePlanarSurfaceIntermediateSingletestShell (single, target_structure, geometrycontainer, domains)
         else:
             raise testShellError('(Interaction). Combination of (2D particle, target_structure) is not supported')
     elif isinstance(single.structure, CylindricalSurface):
@@ -136,8 +136,8 @@ def try_default_testinteraction(single, target_structure, geometrycontainer, dom
         raise testShellError('(Interaction). structure of particle was of invalid type')
 
 def create_default_interaction(domain_id, shell_id, testShell, reaction_rules, interaction_rules):
-    if isinstance(testShell, PlanarSurfaceCylindricalSurfaceInteractiontestShell): # must be first because it is a special case of CylindricalSurfaceInteractiontestShell
-        return PlanarSurfaceCylindricalSurfaceInteraction (domain_id, shell_id, testShell, reaction_rules, interaction_rules)
+    if isinstance(testShell, PlanarSurfaceDiskSurfaceInteractiontestShell): # must be first because it is a special case of CylindricalSurfaceInteractiontestShell
+        return PlanarSurfaceDiskSurfaceInteraction (domain_id, shell_id, testShell, reaction_rules, interaction_rules)
     elif isinstance(testShell, CylindricalSurfaceInteractiontestShell):
         return CylindricalSurfaceInteraction    (domain_id, shell_id, testShell, reaction_rules, interaction_rules)
     elif isinstance(testShell, PlanarSurfaceInteractiontestShell):
@@ -1598,9 +1598,9 @@ class EGFRDSimulator(ParticleSimulatorBase):
             product_species      = self.world.get_species(rr.products[0])
             product_radius       = product_species.radius
             # In some special domains that are formally an interaction the product actually stays
-            # behind on the origin structure (e.g. in the PlanarSurfaceCylindricalSurfaceInteraction,
+            # behind on the origin structure (e.g. in the PlanarSurfaceDiskSurfaceInteraction,
             # which is a plane particle interacting with a cylinder touching the plane).
-            # Therefore we have to make a distinction here. TODO FIXME this is not very elegant!
+            # Therefore we have to make a distinction here. TODO FIXME this is not very elegant, and probably DEPRECATED by now
             if single.product_structure:
                 product_structure    = single.product_structure # treating some special cases
                 target_structure     = single.target_structure

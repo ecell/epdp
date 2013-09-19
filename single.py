@@ -35,7 +35,7 @@ __all__ = [
     'CylindricalSurfacePlanarSurfaceIntermediateSingle',
     'CylindricalSurfaceSink',
     'PlanarSurfaceInteraction',
-    'PlanarSurfaceCylindricalSurfaceInteraction',
+    'PlanarSurfaceDiskSurfaceInteraction',
     'TransitionSingle',
     'PlanarSurfaceTransitionSingle',
     ]
@@ -962,9 +962,9 @@ class CylindricalSurfaceInteraction(InteractionSingle):
                'radius = %s, half_length = %s' %
                 (self.shell.shape.radius, self.shell.shape.half_length))
 
-class PlanarSurfaceCylindricalSurfaceInteraction(CylindricalSurfaceInteraction):
-    """1 Particle on a PlanarSurface close to a CylindricalSurface, 
-       inside a cylindrical shell that surrounds the CylindricalSurface.
+class PlanarSurfaceDiskSurfaceInteraction(CylindricalSurfaceInteraction):
+    """1 Particle on a PlanarSurface close to a DiskSurface, 
+       inside a cylindrical shell that surrounds the DiskSurface.
 
         * Particle coordinates inside shell: r, theta, z.
         * Domains: composite r-theta, cartesian z.
@@ -977,12 +977,12 @@ class PlanarSurfaceCylindricalSurfaceInteraction(CylindricalSurfaceInteraction):
         # This domain is basically equivalent to CylindricalSurfaceInteraction. It uses
         # the same Green's function for binding, but the particle's z-coordinate does not
         # change here. Thus we have to modify draw_new_position() accordingly.
-        assert isinstance(testShell, PlanarSurfaceCylindricalSurfaceInteractiontestShell)
+        assert isinstance(testShell, PlanarSurfaceDiskSurfaceInteractiontestShell)
         # Initialize the parent class. This should be fine since the test shell also has
         # CylindricalSurfaceInteractiontestShell as a parent class.
         CylindricalSurfaceInteraction.__init__(self, domain_id, shell_id, testShell, reactionrules, interactionrules)
 
-        self.product_structure = self.origin_structure
+        self.product_structure = self.origin_structure # DEPRECATED rethink this
 
     def draw_escape_time_tuple(self):
         # This draws the time for escape in z-direction; since the particle in this domain
@@ -1034,7 +1034,7 @@ class PlanarSurfaceCylindricalSurfaceInteraction(CylindricalSurfaceInteraction):
         return newpos, structure_id
 
     def __str__(self):
-        return ('PlanarSurfaceCylindricalSurfaceInteraction' + Single.__str__(self) + \
+        return ('PlanarSurfaceDiskSurfaceInteraction' + Single.__str__(self) + \
                'radius = %s, half_length = %s' %
                 (self.shell.shape.radius, self.shell.shape.half_length))
 
