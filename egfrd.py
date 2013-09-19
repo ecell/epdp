@@ -3045,31 +3045,43 @@ max. overlap error:  %g
             # surfaces.
             ignores = [s.id for s in self.world.structures]
             associated = []
+
         elif isinstance(domain, SphericalSingle) or isinstance(domain, SphericalPair) or isinstance(domain, PlanarSurfaceSingle): # TODO Why not PlanarSurfacePair ?
             # 3D NonInteractionSingles can overlap with planar surfaces but not with rods
             ignores = [s.id for s in self.world.structures if isinstance(s, PlanarSurface)]
             associated = []
-        elif isinstance(domain, DiskSurfaceSingle) or isinstance(domain, CylindricalSurfacePlanarSurfaceInterfaceSingle):
+
+        elif isinstance(domain, DiskSurfaceSingle):
             # Particles bound to DiskSurfaces ignore all rods for now. TODO Only ignore neighboring/parent rods!
             ignores = [s.id for s in self.world.structures if isinstance(s, CylindricalSurface)]
             associated = [domain.structure.id]
+
         elif isinstance(domain, CylindricalSurfaceInteraction) or isinstance(domain, CylindricalSurfacePlanarSurfaceInteractionSingle):
-            # Ignore surface of the particle and interaction surface and all DiskSurfaces for now. TODO Only ignore relevant disks!
+            # Ignore surface of the particle and interaction surface and all DiskSurfaces for now. TODO Only ignore closest disk
             ignores = [s.id for s in self.world.structures if isinstance(s, DiskSurface)]
             associated = [domain.origin_structure.id, domain.target_structure.id]
+
+        elif isinstance(domain, CylindricalSurfacePlanarSurfaceInterfaceSingle):
+            # Ignore the planar surface and sub-disk that holds/will hold the particle, and the neighboring cylinder
+            ignores = [s.id for s in self.world.structures if isinstance(s, CylindricalSurface)] # TODO Only ignore closest cylinder
+            associated = [domain.origin_structure.id, domain.target_structure.id]
+
         elif isinstance(domain, InteractionSingle) or isinstance(domain, MixedPair2D3D) or isinstance(domain, MixedPair1DStatic):
             # Ignore surface of the particle and interaction surface
             ignores = []
-            associated = [domain.origin_structure.id, domain.target_structure.id]        
+            associated = [domain.origin_structure.id, domain.target_structure.id]
+
         elif isinstance(domain, PlanarSurfacePair):
             # PlanarSurface domains sometimes are formed with a particle that just exited from a rod onto the plane.
             # In these cases, the rod shall be ignored.
             ignores = domain.ignored_structure_ids # this is a list already
             associated = [domain.structure.id]
+
         elif isinstance(domain, PlanarSurfaceTransitionSingle) or isinstance(domain, PlanarSurfaceTransitionPair):
             # Ignore surface of the particle and interaction surface
             ignores = []
             associated = [domain.structure1.id, domain.structure2.id]
+
         else:
             # Ignore the structure that the particles are associated with
             ignores = []
