@@ -32,7 +32,7 @@ __all__ = [
     'CylindricalSurfaceInteraction',
     'CylindricalSurfaceCapInteraction',
     'CylindricalSurfacePlanarSurfaceInteractionSingle',
-    'CylindricalSurfacePlanarSurfaceInterfaceSingle',
+    'CylindricalSurfacePlanarSurfaceIntermediateSingle',
     'CylindricalSurfaceSink',
     'PlanarSurfaceInteraction',
     'PlanarSurfaceCylindricalSurfaceInteraction',
@@ -159,7 +159,7 @@ class Single(ProtectiveDomain):
     def __str__(self):
         pid = self.pid_particle_pair[0]
         sid = self.pid_particle_pair[1].sid
-        name = self.world.model.get_species_type_by_id(sid)["name"]
+        name = self.testShell.world.model.get_species_type_by_id(sid)["name"]
         if name[0] != '(':
             name = '(' + name + ')'
         return 'Single[%s: %s, ST%s, %s]' % (self.domain_id, pid, name,
@@ -589,10 +589,11 @@ class DiskSurfaceSingle(NonInteractionSingle, hasCylindricalShell):
     """
     def __init__(self, domain_id, shell_id, testShell, reactionrules):
 
-        assert isinstance(testShell, DiskSurfaceSingletestShell) or \
-               isinstance(testShell,CylindricalSurfacePlanarSurfaceInterfaceSingletestShell)
+        assert isinstance(testShell, DiskSurfaceSingletestShell)
         hasCylindricalShell.__init__(self, testShell, domain_id)
         NonInteractionSingle.__init__(self, domain_id, shell_id, reactionrules)
+
+        self.ignored_structure_ids = self.testShell.ignored_structure_ids
 
     def get_inner_a(self):
         return self.pid_particle_pair[1].radius
@@ -637,7 +638,8 @@ class DiskSurfaceSingle(NonInteractionSingle, hasCylindricalShell):
         # TODO what should we do with the position now?
         # maybe update the reference_point of the shell before updating the shell
         try:
-            dr, dz_right, dz_left = self.testShell.determine_possible_shell(self.structure.id, [self.domain_id], [])
+            ignores = self.ignored_structure_ids
+            dr, dz_right, dz_left = self.testShell.determine_possible_shell(self.structure.id, [self.domain_id], ignores)
             dz_right = min(dz_right, dz_left)       # make sure the domain is symmetric around the particle
             dz_left  = dz_right                     # This is not necessary but it's assumed later
             center, radius, half_length = self.r_zright_zleft_to_r_center_hl(self.testShell.get_referencepoint(),
@@ -1252,7 +1254,7 @@ class CylindricalSurfacePlanarSurfaceInteractionSingle(CylindricalSurfaceCapInte
     def __str__(self):
         return 'CylindricalSurfacePlanarSurfaceInteraction ' + Single.__str__(self)
 
-class CylindricalSurfacePlanarSurfaceInterfaceSingle(CylindricalSurfaceCapInteraction):
+class CylindricalSurfacePlanarSurfaceIntermediateSingle(CylindricalSurfaceCapInteraction):
     """1 Particle on a DiskSurface at the interface of a PlanarSurface and CylindricalSurface.
 
         * Particle coordinates on surface: z.
@@ -1262,7 +1264,7 @@ class CylindricalSurfacePlanarSurfaceInterfaceSingle(CylindricalSurfaceCapIntera
     """
     def __init__(self, domain_id, shell_id, testShell, reactionrules, interactionrules):
 
-        assert isinstance(testShell, CylindricalSurfacePlanarSurfaceInterfaceSingletestShell)
+        assert isinstance(testShell, CylindricalSurfacePlanarSurfaceIntermediateSingletestShell)
         CylindricalSurfaceCapInteraction.__init__(self, domain_id, shell_id, testShell, reactionrules, interactionrules)
 
     def getv(self):
@@ -1278,10 +1280,9 @@ class CylindricalSurfacePlanarSurfaceInterfaceSingle(CylindricalSurfaceCapIntera
         pass
 
     def determine_next_event(self):
-        """Return an (event_time, event_type)-tuple.
-
-        """
-        return self.draw_reaction_time_tuple() # can only produce SINGLE_REACTION events
+        # For this special domain, we always return dt=0, imagining that the plane particle
+        # interacts instantly with the sub-disk
+        return 0.0, EventType.IV_INTERACTION
 
     def iv_greens_function(self):
 
@@ -1290,6 +1291,34 @@ class CylindricalSurfacePlanarSurfaceInterfaceSingle(CylindricalSurfaceCapIntera
         inner_half_length = self.pid_particle_pair[1].position
         return GreensFunction1DAbsAbs(0.0, 0.0, 0.0, -inner_half_length, inner_half_length)
 
+    def draw_new_position(self, dt, event_type):
+
+        # The particle does not move within this domain, but always ends up on the target structure
+        new_pos = self.pid_particle_pair[1].position
+
+        return new_pos, self.target_structure.id        
+
+    def __str__(self):
+        return 'CylindricalSurfacePlanarSurfaceIntermediate ' + Single.__str__(self)
+
+class CylindricalSurfacePlanarSurfaceInterfaceSingle(CylindricalSurfaceCapInteraction):
+    """1 Particle on a DiskSurface at the interface of a PlanarSurface and CylindricalSurface.
+
+        * Particle coordinates on surface: z.
+        * Domain: cartesian z.
+        * Initial position: z = 0.
+        * Selected randomly when drawing displacement vector: none.
+    """
+    # DEPRECATED!
+    def __init__(self, domain_id, shell_id, testShell, reactionrules, interactionrules):
+
+        assert isinstance(testShell, CylindricalSurfacePlanarSurfaceInterfaceSingletestShell)
+        CylindricalSurfacePlanarSurfaceIntermediateSingle.__init__(self, domain_id, shell_id, testShell, reactionrules, interactionrules)
+
+    def determine_next_event(self):
+        # Here we can actually have single reactions, so we want to draw them
+        return self.draw_reaction_time_tuple() # can only produce SINGLE_REACTION events
+    
     def draw_new_position(self, dt, event_type):
 
         if event_type == EventType.SINGLE_REACTION or event_type == EventType.BURST:

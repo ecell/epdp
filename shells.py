@@ -52,6 +52,7 @@ __all__ = [
     'CylindricalSurfaceInteractiontestShell',
     'CylindricalSurfaceCapInteractiontestShell',
     'CylindricalSurfacePlanarSurfaceInteractionSingletestShell',
+    'CylindricalSurfacePlanarSurfaceIntermediateSingletestShell',
     'CylindricalSurfacePlanarSurfaceInterfaceSingletestShell',
     'CylindricalSurfaceSinktestShell',
     'MixedPair2D3DtestShell',
@@ -2278,6 +2279,8 @@ class DiskSurfaceSingletestShell(CylindricaltestShell, testNonInteractionSingle)
         self.dz_left  = self.pid_particle_pair[1].radius
         self.dr       = self.pid_particle_pair[1].radius
 
+        self.ignored_structure_ids = [] # may be overriden by some derived classes
+
     def get_orientation_vector(self):
         return self.structure.shape.unit_z
         # just copy from disk structure
@@ -2304,6 +2307,44 @@ class DiskSurfaceSingletestShell(CylindricaltestShell, testNonInteractionSingle)
 
     def apply_safety(self, r, z_right, z_left):
         return r, z_right/SAFETY, z_left/SAFETY
+
+class CylindricalSurfacePlanarSurfaceInterfaceSingletestShell(DiskSurfaceSingletestShell):
+
+    # This is a special testShell class derived from DiskSurfaceSingletestShell for the situation
+    # in which a particle is located on a sub-disk of a plane at the interface between plane and cylinder.
+    # In particular we have to make sure here that it will ignore the cylinder.    
+    def __init__(self, pid_particle_pair, structure, geometrycontainer, domains):
+
+        DiskSurfaceSingletestShell.__init__(self, pid_particle_pair, structure, geometrycontainer, domains)
+        
+        self.ignored_structure_ids = self.set_structure_ignore_list()
+
+        # TODO Check whether this shell should have the same dimensions as DiskSurfaceSingletestShell
+        # or rather have revisited scaling functions
+
+    def set_structure_ignore_list(self):
+
+        # In this special domain we want to ignore the (disk) target structure and the cylinder that
+        # is closest to it. Since we assume that the disk is capping the closest cylinder we double-check
+        # here whether this is actually the case.
+        disk_pos    = self.structure.shape.position
+        disk_radius = self.structure.shape.radius
+        search_pos  = disk_pos
+
+        closest_cyl, closest_cyl_dist = \
+                get_closest_structure(self.world, search_pos, self.structure.id, [], structure_class=CylindricalSurface)
+
+        disk_to_cylinder_axis_distance = closest_cyl.project_point(disk_pos)[1][0]
+        if not feq(disk_to_cylinder_axis_distance, 0.0, typical=disk_radius):
+
+              raise testShellError('(CylindricalSurfacePlanarSurfaceInterfaceSingle) Disk is not below closest cylinder, distance to axis = %s' \
+                                                                                                                % disk_to_cylinder_axis_distance)
+        if closest_cyl is not None:
+            ignore_list = [closest_cyl.id]
+        else:
+            ignore_list = []
+
+        return ignore_list
 
 #####
 class CylindricalSurfacePairtestShell(CylindricaltestShell, testSimplePair):
@@ -2699,7 +2740,7 @@ class CylindricalSurfacePlanarSurfaceInteractionSingletestShell(CylindricalSurfa
         else:
             raise testShellError('Could not find correct disk surface at the interface between cylinder and plane.')
 
-class CylindricalSurfacePlanarSurfaceInterfaceSingletestShell(CylindricalSurfaceCapInteractiontestShell):
+class CylindricalSurfacePlanarSurfaceIntermediateSingletestShell(CylindricalSurfaceCapInteractiontestShell):
 
     def __init__(self, single, target_structure, geometrycontainer, domains):
 
@@ -2711,7 +2752,7 @@ class CylindricalSurfacePlanarSurfaceInterfaceSingletestShell(CylindricalSurface
         distance_from_center = target_structure.project_point(single.pid_particle_pair[1].position)[1][0]
         if not feq(distance_from_center, 0.0, typical=single.pid_particle_pair[1].radius):
 
-            raise testShellError('(CylindricalSurfacePlanarSurfaceInterfaceSingle) Particle is not directly at disk position, distance from center = %s' % distance_from_axis)
+            raise testShellError('(CylindricalSurfacePlanarSurfaceIntermediateSingle) Particle is not directly at disk position, distance from center = %s' % distance_from_axis)
 
         # If everything seems OK, we can proceed with creating the test shell
         CylindricalSurfaceCapInteractiontestShell.__init__(self, single, target_structure, geometrycontainer, domains)
@@ -2761,14 +2802,13 @@ class CylindricalSurfacePlanarSurfaceInterfaceSingletestShell(CylindricalSurface
         disk_to_cylinder_axis_distance = closest_cyl.project_point(disk_pos)[1][0]
         if not feq(disk_to_cylinder_axis_distance, 0.0, typical=disk_radius):
 
-              raise testShellError('(CylindricalSurfacePlanarSurfaceInterfaceSingle) Disk is not below closest cylinder, distance to axis = %s' \
+              raise testShellError('(CylindricalSurfacePlanarSurfaceIntermediateSingle) Disk is not below closest cylinder, distance to axis = %s' \
                                                                                                                 % disk_to_cylinder_axis_distance)
         if closest_cyl is not None:
             ignore_list = [self.target_structure.id, closest_cyl.id]
         else:
             ignore_list = [self.target_structure.id]
-
-        log.debug('Setting structure_ignore_list = %s, target_structure=%s' % (ignore_list, self.target_structure) )
+        
         return ignore_list
 
 class CylindricalSurfaceSinktestShell(CylindricaltestShell, testInteractionSingle):

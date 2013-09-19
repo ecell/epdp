@@ -58,6 +58,7 @@ from shells import (
     CylindricalSurfaceInteractiontestShell,
     CylindricalSurfaceCapInteractiontestShell,
     CylindricalSurfacePlanarSurfaceInteractionSingletestShell,
+    CylindricalSurfacePlanarSurfaceIntermediateSingletestShell,
     CylindricalSurfacePlanarSurfaceInterfaceSingletestShell,
     CylindricalSurfaceSinktestShell,
     MixedPair2D3DtestShell,
@@ -88,7 +89,14 @@ def create_default_single(domain_id, shell_id, pid_particle_pair, structure, rea
         return CylindricalSurfaceSingle (domain_id, shell_id, testSingle, reaction_rules)
     elif isinstance(structure, DiskSurface):
         # first make the test shell
-        testSingle = DiskSurfaceSingletestShell(pid_particle_pair, structure, geometrycontainer, domains)
+        try:
+            testSingle = CylindricalSurfacePlanarSurfaceInterfaceSingletestShell(pid_particle_pair, structure, geometrycontainer, domains)
+        except testShellError as e:
+            if __debug__:
+                log.warn('Could not make CylindricalSurfacePlanarSurfaceInterfaceSingletestShell, %s' % str(e))
+            # making the default testShell should never fail
+            testSingle = DiskSurfaceSingletestShell(pid_particle_pair, structure, geometrycontainer, domains)
+
         return DiskSurfaceSingle (domain_id, shell_id, testSingle, reaction_rules)
 
 ### Interactions
@@ -108,11 +116,11 @@ def try_default_testinteraction(single, target_structure, geometrycontainer, dom
                 pass # TODO TODO TODO Fix this
             except testShellError as e:
                 if __debug__:
-                    log.warn('Could not make CylindricalSurfacePlanarSurfaceInterfaceSingletestShell, %s; now trying PlanarSurfaceCylindricalSurfaceInteractiontestShell.' % str(e))
+                    log.warn('Could not make CylindricalSurfacePlanarSurfaceIntermediateSingletestShell, %s; now trying PlanarSurfaceCylindricalSurfaceInteractiontestShell.' % str(e))
                 return PlanarSurfaceCylindricalSurfaceInteractiontestShell (single, target_structure, geometrycontainer, domains)
                 # if both shells do not work in this situation the second try will result in raising another shellmaking exception       
         elif isinstance(target_structure, DiskSurface):
-            return CylindricalSurfacePlanarSurfaceInterfaceSingletestShell (single, target_structure, geometrycontainer, domains)
+            return CylindricalSurfacePlanarSurfaceIntermediateSingletestShell (single, target_structure, geometrycontainer, domains)
         else:
             raise testShellError('(Interaction). Combination of (2D particle, target_structure) is not supported')
     elif isinstance(single.structure, CylindricalSurface):
@@ -136,8 +144,8 @@ def create_default_interaction(domain_id, shell_id, testShell, reaction_rules, i
         return PlanarSurfaceInteraction         (domain_id, shell_id, testShell, reaction_rules, interaction_rules)
     elif isinstance(testShell, CylindricalSurfacePlanarSurfaceInteractionSingletestShell): # must be first because it is a special case of CylindricalSurfaceCapInteractiontestShell
         return CylindricalSurfacePlanarSurfaceInteractionSingle (domain_id, shell_id, testShell, reaction_rules, interaction_rules)
-    elif isinstance(testShell, CylindricalSurfacePlanarSurfaceInterfaceSingletestShell): # this is actually not a regular interaction, but we need to put it here to ignore the target structure
-        return CylindricalSurfacePlanarSurfaceInterfaceSingle (domain_id, shell_id, testShell, reaction_rules, interaction_rules)
+    elif isinstance(testShell, CylindricalSurfacePlanarSurfaceIntermediateSingletestShell): # this is actually not a "real" interaction, but we need to put it here to ignore the target structure
+        return CylindricalSurfacePlanarSurfaceIntermediateSingle (domain_id, shell_id, testShell, reaction_rules, interaction_rules)
     elif isinstance(testShell, CylindricalSurfaceCapInteractiontestShell):
         return CylindricalSurfaceCapInteraction (domain_id, shell_id, testShell, reaction_rules, interaction_rules)
     elif isinstance(testShell, CylindricalSurfaceSinktestShell):
@@ -1835,8 +1843,15 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
         # 1.0 Get neighboring domains and surfaces
         neighbor_distances = self.geometrycontainer.get_neighbor_domains(single_pos, self.domains, ignore=[single.domain_id, ])        
-        # Get also surfaces but only if the particle is in 3D
-        surface_distances = get_neighbor_structures(self.world, single_pos, single.structure.id, ignores=[])
+        # Get also surfaces
+        # Some singles have an extended ignore list, which we have to figure out first
+        ignores = [] # by default
+        if isinstance(single, DiskSurfaceSingle):
+            ignores = single.ignored_structure_ids
+            if __debug__:
+                log.info('Extended structure ignore list when making %s, ignored IDs = %s' % (single, ignores))
+
+        surface_distances = get_neighbor_structures(self.world, single_pos, single.structure.id, ignores)
 
         # 2.3 We prefer to make NonInteractionSingles for efficiency.
         #     But if objects (Shells and surfaces) get close enough (closer than
@@ -3041,7 +3056,7 @@ max. overlap error:  %g
         elif isinstance(domain, DiskSurfaceSingle):
             # Particles bound to DiskSurfaces ignore all rods for now. TODO Only ignore neighboring/parent rods!
             ignores = [s.id for s in self.world.structures if isinstance(s, CylindricalSurface)]
-            associated = [domain.structure.id]
+            associated = [domain.structure.id, domain.structure.structure_id] # the latter is the ID of the parent structure
 
         elif isinstance(domain, CylindricalSurfaceInteraction) or isinstance(domain, CylindricalSurfacePlanarSurfaceInteractionSingle) \
           or isinstance(domain, MixedPair1DStatic):
@@ -3049,7 +3064,7 @@ max. overlap error:  %g
             ignores = [s.id for s in self.world.structures if isinstance(s, DiskSurface)]
             associated = [domain.origin_structure.id, domain.target_structure.id]
 
-        elif isinstance(domain, CylindricalSurfacePlanarSurfaceInterfaceSingle):
+        elif isinstance(domain, CylindricalSurfacePlanarSurfaceIntermediateSingle):
             # Ignore the planar surface and sub-disk that holds/will hold the particle, and the neighboring cylinder
             ignores = [s.id for s in self.world.structures if isinstance(s, CylindricalSurface)] # TODO Only ignore closest cylinder
             associated = [domain.origin_structure.id, domain.target_structure.id]
