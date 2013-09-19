@@ -41,6 +41,7 @@ __all__ = [
     'ParticleSimulatorBase',
     'get_all_surfaces',
     'get_neighbor_surfaces',
+    'get_closest_structure',
     'create_network_rules_wrapper',
     ]
 
@@ -83,6 +84,7 @@ setup_logging()
 
 
 def p_free(r, t, D):
+
     Dt4 = D * t * 4.0
     Pi4Dt = numpy.pi * Dt4
     rsq = r * r
@@ -93,19 +95,20 @@ def p_free(r, t, D):
 
     return p * jacobian
 
-def get_neighbor_surfaces(world, pos, current_struct_id, ignores=[]):
-    
-    if ignores:
-        ignore = ignores[0]
-    else:
-        ignore = world.get_def_structure_id()   # smt random
-
-    surface_distances = [(structure, distance) for ((id, structure), distance) in world.get_close_structures(pos, current_struct_id, ignore)]
-
-    return surface_distances
 
 def get_all_surfaces(world, pos, ignores=[]):
-
+    """ Returns a list of all surfaces in the world, sorted by increasing distance.
+        The output format is (structure, distance from search position).
+        
+        Arguments:
+            - world
+                  the world that contains the structures
+            - pos
+                  the search position
+            - ignores (optional)
+                  a list of structure IDs that will define structures that will be
+                  ignored in the search        
+    """
     surface_distances = []
 
     for surface in world.structures:
@@ -115,10 +118,75 @@ def get_all_surfaces(world, pos, ignores=[]):
             distance = world.distance(surface.shape, pos_transposed)
             surface_distances.append((surface, distance))
 
-    return sorted(surface_distances, key=lambda surface_dist: surface_dist[1])
+    return sorted(surface_distances, key=lambda surface_and_dist: surface_and_dist[1])
+
+
+def get_neighbor_surfaces(world, pos, current_struct_id, ignores=[], structure_class=None):
+    """ Returns a list of neighboring structures, optionally restricted to type 'structure_class',
+        sorted by increasing distance from the search position.
+        The output format is (structure, distance from search position).
+
+        Arguments:
+            - world
+                  the world that contains the structures
+            - pos
+                  the search position
+            - current_struct_id
+                  the structure that the search position is assumed to belong to
+                  (this defines which other structures are 'visible' from that point)
+            - ignores (optional)
+                  a list of structure IDs that will define structures that will be
+                  ignored in the search
+            - structure_class (optional)
+                  restrict the search to a certain structure class; must be one of
+                  CuboidalRegion, PlanarSurface, DiskSurface, CylindricalSurface, SphericalSurface
+    """    
+    if ignores:
+        ignore = ignores[0] # FIXME world.get_close_structures currently only supports one ignored structure
+    else:
+        ignore = world.get_def_structure_id() # Is that a good convention?
+
+    if structure_class != None:
+        # The user has specified a restriction of the search to a particular geometric class
+        assert(    structure_class==CuboidalRegion     or structure_class==PlanarSurface       \
+                or structure_class==Disk Surface       or structure_class==CylindricalSurface  \
+                or structure_class==SphericalSurface                                           )
+
+        surface_distances = [(structure, distance) for ((id, structure), distance) in world.get_close_structures(pos, current_struct_id, ignore) \
+                                                                                                      if isinstance(structure, structure_class)]
+    else:
+        # Take into account all surface types
+        surface_distances = [(structure, distance) for ((id, structure), distance) in world.get_close_structures(pos, current_struct_id, ignore)]
+
+    return sorted(surface_distances, key=lambda surface_and_dist: surface_and_dist[1])
+
+
+def get_closest_structure(world, pos, current_struct_id, ignores=[], structure_class=None):
+    """ Returns the closest structure of type 'structure_class' (optionally).
+        The output format is (structure, distance from search position).
+
+        Arguments:
+            - world
+                  the world that contains the structures
+            - pos
+                  the search position
+            - current_struct_id
+                  the structure that the search position is assumed to belong to
+                  (this defines which other structures are 'visible' from that point)
+            - ignores (optional)
+                  a list of structure IDs that will define structures that will be
+                  ignored in the search
+            - structure_class (optional)
+                  restrict the search to a certain structure class; must be one of
+                  CuboidalRegion, PlanarSurface, CylindricalSurface, DiskSurface, SphericalSurface
+    """
+    sorted_close_surfaces = get_neighbor_surfaces(self.world, pos, current_struct_id, ignores, structure_class)
+
+    return sorted_close_surfaces[0]
+
 
 def create_world(m, matrix_size=10):
-    """Create a world object.
+    """ Create a world object.
     
     The world object keeps track of the positions of the particles
     and the protective domains during an eGFRD simulation.
@@ -221,6 +289,9 @@ def create_box(world, structure_type, center, size, one_sided=True):
                 a 3D vector defining the center of the box
             - size
                 a 3D vector defining the box extensions
+            - one_sided (optional, 'True' by default)
+                create a box with 'one sided' planes, i.e. particles
+                can will unbind only towards the interior of the box
     """
 
     # Assert that the center and size is ok
