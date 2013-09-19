@@ -184,6 +184,10 @@ def try_default_testpair(single1, single2, geometrycontainer, domains):
         return MixedPair2D3DtestShell               (single1, single2, geometrycontainer, domains) 
     elif (isinstance(single2.structure, PlanarSurface) and isinstance(single1.structure, CuboidalRegion)):
         return MixedPair2D3DtestShell(single2, single1, geometrycontainer, domains)
+    elif (isinstance(single1.structure, PlanarSurface) and isinstance(single2.structure, DiskSurface)):
+        return MixedPair2DStatictestShell(single1, single2, geometrycontainer, domains)
+    elif (isinstance(single2.structure, PlanarSurface) and isinstance(single1.structure, DiskSurface)):
+        return MixedPair2DStatictestShell(single2, single1, geometrycontainer, domains)
     elif (isinstance(single1.structure, CylindricalSurface) and isinstance(single2.structure, DiskSurface)):
         return MixedPair1DStatictestShell(single1, single2, geometrycontainer, domains)
     elif (isinstance(single2.structure, CylindricalSurface) and isinstance(single1.structure, DiskSurface)):
@@ -207,6 +211,7 @@ def create_default_pair(domain_id, shell_id, testShell, reaction_rules):
         return MixedPair2D3D               (domain_id, shell_id, testShell, reaction_rules)
     elif isinstance(testShell, MixedPair1DStatictestShell):
         return MixedPair1DStatic           (domain_id, shell_id, testShell, reaction_rules)
+    # NOTE MixedPair2DStatic does not exist, a regular PlanarSurfacePair works well in that case
 
 class Delegate(object):
     def __init__(self, obj, method, arg):
@@ -3071,8 +3076,8 @@ max. overlap error:  %g
             associated = [domain.origin_structure.id, domain.target_structure.id]
 
         elif isinstance(domain, PlanarSurfacePair):
-            # PlanarSurface domains sometimes are formed with a particle that just exited from a rod onto the plane.
-            # In these cases, the rod shall be ignored.
+            # PlanarSurfacePair domains are also formed with a static particle located on a (sub-) disk of the plane
+            # In these cases, the disk and--if present--a cylinder next to it shall be ignored.
             ignores = domain.ignored_structure_ids # this is a list already
             associated = [domain.structure.id]
 

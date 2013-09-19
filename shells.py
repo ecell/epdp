@@ -2115,6 +2115,8 @@ class PlanarSurfacePairtestShell(CylindricaltestShell, testSimplePair):
 
     def set_structure_ignore_list(self):
 
+        # TODO this is DEPRECATED, rethink!
+
         ignored_structure_ids = [] # by default
 
         # The "interface pair", i.e. one of the particles is static (D=0) and located below
@@ -2158,6 +2160,42 @@ class PlanarSurfacePairtestShell(CylindricaltestShell, testSimplePair):
 
         return ignored_structure_ids
 
+class MixedPair2DStatictestShell(PlanarSurfacePairtestShell):
+
+    def __init__(self, single2D, static_single, geometrycontainer, domains):
+
+        assert static_single.pid_particle_pair[1].D==0 and static_single.pid_particle_pair[1].v==0
+        PlanarSurfacePairtestShell(self, single1D, static_single, geometrycontainer, domains)
+
+        self.static_single = static_single
+        self.single2D      = single2D
+
+    def set_structure_ignore_list(self):
+        # In this special domain we want to ignore the (disk) structure and the cylinder that
+        # is closest to it. Since we assume that the disk is capping the closest cylinder we double-check
+        # here whether this is actually the case.
+        disk_pos    = self.static_single.structure.shape.position
+        disk_radius = self.static_single.structure.shape.radius
+        search_pos  = disk_pos
+
+        closest_cyl, closest_cyl_dist = \
+                get_closest_structure(self.world, search_pos, self.static_single.structure.id, [], structure_class=CylindricalSurface)
+
+        disk_to_cylinder_axis_distance = closest_cyl.project_point(disk_pos)[1][0]
+        if not feq(disk_to_cylinder_axis_distance, 0.0, typical=disk_radius):
+
+              raise testShellError('(PlanarSurfaceDiskSurfaceInteraction) Disk is not below closest cylinder, distance to axis = %s' \
+                                                                                                                % disk_to_cylinder_axis_distance)
+              # TODO Maybe we do not want to keep this requirement
+
+        if closest_cyl is not None:
+            ignore_list = [self.static_single.structure.id, closest_cyl.id]
+        else:
+            ignore_list = [self.static_single.structure.id]
+        
+        return ignore_list
+        # NOTE copied from CylindricalSurfacePlanarSurfaceIntermediateSingle
+        
 ####
 class CylindricalSurfacePlanarSurfaceInterfacePairtestShell(PlanarSurfacePairtestShell):
 
