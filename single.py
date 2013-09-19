@@ -1253,8 +1253,7 @@ class CylindricalSurfacePlanarSurfaceInteractionSingle(CylindricalSurfaceCapInte
         return 'CylindricalSurfacePlanarSurfaceInteraction ' + Single.__str__(self)
 
 class CylindricalSurfacePlanarSurfaceInterfaceSingle(CylindricalSurfaceCapInteraction):
-    """1 Particle inside a (cylindrical) shell at the interface of a
-       PlanarSurface and CylindricalSurface.
+    """1 Particle on a DiskSurface at the interface of a PlanarSurface and CylindricalSurface.
 
         * Particle coordinates on surface: z.
         * Domain: cartesian z.

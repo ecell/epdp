@@ -1667,7 +1667,7 @@ class SphericaltestShell(testShell):
         # This determines the largest possible radius of the spherical testShell or throws an
         # exception if the domain could not be made due to geometrical constraints.
 
-        neighbor_domains, neighbor_surfaces = self.get_neighbors (base_structure_id, ignore, ignores)
+        neighbor_domains, neighbor_surfaces = self.get_neighbors(base_structure_id, ignore, ignores)
         min_radius = self.apply_safety(self.get_min_radius())
         max_radius = self.get_max_radius()
 
@@ -1833,8 +1833,9 @@ class CylindricaltestShell(testShell):
     def determine_possible_shell(self, base_structure_id, ignore, ignores):
         # This determines the maximum dr, dz_right, dz_left of the cylindrical testShell or
         # throws an exception if the domain could not be made due to geometrical constraints.
+                
+        neighbor_domains, neighbor_surfaces = self.get_neighbors(base_structure_id, ignore, ignores)
 
-        neighbor_domains, neighbor_surfaces = self.get_neighbors (base_structure_id, ignore, ignores)
         min_dr, min_dz_right, min_dz_left = self.get_min_dr_dzright_dzleft()
         max_dr, max_dz_right, max_dz_left = self.get_max_dr_dzright_dzleft()
 
@@ -2587,13 +2588,16 @@ class CylindricalSurfaceCapInteractiontestShell(CylindricaltestShell, testIntera
         # In particular store the tangent, because math.tan is expensive!
         self.tan_right_scalingangle = math.tan(self.right_scalingangle)
         self.tan_left_scalingangle  = math.tan(self.left_scalingangle)
-
+        
         # This will determine if the shell is possible.
         # If possible, it will write the dr, dz_right, dz_left defining the dimensions of the cylindrical shell.
         # If not possible, it throws an exception and the construction of the testShell IS ABORTED!
+        self.ignored_structure_ids = self.set_structure_ignore_list()
+        
         try:
             self.dr, self.dz_right, self.dz_left = \
-                            self.determine_possible_shell(self.origin_structure.id, [self.single.domain_id], [self.target_structure.id])
+                            self.determine_possible_shell(self.origin_structure.id, [self.single.domain_id], \
+                                                                                    self.ignored_structure_ids)
         except ShellmakingError as e:
             raise testShellError('(CylindricalSurfaceCapInteraction). %s' % (str(e)) )
 
@@ -2623,6 +2627,10 @@ class CylindricalSurfaceCapInteractiontestShell(CylindricaltestShell, testIntera
 
     def apply_safety(self, r, z_right, z_left):
         return r, z_right/SAFETY, z_left
+
+    def set_structure_ignore_list(self):
+
+        return [self.target_structure.id]
 
 class CylindricalSurfacePlanarSurfaceInteractionSingletestShell(CylindricalSurfaceCapInteractiontestShell):
 
@@ -2698,10 +2706,12 @@ class CylindricalSurfacePlanarSurfaceInterfaceSingletestShell(CylindricalSurface
         # We want to form this domain only when the particle just arrived onto the plane exiting from a perpendicular cylinder
         # Here we check in advance whether the particle is on the cylinder axis by projecting the difference vector between
         # particle position and cylinder midpoint onto the plane (the projection is zero if both lie on the cyl. axis)
+        assert isinstance(target_structure, DiskSurface)
+
         distance_from_center = target_structure.project_point(single.pid_particle_pair[1].position)[1][0]
         if not feq(distance_from_center, 0.0, typical=single.pid_particle_pair[1].radius):
 
-            raise testShellError(('(CylindricalSurfacePlanarSurfaceInterfaceSingle) Particle is not directly at disk position, distance from center = %s' % distance_from_axis))
+            raise testShellError('(CylindricalSurfacePlanarSurfaceInterfaceSingle) Particle is not directly at disk position, distance from center = %s' % distance_from_axis)
 
         # If everything seems OK, we can proceed with creating the test shell
         CylindricalSurfaceCapInteractiontestShell.__init__(self, single, target_structure, geometrycontainer, domains)
@@ -2735,6 +2745,31 @@ class CylindricalSurfacePlanarSurfaceInterfaceSingletestShell(CylindricalSurface
         dz_right = self.pid_particle_pair[1].radius # same as the minimum, i.e. no scaling of this length
         dz_left  = dz_right
         return dr, dz_right, dz_left
+
+    def set_structure_ignore_list(self):
+
+        # In this special domain we want to ignore the (disk) target structure and the cylinder that
+        # is closest to it. Since we assume that the disk is capping the closest cylinder we double-check
+        # here whether this is actually the case.
+        disk_pos    = self.target_structure.shape.position
+        disk_radius = self.target_structure.shape.radius
+        search_pos  = disk_pos
+
+        closest_cyl, closest_cyl_dist = \
+                get_closest_structure(self.world, search_pos, self.target_structure.id, [], structure_class=CylindricalSurface)
+
+        disk_to_cylinder_axis_distance = closest_cyl.project_point(disk_pos)[1][0]
+        if not feq(disk_to_cylinder_axis_distance, 0.0, typical=disk_radius):
+
+              raise testShellError('(CylindricalSurfacePlanarSurfaceInterfaceSingle) Disk is not below closest cylinder, distance to axis = %s' \
+                                                                                                                % disk_to_cylinder_axis_distance)
+        if closest_cyl is not None:
+            ignore_list = [self.target_structure.id, closest_cyl.id]
+        else:
+            ignore_list = [self.target_structure.id]
+
+        log.debug('Setting structure_ignore_list = %s, target_structure=%s' % (ignore_list, self.target_structure) )
+        return ignore_list
 
 class CylindricalSurfaceSinktestShell(CylindricaltestShell, testInteractionSingle):
 
