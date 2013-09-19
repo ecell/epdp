@@ -188,10 +188,6 @@ def try_default_testpair(single1, single2, geometrycontainer, domains):
         return MixedPair1DStatictestShell(single1, single2, geometrycontainer, domains)
     elif (isinstance(single2.structure, CylindricalSurface) and isinstance(single1.structure, DiskSurface)):
         return MixedPair1DStatictestShell(single2, single1, geometrycontainer, domains)
-    elif (isinstance(single1.structure, CylindricalSurface) and isinstance(single2.structure, PlanarSurface)):
-        return MixedPair1DStatictestShell(single1, single2, geometrycontainer, domains)
-    elif (isinstance(single2.structure, CylindricalSurface) and isinstance(single1.structure, PlanarSurface)):
-        return MixedPair1DStatictestShell(single2, single1, geometrycontainer, domains)
     else:
         # another mixed pair was supposed to be formed -> unsupported
         raise testShellError('(MixedPair). combination of structures not supported')
@@ -3053,20 +3049,21 @@ max. overlap error:  %g
             associated = []
 
         elif isinstance(domain, DiskSurfaceSingle):
-            # Particles bound to DiskSurfaces ignore all rods for now. TODO Only ignore neighboring/parent rods!
-            ignores = [s.id for s in self.world.structures if isinstance(s, CylindricalSurface)]
+            # Particles bound to DiskSurfaces ignore all rods for now.
+            ignores = [s.id for s in self.world.structures if isinstance(s, CylindricalSurface)] # TODO Only ignore closest cylinder
             associated = [domain.structure.id, domain.structure.structure_id] # the latter is the ID of the parent structure
 
-        elif isinstance(domain, CylindricalSurfaceInteraction) or isinstance(domain, CylindricalSurfacePlanarSurfaceInteractionSingle) \
-          or isinstance(domain, MixedPair1DStatic):
-            # Ignore surface of the particle and interaction surface and all DiskSurfaces for now. TODO Only ignore closest disk
-            ignores = [s.id for s in self.world.structures if isinstance(s, DiskSurface)]
+        elif isinstance(domain, CylindricalSurfaceInteraction) or isinstance(domain, CylindricalSurfacePlanarSurfaceInteractionSingle):
+            # Ignore surface of the particle and interaction surface and all DiskSurfaces for now.
+            ignores = [s.id for s in self.world.structures if isinstance(s, DiskSurface)] # TODO Only ignore closest disk
             associated = [domain.origin_structure.id, domain.target_structure.id]
 
-        elif isinstance(domain, CylindricalSurfacePlanarSurfaceIntermediateSingle):
+        elif isinstance(domain, CylindricalSurfacePlanarSurfaceIntermediateSingle) or isinstance(domain, MixedPair1DStatic):
             # Ignore the planar surface and sub-disk that holds/will hold the particle, and the neighboring cylinder
+            # Note that the plane is the parent structure of the disk, which in both cases is the target structure
             ignores = [s.id for s in self.world.structures if isinstance(s, CylindricalSurface)] # TODO Only ignore closest cylinder
-            associated = [domain.origin_structure.id, domain.target_structure.id]
+            associated = [domain.origin_structure.id, domain.target_structure.id, domain.target_structure.structure_id]
+                                                                                  # the latter is the ID of the parent structure
 
         elif isinstance(domain, InteractionSingle) or isinstance(domain, MixedPair2D3D):
             # Ignore surface of the particle and interaction surface

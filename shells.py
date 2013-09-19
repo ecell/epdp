@@ -3141,9 +3141,11 @@ class MixedPair1DStatictestShell(CylindricaltestShell, testMixedPair1DStatic):
         # This will determine if the shell is possible.
         # If possible, it will write the dr, dz_right, dz_left defining the dimensions of the cylindrical shell.
         # If not possible, it throws an exception and the construction of the testShell IS ABORTED!
+        self.ignored_structure_ids = self.set_structure_ignore_list()
         try:
             self.dr, self.dz_right, self.dz_left = \
-                            self.determine_possible_shell(self.structure1D.id, [self.single1D.domain_id, self.static_single.domain_id], [self.static_structure.id])
+                            self.determine_possible_shell(self.structure1D.id, [self.single1D.domain_id, self.static_single.domain_id], \
+                                                          self.ignored_structure_ids)
         except ShellmakingError as e:
             raise testShellError('(MixedPair1DStatic). %s' %
                                  (str(e)))
@@ -3199,6 +3201,12 @@ class MixedPair1DStatictestShell(CylindricaltestShell, testMixedPair1DStatic):
                          iv_shell_size2 + com_shell_size + radius2 * SINGLE_SHELL_FACTOR)
 
         return shell_size
+
+    def set_structure_ignore_list(self):
+
+        # Ignore the structure of the static particle and its parent structure
+        # (important in forming the mixed pair with a DiskSurfaceSingle at the plane-cylinder interface)
+        return [self.static_structure.id, self.static_structure.structure_id]
 
 #####
 #class MixedPair3D1DtestShell(CylindricaltestShell, Others):
