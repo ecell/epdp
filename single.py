@@ -1301,40 +1301,6 @@ class CylindricalSurfacePlanarSurfaceIntermediateSingle(CylindricalSurfaceCapInt
     def __str__(self):
         return 'CylindricalSurfacePlanarSurfaceIntermediate ' + Single.__str__(self)
 
-class CylindricalSurfacePlanarSurfaceInterfaceSingle(CylindricalSurfaceCapInteraction):
-    """1 Particle on a DiskSurface at the interface of a PlanarSurface and CylindricalSurface.
-
-        * Particle coordinates on surface: z.
-        * Domain: cartesian z.
-        * Initial position: z = 0.
-        * Selected randomly when drawing displacement vector: none.
-    """
-    # DEPRECATED!
-    def __init__(self, domain_id, shell_id, testShell, reactionrules, interactionrules):
-
-        assert isinstance(testShell, CylindricalSurfacePlanarSurfaceInterfaceSingletestShell)
-        CylindricalSurfacePlanarSurfaceIntermediateSingle.__init__(self, domain_id, shell_id, testShell, reactionrules, interactionrules)
-
-    def determine_next_event(self):
-        # Here we can actually have single reactions, so we want to draw them
-        return self.draw_reaction_time_tuple() # can only produce SINGLE_REACTION events
-    
-    def draw_new_position(self, dt, event_type):
-
-        if event_type == EventType.SINGLE_REACTION or event_type == EventType.BURST:
-
-            # The particle does not move within this domain, in particular when bursted
-            # The displacement created when unbinding from the disk is treated in
-            # fire_single_reaction() in egfrd.py
-            new_pos = self.pid_particle_pair[1].position
-
-            return new_pos, self.origin_structure.id
-
-        else:
-            raise Exception('Disallowed event type or wrong no. of products in CylindricalSurfacePlanarSurfaceInterfaceSingle.')
-
-    def __str__(self):
-        return 'CylindricalSurfacePlanarSurfaceInterface ' + Single.__str__(self)
 
 class TransitionSingle(Single, TransitionTools, Others):
     """TransitionSingles are used when a particle changes from

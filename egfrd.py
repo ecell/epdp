@@ -1906,7 +1906,6 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
             elif ( isinstance(obj, CylindricalSurface) or isinstance(obj, PlanarSurface) or isinstance(obj, DiskSurface) ):
                 # try making an Interaction
-                log.debug('testing obj = %s, pair_interaction_partners = %s' % (obj, pair_interaction_partners) ) # TODO remove after debugging
                 domain = self.try_interaction (single, obj)
 
 
