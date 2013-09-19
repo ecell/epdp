@@ -62,6 +62,7 @@ from shells import (
     CylindricalSurfacePlanarSurfaceInterfaceSingletestShell,
     CylindricalSurfaceSinktestShell,
     MixedPair2D3DtestShell,
+    MixedPair2DStatictestShell,
     MixedPair1DStatictestShell,
     )
 
