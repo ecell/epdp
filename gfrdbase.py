@@ -145,7 +145,10 @@ def get_neighbor_structures(world, pos, current_struct_id, ignores=[], structure
                   CuboidalRegion, PlanarSurface, DiskSurface, CylindricalSurface, SphericalSurface
     """    
     if ignores:
-        ignore = ignores[0] # FIXME world.get_close_structures currently only supports one ignored structure
+        ignore = ignores[0]
+        # FIXME world.get_close_structures currently only supports one ignored structure (why?).
+        # In case that there is more than one ignored structure, we have to filter out 
+        # the ignored structures manually afterwards until this is fixed.
     else:
         ignore = world.get_def_structure_id()
 
@@ -163,7 +166,10 @@ def get_neighbor_structures(world, pos, current_struct_id, ignores=[], structure
         structure_distances = [(structure, distance) for ((id, structure), distance) \
                                   in world.get_close_structures(pos, current_struct_id, ignore)]
 
-    return sorted(structure_distances, key=lambda struct_and_dist: struct_and_dist[1])
+    # Filter out the ignored structures
+    filtered_structure_distances = filter(lambda (s, d) : s.id not in ignores, structure_distances)
+
+    return sorted(filtered_structure_distances, key=lambda struct_and_dist: struct_and_dist[1])
 
 
 def get_closest_structure(world, pos, current_struct_id, ignores=[], structure_class=None):
