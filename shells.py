@@ -19,6 +19,7 @@ from _gfrd import (
 from utils import *
 from gfrdbase import (
     get_neighbor_structures,
+    get_closest_structure,
     )
 
 __all__ = [
@@ -2649,22 +2650,15 @@ class CylindricalSurfacePlanarSurfaceInteractionSingletestShell(CylindricalSurfa
     def find_daughter_disk(self):
 
         # Determine the distance to the closest disk
-        # First get all close disk surfaces, then sort, then get the distance to the closest
-        search_pos = self.pid_particle_pair[1].position
-        close_surfaces      = get_neighbor_structures(self.world, search_pos, self.target_structure.id, [])        
-        close_disk_surfaces = [surface_and_dist for surface_and_dist in close_surfaces if isinstance(surface_and_dist[0], DiskSurface)]
-
+        # First get the closest disk, then check whether it is actually at the interface between plane and cylinder.
+        search_pos      = self.pid_particle_pair[1].position        
         found_good_disk = False
 
-        if close_disk_surfaces != []:
+        closest_disk, closest_disk_dist = \
+                get_closest_structure(self.world, search_pos, self.target_structure.id, [], structure_class=DiskSurface)
 
-            # To be sure, sort the list again by increasing distance
-            sorted_close_disk_surfaces = sorted(close_disk_surfaces, key=lambda surface_and_dist : surface_and_dist[1])
-
-            # Get the closest disk and its properties
-            closest_disk      = sorted_close_disk_surfaces[0][0]
-            closest_disk_dist = sorted_close_disk_surfaces[0][1]            
-
+        if closest_disk is not None:
+                                    
             disk_parent_structure       = self.world.get_structure(closest_disk.structure_id)            
             distance_from_plane         = self.target_structure.project_point(closest_disk.shape.position)[1][0]
             distance_from_cylinder_axis = self.origin_structure.project_point(closest_disk.shape.position)[1][0]
