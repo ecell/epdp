@@ -3043,7 +3043,8 @@ max. overlap error:  %g
             ignores = [s.id for s in self.world.structures if isinstance(s, CylindricalSurface)]
             associated = [domain.structure.id]
 
-        elif isinstance(domain, CylindricalSurfaceInteraction) or isinstance(domain, CylindricalSurfacePlanarSurfaceInteractionSingle):
+        elif isinstance(domain, CylindricalSurfaceInteraction) or isinstance(domain, CylindricalSurfacePlanarSurfaceInteractionSingle) \
+          or isinstance(domain, MixedPair1DStatic):
             # Ignore surface of the particle and interaction surface and all DiskSurfaces for now. TODO Only ignore closest disk
             ignores = [s.id for s in self.world.structures if isinstance(s, DiskSurface)]
             associated = [domain.origin_structure.id, domain.target_structure.id]
@@ -3053,7 +3054,7 @@ max. overlap error:  %g
             ignores = [s.id for s in self.world.structures if isinstance(s, CylindricalSurface)] # TODO Only ignore closest cylinder
             associated = [domain.origin_structure.id, domain.target_structure.id]
 
-        elif isinstance(domain, InteractionSingle) or isinstance(domain, MixedPair2D3D) or isinstance(domain, MixedPair1DStatic):
+        elif isinstance(domain, InteractionSingle) or isinstance(domain, MixedPair2D3D):
             # Ignore surface of the particle and interaction surface
             ignores = []
             associated = [domain.origin_structure.id, domain.target_structure.id]
