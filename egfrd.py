@@ -3059,17 +3059,18 @@ max. overlap error:  %g
             ignores = [s.id for s in self.world.structures if isinstance(s, CylindricalSurface)] # TODO Only ignore closest cylinder
             associated = [domain.structure.id, domain.structure.structure_id] # the latter is the ID of the parent structure
 
-        elif isinstance(domain, CylindricalSurfaceInteraction) or isinstance(domain, CylindricalSurfacePlanarSurfaceInteractionSingle):
-            # Ignore surface of the particle and interaction surface and all DiskSurfaces for now.
-            ignores = [s.id for s in self.world.structures if isinstance(s, DiskSurface)] # TODO Only ignore closest disk
-            associated = [domain.origin_structure.id, domain.target_structure.id]
-
-        elif isinstance(domain, CylindricalSurfacePlanarSurfaceIntermediateSingle) or isinstance(domain, MixedPair1DStatic):
+        elif isinstance(domain, CylindricalSurfacePlanarSurfaceIntermediateSingle) or isinstance(domain, MixedPair1DStatic) \
+          or isinstance(domain, PlanarSurfaceDiskSurfaceInteraction):
             # Ignore the planar surface and sub-disk that holds/will hold the particle, and the neighboring cylinder
             # Note that the plane is the parent structure of the disk, which in both cases is the target structure
             ignores = [s.id for s in self.world.structures if isinstance(s, CylindricalSurface)] # TODO Only ignore closest cylinder
             associated = [domain.origin_structure.id, domain.target_structure.id, domain.target_structure.structure_id]
                                                                                   # the latter is the ID of the parent structure
+
+        elif isinstance(domain, CylindricalSurfaceInteraction) or isinstance(domain, CylindricalSurfacePlanarSurfaceInteractionSingle):
+            # Ignore surface of the particle and interaction surface and all DiskSurfaces for now.
+            ignores = [s.id for s in self.world.structures if isinstance(s, DiskSurface)] # TODO Only ignore closest disk
+            associated = [domain.origin_structure.id, domain.target_structure.id]
 
         elif isinstance(domain, InteractionSingle) or isinstance(domain, MixedPair2D3D):
             # Ignore surface of the particle and interaction surface

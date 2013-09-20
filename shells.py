@@ -2190,7 +2190,7 @@ class MixedPair2DStatictestShell(PlanarSurfacePairtestShell):
         disk_to_cylinder_axis_distance = closest_cyl.project_point(disk_pos)[1][0]
         if not feq(disk_to_cylinder_axis_distance, 0.0, typical=disk_radius):
 
-              raise testShellError('(PlanarSurfaceDiskSurfaceInteraction) Disk is not below closest cylinder, distance to axis = %s' \
+              raise testShellError('(MixedPair2DStatic) Disk is not below closest cylinder, distance to axis = %s' \
                                                                                                                 % disk_to_cylinder_axis_distance)
               # TODO Maybe we do not want to keep this requirement
 
@@ -2830,7 +2830,7 @@ class CylindricalSurfacePlanarSurfaceIntermediateSingletestShell(CylindricalSurf
         distance_from_center = target_structure.project_point(single.pid_particle_pair[1].position)[1][0]
         if not feq(distance_from_center, 0.0, typical=single.pid_particle_pair[1].radius):
 
-            raise testShellError('(CylindricalSurfacePlanarSurfaceIntermediateSingle) Particle is not directly at disk position, distance from center = %s' % distance_from_axis)
+            raise testShellError('(CylindricalSurfacePlanarSurfaceIntermediateSingle) Particle is not directly at disk position, distance from center = %s' % distance_from_center)
 
         # If everything seems OK, we can proceed with creating the test shell
         CylindricalSurfaceCapInteractiontestShell.__init__(self, single, target_structure, geometrycontainer, domains)

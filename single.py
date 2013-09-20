@@ -982,7 +982,7 @@ class PlanarSurfaceDiskSurfaceInteraction(CylindricalSurfaceInteraction):
         # CylindricalSurfaceInteractiontestShell as a parent class.
         CylindricalSurfaceInteraction.__init__(self, domain_id, shell_id, testShell, reactionrules, interactionrules)
 
-        self.product_structure = self.origin_structure # DEPRECATED rethink this
+        self.product_structure = self.target_structure # DEPRECATED rethink this
 
     def draw_escape_time_tuple(self):
         # This draws the time for escape in z-direction; since the particle in this domain
