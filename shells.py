@@ -2170,10 +2170,11 @@ class MixedPair2DStatictestShell(PlanarSurfacePairtestShell):
     def __init__(self, single2D, static_single, geometrycontainer, domains):
 
         assert static_single.pid_particle_pair[1].D==0 and static_single.pid_particle_pair[1].v==0
-        PlanarSurfacePairtestShell.__init__(self, single2D, static_single, geometrycontainer, domains)
 
         self.static_single = static_single
         self.single2D      = single2D
+
+        PlanarSurfacePairtestShell.__init__(self, single2D, static_single, geometrycontainer, domains)
 
     def set_structure_ignore_list(self):
         # In this special domain we want to ignore the (disk) structure and the cylinder that
