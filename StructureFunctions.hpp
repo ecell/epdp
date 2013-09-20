@@ -606,9 +606,24 @@ get_pos_sid_pair( PlanarSurface<Ttraits_>               const& origin_structure,
     typedef typename Ttraits_::structure_id_type        structure_id_type;
     typedef typename Ttraits_::position_type            position_type;
     typedef typename Ttraits_::length_type              length_type;
-
-    /*** COMBINATION NOT SUPPORTED ***/
-    throw illegal_propagation_attempt("Structure transition between combination of origin structure and target structure not supported (Plane->Disk).");
+   
+    structure_id_type   new_id(    target_structure.id() );
+    position_type       new_pos(   target_structure.project_point(old_pos).first );
+    length_type         proj_dist( target_structure.project_point(old_pos).second.second );
+        // the distance of the projection of old_pos on target_structure to the boundary of target_structure
+    
+    // Note that this function also correctly handles the pair reaction between a particle on a disk
+    // and a particle on a cylinder. Since we assume that the product will end up on the disk, new_pos
+    // (which is the projection of the center of mass of both particles on the disk) will be the
+    // correct product position.
+    if(proj_dist < 0){ // if projection of old_pos is in structure
+                       // Note: Disk.project_point also returns a neg. value if the position is in one plane with the disk
+     
+          return std::make_pair( new_pos, new_id );
+    }
+    else // structure transition not allowed
+      
+      throw illegal_propagation_attempt("Illegal original particle position for structure transition (Plane->Disk).");        
     
     return std::make_pair(position_type(), structure_id_type());
 };
@@ -1177,11 +1192,16 @@ get_pos_sid_pair_pair( DiskSurface<Ttraits_>                  const& origin_stru
     typedef typename Ttraits_::position_type            position_type;
     typedef typename Ttraits_::length_type              length_type;
 
-    /*** COMBINATION NOT SUPPORTED ***/
-    throw illegal_propagation_attempt("Structure transition between combination of origin structure and target structure not supported (Disk->Disk/Plane).");
-    
-    return std::make_pair(      std::make_pair(position_type(), structure_id_type()),
-                                std::make_pair(position_type(), structure_id_type())    );
+    std::pair<position_type, position_type> new_positions( origin_structure.special_geminate_dissociation_positions(rng, s_orig, s_targ, old_pos, reaction_length) );
+    // special_geminate_dissociation_positions will produce two new positions close to old_pos taking into account
+    // the types of origin_structure and target_structure and the properties of the two product species
+    // (the displacements from old_pos are weighted by the diffusion constants).
+    // Here this works in the same way as for the corresponding function for Disk->Disk/CuboidalRegion;
+    // the first pair entry is the particle staying on the surface, the second entry the particle
+    // that goes onto the plane
+            
+    return std::make_pair(      std::make_pair(new_positions.first,  origin_structure.id()),
+                                std::make_pair(new_positions.second, target_structure.id())    );
 };
 
 /*****************************/
