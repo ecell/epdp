@@ -242,7 +242,7 @@ class testPair(Others):
     def __init__(self, single1, single2):
         # Note: for the Others superclass nothing is to be initialized.
 
-        # assert both reset
+        # Assert both singles are reset
         assert single1.is_reset()
         assert single2.is_reset()
 
@@ -255,7 +255,7 @@ class testPair(Others):
         self.structure1 = single1.structure
         self.structure2 = single2.structure
 
-        self.com, self.iv = self.do_transform()   # NOTE The IV always points from particle1 to particle2
+        self.com, self.iv = self.do_transform()  # NOTE The IV always points from particle1 to particle2
         self.r0 = length(self.iv)
         if self.r0 < self.sigma:
             raise protoDomainError('distance_from_sigma (pair gap) between %s and %s = %s < 0' % \
@@ -273,15 +273,15 @@ class testPair(Others):
     D_R = property(get_D_R)
 
     def do_transform(self):
-        # transform the pos1 and pos2 of particles1 and 2 to the CoM and IV vectors
+        # Transform the pos1 and pos2 of particles1 and 2 to the CoM and IV vectors
         pass        # overridden in subclasses
 
-class testSimplePair(testPair):
-
+class testStandardPair(testPair):
+    # Standard pairs are pairs of particles in 'standard' situations in which
+    # we can use the methods defined below. In certain special cases we have to
+    # override some of them. These test pair classes are defined further below.
     def __init__(self, single1, single2):
 
-        # Simple pairs are pairs of particles that are on the same structure
-        assert single1.structure == single2.structure
         testPair.__init__(self, single1, single2)
         self.structure = single1.structure # equal to self.structure1 and self.structure2,
                                            # needed by some class methods downstream
@@ -293,7 +293,7 @@ class testSimplePair(testPair):
     sigma = property(get_sigma)
 
     def do_transform(self):
-        # transform the pos1 and pos2 of particles1 and 2 to the CoM and IV vectors
+        # Transform the pos1 and pos2 of particles1 and 2 to the CoM and IV vectors
 
         pos1 = self.pid_particle_pair1[1].position
         pos2 = self.pid_particle_pair2[1].position
@@ -302,8 +302,8 @@ class testSimplePair(testPair):
 
         com = self.world.calculate_pair_CoM(pos1, pos2, D_1, D_2)
         com = self.world.apply_boundary(com)
-        # make sure that the com is in the structure of the particle (assume that this is done correctly in
-        # calculate_pair_CoM)
+        # Make sure that the com is in the structure of the particle
+        # (assume that this is done correctly in calculate_pair_CoM)
 
         pos2t = self.world.cyclic_transpose(pos2, pos1)
         iv = pos2t - pos1
@@ -312,7 +312,9 @@ class testSimplePair(testPair):
 
     def get_min_pair_size(self):
         # This calculates the minimal 'size' of a simple pair.
-        # Note that the 'size' is interpreted differently dependent on the type of pair. When the pair is a
+        # Note that the 'size' is interpreted differently dependent on the type of pair.
+        # When the pair is a
+        # 
         # SphericalPair          -> size = radius
         # PlanarSurfacePair      -> size = radius
         # CylindricalSurfacePair -> size = half_length
@@ -322,24 +324,32 @@ class testSimplePair(testPair):
         radius1 = self.pid_particle_pair1[1].radius
         radius2 = self.pid_particle_pair2[1].radius
 
-        dist_from_com1 = self.r0 * D_1 / self.D_tot      # particle distance from CoM
+        dist_from_com1 = self.r0 * D_1 / self.D_tot  # particle distance from CoM
         dist_from_com2 = self.r0 * D_2 / self.D_tot
-        iv_shell_size1 = dist_from_com1 + radius1       # the shell should surround the particles
+        iv_shell_size1 = dist_from_com1 + radius1    # the shell should surround the particles
         iv_shell_size2 = dist_from_com2 + radius2
 
-        # also fix the minimum shellsize for the CoM domain
+        # Also fix the minimum shellsize for the CoM domain
         com_shell_size = max(radius1, radius2)
 
-        # calculate total radii including the margin for the burst volume for the particles
+        # Calculate total radii including the margin for the burst volume for the particles
         shell_size = max(iv_shell_size1 + com_shell_size + radius1 * SINGLE_SHELL_FACTOR,
                          iv_shell_size2 + com_shell_size + radius2 * SINGLE_SHELL_FACTOR)
 
         return shell_size
 
+class testSimplePair(testStandardPair):
+
+    def __init__(self, single1, single2):
+        # Simple pairs are pairs of particles that are on the same structure
+        # Here we check explicitly
+        assert single1.structure == single2.structure
+        testStandardPair.__init__(self, single1, single2)
+
 class testMixedPair2D3D(testPair):
-
+    # A pair formed between a 2D particle diffusing on a plane and a 3D particle 
+    # diffusing in the bulk. The class differs from testSimplePair in most of its methods.
     def __init__(self, single2D, single3D):
-
         # First define for clarity:
         self.single2D = single2D
         self.single3D = single3D
@@ -356,8 +366,8 @@ class testMixedPair2D3D(testPair):
                 assert isinstance(single2D.structure, PlanarSurface) 
                 assert isinstance(single3D.structure, CuboidalRegion)
         testPair.__init__(self, single2D, single3D)
-          # note: this makes self.single1/self.pid_particle_pair1/self.structure1 for the 2D particle
-          #              and self.single2/self.pid_particle_pair2/self.structure2 for the 3D particle              
+        # Note: this makes self.single1/self.pid_particle_pair1/self.structure1 for the 2D particle
+        #              and self.single2/self.pid_particle_pair2/self.structure2 for the 3D particle              
 
         assert self.single2D == self.single1           and self.single3D == self.single2
         assert self.ppp2D == self.pid_particle_pair1   and self.ppp3D == self.pid_particle_pair2
@@ -370,7 +380,7 @@ class testMixedPair2D3D(testPair):
         self.target_structure = self.structure2D        
 
     def get_sigma(self):
-        # rescale sigma to correct for the rescaling of the coordinate system.
+        # Rescale sigma to correct for the rescaling of the coordinate system.
         # This is the sigma that is used for the evaluation of the Green's function and is in this case 
         # slightly different from the sums of the radii of the particles. We rescale sigma in a way
         # that the total flux over the reactive surface of the prolate spheroidal boundary with greater radius
@@ -398,17 +408,17 @@ class testMixedPair2D3D(testPair):
     sigma = property(get_sigma)
 
     def do_transform(self):
-        # transform the pos1 and pos2 of particles1 and 2 to the CoM and IV vectors
+        # Transform the pos1 and pos2 of particles1 and 2 to the CoM and IV vectors
         pos2D = self.particle2D.position
         pos3D = self.particle3D.position
         D_2D  = self.particle2D.D
         D_3D  = self.particle3D.D
 
-        # CoM calculation
-        # the CoM is calculated in a similar way to a normal 3D pair
+        # CoM calculation:
+        # The CoM is calculated in a similar way to a normal 3D pair...
         com = self.world.calculate_pair_CoM(pos2D, pos3D, D_2D, D_3D)
 
-        # and then projected onto the plane to make sure the CoM is in the surface
+        # ...and then projected onto the plane to make sure the CoM is in the surface
         com = self.world.cyclic_transpose(com, self.structure2D.shape.position)
         com, (_, dist) = self.structure2D.project_point(com)
         if dist >= 0:
@@ -422,7 +432,7 @@ class testMixedPair2D3D(testPair):
         pos3D_t = self.world.cyclic_transpose(pos3D, pos2D)
         iv      = pos3D_t - pos2D
 
-        # rescale the iv in the axis normal to the plane
+        # Rescale the iv in the axis normal to the plane
         iv_z_component = numpy.dot (iv, self.structure2D.shape.unit_z)
         iv_z     = self.structure2D.shape.unit_z * iv_z_component
         new_iv_z = self.structure2D.shape.unit_z * (iv_z_component * self.get_scaling_factor())
@@ -432,31 +442,32 @@ class testMixedPair2D3D(testPair):
         return com, iv
 
     def get_scaling_factor(self):
-        # This returns the scaling factor needed to make the anisotropic diffusion problem of the IV
-        # into a isotropic one.
+        # This returns the scaling factor needed to make the anisotropic diffusion problem
+        # of the IV into an isotropic one.
         D_3D = self.particle3D.D    # 3D particle is the only contributor to diffusion
                                     # normal to the plane
         return math.sqrt(self.D_r/D_3D)
 
 class testMixedPair1DStatic(testPair):
-
+    # A pair formed between a particle moving in 1D on a rod and a static particle on a disk.
+    # The class differs from testSimplePair mainly by its do_transform() method.
     def __init__(self, single1D, static_single):
-
+        
         if __debug__: 
                 assert isinstance(single1D.structure, CylindricalSurface) 
-                assert isinstance(static_single.structure, DiskSurface) or isinstance(static_single.structure, PlanarSurface)
+                assert isinstance(static_single.structure, DiskSurface)
                 
         testPair.__init__(self, single1D, static_single)
-          # note: this makes self.single1/self.pid_particle_pair1/self.structure1 for the 1D particle
-          #              and self.single2/self.pid_particle_pair2/self.structure2 for the cap particle
+        # Note: this makes self.single1/self.pid_particle_pair1/self.structure1 for the 1D particle
+        #              and self.single2/self.pid_particle_pair2/self.structure2 for the cap particle
 
-        # for clarity define:
-        self.single1D       = single1D
-        self.particle1D     = self.pid_particle_pair1[1]
-        self.structure1D    = single1D.structure    # equal to self.structure1  
-        self.static_single     = static_single
-        self.static_particle   = self.pid_particle_pair2[1]        
-        self.static_structure  = static_single.structure  # equal to self.structure2
+        # For clarity define:
+        self.single1D         = single1D
+        self.particle1D       = self.pid_particle_pair1[1]
+        self.structure1D      = single1D.structure       # equal to self.structure1  
+        self.static_single    = static_single
+        self.static_particle  = self.pid_particle_pair2[1]        
+        self.static_structure = static_single.structure  # equal to self.structure2
         # This will be inherited by MixedPair1DStatictestShell and MixedPair1DStatic.
         # Note that we have to use pid_particle_pair1(2) in the methods defined below
         # because they are called at the initialization of testPair().
@@ -468,9 +479,8 @@ class testMixedPair1DStatic(testPair):
 
         # TODO Check whether particles are both on the cylinder axis
 
-        # If the static particle is on a disk, make sure that its position coincides
-        # with the disk position
-        if isinstance(self.static_structure, DiskSurface) and __debug__:
+        # Make sure that the static particle's position coincides with the disk position
+        if __debug__:
                 assert all(self.static_structure.shape.position - self.static_particle.position == 0.0)
 
     def get_sigma(self):
@@ -499,14 +509,13 @@ class testMixedPair1DStatic(testPair):
         return com, iv
 
 class testPlanarSurfaceTransitionPair(testPair):
-
     # This is essentially a copy of testSimplePair; however, the latter does
     # not allow for particles being on different structures. Ergo we have to
     # define a new class for that purpose.
     # The main difference is in do_transform and get_min_pair_size which use
     # the CoM calculated after projection of single2 into the plane of single1
     # via deflect_back.
-
+    # FIXME Derive this class from testStandardPair, not testSimplePair
     def __init__(self, single1, single2):
 
         if __debug__: 
@@ -556,11 +565,7 @@ class testPlanarSurfaceTransitionPair(testPair):
         return com, iv
 
     def get_min_pair_size(self):
-        # This calculates the minimal 'size' of a simple pair.
-        # Note that the 'size' is interpreted differently dependent on the type of pair. When the pair is a
-        # SphericalPair          -> size = radius
-        # PlanarSurfacePair      -> size = radius
-        # CylindricalSurfacePair -> size = half_length
+        # This calculates the minimal 'size' of a simple pair.        
 
         # TODO: Make sure this also works correctly when IP-vectors are enlarged to remove
         # overlaps at deflection.
@@ -575,15 +580,14 @@ class testPlanarSurfaceTransitionPair(testPair):
         iv_shell_size1 = dist_from_com1 + radius1       # the shell should surround the particles
         iv_shell_size2 = dist_from_com2 + radius2
 
-        # also fix the minimum shellsize for the CoM domain
+        # Also fix the minimum shellsize for the CoM domain
         com_shell_size = max(radius1, radius2)
 
-        # calculate total radii including the margin for the burst volume for the particles
+        # Calculate total radii including the margin for the burst volume for the particles
         shell_size = max(iv_shell_size1 + com_shell_size + radius1 * SINGLE_SHELL_FACTOR,
                          iv_shell_size2 + com_shell_size + radius2 * SINGLE_SHELL_FACTOR)
 
         return shell_size
-
 
 ##################################
 # These classes define the geometric aspect of the existing domains. When making a domain, the domain
@@ -2052,13 +2056,13 @@ class PlanarSurfaceSingletestShell(CylindricaltestShell, testNonInteractionSingl
         return r/SAFETY, z_right, z_left
 
 #####
-class PlanarSurfacePairtestShell(CylindricaltestShell, testSimplePair):
+class PlanarSurfacePairtestShell(CylindricaltestShell, testStandardPair):
 
     def __init__(self, single1, single2, geometrycontainer, domains):
         CylindricaltestShell.__init__(self, geometrycontainer, domains)  # this must be first because of world definition
-        testSimplePair.__init__(self, single1, single2)
+        testStandardPair.__init__(self, single1, single2)
 
-        # initialize the scaling parameters
+        # Initialize the scaling parameters
         self.dzdr_right = 0.0
         self.drdz_right = numpy.inf
         self.r0_right   = 0.0
