@@ -227,7 +227,7 @@ class Pair(ProtectiveDomain, Others):
             name1, name2,
             self.shell)
 
-class SimplePair(Pair):
+class StandardPair(Pair):
 
     def __init__(self, domain_id, shell_id, rrs):
         # Calls required parent inits and sets variables.
@@ -251,11 +251,16 @@ class SimplePair(Pair):
 
     @ classmethod
     def do_back_transform(cls, com, iv, D1, D2, radius1, radius2, structure1, structure2, unit_z, world):
-    # here we assume that the com and iv are really in the structure and no adjustments have to be
-    # made
+    # Here we assume that the com and iv are really in the structure and no adjustments 
+    # have to be made
 
-        # For simple pairs the particles live on the same structure
-        assert(structure1.id == structure2.id)
+        # Since this is meant to be a general class, we do not check explicitly whether the structures
+        # are really the same, but drop a warning if they are not (A possible situation where this matters
+        # is when one particle is on a substructure of the other particle's structure; then the structure IDs
+        # are different, but the calculations then still work perfectly fine).
+        if __debug__ and structure1.id != structure2.id:
+            log.warn('Particles live on different structures in StandardPair, structure1=%s, structure2=%s' \
+                                                                               % (structure1, structure2) )
         D_tot = D1 + D2
         pos1 = com - iv * (D1 / D_tot)
         pos2 = com + iv * (D2 / D_tot)
@@ -309,12 +314,12 @@ class SimplePair(Pair):
             radiusb = radius1
 
 
-        #aR
+        # aR
         a_R = (D_geom * (Db * (shell_size - radiusa) + \
                          Da * (shell_size - r0 - radiusa))) /\
               (Da * Da + Da * Db + D_geom * D_tot)
 
-        #ar
+        # ar
         a_r = (D_geom * r0 + D_tot * (shell_size - radiusa)) / (Da + D_geom)
 
 
@@ -353,6 +358,30 @@ class SimplePair(Pair):
 
     def __str__(self):
         pass
+
+class SimplePair(StandardPair):
+    # Same as StandardPair, but we check explicitly whether the particles live on the same structure
+    # in the transform function. This function is widely used, so be careful in making changes, and
+    # make sure to also make them in the parent class.
+    def __init__(self, domain_id, shell_id, rrs):
+
+        # Inits from parent classes 
+        StandardPair.__init__(self, domain_id, shell_id, rrs)
+
+    @ classmethod
+    def do_back_transform(cls, com, iv, D1, D2, radius1, radius2, structure1, structure2, unit_z, world):
+    # Here we assume that the com and iv are really in the structure and no adjustments 
+    # have to be made
+
+        # For simple pairs the particles live on the same structure
+        # Check explicitly
+        assert(structure1.id == structure2.id)
+
+        D_tot = D1 + D2
+        pos1 = com - iv * (D1 / D_tot)
+        pos2 = com + iv * (D2 / D_tot)
+
+        return pos1, pos2, structure1.id, structure2.id
 
 class SphericalPair(SimplePair, hasSphericalShell):
     """2 Particles inside a (spherical) shell not on any surface.
@@ -459,10 +488,12 @@ class SphericalPair(SimplePair, hasSphericalShell):
         return 'Spherical' + Pair.__str__(self)
 
 
-class PlanarSurfacePair(SimplePair, hasCylindricalShell):
-    """2 Particles inside a (cylindrical) shell on a PlanarSurface. 
-    (Hockey pucks).
+class PlanarSurfacePair(StandardPair, hasCylindricalShell):
+    """ 2 Particles inside a (cylindrical) shell on a PlanarSurface. 
+        (Hockey pucks).
 
+        Note that in this class they are in principle allowed to 
+        live on different structures.
     """
     def __init__(self, domain_id, shell_id, testShell, rrs):
         # Calls required parent inits and sets variables.
@@ -474,7 +505,7 @@ class PlanarSurfacePair(SimplePair, hasCylindricalShell):
         hasCylindricalShell.__init__(self, testShell, domain_id)        
         
         self.LD_MAX = 20 # Required by SimplePair.__init__
-        SimplePair.__init__(self, domain_id, shell_id, rrs)
+        StandardPair.__init__(self, domain_id, shell_id, rrs)
 
         self.ignored_structure_ids = testShell.ignored_structure_ids
 
