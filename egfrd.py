@@ -1132,6 +1132,10 @@ class EGFRDSimulator(ParticleSimulatorBase):
         # Get reaction rule
         rr = single.reactionrule
 
+        # Some abbreviations used below
+        def_sid = self.world.get_def_structure_type_id()
+        parent_sid = reactant_structure_parent_structure.sid
+
         # The zero_singles are the NonInteractionSingles that are the total result of the recursive
         # bursting process.
         zero_singles = []
@@ -1165,8 +1169,16 @@ class EGFRDSimulator(ParticleSimulatorBase):
             # 1.5 get new position and structure_id of particle
             # If the particle falls off a surface (other than CuboidalRegion)
             if product_structure_type_id != reactant_structure_type_id:
-                assert (product_structure_type_id == self.world.get_def_structure_type_id()  \
-                     or product_structure_type_id == reactant_structure_parent_structure.sid )
+
+                # Figure out where the product goes. Only default structure or parent structure allowed.
+                if product_structure_type_id == def_sid:
+                    product_structure_id = self.world.get_def_structure_id()    # the default structure
+
+                elif product_structure_type_id == parent_sid:
+                    product_structure_id = reactant_structure.structure_id      # the parent structure
+
+                else:
+                    raise RuntimeError('fire_single_reaction: Product structure must be default structure or parent structure of reactant structure.')
 
                 # produce a number of new possible positions for the product particle
                 # TODO make these generators for efficiency
@@ -1207,8 +1219,6 @@ class EGFRDSimulator(ParticleSimulatorBase):
                     # cannot decay from 3D to other structure
                     raise RuntimeError('fire_single_reaction: Can not decay from 3D to other structure')
 
-                #product_structure_id = self.world.get_def_structure_id()    # product structure is always the default structure (bulk)
-                product_structure_id = reactant_structure.structure_id    # product structure is always the parent structure; in most cases this is the bulk
 
             # If decay happens to same structure_type
             else:
@@ -1271,40 +1281,46 @@ class EGFRDSimulator(ParticleSimulatorBase):
             product2_radius             = product2_species.radius
             D1 = product1_species.D
             D2 = product2_species.D
-            particle_radius12           = product1_radius + product2_radius
+            particle_radius12           = product1_radius + product2_radius            
 
 
             # 1.5 Get new positions and structure_ids of particles
             # FIXME     This should be made more elegant, using as much as possible the
             #           structure functions from the BD mode.
-            #     If one of the particle is not on the surface of the reactant.
+            # If one of the particle is not on the surface of the reactant.
             if product1_structure_type_id != product2_structure_type_id:
-                # Make sure that the reactant was on a 2D or 1D surface
-                assert reactant_structure_type_id != self.world.get_def_structure_type_id()
-                # Make sure that only either one of the target structures is the 3D ('^' is exclusive-OR)
-                assert ((product1_structure_type_id == self.world.get_def_structure_type_id()) ^ \
-                        (product2_structure_type_id == self.world.get_def_structure_type_id()))
+                # Make sure that the reactant was on a surface, not in the bulk
+                if reactant_structure_type_id != def_sid:
+                    log.warn('Reactant structure is default structure, but products do not end up in bulk. Something seems wrong!')
 
-                # Figure out which product stays in the surface and which one goes to 3D # FIXME It rather should go to the parent structure!
+                # Figure out which product stays in the surface and which one goes to the bulk or parent structure
                 # Note that A is a particle in the surface and B is in the 3D
-                if (product2_structure_type_id == self.world.get_def_structure_type_id()):
-                    # product2 goes to 3D and is now particleB (product1 is particleA and is on the surface)
+                if product2_structure_type_id == def_sid or product2_structure_type_id == parent_sid:
+                    # product2 goes to bulk or parent structure and is now particleB (product1 is particleA and is on the surface)
                     product1_structure_id = reactant_structure_id # TODO after the displacement the structure can change!
-                    product2_structure_id = reactant_structure.structure_id     # the parent structure
+                    if product2_structure_type_id == def_sid:
+                        product2_structure_id = self.world.get_def_structure_id()   # the parent structure
+                    else:
+                        product2_structure_id = reactant_structure.structure_id     # the parent structure
                     productA_radius = product1_radius
                     productB_radius = product2_radius
                     DA = D1
                     DB = D2
                     default = True      # we like to think of this as the default
-                else:
+                elif product1_structure_type_id == def_sid or product1_structure_type_id == parent_sid:
                     # product1 goes to 3D and is now particleB (product2 is particleA)
                     product2_structure_id = reactant_structure_id
-                    product1_structure_id = reactant_structure.structure_id     # the parent structure
+                    if product1_structure_type_id == def_sid:
+                        product1_structure_id = self.world.get_def_structure_id()   # the parent structure
+                    else:
+                        product1_structure_id = reactant_structure.structure_id     # the parent structure
                     productA_radius = product2_radius
                     productB_radius = product1_radius
                     DA = D2
                     DB = D1
                     default = False
+                else:
+                    raise RuntimeError('fire_single_reaction: One product particle must go to the default structure or parent structure of reactant structure.')
 
                 # We have to readjust this again in the end, when creating product positions, etc.
                 # This is handled by the following function.
@@ -1925,6 +1941,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
                     multi_horizon = (single_radius + domain.pid_particle_pair[1].radius) * MULTI_SHELL_FACTOR
                     distance = self.world.distance(single_pos, domain.shell.shape.position)
                     multi_partners.append((domain, distance - multi_horizon))
+                    log.debug('domain = %s, multi_horizon = %s' % (domain, multi_horizon))
 
                 elif isinstance(domain, Multi):
                     # The dist_to_shell = dist_to_particle - multi_horizon_of_target_particle
@@ -1954,19 +1971,27 @@ class EGFRDSimulator(ParticleSimulatorBase):
                 multi_partners = sorted(multi_partners, key=lambda domain_overlap: domain_overlap[1])
                 #log.debug('multi_partners: %s' % str(multi_partners))
                 closest_overlap = multi_partners[0][1]
+                log.debug('multi_partners = %s' % str(multi_partners))
             else:
                 # In case there is really nothing
                 closest_overlap = numpy.inf
 
             if __debug__:
-                log.debug('Single or Multi: closest_overlap: %s' % (FORMAT_DOUBLE % closest_overlap))
+                log.debug('Single or Multi: closest_overlap = %s' % (FORMAT_DOUBLE % closest_overlap))
+                if closest_overlap < numpy.inf:
+                    log.debug('Overlap partner = %s' % str(multi_partners[0][0]))
 
             # If the closest partner is within the multi horizon we do Multi, otherwise Single
             if closest_overlap > 0.0 and not self.BD_ONLY_FLAG : 
-                # just make a normal NonInteractionSingle
-                self.update_single(single)
-                bin_domain = single
-
+                try:
+                    # just make a normal NonInteractionSingle
+                    self.update_single(single)
+                    bin_domain = single
+                except:
+                    # if single update fails, make a multi an warn
+                    log.warn('Single update failed, making a Multi domain instead. Single = %s, multi_partners = %s')
+                    domain = self.form_multi(single, multi_partners)
+                    bin_domain = domain
             else:
                 # An object was closer than the Multi horizon
                 # Form a multi with everything that is in the multi_horizon
