@@ -121,17 +121,19 @@ class NonInteractionSingles(object):
     # NOTE the two methods below have quite a different purpose!
     def shell_list_for_single(self):
         # In case the asker is also a NonInteractionSingle, the shell dimensions of the current domain
-        # is modified such that the domain is at least the size of the Multi shell.
+        # is "modified" such that the apparent domain is at least the size of the Multi shell.
+        # The modification is not applied to the current domain, instead a "fake shell" with the right
+        # dimensions is created which defines the apparent dimensions for the asker.
 
-        # NOTE: the Multi shell is spherical whereas the real shell of the NonInteractionSingle can
-        # be cylinderical. This method should therefore always return at the Multi shell.
+        # NOTE: the Multi shell is spherical whereas the real shell of the NonInteractionSingle can be cylinderical.
+        # This method should therefore always return the Multi shell.
         # In practice it will return the multi shell when the real shell fits inside the multi shell (typically when
         # the domain is just initialized), and will return the real shell when the domain exceeds the multi shell.
         # This means that there may not be space for the multi shell when the domain has non-null dimensions.
-        # This should be ok, because no multi will be directly made when the domain has non-null dimensions but
-        # will only be made after first bursting nearby domains.
+        # This should be ok, because no multi will be directly made when the domain has non-null dimensions,
+        # but will only be made after first bursting nearby domains.
 
-        pass    # needs to be specified in the subclass
+        pass    # needs to be specified in the subclasses
 
 
     def shell_list_for_other(self):
@@ -145,7 +147,7 @@ class NonInteractionSingles(object):
         # This means that more bursting will take place than necessary because cylindrical domains do not keep the 
         # domains that are out of the 'diffusion dimension' at the proper distance -> TODO
 
-        pass    # needs to be specified in the subclass
+        pass    # needs to be specified in the subclasses
 
 
     # The next method is only relevant for TESTSHELL subclasses that derive from this class.
