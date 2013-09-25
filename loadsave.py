@@ -580,7 +580,7 @@ def load_state(filename):
         rule = None
         if rtype == 'decay':
 
-            assert len(reactant_ids) == 1 and reactant_ids[0] != None and \
+            assert len(reactant_ids) == 1 and reactant_ids[0] is not None and \
                    len(product_ids)  == 0, \
                      'Saved reaction rule does not have the proper signature: rule = %s' % sectionname
 
@@ -592,8 +592,8 @@ def load_state(filename):
 
         elif rtype == 'unimolecular':
 
-            assert len(reactant_ids) == 1 and reactant_ids[0] != None and \
-                   len(product_ids)  == 1 and product_ids[0]  != None, \
+            assert len(reactant_ids) == 1 and reactant_ids[0] is not None and \
+                   len(product_ids)  == 1 and product_ids[0]  is not None, \
                      'Saved reaction rule does not have the proper signature: rule = %s' % sectionname
 
             # Get the involved species
@@ -605,8 +605,8 @@ def load_state(filename):
 
         elif rtype == 'unbinding':
 
-            assert len(reactant_ids) == 1 and reactant_ids[0] != None and \
-                   product_ids[0] != None and product_ids[1]  != None, \
+            assert len(reactant_ids) == 1     and reactant_ids[0] is not None and \
+                   product_ids[0] is not None and product_ids[1]  is not None, \
                      'Saved reaction rule does not have the proper signature: rule = %s' % sectionname
 
             # Get the involved species
@@ -619,8 +619,8 @@ def load_state(filename):
 
         elif rtype == 'binding_particle':
             
-            assert reactant_ids[0] != None and reactant_ids[1] != None and \
-                   len(product_ids) == 1   and product_ids[0]  != None, \
+            assert reactant_ids[0] is not None and reactant_ids[1] is not None and \
+                   len(product_ids) == 1       and product_ids[0]  is not None, \
                      'Saved reaction rule does not have the proper signature: rule = %s' % sectionname
 
             # Get the involved species
@@ -633,8 +633,8 @@ def load_state(filename):
 
         elif rtype == 'binding_surface':
             
-            assert reactant_ids[0] != None and reactant_ids[1] != None and \
-                   len(product_ids) == 1   and product_ids[0]  != None, \
+            assert reactant_ids[0] is not None and reactant_ids[1] is not None and \
+                   len(product_ids) == 1       and product_ids[0]  is not None, \
                      'Saved reaction rule does not have the proper signature: rule = %s' % sectionname
 
             # Get the involved species
