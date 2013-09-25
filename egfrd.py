@@ -4,6 +4,7 @@
 from weakref import ref
 import math
 import numpy
+import sys
 
 from _gfrd import (
     Event,
@@ -1971,7 +1972,6 @@ class EGFRDSimulator(ParticleSimulatorBase):
                 multi_partners = sorted(multi_partners, key=lambda domain_overlap: domain_overlap[1])
                 #log.debug('multi_partners: %s' % str(multi_partners))
                 closest_overlap = multi_partners[0][1]
-                log.debug('multi_partners = %s' % str(multi_partners))
             else:
                 # In case there is really nothing
                 closest_overlap = numpy.inf
@@ -1984,12 +1984,15 @@ class EGFRDSimulator(ParticleSimulatorBase):
             # If the closest partner is within the multi horizon we do Multi, otherwise Single
             if closest_overlap > 0.0 and not self.BD_ONLY_FLAG : 
                 try:
-                    # just make a normal NonInteractionSingle
+                    # Just make a normal NonInteractionSingle
                     self.update_single(single)
                     bin_domain = single
-                except:
-                    # if single update fails, make a multi an warn
-                    log.warn('Single update failed, making a Multi domain instead. Single = %s, multi_partners = %s')
+
+                except Exception as e:
+                    # If in rare cases the single update fails, make at least a Multi and warn
+                    # Note that this case is supposed to occur extremely rarely, and that it means sth. is not quite working well.
+                    log.warn('Single update failed, exception: %s / %s' % (str(e), str(sys.exc_info()) ) )
+                    log.warn('Single update: creating a Multi domain instead. Single = %s, multi_partners = %s' % (single, multi_partners))
                     domain = self.form_multi(single, multi_partners)
                     bin_domain = domain
             else:
@@ -2067,9 +2070,11 @@ class EGFRDSimulator(ParticleSimulatorBase):
         singlepos = single.pid_particle_pair[1].position    # TODO get the position as an argument
 
 
-        # create a new updated shell
+        # Create a new updated shell
+        # If this does not work for some reason an exception is risen;
+        # then make_new_domain() will make a Multi as a default fallback
         new_shell = single.create_updated_shell(singlepos)
-        assert new_shell, 'single.create_updated_shell() returned None.'
+        assert new_shell, 'Method single.create_updated_shell() returned None.'
 
         # Replace shell in domain and geometrycontainer.
         # Note: this should be done before determine_next_event.
@@ -2088,11 +2093,16 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
         single.last_time = self.t
 
-        # add to scheduler
-        self.add_domain_event(single)
-        # check everything is ok
+        # Check whether everything is OK
         if __debug__:
             assert self.check_domain(single)
+
+        # Add to scheduler
+        # Make sure this is really at the end of the process, i.e. that we only 
+        # get here if no exceptions have been risen. If exceptions will be
+        # produced after adding the (erroneous) single to the scheduler we will
+        # have a zombie domain in it and break the whole scheduler queue!
+        self.add_domain_event(single)
 
         return single
 
