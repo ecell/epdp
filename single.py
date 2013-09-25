@@ -22,6 +22,7 @@ from domain import (
 from shells import *
 
 __all__ = [
+    'ShellUpdateError',
     'CylindricalSurfaceSingle',
     'DiskSurfaceSingle',
     'PlanarSurfaceSingle',
@@ -42,6 +43,12 @@ __all__ = [
 
 import logging
 log = logging.getLogger('ecell')
+
+
+class ShellUpdateError(Exception):
+    # The ShellUpdateError is raised when a domain (typically a Single)
+    # could not be updated although that was excpected in the given situation.
+    pass
 
 
 class Single(ProtectiveDomain):
@@ -325,7 +332,7 @@ class SphericalSingle(NonInteractionSingle, hasSphericalShell):
             return self.create_new_shell(position, radius, self.domain_id)
 
         except ShellmakingError as e:
-            raise Exception('SphericalSingle, create_updated_shell failed: %s' %
+            raise ShellUpdateError('SphericalSingle, create_updated_shell failed: %s' %
                             (str(e)))
 
     def create_position_vector(self, r):
@@ -414,7 +421,7 @@ class PlanarSurfaceSingle(NonInteractionSingle, hasCylindricalShell):
             
             return self.create_new_shell(center, radius, half_length, self.domain_id)
         except ShellmakingError as e:
-            raise Exception('PlanarSurfaceSingle, create_updated_shell failed: %s' % str(e) )
+            raise ShellUpdateError('PlanarSurfaceSingle, create_updated_shell failed: %s' % str(e) )
 
     def create_position_vector(self, r):
         # project the vector onto the surface unit vectors to make sure that the coordinates are in the surface
@@ -523,7 +530,7 @@ class CylindricalSurfaceSingle(NonInteractionSingle, hasCylindricalShell):
                                                                              dr, dz_right, dz_left)
             return self.create_new_shell(center, radius, half_length, self.domain_id)
         except ShellmakingError as e:
-            raise Exception('CylindricalSurfaceSingle, create_updated_shell failed: %s' % str(e) )
+            raise ShellUpdateError('CylindricalSurfaceSingle, create_updated_shell failed: %s' % str(e) )
 
     def create_position_vector(self, z):
         # 'z' can be interpreted in two different ways here, it may a coordinate in the z direction or it may
@@ -647,7 +654,7 @@ class DiskSurfaceSingle(NonInteractionSingle, hasCylindricalShell):
                                                                              dr, dz_right, dz_left)
             return self.create_new_shell(center, radius, half_length, self.domain_id)
         except ShellmakingError as e:
-            raise Exception('DiskSurfaceSingle, create_updated_shell failed: %s' % str(e) )
+            raise ShellUpdateError('DiskSurfaceSingle, create_updated_shell failed: %s' % str(e) )
 
     def create_position_vector(self, z):
         # Particles on DiskStructures are immobile; always keep them in the center of the structure
