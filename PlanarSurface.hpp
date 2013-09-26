@@ -43,12 +43,6 @@ public:
     {
         return base_type::shape().position();
     }
-    
-//     virtual const int dof() const
-//     {
-//         //return base_type::shape().dof();
-//         return 2;
-//     }
 
     /*** Simple structure-specific sampling functions ***/
     // Draw a random position in the plane

@@ -43,12 +43,6 @@ public:
     {
         return base_type::shape().position();
     }
-    
-//     virtual const int dof() const
-//     {
-//         //return base_type::shape().dof();
-//         return 3;
-//     }
 
     /*** Simple structure-specific sampling functions ***/
     virtual position_type random_position(rng_type& rng) const

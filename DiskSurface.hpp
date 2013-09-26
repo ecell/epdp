@@ -60,12 +60,6 @@ public:
         return base_type::shape().position();
     }
     
-//     virtual const int dof() const
-//     {
-//         //return base_type::shape().dof();
-//         return 0;
-//     }
-    
     /*** Simple structure-specific sampling functions ***/
     // Produce a "random position" in the disk, which is always its center (the only legal pos.)
     virtual position_type random_position(rng_type& rng) const        

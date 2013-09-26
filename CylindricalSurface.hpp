@@ -47,12 +47,6 @@ public:
         return base_type::shape().position();
     }
     
-//     virtual const int dof() const
-//     {
-//         //return base_type::shape().dof();
-//         return 1;
-//     }
-    
     /*** Simple structure-specific sampling functions ***/
     // Produce a random position in the cylinder (1D)
     virtual position_type random_position(rng_type& rng) const    
