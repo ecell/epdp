@@ -246,6 +246,12 @@ public:
     {
         return world_.check_surface_overlap(s, old_pos, current, sigma, ignore);
     }
+    
+    virtual structure_id_pair_and_distance_list* check_surface_overlap(particle_shape_type const& s, position_type const& old_pos, structure_id_type const& current,
+                                                                       length_type const& sigma, structure_id_type const& ignore1, structure_id_type const& ignore2) const
+    {
+        return world_.check_surface_overlap(s, old_pos, current, sigma, ignore1, ignore2);
+    }
 
     virtual particle_id_pair_generator* get_particles() const
     {

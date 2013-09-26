@@ -290,8 +290,16 @@ public:
         typename utils::template overlap_checker<particle_id_pair_and_distance_list, boost::array<particle_id_type, 0> > oc;
         traits_type::take_neighbor(pmat_, oc, s);
         return oc.result();
+    }    
+    
+    virtual structure_id_pair_and_distance_list* check_surface_overlap(particle_shape_type const& s, position_type const& old_pos, structure_id_type const& current,
+                                                                       length_type const& sigma) const
+    {
+        typename utils::template overlap_checker<structure_id_pair_and_distance_list, boost::array<structure_id_type, 0> > checker;
+        surface_overlap_checker(s, old_pos, current, sigma, checker);
+        return checker.result();
     }
-
+    
     virtual structure_id_pair_and_distance_list* check_surface_overlap(particle_shape_type const& s, position_type const& old_pos, structure_id_type const& current,
                                                                        length_type const& sigma, structure_id_type const& ignore) const
     {
@@ -299,11 +307,11 @@ public:
         surface_overlap_checker(s, old_pos, current, sigma, checker);
         return checker.result();
     }
-
+    
     virtual structure_id_pair_and_distance_list* check_surface_overlap(particle_shape_type const& s, position_type const& old_pos, structure_id_type const& current,
-                                                                       length_type const& sigma) const
+                                                                       length_type const& sigma, structure_id_type const& ignore1, structure_id_type const& ignore2) const
     {
-        typename utils::template overlap_checker<structure_id_pair_and_distance_list, boost::array<structure_id_type, 0> > checker;
+        typename utils::template overlap_checker<structure_id_pair_and_distance_list, boost::array<structure_id_type, 2> > checker(array_gen(ignore1, ignore2));
         surface_overlap_checker(s, old_pos, current, sigma, checker);
         return checker.result();
     }
