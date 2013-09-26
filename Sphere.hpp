@@ -51,6 +51,11 @@ public:
     {
         return radius_;
     }
+    
+    int dof()
+    {   // degrees of freedom for particle movement
+        return 2;
+    }
 
     std::string show(int precision)
     {

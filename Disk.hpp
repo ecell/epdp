@@ -65,6 +65,11 @@ public:
     {
         return unit_z_;
     }
+    
+    int dof()
+    {   // degrees of freedom for particle movement
+        return 0;
+    }
 
     std::string show(int precision)
     {

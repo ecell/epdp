@@ -163,6 +163,11 @@ public:
     {
         return half_extent_;
     }
+    
+    int dof()
+    {   // degrees of freedom for particle movement
+        return 3;
+    }
 
     bool operator==(const Box& rhs) const
     {

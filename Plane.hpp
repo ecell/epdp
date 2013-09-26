@@ -164,6 +164,11 @@ public:
     {
         return is_one_sided_;
     }
+    
+    int dof()
+    {   // degrees of freedom for particle movement
+        return 2;
+    }
 
     bool operator==(const Plane& rhs) const
     {
