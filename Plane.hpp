@@ -165,7 +165,7 @@ public:
         return is_one_sided_;
     }
     
-    int dof()
+    const int dof() const
     {   // degrees of freedom for particle movement
         return 2;
     }

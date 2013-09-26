@@ -113,9 +113,7 @@ public:
     }
 
     virtual position_type random_position(rng_type& rng) const = 0;
-
     virtual position_type random_vector(length_type const& r, rng_type& rng) const = 0;
-
 
     // Methods used in the 'old' BDPropagator // DEPRECATED
     virtual position_type dissociation_vector(rng_type& rng, length_type const& r01, Real const& dt, Real const& D01, Real const& v) const = 0;
@@ -144,6 +142,7 @@ public:
     virtual length_type distance(position_type const& pos) const = 0;
     virtual position_type const& position() const = 0;
     virtual position_type const& side_comparison_vector() const = 0;
+    //virtual const int dof() const;
 
     // Methods used for edge crossing (only for the planes so far)
     virtual position_flag_pair_type deflect(position_type const& pos0, position_type const& displacement) const = 0;
@@ -305,11 +304,10 @@ public:
 
 ////// Member variables
 protected:
-    structure_name_type     name_;                  // just the name
-    structure_type_id_type  sid_;                   // id of the structure_type of the structure
-    structure_id_type       parent_struct_id_;
-
-    structure_id_type       id_;        // id of the structure (filled in later)
+    structure_name_type     name_;              // just the name
+    structure_type_id_type  sid_;               // id of the structure_type of the structure    
+    structure_id_type       id_;                // id of the structure (filled in later)
+    structure_id_type       parent_struct_id_;  // id of the parent structure (filled in later)    
 };
 
 

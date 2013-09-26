@@ -164,7 +164,7 @@ public:
         return half_extent_;
     }
     
-    int dof()
+    const int dof() const
     {   // degrees of freedom for particle movement
         return 3;
     }

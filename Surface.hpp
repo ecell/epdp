@@ -71,7 +71,7 @@ public:
     {
         return shape_;
     }
-
+    
     virtual bool operator==(Structure<Ttraits_> const& rhs) const
     {
         BasicSurfaceImpl const* _rhs(dynamic_cast<BasicSurfaceImpl const*>(&rhs));

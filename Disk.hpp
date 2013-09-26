@@ -66,7 +66,7 @@ public:
         return unit_z_;
     }
     
-    int dof()
+    const int dof() const
     {   // degrees of freedom for particle movement
         return 0;
     }
