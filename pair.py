@@ -350,9 +350,9 @@ class StandardPair(Pair):
             log.debug('tr = %g, tR = %g' % (tr, tR))
 
 
-        assert a_r > 0
-        assert a_r > r0, '%g %g' % (a_r, r0)
-        assert a_R > 0 or (a_R == 0 and (D1 == 0 or D2 == 0))
+        assert fgreater(a_r, 0, typical=radiusa)
+        assert fgreater(a_r, r0, typical=radiusa), '%g %g' % (a_r, r0)
+        assert fgreater(a_R, 0, typical=radiusa) or (feq(a_R, 0) and (D1 == 0 or D2 == 0))
 
         return a_R, a_r
 
@@ -1104,7 +1104,8 @@ class MixedPair2D3D(Pair, hasCylindricalShell):
             'MixedPair2D3D: Domain did not obey scaling relationship. '
 
         # check that the CoM is in the surface
-        assert numpy.dot( (self.com-self.structure2D.shape.position), self.structure2D.shape.unit_z) == 0.0
+        assert feq(numpy.dot(self.com-self.structure2D.shape.position, self.structure2D.shape.unit_z), 0.0, \
+                   typical=radius)
         # check that the IV is NOT in the surface
 
     def __str__(self):
@@ -1202,7 +1203,7 @@ class MixedPair1DStatic(Pair, hasCylindricalShell):
     def get_a_r(self):
       
         ref_pt = self.testShell.get_referencepoint()
-        assert ( all(self.static_particle.position - ref_pt == 0) )
+        assert all_feq(self.static_particle.position - ref_pt, 0.0)
 
         return abs(self.testShell.dz_right) - self.particle1D.radius
     a_r = property(get_a_r)

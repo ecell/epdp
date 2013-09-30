@@ -347,7 +347,7 @@ class SphericalSingle(NonInteractionSingle, hasSphericalShell):
         if not self.is_reset():
             assert self.shell.shape.radius*SAFETY >= self.testShell.get_min_radius()
         if self.is_reset():
-            assert self.shell.shape.radius == self.pid_particle_pair[1].radius
+            assert feq(self.shell.shape.radius, self.pid_particle_pair[1].radius)
 
         assert self.is_reset() ^ (self.dt != 0.0)
         assert isinstance(self.structure, CuboidalRegion)
@@ -439,15 +439,15 @@ class PlanarSurfaceSingle(NonInteractionSingle, hasCylindricalShell):
         if not self.is_reset():
             min_radius, _, _ = self.testShell.get_min_dr_dzright_dzleft()
             assert self.shell.shape.radius*SAFETY >= min_radius
-        assert self.shell.shape.half_length == self.testShell.z_right(self.shell.shape.radius) 
-        assert self.shell.shape.half_length == self.testShell.z_left (self.shell.shape.radius)
+        assert feq(self.shell.shape.half_length, self.testShell.z_right(self.shell.shape.radius))
+        assert feq(self.shell.shape.half_length, self.testShell.z_left (self.shell.shape.radius))
         if self.is_reset():
-            assert self.shell.shape.radius == self.pid_particle_pair[1].radius
+            assert feq(self.shell.shape.radius, self.pid_particle_pair[1].radius)
 
         assert self.is_reset() ^ (self.dt != 0.0)
         assert isinstance(self.structure, PlanarSurface)
         assert self.greens_function
-        assert (self.shell.shape.unit_z == self.structure.shape.unit_z).all()
+        assert all_feq(self.shell.shape.unit_z, self.structure.shape.unit_z)
 
         # Assert that new position is in the structure
         assert feq(numpy.dot(self.pid_particle_pair[1].position - self.structure.shape.position,\
@@ -572,12 +572,12 @@ class CylindricalSurfaceSingle(NonInteractionSingle, hasCylindricalShell):
 #        if not self.is_reset():
 #            assert self.shell.shape.radius >= self.testShell.get_min_radius()
         if self.is_reset():
-            assert self.shell.shape.half_length == self.pid_particle_pair[1].radius
+            assert feq(self.shell.shape.half_length, self.pid_particle_pair[1].radius)
 
         assert self.is_reset() ^ (self.dt != 0.0)
         assert isinstance(self.structure, CylindricalSurface)
         assert self.greens_function
-        assert (self.shell.shape.unit_z == self.structure.shape.unit_z).all()
+        assert all_feq(self.shell.shape.unit_z, self.structure.shape.unit_z)
         assert self.v < numpy.inf
 
         return True
@@ -667,12 +667,12 @@ class DiskSurfaceSingle(NonInteractionSingle, hasCylindricalShell):
         assert isinstance(self.shell.shape, Cylinder)
 
         if self.is_reset():
-            assert self.shell.shape.half_length == self.pid_particle_pair[1].radius
+            assert feq(self.shell.shape.half_length, self.pid_particle_pair[1].radius)
 
         assert self.is_reset() ^ (self.dt != 0.0)
         assert isinstance(self.structure, DiskSurface)
         #assert self.greens_function
-        assert (self.shell.shape.unit_z == self.structure.shape.unit_z).all()
+        assert all_feq(self.shell.shape.unit_z, self.structure.shape.unit_z)
 
         return True
 

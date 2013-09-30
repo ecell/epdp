@@ -34,6 +34,7 @@ from _gfrd import (
 
 from gfrdbase import *
 from gfrdbase import DomainEvent
+from utils import *
 import model
 import _gfrd
 
@@ -789,7 +790,7 @@ def load_state(filename):
             structure = model.create_planar_surface(structure_type.id, name, corner_pos, unit_x, unit_y, \
                                                     2.0*half_extent[0], 2.0*half_extent[1], parent_structure.id)
             
-            assert all( [structure.shape.unit_z[c]==unit_z[c] for c in range(0,len(unit_z))] )
+            assert all_feq(structure.shape.unit_z, unit_z, tolerance=TOLERANCE)
 
         # Add it to the world
         if structure:

@@ -483,7 +483,8 @@ class testMixedPair1DStatic(testPair):
 
         # Make sure that the static particle's position coincides with the disk position
         if __debug__:
-                assert all(self.static_structure.shape.position - self.static_particle.position == 0.0)
+                assert all_feq(self.static_structure.shape.position - self.static_particle.position, 0.0, \
+                               typical = self.static_structure.shape.radius) 
 
     def get_sigma(self):
         # Copied from SimplePair
