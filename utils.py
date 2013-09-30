@@ -80,6 +80,17 @@ def feq(a, b, typical=1, tolerance=TOLERANCE):
 
     return abs(a - b) < tolerance * (typical + min(abs(a), abs(b)))
 
+def all_feq(a, b, typical=1, tolerance=TOLERANCE):
+    """ Return True if array-like objects a and b are equal,
+        subject to given tolerances.  
+
+        Float comparison.
+
+        This is basically a wrapper around numpy.allclose().
+    """
+    
+    return numpy.allclose(a, b, rtol=TOLERANCE, atol=TOLERANCE*typical)
+    
 
 def fgreater(a, b, typical=1, tolerance=TOLERANCE):
     """Return True if a is greater than b, subject to given tolerances.  
