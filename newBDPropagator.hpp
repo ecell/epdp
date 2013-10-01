@@ -116,15 +116,7 @@ public:
                     boost::lexical_cast<std::string>(pp.first).c_str(),
                     dt_,
                     reaction_length_
-                 ));
-        
-        // Particles that are immobile cannot move nor hit another particle,
-        // so exit immediately if this is the case
-        if(pp.second.D() == 0.0 && pp.second.v() == 0.0) // particle is immobile
-        {
-            LOG_DEBUG(("particle is immobile (D=0, v=0), no further action"));
-            return true;
-        }            
+                 ));              
 
         /*** 2. TRY SINGLE (DECAY) REACTION ***/
         // Consider decay reactions first. Particles can move after decay, but this is done
@@ -146,7 +138,21 @@ public:
             ++rejected_move_count_;
             return true;
         }
+        
+        // If no single reaction happened,
+        // we will check for reactions/interactions upon particle moves.
+        
+        // First treat special cases.
+        // Particles that are immobile cannot move nor hit another particle,
+        // so exit immediately if this is the case
+        if(pp.second.D() == 0.0 && pp.second.v() == 0.0) // particle is immobile
+        {
+            LOG_DEBUG(("particle is immobile (D=0, v=0), no further action"));
+            return true;
+        }     
 
+        // OK, we seem to be in the regular case. Continue.
+        
         /*** 3.1 COLLECT INFO ***/
         // Get info of the particle
         const species_type                      pp_species(tx_.get_species(pp.second.sid()));
@@ -486,7 +492,7 @@ private:
                         //// 1 - CREATE NEW POSITION AND STRUCTURE ID                                                
                         if( product_species.structure_type_id() != reactant_structure->sid() )
                         {                            
-                            LOG_DEBUG(("Attempting single reaction with one product." ));
+                            LOG_DEBUG(("Attempting monomolecular reaction with one product." ));
                             
                             // Now determine the target structure id; if not staying on the origin structure,
                             // the particle is assumed to go to either the default structure or its parent structure,
@@ -505,7 +511,7 @@ private:
                             
                             else
                               
-                                throw not_implemented("Invalid product structure in single reaction: Must be either parent or default structure!");
+                                throw not_implemented("Invalid product structure in monomolecular reaction: Must be either parent or default structure!");
                             
                             // Get the structure behind the product_structure_id
                             const boost::shared_ptr<const structure_type> product_structure( tx_.get_structure(product_structure_id) );
@@ -602,7 +608,7 @@ private:
                         species_type product0_species(tx_.get_species(products[0]));
                         species_type product1_species(tx_.get_species(products[1]));
 
-                        LOG_DEBUG(("Attempting single reaction with two products." ));
+                        LOG_DEBUG(("Attempting monomolecular reaction with two products." ));
                         
                         // If the products live on different structures, one must be the parent of the other or the default structure.
                         // In this case we have to bring the products into the right order.
@@ -617,7 +623,7 @@ private:
                             if( !( product0_species.structure_type_id() == reactant_structure_type_id ||
                                    product1_species.structure_type_id() == reactant_structure_type_id    )
                               )
-                                throw not_implemented("Invalid product structure for first product in single reaction: One particle must stay behind on structure of origin!");
+                                throw not_implemented("Invalid product structure for first product in monomolecular reaction: One particle must stay behind on structure of origin!");
 
                             // One of the products must go into the parent or default structure
                             if( !( product0_species.structure_type_id() == parent_structure_type_id  ||
@@ -625,7 +631,7 @@ private:
                                    product1_species.structure_type_id() == parent_structure_type_id  ||                                 
                                    product1_species.structure_type_id() == default_structure_type_id    )
                               )
-                                throw not_implemented("Invalid product structure for second product in single reaction: Must be either parent or default structure!");
+                                throw not_implemented("Invalid product structure for second product in monomolecular reaction: Must be either parent or default structure!");
                             
                             // OK, reaction rule is legal; set the product species according to the above convention
                             if ( !(product0_species.structure_type_id() == reactant_structure_type_id) )
