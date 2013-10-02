@@ -162,15 +162,20 @@ public:
     virtual position_pair_type special_geminate_dissociation_positions( rng_type& rng, species_type const& s_surf, species_type const& s_bulk, 
         position_type const& op_surf, length_type const& rl ) const
     {
+      
+        // FIXME FIXME FIXME What the hell is all of that calculation? What are these angles / transformations?
+        // This should just place the dissociating particle in the reaction volume close to the cylinder!
+        // NOTE Probably just copied from PlanarSurface ?
+        
         Real const rod_radius( base_type::shape().radius() );
         
         //Species living on the rod should have a larger radius than the rod.
-        assert( rod_radius < s_surf.radius() );
+        assert( rod_radius < s_surf.radius() ); // FIXME This is dangerous to put here! Revise!
     
         length_type const r01( s_bulk.radius() + s_surf.radius() );
         Real const D01( s_bulk.D() + s_surf.D() );
         Real const D_bulk_D01( s_bulk.D() / D01 );
-        Real const D_surf_D01( s_surf.D() / D01 );
+        Real const D_surf_D01( s_surf.D() / D01 );               
         
         //Commented code for direct binding case with c.o.m. reaction.
         //Real const theta_min( asin(rod_radius / r01) );       

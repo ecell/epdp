@@ -430,7 +430,9 @@ get_pos_sid_pair( DiskSurface<Ttraits_>                 const& origin_structure,
     typedef typename Ttraits_::structure_id_type        structure_id_type;
     typedef typename Ttraits_::position_type            position_type;
     typedef typename Ttraits_::length_type              length_type;
-
+    
+    // Here offset should be the radius of the product species
+    
     position_type displacement( origin_structure.surface_dissociation_vector(rng, offset, reaction_length) );
     position_type new_pos( add(old_pos, displacement) );
     // TODO assert that new_pos is in target_structure
@@ -523,10 +525,14 @@ get_pos_sid_pair( DiskSurface<Ttraits_>                 const& origin_structure,
     typedef typename Ttraits_::position_type            position_type;
     typedef typename Ttraits_::length_type              length_type;
 
-    /*** COMBINATION NOT SUPPORTED ***/
-    throw illegal_propagation_attempt("Structure transition between combination of origin structure and target structure not supported (Disk->Plane).");
+    // Treated in the same way as unbinding from disk to bulk (see above)
+    // Here offset should be the radius of the product species
     
-    return std::make_pair(position_type(), structure_id_type());
+    position_type displacement( origin_structure.surface_dissociation_vector(rng, offset, reaction_length) );
+    position_type new_pos( add(old_pos, displacement) );
+    // TODO assert that new_pos is in target_structure
+    
+    return std::make_pair(new_pos, target_structure.id());
 };
 
 /*****************************/
