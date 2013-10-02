@@ -138,7 +138,7 @@ public:
         v = normalize( subtract(v, multiply( unit_z, dot_product( unit_z, v ) ) ) );
          
         // Return the created vector with the right length
-        return multiply( v, (1.0 + 1e-7) * diss_vec_length);
+        return multiply( v, MINIMAL_SEPARATION_FACTOR * diss_vec_length);
                // TODO define a global MINIMAL_SEPARATION_FACTOR also for BD mode
     }
     

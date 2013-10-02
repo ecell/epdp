@@ -22,4 +22,7 @@ typedef size_t Index;
 
 #define IGNORE_RETURN (void)
 
+const Real SEPARATION_TOLERANCE( 1e-07  );
+const Real MINIMAL_SEPARATION_FACTOR( 1.0 + 1e-07 );
+
 #endif // __DEFS_HPP
