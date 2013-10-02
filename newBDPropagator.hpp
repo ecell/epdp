@@ -2,6 +2,7 @@
 #define NEW_BD_PROPAGATOR_HPP
 
 #include <algorithm>
+#include <string>
 #include <boost/bind.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/range/size.hpp>
@@ -483,6 +484,8 @@ private:
                         const structure_id_type                         parent_structure_id( reactant_structure->structure_id() );
                         const boost::shared_ptr<const structure_type>   parent_structure( tx_.get_structure( parent_structure_id ) );
                         const species_type                              product_species( tx_.get_species(products[0]) );
+                        structure_id_type                               product_structure_id( reactant_structure_id );
+                                                                        //default case, may be altered below
                         
                         // Set default values for the position and structure of the product
                         // As a default, the product stays on the structure of origin
@@ -533,27 +536,29 @@ private:
                             // Apply boundary conditions
                             product_pos_struct_id = tx_.apply_boundary( new_pos_sid_pair );                            
                             
-                            // Particle is allowed to move after dissociation from surface. TODO Isn't it allways allowed to move?
+                            // Particle is allowed to move after dissociation from surface. TODO Isn't it always allowed to move?
                             product_pos_struct_id = make_move(product_species, product_pos_struct_id, pp.first);
                         }
 
                         //// 2- CHECK FOR OVERLAPS
                         const particle_shape_type new_shape(product_pos_struct_id.first, product_species.radius());
-                        // check for overlap with particles that are inside the propagator
+                        // Check for overlap with particles that are inside the propagator
                         const boost::scoped_ptr<const particle_id_pair_and_distance_list> overlap_particles(
                                 tx_.check_overlap(new_shape, pp.first));
                         if (overlap_particles && overlap_particles->size() > 0)
                         {
                             throw propagation_error("no space due to other particle");
                         }
-                        // check overlap with surfaces
+                        // Check overlap with surfaces
+                        // Ignore reactant and product structure
                         const boost::scoped_ptr<const structure_id_pair_and_distance_list> overlap_surfaces(
-                                tx_.check_surface_overlap(new_shape, reactant_pos, product_pos_struct_id.second, product_species.radius(), reactant_structure_id ));
+                                tx_.check_surface_overlap(new_shape, reactant_pos, product_pos_struct_id.second, product_species.radius(), 
+                                                                                   reactant_structure_id, product_structure_id ));
                         if (overlap_surfaces && overlap_surfaces->size() > 0)
                         {
                             throw propagation_error("no space due to near surface");
                         }
-                        // check for overlap with particles outside of the propagator (for example the eGFRD simulator)
+                        // Check for overlap with particles outside of the propagator (for example the eGFRD simulator)
                         if (vc_)
                         {
                             if (!(*vc_)(new_shape, pp.first))
@@ -659,12 +664,13 @@ private:
                         /* Create positions (np0, np1) for the reaction products. 
                         The iv between the products lies within the reaction volume. */
                         int i (max_retry_count_);
+                        std::string error_message;
                         while (true)
                         {
                             // Escape clause #1: Too many tries
                             if (i-- == 0)
                             {
-                                throw propagation_error("no space due to particle or surface");
+                                throw propagation_error(error_message);
                             }
                         
                             //// 1a - GENERATE POSITIONS AND STRUCTURE IDs FOR PRODUCT PARTICLES AFTER REACTION
@@ -704,32 +710,47 @@ private:
 
 
                             //// 1b - CHECK FOR OVERLAPS
+                            // Re-query positions, structure IDs + structures (may have changed after apply boundary)
+                            product0_struct_id = pos0pos1_pair.first.second;
+                            product1_struct_id = pos0pos1_pair.second.second;
+                            const boost::shared_ptr<const structure_type> product0_struct( tx_.get_structure(product0_struct_id) );
+                            const boost::shared_ptr<const structure_type> product1_struct( tx_.get_structure(product1_struct_id) );
+                            const bool product0_mobile (product0_species.D()>0.0 or product0_species.v()>0);
+                            const bool product1_mobile (product1_species.D()>0.0 or product1_species.v()>0);
+                            // Now check
                             const particle_shape_type new_shape0(pos0pos1_pair.first.first, product0_species.radius());
-                            // check overlap with particle in the propagator
+                            // Check overlap with particles in the propagator
                             const boost::scoped_ptr<const particle_id_pair_and_distance_list> overlap_particles_product0(
-                                    tx_.check_overlap( new_shape0,  pp.first));
+                                                                                                  tx_.check_overlap( new_shape0,  pp.first));
                             if (overlap_particles_product0 && overlap_particles_product0->size() > 0)
                             {
+                                error_message = "no space for product0 due to particle overlap";
                                 continue;   // try other positions pair
                             }
                             /* Only when both products live in the bulk, check for possible overlap with a surface. */
                             const boost::scoped_ptr<const structure_id_pair_and_distance_list> overlap_structures_product0(
-                                    tx_.check_surface_overlap(new_shape0, reactant_pos, pos0pos1_pair.first.second, product0_species.radius()));
-                            if (overlap_structures_product0 && overlap_structures_product0->size() > 0)
+                                    tx_.check_surface_overlap(new_shape0, reactant_pos, product0_struct_id, product0_species.radius(), 
+                                                                                        product0_struct_id, product1_struct_id ) );
+                            if (overlap_structures_product0 && overlap_structures_product0->size() > 0 && product0_mobile)
                             {
+                                error_message = "no space for product0 due to surface overlap";
                                 continue;   // try other positions pair
                             }
+                            // Same for the other particle
                             const particle_shape_type new_shape1(pos0pos1_pair.second.first, product1_species.radius());
                             const boost::scoped_ptr<const particle_id_pair_and_distance_list> overlap_particles_product1(
-                                    tx_.check_overlap( new_shape1, pp.first));
+                                                                                                  tx_.check_overlap( new_shape1, pp.first));
                             if (overlap_particles_product1 && overlap_particles_product1->size() > 0)
                             {
+                                error_message = "no space for product1 due to particle overlap";
                                 continue;   // try other positions pair
                             }
                             const boost::scoped_ptr<const structure_id_pair_and_distance_list> overlap_structures_product1(
-                                    tx_.check_surface_overlap(new_shape1, reactant_pos, pos0pos1_pair.second.second, product1_species.radius()));
-                            if (overlap_structures_product1 && overlap_structures_product1->size() > 0)
+                                    tx_.check_surface_overlap(new_shape1, reactant_pos, product1_struct_id, product1_species.radius(),
+                                                                                        product0_struct_id, product1_struct_id) );
+                            if (overlap_structures_product1 && overlap_structures_product1->size() > 0 && product1_mobile)
                             {
+                                error_message = "no space for product1 due to surface overlap";
                                 continue;   // try other positions pair
                             }
                                                         
