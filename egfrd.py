@@ -269,12 +269,12 @@ class EGFRDSimulator(ParticleSimulatorBase):
         self.BD_ONLY_FLAG = False               # Will force the algorithm into Multi-creation, i.e. always to use BD
                                                 # Take care: This is for testing only! Keep this 'False' for normal sims!
 
-        self.BD_DT_HARDCORE_MIN = -1e-9         # This is to define a hardcore lower bound for the timestep that will be
+        self.BD_DT_HARDCORE_MIN = +1e-9         # This is to define a hardcore lower bound for the timestep that will be
                                                 # dynamically determined by the new BD scheme. It will prevent the algorithm
                                                 # to calculate ridiculously small timesteps, but will break detail balance.
                                                 # Take care: This is for testing only! Keep this at a negative value for normal sims!
 
-        self.REMOVE_OVERLAPS = False            # Ignore overlaps, only warn when they happen and move particles apart
+        self.REMOVE_OVERLAPS = True             # Ignore overlaps, only warn when they happen and move particles apart
         self.max_overlap_error = 0.0            # This remembers the largest relative error produced by removing overlaps
 
         # used datastructrures
@@ -2787,7 +2787,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
                 log.debug('add_to_multi: object(%s) is surface, not added to multi.' % partner)
 
 
-        # 3. Initialize the multi and (re-)schedule
+        # 3. Initialize the multi and (re-)schedule        
         multi.initialize(self.t)
         if isinstance(closest, Multi):
             # Multi existed before
@@ -2975,6 +2975,7 @@ updates: %d
 \tPair:\t%d\t(%.2f %%)\t(r-escape: %d, R-escape: %d, reaction pair: %d, single: %d, bursted: %d)
 \tMulti:\t%d\t(%.2f %%)\t(diffusion: %d, escape: %d, reaction pair: %d, single: %d, bursted: %d)
 \tavg. multi time step: %e, avg. multi reaction length: %e
+\tmulti hardcore time step minimum: %s
 total reactions:     %d
 rejected moves:      %d
 overlap remover was: %s
@@ -3009,6 +3010,7 @@ max. overlap error:  %g
                self.multi_steps[EventType.BURST],
                avg_multi_time,
                avg_multi_rl,
+               ('inactive' if self.BD_DT_HARDCORE_MIN < 0.0 else self.BD_DT_HARDCORE_MIN),
                self.reaction_events,
                self.rejected_moves,
                ('active' if self.REMOVE_OVERLAPS else 'inactive'),
