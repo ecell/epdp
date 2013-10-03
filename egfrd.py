@@ -1941,8 +1941,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
                 if (isinstance (domain, NonInteractionSingle) and domain.is_reset()):
                     multi_horizon = (single_radius + domain.pid_particle_pair[1].radius) * MULTI_SHELL_FACTOR
                     distance = self.world.distance(single_pos, domain.shell.shape.position)
-                    multi_partners.append((domain, distance - multi_horizon))
-                    log.debug('domain = %s, multi_horizon = %s' % (domain, multi_horizon))
+                    multi_partners.append((domain, distance - multi_horizon))                    
 
                 elif isinstance(domain, Multi):
                     # The dist_to_shell = dist_to_particle - multi_horizon_of_target_particle
