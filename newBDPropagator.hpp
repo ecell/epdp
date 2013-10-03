@@ -124,6 +124,7 @@ public:
         // inside the 'attempt_single_reaction' function.
         try
         {
+            /*** ATTEMPT MONOMOLECULAR REACTION ***/
             if (attempt_single_reaction(pp))
                 return true;
         }
@@ -146,11 +147,11 @@ public:
         // First treat special cases.
         // Particles that are immobile cannot move nor hit another particle,
         // so exit immediately if this is the case
-        if(pp.second.D() == 0.0 && pp.second.v() == 0.0) // particle is immobile
-        {
-            LOG_DEBUG(("particle is immobile (D=0, v=0), no further action"));
-            return true;
-        }     
+//         if(pp.second.D() == 0.0 && pp.second.v() == 0.0) // particle is immobile
+//         {
+//             LOG_DEBUG(("particle is immobile (D=0, v=0), no further action"));
+//             return true;
+//         } // FIXME
 
         // OK, we seem to be in the regular case. Continue.
         
@@ -164,21 +165,26 @@ public:
         // declare variables to use
         position_type                   new_pos(old_pos);
         structure_id_type               new_structure_id( old_struct_id );
+        bool                            immobile( true );
 
         /*** 3.2 DISPLACEMENT TRIAL ***/
         /* Sample a potential move, and check if the particle _core_ has overlapped with another 
            particle or surface. If this is the case the particle bounces, and is returned
-           to it's original position. For a particle with D = 0, new_pos = old_pos 
-           Note that apply_boundary takes care of instant transitions between structures of the same
-           structure_type. */        
-        if (pp_species.D() != 0.0)
+           to its original position. For immobile particles with D = 0 and v=0, new_pos = old_pos.
+           Note that apply_boundary takes care of instant transitions between structures of 
+           the same structure_type.
+        */
+        if (pp_species.D() != 0.0 || pp_species.v() != 0.0)
         {
-            // get a new position, dependent on the structure the particle lives on.
+            immobile = false;
+            
+            // Get a new position on the structure that the particle lives on.
             const position_type displacement( pp_structure->bd_displacement(pp_species.v() * dt_,
                                                                             std::sqrt(2.0 * pp_species.D() * dt_),
                                                                             rng_) );
-
+            // Apply boundary conditions
             const position_structid_pair_type pos_structid(tx_.apply_boundary( std::make_pair( add(old_pos, displacement), old_struct_id )));
+            // Remember new position and structure ID
             new_pos = pos_structid.first;
             new_structure_id = pos_structid.second;
         }
@@ -222,7 +228,11 @@ public:
             // restore old position and structure_id
             new_pos = old_pos;
             new_structure_id = old_struct_id;
-            LOG_DEBUG( ("particle bounced, restoring old position and structure id.") ); // TESTING
+            
+            if( immobile ){
+                LOG_DEBUG( ("particle immobile, using old position and structure id.") );}
+            else{
+                LOG_DEBUG( ("particle bounced, restoring old position and structure id.") );}
             
             // re-get the reaction partners (particles), now on old position.
             boost::scoped_ptr<particle_id_pair_and_distance_list> overlap_particles_after_bounce( 
@@ -292,6 +302,8 @@ public:
                     {
                         LOG_DEBUG( ("fire surface interaction with surface %s.",
                                     boost::lexical_cast<std::string>(overlap_struct.first.first).c_str()) );
+                                    
+                        /*** ATTEMPT INTERACTION ***/
                         if(attempt_interaction(pp, new_pos_projected.first, overlap_struct.first.second ))
                             return true;
                     }   
@@ -304,14 +316,14 @@ public:
                         // prob. increment zero there.
                         // Conceptually this means that the prob. for the reaction that was just attempted
                         // and failed was zero in the first place (due to lack of space).
-                        log_.info("treating reaction as forbidden and reducing acc. probability by %s", prob_increase);
+                        log_.info("treating reaction as forbidden and reducing acc. probability by %f", prob_increase);
                         accumulated_prob -= prob_increase;
                     }
                     catch (illegal_propagation_attempt const& reason)
                     {
                         log_.info("surface interaction: illegal propagation attempt (reason: %s)", reason.what());
                         ++rejected_move_count_;
-                        log_.info("treating reaction as forbidden and reducing acc. probability by %s", prob_increase);
+                        log_.info("treating reaction as forbidden and reducing acc. probability by %f", prob_increase);
                         accumulated_prob -= prob_increase;
                     }
                 }
@@ -374,6 +386,7 @@ public:
                 LOG_DEBUG(("attempting to fire reaction."));
     		    try
                 {
+                    /*** ATTEMPT INTERPARTICLE REACTION ***/
                     if( attempt_pair_reaction(pp, overlap_particle.first, s0, s1) )
                         return true;
                 }
@@ -540,26 +553,34 @@ private:
                             product_pos_struct_id = make_move(product_species, product_pos_struct_id, pp.first);
                         }
 
-                        //// 2- CHECK FOR OVERLAPS
+                        //// 2 - CHECK FOR OVERLAPS
                         const particle_shape_type new_shape(product_pos_struct_id.first, product_species.radius());
                         // Check for overlap with particles that are inside the propagator
                         const boost::scoped_ptr<const particle_id_pair_and_distance_list> overlap_particles(
                                 tx_.check_overlap(new_shape, pp.first));
-                        if (overlap_particles && overlap_particles->size() > 0)
+                        if(overlap_particles && overlap_particles->size() > 0)
                         {
                             throw propagation_error("no space due to other particle");
                         }
                         // Check overlap with surfaces
                         // Ignore reactant and product structure
-                        const boost::scoped_ptr<const structure_id_pair_and_distance_list> overlap_surfaces(
-                                tx_.check_surface_overlap(new_shape, reactant_pos, product_pos_struct_id.second, product_species.radius(), 
-                                                                                   reactant_structure_id, product_structure_id ));
-                        if (overlap_surfaces && overlap_surfaces->size() > 0)
+                        const bool product_mobile( product_species.D()>0.0 or product_species.v()>0 );
+                        if( product_mobile )
                         {
-                            throw propagation_error("no space due to near surface");
+                            const boost::scoped_ptr<const structure_id_pair_and_distance_list> overlap_surfaces(
+                                    tx_.check_surface_overlap(new_shape, reactant_pos, product_pos_struct_id.second, product_species.radius(), 
+                                                                                       reactant_structure_id, product_structure_id ));
+                            if (overlap_surfaces && overlap_surfaces->size() > 0)
+                            {
+                                throw propagation_error("no space due to near surface");
+                            }
                         }
+                        else
+                          LOG_WARNING(("Skipping surface overlap check for immobile particle."));
+                          // FIXME this is an ugly workaround to make disk particles ignore neighboring cylinders
+                            
                         // Check for overlap with particles outside of the propagator (for example the eGFRD simulator)
-                        if (vc_)
+                        if(vc_)
                         {
                             if (!(*vc_)(new_shape, pp.first))
                             {
@@ -573,7 +594,7 @@ private:
                         const particle_id_pair product_particle( tx_.new_particle(product_species.id(), product_pos_struct_id.second, product_pos_struct_id.first) );
                         
                         // Record changes
-                        if (rrec_)
+                        if(rrec_)
                         {
                             (*rrec_)(
                                 reaction_record_type(
@@ -717,42 +738,58 @@ private:
                             const boost::shared_ptr<const structure_type> product1_struct( tx_.get_structure(product1_struct_id) );
                             const bool product0_mobile (product0_species.D()>0.0 or product0_species.v()>0);
                             const bool product1_mobile (product1_species.D()>0.0 or product1_species.v()>0);
-                            // Now check
+
+                            /* Now check for overlaps */
                             const particle_shape_type new_shape0(pos0pos1_pair.first.first, product0_species.radius());
-                            // Check overlap with particles in the propagator
+                            // Check for overlap with particles in the propagator
                             const boost::scoped_ptr<const particle_id_pair_and_distance_list> overlap_particles_product0(
                                                                                                   tx_.check_overlap( new_shape0,  pp.first));
-                            if (overlap_particles_product0 && overlap_particles_product0->size() > 0)
+                            if(overlap_particles_product0 && overlap_particles_product0->size() > 0)
                             {
                                 error_message = "no space for product0 due to particle overlap";
                                 continue;   // try other positions pair
                             }
-                            /* Only when both products live in the bulk, check for possible overlap with a surface. */
-                            const boost::scoped_ptr<const structure_id_pair_and_distance_list> overlap_structures_product0(
-                                    tx_.check_surface_overlap(new_shape0, reactant_pos, product0_struct_id, product0_species.radius(), 
-                                                                                        product0_struct_id, product1_struct_id ) );
-                            if (overlap_structures_product0 && overlap_structures_product0->size() > 0 && product0_mobile)
-                            {
-                                error_message = "no space for product0 due to surface overlap";
-                                continue;   // try other positions pair
+                            // Check for possible overlap with a surface, ignoring the product structures
+                            if( product0_mobile ){
+                              
+                                const boost::scoped_ptr<const structure_id_pair_and_distance_list> overlap_structures_product0(
+                                        tx_.check_surface_overlap(new_shape0, reactant_pos, product0_struct_id, product0_species.radius(), 
+                                                                                            product0_struct_id, product1_struct_id ) );                                                                                        
+                                if(overlap_structures_product0 && overlap_structures_product0->size() > 0)
+                                {
+                                    error_message = "no space for product0 due to surface overlap";
+                                    continue;   // try other positions pair
+                                }
                             }
-                            // Same for the other particle
+                            else
+                              LOG_WARNING(("Skipping surface overlap check for immobile particle."));
+                                  // FIXME this is an ugly workaround to make disk particles ignore neighboring cylinders
+                              
+                            /* Same for the other particle */
                             const particle_shape_type new_shape1(pos0pos1_pair.second.first, product1_species.radius());
                             const boost::scoped_ptr<const particle_id_pair_and_distance_list> overlap_particles_product1(
                                                                                                   tx_.check_overlap( new_shape1, pp.first));
-                            if (overlap_particles_product1 && overlap_particles_product1->size() > 0)
+                            // Particle overlaps
+                            if(overlap_particles_product1 && overlap_particles_product1->size() > 0)
                             {
                                 error_message = "no space for product1 due to particle overlap";
                                 continue;   // try other positions pair
                             }
-                            const boost::scoped_ptr<const structure_id_pair_and_distance_list> overlap_structures_product1(
-                                    tx_.check_surface_overlap(new_shape1, reactant_pos, product1_struct_id, product1_species.radius(),
-                                                                                        product0_struct_id, product1_struct_id) );
-                            if (overlap_structures_product1 && overlap_structures_product1->size() > 0 && product1_mobile)
-                            {
-                                error_message = "no space for product1 due to surface overlap";
-                                continue;   // try other positions pair
+                            // Surface overlaps
+                            if( product1_mobile ){
+                              
+                                const boost::scoped_ptr<const structure_id_pair_and_distance_list> overlap_structures_product1(
+                                        tx_.check_surface_overlap(new_shape1, reactant_pos, product1_struct_id, product1_species.radius(),
+                                                                                            product0_struct_id, product1_struct_id) );                                                                                        
+                                if(overlap_structures_product1 && overlap_structures_product1->size() > 0)
+                                {
+                                    error_message = "no space for product1 due to surface overlap";
+                                    continue;   // try other positions pair
+                                }
                             }
+                            else
+                                LOG_WARNING(("Skipping surface overlap check for immobile particle."));
+                                    // FIXME this is an ugly workaround to make disk particles ignore neighboring cylinders
                                                         
                             //// 1c - CHECK FOR PLANE CROSSINGS
                             // first determine which one is the largest involved particle radius
@@ -973,22 +1010,30 @@ private:
 
                         //// 2 - CHECK FOR OVERLAPS
                         const particle_shape_type new_shape(product_pos, product_species.radius());
-                        // check for overlap with particles that are inside the propagator
+                        // Check for overlap with particles that are inside the propagator
                         const boost::scoped_ptr<const particle_id_pair_and_distance_list> overlap_particles(
                                 tx_.check_overlap(new_shape, pp0.first, pp1.first));
                         if( overlap_particles && overlap_particles->size() > 0 )
                         {
                             throw propagation_error("no space due to particle");
                         }
-                        // Check overlap with surfaces                        
-                        const boost::scoped_ptr<const structure_id_pair_and_distance_list> overlap_structures(
-                                tx_.check_surface_overlap(new_shape, product_pos, product_structure_id, product_species.radius(), 
-                                                                                  reactant0_structure_id, reactant1_structure_id  ));
-                        if (overlap_structures && overlap_structures->size() > 0)
-                        {
-                            throw propagation_error("no space due to near surface");
+                        // Check for overlap with surfaces, ignoring the reactant structures
+                        bool product_mobile( product_species.D() > 0.0 or product_species.v() > 0.0 );
+                        if( product_mobile ){
+                          
+                            const boost::scoped_ptr<const structure_id_pair_and_distance_list> overlap_structures(
+                                    tx_.check_surface_overlap(new_shape, product_pos, product_structure_id, product_species.radius(), 
+                                                                                      reactant0_structure_id, reactant1_structure_id  ));
+                            if(overlap_structures && overlap_structures->size() > 0)
+                            {
+                                throw propagation_error("no space due to near surface");
+                            }
                         }
-                        // check for overlap with particles outside of the propagator (for example the eGFRD simulator)
+                        else
+                            LOG_WARNING(("Skipping surface overlap check for immobile particle."));
+                                // FIXME this is an ugly workaround to make disk particles ignore neighboring cylinders
+                                
+                        // Check for overlap with particles outside of the propagator (for example the eGFRD simulator)
                         if( vc_ )
                         {
                             if (!(*vc_)(new_shape, pp0.first, pp1.first))
@@ -1095,23 +1140,31 @@ private:
 
                         //// 2 - CHECK FOR OVERLAPS
                         const particle_shape_type new_shape(product_pos, product_species.radius());
-                        // check for overlap with particles that are in the propagator
+                        // Check for overlap with particles that are in the propagator
                         const boost::scoped_ptr<const particle_id_pair_and_distance_list> overlap_particles(
                             tx_.check_overlap(new_shape, pp.first));
-                        if (overlap_particles && overlap_particles->size() > 0)
+                        if(overlap_particles && overlap_particles->size() > 0)
                         {
                             throw propagation_error("no space");
                         }
-                        // check overlap with structures.
-                        // ignore reactant_structures when checking for overlaps
-                        const boost::scoped_ptr<const structure_id_pair_and_distance_list> overlap_structures(
-                                tx_.check_surface_overlap(new_shape, product_pos, product_structure_id, product_species.radius(), reactant_structure_id));
-                        if (overlap_structures && overlap_structures->size() > 0)
-                        {
-                            throw propagation_error("no space due to near surface");
+                        // Check overlap with structures, ignoring reactant_structures          
+                        const bool product_mobile( product_species.D()>0.0 or product_species.v()>0 );
+                        if( product_mobile ){
+                          
+                            const boost::scoped_ptr<const structure_id_pair_and_distance_list> overlap_structures(
+                                    tx_.check_surface_overlap(new_shape, product_pos, product_structure_id, product_species.radius(), reactant_structure_id));
+                                    
+                            if(overlap_structures && overlap_structures->size() > 0 && product_mobile)
+                            {
+                                throw propagation_error("no space due to near surface");
+                            }
                         }
+                        else
+                            LOG_WARNING(("Skipping surface overlap check for immobile particle."));
+                                // FIXME this is an ugly workaround to make disk particles ignore neighboring cylinders
+                        
                         // check for overlap with particles outside of the propagator (e.g. the eGFRD simulator)
-                        if (vc_)
+                        if(vc_)
                         {
                             if (!(*vc_)(new_shape, pp.first))
                             {
@@ -1124,7 +1177,7 @@ private:
                         // Make new particle in interaction structure 
                         const particle_id_pair product_particle( tx_.new_particle(product_species.id(), product_structure_id, product_pos) );
                         // Record changes
-                        if (rrec_)
+                        if(rrec_)
                         {
                             (*rrec_)(
                                 reaction_record_type(
