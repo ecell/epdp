@@ -355,6 +355,8 @@ public:
                 // Note that the 0.1 prefactor is to ensure that we pick the convective
                 // timescale only when the movement is clearly dominated by convection,
                 // i.e. when both timescales are comparable we prefer the diffusion timescale.
+                if(tau_dominant == tau_D){ LOG_DEBUG(("Diffusion dominates on given reaction length"));}
+                else                     { LOG_DEBUG(("Convection dominates on given reaction length"));    }
             }
             
             // Now compare if within the current set of species this is the smallest time scale.
@@ -550,13 +552,17 @@ public:
             // which requires it to be very small!
             dt_temp = 2. * Pacc_max * step_size_factor * r_min / k_max;
             dt = std::min( dt_temp, tau_Dv ); // tau_Dv is upper limit of dt.
+            
+            if(dt == tau_Dv){ LOG_DEBUG(("Time step set by timescale of motion"));  }
+            else            { LOG_DEBUG(("Time step set by largest reaction rate, k_max = %e, r_min = %e", k_max, r_min));}
         }
         else
-            dt = tau_Dv;
+            dt = tau_Dv;        
         
-        //LOG_DEBUG(("tau_Dv = %g, tau_k = %g, k_max = %g, r_min = %g, ssf = %g", tau_Dv, dt_temp, k_max, r_min, step_size_factor)); TODO Cleanup
-        
-        if( dt < dt_hardcore_min )      dt = dt_hardcore_min;
+        if( dt < dt_hardcore_min ){
+          dt = dt_hardcore_min;
+          LOG_WARNING(("Setting timestep to hard-coded minimal bound, dt = %e", dt));
+        }
 
         return real_pair(dt, step_size_factor * r_min);
     }

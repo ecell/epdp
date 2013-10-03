@@ -39,6 +39,9 @@ class Multi(Domain, hasSphericalShell, Others):
         self.start_time = t
         main = self.main()
         self.set_dt_and_reaction_length()
+        if __debug__:
+            log.info("multi: initialized with time step = %s and reaction length = %s" %
+                     (self.dt, self.reaction_length))
 
     def calculate_bd_dt(species_list):
         D_list = []
