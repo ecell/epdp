@@ -69,6 +69,7 @@ from shells import (
 
 import loadsave
 from histograms import *
+from time import sleep
 
 import logging
 log = logging.getLogger('ecell')
@@ -3624,7 +3625,7 @@ max. overlap error:  %g
     # These are just wrappers around the methods
     # in loadsave.py :
 
-    def save_state(self, filename, reload=False):
+    def save_state(self, filename, reload=False, delay=0.0):
         """ Save the state of the simulator after bursting
             all domains. The latter facilitates reconstruction
             of precisely the state saved.
@@ -3643,10 +3644,22 @@ max. overlap error:  %g
                          Python float precision.
 
                          reload = False by default.
+
+            - [delay] :  (optional) remain idle for a
+                         certain amount of seconds defined
+                         by this parameter before reloading the 
+                         saved state. This may be useful to avoid
+                         reloading of a file which has not yet
+                         been completely written.
+                         Only has an effect when reload = True.                         
         """
         loadsave.save_state(self, filename)
 
         if(reload):
+        
+            if(delay > 0.0):
+                    sleep(delay)
+
             self.load_state(filename)
 
 
