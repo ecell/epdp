@@ -2450,8 +2450,10 @@ class CylindricalSurfacePairtestShell(CylindricaltestShell, testSimplePair):
 
     def get_max_dr_dzright_dzleft(self):
         dr          = self.dr_const
-#        dz_right_edge = self.structure.min_dist_proj_to_edge(self.get_referencepoint())    # TODO rethink
-        dz_right_sr = math.sqrt((self.get_searchradius())**2 - dr**2) # stay within the searchradius
+#        dz_right_edge = self.structure.min_dist_proj_to_edge(self.get_referencepoint())    # TODO rethink        
+        dz_right_sr = min( 5.0*self.sigma, math.sqrt((self.get_searchradius())**2 - dr**2) )
+                      # stay within the searchradius and do not produce domains in which the inner IV boundary
+                      # is much closer than the outer (absorbing) IV boundary to ensure convergence of the GF # FIXME improve this!
 #        dz_right    = min(dz_right_sr, dz_right_edge)
         dz_right    = dz_right_sr
         dz_left     = dz_right
@@ -2532,6 +2534,10 @@ class CylindricalSurfaceInteractiontestShell(CylindricaltestShell, testInteracti
         CylindricaltestShell.__init__(self, geometrycontainer, domains)  # this must be first because of world definition
         testInteractionSingle.__init__(self, single, single.structure, target_structure)
 
+        if feq(self.particle_surface_distance, 0.0, typical=self.target_structure.shape.radius) \
+           or self.particle_surface_distance < 0.0:
+            raise testShellError('(CylindricalSurfaceInteraction). Zero or negative particle-surface distance, value = %s.' % self.particle_surface_distance)
+
         # initialize scaling parameters
         self.dzdr_right = 1.0
         self.drdz_right = 1.0
@@ -2602,7 +2608,12 @@ class PlanarSurfaceDiskSurfaceInteractiontestShell(CylindricalSurfaceInteraction
         assert isinstance(target_structure, DiskSurface)
         CylindricaltestShell.__init__(self, geometrycontainer, domains)  # this must be first because of world definition
         testInteractionSingle.__init__(self, single, single.structure, target_structure)
-        
+
+        if feq(self.particle_surface_distance, 0.0, typical=self.target_structure.shape.radius) \
+           or self.particle_surface_distance < 0.0:
+            raise testShellError('(PlanarSurfaceDiskSurfaceInteractiontestShell). Zero or negative particle-surface distance, value = %s. Particle is most likely already on the disk.' \
+                                                                                  % self.particle_surface_distance                                                                      )
+
         # Initialize the scaling parameters
         # These are copied from PlanarSurfacePairtestShell
         self.dzdr_right = 0.0
@@ -2702,7 +2713,7 @@ class CylindricalSurfaceCapInteractiontestShell(CylindricaltestShell, testIntera
         self.dzdr_left  = numpy.inf
         self.drdz_left  = 0.0
         self.r0_left    = self.dr_const
-        self.z0_left    = self.pid_particle_pair[1].radius * math.sqrt(MULTI_SHELL_FACTOR**2 - 1.0)
+        self.z0_left    = self.get_const_z_left()
 
         # Now we can also define the scaling angle
         self.right_scalingangle = self.get_right_scalingangle()
@@ -2736,16 +2747,22 @@ class CylindricalSurfaceCapInteractiontestShell(CylindricaltestShell, testIntera
 
     def get_min_dr_dzright_dzleft(self):
         dr       = self.dr_const
-        dz_left  = self.pid_particle_pair[1].radius * math.sqrt(MULTI_SHELL_FACTOR**2 - 1.0)
+        dz_left  = self.get_const_z_left()
         dz_right = self.particle_surface_distance + self.pid_particle_pair[1].radius * math.sqrt(MULTI_SHELL_FACTOR**2 - 1.0)
         return dr, dz_right, dz_left
         
     def get_max_dr_dzright_dzleft(self):
         dr       = self.dr_const
-        dz_left  = self.pid_particle_pair[1].radius * math.sqrt(MULTI_SHELL_FACTOR**2 - 1.0) # same as the minimum, i.e. no scaling of this length
+        dz_left  = self.get_const_z_left() # same as the minimum and initial value, i.e. no scaling of this length
         # TODO include max distance to other side of rod?
-        dz_right = math.sqrt((self.get_searchradius())**2 - dr**2) + self.particle_surface_distance  # stay within the searchradius
+        dz_right = min( 3.0*dz_left, math.sqrt((self.get_searchradius())**2 - dr**2) + self.particle_surface_distance)
+                   # stay within the searchradius and do not allow for terribly asymmetric domains
+                   # in order to prevent convergence problems with the 1D RadAbs GF
         return dr, dz_right, dz_left
+
+    def get_const_z_left(self):
+        # This defines how far the shell extends "outwards" from the rod, i.e. behind the cap
+        return self.pid_particle_pair[1].radius * math.sqrt(MULTI_SHELL_FACTOR**2 - 1.0)
 
     def apply_safety(self, r, z_right, z_left):
         return r, z_right/SAFETY, z_left
@@ -2840,8 +2857,8 @@ class CylindricalSurfacePlanarSurfaceIntermediateSingletestShell(CylindricalSurf
 
         # Override the shellsize determined for CylindricalSurfacePlanarSurfaceInteractionSingletestShell
         # This one has the size of a zero single; the scaling parameters can stay the same, since we are not scaling anyhow
-        self.dz_right = self.pid_particle_pair[1].radius
-        self.dz_left  = self.pid_particle_pair[1].radius
+        self.dz_left  = self.get_const_z_left()
+        self.dz_right = self.dz_left
         self.dr       = self.pid_particle_pair[1].radius
 
     def get_searchpoint(self):
@@ -2856,6 +2873,7 @@ class CylindricalSurfacePlanarSurfaceIntermediateSingletestShell(CylindricalSurf
 
     def get_min_dr_dzright_dzleft(self):
         # TODO This will never be called, right? Why do dz_right/dz_left have value larger than particle_radius?
+        log.info('Running local get_min_dr_dzright_dzleft')
         dr       = self.dr_const
         dz_right = self.pid_particle_pair[1].radius
         dz_left  = dz_right
@@ -2863,10 +2881,17 @@ class CylindricalSurfacePlanarSurfaceIntermediateSingletestShell(CylindricalSurf
         
     def get_max_dr_dzright_dzleft(self):
         # Radius is not scaled here so we do not to check for distance to shape edge
+        log.info('Running local get_max_dr_dzright_dzleft')
         dr       = self.dr_const
         dz_right = self.pid_particle_pair[1].radius # same as the minimum, i.e. no scaling of this length
         dz_left  = dz_right
         return dr, dz_right, dz_left
+
+    def get_const_z_left(self):
+        # This defines how far the shell extends "outwards" from the rod, i.e. behind the cap
+        # This method is used in the parent class to define some scaling parameters, which 
+        # slightly differ here.
+        return self.pid_particle_pair[1].radius
 
     def set_structure_ignore_list(self):
 
@@ -3251,7 +3276,9 @@ class MixedPair1DStatictestShell(CylindricaltestShell, testMixedPair1DStatic):
     def get_max_dr_dzright_dzleft(self):
         dr       = self.dr_const
         dz_left  = self.static_particle.radius * SINGLE_SHELL_FACTOR # same as the minimum, i.e. no scaling of this length
-        dz_right = math.sqrt((self.get_searchradius())**2 - dr**2) # stay within the searchradius
+        dz_right = min( 3.0*dz_left, math.sqrt((self.get_searchradius())**2 - dr**2))
+                   # stay within the searchradius and do not allow for terribly asymmetric domains
+                   # in order to prevent convergence problems with the 1D RadAbs GF
         return dr, dz_right, dz_left
 
     def apply_safety(self, r, z_right, z_left):
