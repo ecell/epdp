@@ -2873,7 +2873,6 @@ class CylindricalSurfacePlanarSurfaceIntermediateSingletestShell(CylindricalSurf
 
     def get_min_dr_dzright_dzleft(self):
         # TODO This will never be called, right? Why do dz_right/dz_left have value larger than particle_radius?
-        log.info('Running local get_min_dr_dzright_dzleft')
         dr       = self.dr_const
         dz_right = self.pid_particle_pair[1].radius
         dz_left  = dz_right
@@ -2881,7 +2880,6 @@ class CylindricalSurfacePlanarSurfaceIntermediateSingletestShell(CylindricalSurf
         
     def get_max_dr_dzright_dzleft(self):
         # Radius is not scaled here so we do not to check for distance to shape edge
-        log.info('Running local get_max_dr_dzright_dzleft')
         dr       = self.dr_const
         dz_right = self.pid_particle_pair[1].radius # same as the minimum, i.e. no scaling of this length
         dz_left  = dz_right
