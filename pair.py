@@ -961,9 +961,10 @@ class MixedPair2D3D(Pair, hasCylindricalShell):
             tr = ((a_r - self.r0)**2.0) / (6.0 * self.D_r)  # the expected escape time of the iv
             if self.D_R == 0:
                 tR = numpy.inf 
+                log.warn('determine_radii: infinite diffusion time for CoM, tR = inf, because D_R = 0')
             else:
                 tR = (a_R**2.0) / (4.0 * self.D_R)          # the expected escape time of the CoM
-            log.debug('determine_radii: a_r= %s, tr= %s, a_R= %s, tR= %s, delta_tRr= %s' % \
+            log.debug('determine_radii: a_r = %s, tr = %s, a_R = %s, tR = %s, delta_tRr = %s' % \
                       (FORMAT_DOUBLE % a_r, FORMAT_DOUBLE % tr,
                        FORMAT_DOUBLE % a_R, FORMAT_DOUBLE % tR,
                        FORMAT_DOUBLE % (tr-tR) ))
@@ -972,7 +973,11 @@ class MixedPair2D3D(Pair, hasCylindricalShell):
 
         # Some checks that shall never fail        
         assert (self.sigma < a_r) and (a_r < 2.0*shell_half_length * self.z_scaling_factor)
-        assert (0 < a_R) and (a_R < shell_radius)
+        assert (0 <= a_R) and (a_R <= shell_radius)
+        if a_R == 0.0:
+            log.warn('determine_radii: a_R = 0')
+        if a_R == shell_radius:
+            log.warn('determine_radii: a_R = shell_radius')
 
         return a_R, a_r
 
