@@ -955,6 +955,9 @@ class MixedPair2D3D(Pair, hasCylindricalShell):
 
         # It then determines the CoM vector bound via
         a_R = shell_radius - space_for_iv
+        if feq(a_R, 0.0, typical=shell_radius):
+            a_R = 0.0
+            log.warn('determine_radii: setting a_R = %s to zero' % str(a_R))
 
         # Print the domain sizes and their estimated first passage times.
         if __debug__:
