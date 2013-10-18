@@ -220,13 +220,14 @@ public:
         const boost::array<length_type, 2> half_lengths(base_type::shape().half_extent());
         const boost::array<length_type, 3> new_pos_xyz(::to_internal(base_type::shape(), new_pos));
         const boost::array<length_type, 3> old_pos_xyz(::to_internal(base_type::shape(), old_pos));
-        if (new_pos_xyz[2] * old_pos_xyz[2] < 0 &&
+        if (new_pos_xyz[2] * old_pos_xyz[2] < 0 &&            
             ((abs(new_pos_xyz[0]) < half_lengths[0] && abs(new_pos_xyz[1]) < half_lengths[1]) ||
-             (abs(old_pos_xyz[0]) < half_lengths[0] && abs(old_pos_xyz[1]) < half_lengths[1])))
+             (abs(old_pos_xyz[0]) < half_lengths[0] && abs(old_pos_xyz[1]) < half_lengths[1]))
+           ) // If the new and old positions lie on different sides of the plane
         {
             return -1.0 * base_type::distance(new_pos) + sigma;
         }
-        else
+        else // new and old position are on the same side of the plane
         {
             return base_type::distance(new_pos) + sigma;
         }
