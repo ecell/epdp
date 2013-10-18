@@ -448,7 +448,7 @@ public:
     {
         typename utils::template overlap_checker<structure_id_pair_and_distance_list, boost::array<structure_id_type, 1> > checker(array_gen(ignore));
         
-        const structure_id_set visible_structures (structures_.get_visible_structure_IDs(current_struct_id));
+        const structure_id_set visible_structure_IDs (structures_.get_visible_structures(current_struct_id));
 
         // Get and temporarily store all the visibles structures (upto now we only had their IDs)
         structure_map visible_structures;
