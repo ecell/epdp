@@ -421,9 +421,9 @@ protected:
 
 //////// Link logger to the global logging system
 template <typename Tobj_, typename Tid_, typename Ttraits_>
-Logger& StructureContainer<Tobj_, Tid_, Ttraits_>::log_(Logger::get_logger("ecell.newBDPropagator"));
+Logger& StructureContainer<Tobj_, Tid_, Ttraits_>::log_(Logger::get_logger("ecell.StructureContainer"));
 //////// Also define one that can be used by the inline functions below
-static Logger& log_(Logger::get_logger("ecell.newBDPropagator"));
+static Logger& log_(Logger::get_logger("ecell.StructureContainer"));
 
 
 //////// Inline functions applicable to the StructureContainer
