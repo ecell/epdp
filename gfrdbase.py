@@ -508,7 +508,7 @@ def create_network_rules_wrapper(model):
     return _gfrd.NetworkRulesWrapper(model.network_rules)
 
 
-def throw_in_particles(world, sid, n, bound_1=[0,0,0], bound_2=[0,0,0]):
+def throw_in_particles(world, sid, n, bound_1=[0,0,0], bound_2=[0,0,0], ignore_structure_overlaps=False):
     """Add n particles of a certain Species to the specified world.
 
     Arguments:
@@ -575,6 +575,15 @@ def throw_in_particles(world, sid, n, bound_1=[0,0,0], bound_2=[0,0,0]):
         myrandom.shuffle(structure_list)
         structure = world.get_structure(structure_list[0])
         position = structure.random_position(myrandom.rng)
+
+        # Check immediately whether the position is out of the bounding box
+        # If yes, discard before applying any boundary conditions
+        out_of_bounds = ( any(position < bound_1) or any(position > bound_2) )
+        if out_of_bounds:
+            log.info('random position rejected. Out of bounding box. I will keep trying.')
+            continue
+
+        # OK, now apply boundary conditions
         position, structure_id = world.apply_boundary((position, structure.id))
 
         # Check overlap. TODO put in 'if' statement for improved efficiency?
@@ -582,14 +591,18 @@ def throw_in_particles(world, sid, n, bound_1=[0,0,0], bound_2=[0,0,0]):
         surface_overlaps  = world.check_surface_overlap((position, species.radius*MINIMAL_SEPARATION_FACTOR),
                                                         position, structure_id, species.radius)
 
+        # Check again whether we are within the imposed bounds
         out_of_bounds = ( any(position < bound_1) or any(position > bound_2) )
 
-        if (not particle_overlaps) and (not surface_overlaps) and (not out_of_bounds):
+        if  ((not particle_overlaps) and ((not surface_overlaps) or ignore_structure_overlaps)) \
+         and (not out_of_bounds):
             # All checks passed. Create particle.
             p = world.new_particle(sid, structure_id, position)
             i += 1
             if __debug__:
                 log.info('particle accepted: (%s,\n %s)' % (p[0], p[1]))
+                if ignore_structure_overlaps:
+                    log.warn('explicitly ignoring structure overlaps.')
         elif __debug__:
             if particle_overlaps:
                 log.info('\t%d-th particle rejected. Too close to particle. I will keep trying.' % i)
