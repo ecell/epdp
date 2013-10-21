@@ -1010,7 +1010,6 @@ class EGFRDSimulator(ParticleSimulatorBase):
         # Same for the 1D particles on rods.
 
         burst_radius = SAFETY*radius
-        log.info('burst_radius = %s, cell_size = %s' % (burst_radius, self.world.cell_size))
 
         if burst_radius > self.MAX_BURST_RADIUS:
 
@@ -1882,7 +1881,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
                 log.info('Extended structure ignore list when making %s, ignored IDs = %s' % (single, ignores))
 
         surface_distances = get_neighbor_structures(self.world, single_pos, single.structure.id, ignores)
-        log.info('surface_distances = %s' % str(surface_distances))
+        #log.info('surface_distances = %s' % str(surface_distances))
 
         # 2.3 We prefer to make NonInteractionSingles for efficiency.
         #     But if objects (Shells and surfaces) get close enough (closer than
