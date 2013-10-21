@@ -261,6 +261,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
         self.MAX_TIME_STEP = 10
 
+        self.MAX_BURST_RADIUS = 0.5 * self.world.cell_size
+
         self.DEFAULT_DT_FACTOR = 1e-5           # Diffusion time prefactor in oldBD algortithm to determine time step.
         
         self.DEFAULT_STEP_SIZE_FACTOR = 0.05    # The maximum step size in the newBD algorithm is determined as DSSF * sigma_min.
@@ -1007,7 +1009,15 @@ class EGFRDSimulator(ParticleSimulatorBase):
         # Then we may want to burst in a cylindrical volume, not a sphere.
         # Same for the 1D particles on rods.
 
-        neighbor_ids = self.geometrycontainer.get_neighbors_within_radius_no_sort(pos, SAFETY*radius, ignore)
+        burst_radius = SAFETY*radius
+        log.info('burst_radius = %s, cell_size = %s' % (burst_radius, self.world.cell_size))
+
+        if burst_radius > self.MAX_BURST_RADIUS:
+
+            log.warn('Setting burst radius (= %s) to maximally allowed limit ( = %s).' % (burst_radius, self.MAX_BURST_RADIUS))
+            burst_radius = self.MAX_BURST_RADIUS / SAFETY
+
+        neighbor_ids = self.geometrycontainer.get_neighbors_within_radius_no_sort(pos, burst_radius, ignore)
 
         return self.burst_domains(neighbor_ids, ignore)
 
@@ -1862,7 +1872,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
         reaction_threshold = single_radius * SINGLE_SHELL_FACTOR
 
         # 1.0 Get neighboring domains and surfaces
-        neighbor_distances = self.geometrycontainer.get_neighbor_domains(single_pos, self.domains, ignore=[single.domain_id, ])        
+        neighbor_distances = self.geometrycontainer.get_neighbor_domains(single_pos, self.domains, ignore=[single.domain_id])        
         # Get also surfaces
         # Some singles have an extended ignore list, which we have to figure out first
         ignores = [] # by default
@@ -1872,6 +1882,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
                 log.info('Extended structure ignore list when making %s, ignored IDs = %s' % (single, ignores))
 
         surface_distances = get_neighbor_structures(self.world, single_pos, single.structure.id, ignores)
+        log.info('surface_distances = %s' % str(surface_distances))
 
         # 2.3 We prefer to make NonInteractionSingles for efficiency.
         #     But if objects (Shells and surfaces) get close enough (closer than
@@ -3088,7 +3099,7 @@ max. overlap error:  %g
 
         elif isinstance(domain, SphericalSingle) or isinstance(domain, SphericalPair) or isinstance(domain, PlanarSurfaceSingle): # TODO Why not PlanarSurfacePair ?
             # 3D NonInteractionSingles can overlap with planar surfaces but not with rods
-            ignores = [s.id for s in self.world.structures if isinstance(s, PlanarSurface)]
+            ignores = [domain.structure.structure_id] + [s.id for s in self.world.structures if isinstance(s, PlanarSurface)]
             associated = []
 
         elif isinstance(domain, DiskSurfaceSingle):
@@ -3117,12 +3128,12 @@ max. overlap error:  %g
         elif isinstance(domain, PlanarSurfacePair):
             # PlanarSurfacePair domains are also formed with a static particle located on a (sub-) disk of the plane
             # In these cases, the disk and--if present--a cylinder next to it shall be ignored.
-            ignores = domain.ignored_structure_ids # this is a list already
+            ignores = [domain.structure.structure_id] + domain.ignored_structure_ids # ignore parent structure and extra-ignore-list
             associated = [domain.structure.id]
 
         elif isinstance(domain, PlanarSurfaceTransitionSingle) or isinstance(domain, PlanarSurfaceTransitionPair):
             # Ignore surface of the particle and interaction surface
-            ignores = []
+            ignores = [domain.structure1.structure_id, domain.structure2.structure_id] # parent structures
             associated = [domain.structure1.id, domain.structure2.id]
 
         else:
