@@ -257,7 +257,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
         self.shell_id_generator = ShellIDGenerator(0)
 
         # some constants
-        self.MAX_NUM_DT0_STEPS = 1000
+        self.MAX_NUM_DT0_STEPS = 100000
 
         self.MAX_TIME_STEP = 10
 
@@ -506,7 +506,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
         
         if __debug__:
             domain_counts = self.count_domains()
-            log.info('\n\n%d: t=%s dt=%s (next_time=%s)\t' %
+            log.info('\n\n%d: t=%s dt=%e (next_time=%s)\t' %
                      (self.step_counter, self.t,
                       self.dt, self.scheduler.top[1].time) + 
                      'Singles: %d, Pairs: %d, Multis: %d\n' % domain_counts + 
@@ -539,16 +539,15 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
         # assert if not too many successive dt=0 steps occur.
         if __debug__:
-            if self.dt == 0:
-                self.zero_steps += 1
-                # TODO What is best solution here? Usually no prob, -> just let 
-                # user know?
-                if self.zero_steps >= max(self.scheduler.size * 3, self.MAX_NUM_DT0_STEPS): 
-                    raise RuntimeError('too many dt=zero steps. '
-                                       'Simulator halted?'
-                                    'dt= %.10g-%.10g' % (self.scheduler.top[1].time, self.t))
+            if self.dt < 1e-10: # We consider 0.1 nanoseconds a zero-step
 
-                log.warning('dt=zero step, working in s.t >> dt~0 Python limit.')
+                log.warning('dt = %e = %.10e-%.10e = zero step, working in s.t >> dt~0 Python limit.' % (self.dt, next_time, self.t))
+                self.zero_steps += 1
+
+                if self.zero_steps >= max(self.scheduler.size * 3, self.MAX_NUM_DT0_STEPS): 
+                    raise RuntimeError('too many successive dt=zero steps -> Simulator stalled?'
+                                       'dt= %.10e-%.10e' % (next_time, self.t))
+                
             else:
                 self.zero_steps = 0
 
@@ -1038,8 +1037,17 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
         # Check if the bursting procedure was correct.
         if __debug__:
-            assert len(zero_singles) == self.world.num_particles
-            assert len(ignore) == (len(all_domains) + self.world.num_particles)
+
+            if len(zero_singles) != self.world.num_particles :
+                log.warn('No. of zero singles (= %s) is not equal to world.num_particles (= %s)!' \
+                          % (len(zero_singles), self.world.num_particles) )
+
+            if len(ignore) != len(all_domains) + self.world.num_particles:
+                log.warn('Length of ignore list (= %s) is not equal to world.num_particles (= %s) plus length of all domains list (%s)!' \
+                          % (len(ignore), len(all_domains), self.world.num_particles) )
+
+            #assert len(zero_singles) == self.world.num_particles
+            #assert len(ignore) == (len(all_domains) + self.world.num_particles)
 
 
     def burst_domains(self, domain_ids, ignore=[]):
