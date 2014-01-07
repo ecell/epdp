@@ -5,6 +5,7 @@ from gfrdbase import *
 from utils import *
 import itertools
 
+import legacy
 import _gfrd
 from constants import EventType
 
@@ -17,7 +18,8 @@ class Multi(object):
         self.event_id = None
         self.last_event = None
         self.sphere_container = _gfrd.SphericalShellContainer(main.world.world_size, 3)
-        self.particle_container = _gfrd.MultiParticleContainer(main.world)
+        # self.particle_container = _gfrd.MultiParticleContainer(main.world)
+        self.particle_container = legacy.MultiParticleContainer(main.world)
         self.escaped = False
         self.dt_factor = dt_factor
         self.last_reaction = None
@@ -26,7 +28,8 @@ class Multi(object):
         self.last_time = t
         self.start_time = t
         main = self.main()
-        self.dt = self.dt_factor * bd.calculate_bd_dt(main.world.get_species(sid) for sid in main.world.species)
+        # self.dt = self.dt_factor * bd.calculate_bd_dt(main.world.get_species(sid) for sid in main.world.species)
+        self.dt = self.dt_factor * bd.calculate_bd_dt(sp for sp in main.world.species)
 
     def get_multiplicity(self):
         return self.particle_container.num_particles
@@ -84,9 +87,14 @@ class Multi(object):
         cr = check_reaction()
         vc = clear_volume(self)
 
-        ppg = _gfrd.BDPropagator(tx, main.network_rules,
-                     myrandom.rng, self.dt, main.dissociation_retry_moves,
-                     cr, vc, [pid for pid, _ in self.particle_container])
+        ppg = legacy.BDPropagator(
+            tx, main.network_rules, myrandom.rng, self.dt,
+            main.dissociation_retry_moves,
+            cr, vc, [pid for pid, _ in self.particle_container])
+
+        # ppg = _gfrd.BDPropagator(tx, main.network_rules,
+        #              myrandom.rng, self.dt, main.dissociation_retry_moves,
+        #              cr, vc, [pid for pid, _ in self.particle_container])
 
         self.last_event = None
         while ppg():

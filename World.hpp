@@ -241,6 +241,29 @@ public:
         particle_pool_[species.id()] = particle_id_set();
     }
 
+    void remove_species(species_id_type const& sid)
+    {
+        typename per_species_particle_id_set::const_iterator i(
+            particle_pool_.find(sid));
+        if (i == particle_pool_.end())
+        {
+            throw not_found(std::string("Unknown species (id=")
+                + boost::lexical_cast<std::string>(sid) + ")");
+        }
+
+        const typename particle_id_set::size_type num_particles((*i).second.size());
+        if (num_particles > 0)
+        {
+            // change the exception type later
+            throw illegal_state(std::string("Cannot remove the species (id=")
+                + boost::lexical_cast<std::string>(sid) + ")");
+        }
+
+        // particle_pool_.erase(i);
+        particle_pool_.erase(sid);
+        species_map_.erase(sid);
+    }
+
     virtual species_type const& get_species(species_id_type const& id) const
     {
         typename species_map::const_iterator i(species_map_.find(id));

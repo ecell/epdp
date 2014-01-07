@@ -1,8 +1,14 @@
 import _gfrd
+import _greens_functions
+from gfrdbase import NoSpace, log
 
-class MultiParticleContainer(_gfrd._ParticleContainer):
+import math
+import numpy
+
+
+class MultiParticleContainer(_gfrd.ParticleContainer):
     def __init__(self, world):
-        _gfrd._ParticleContainer.__init__(self)
+        _gfrd.ParticleContainer.__init__(self)
         self.world = world
         self.particles = {}
 
@@ -78,13 +84,15 @@ class MultiParticleContainer(_gfrd._ParticleContainer):
 
 
 class BDPropagator(object):
-    def __init__(self, tx, network_rules, rng, dt, dissociation_retry_moves, particle_ids):
+    def __init__(self, tx, network_rules, rng, dt, dissociation_retry_moves, cr, vc, particle_ids):
         self.tx = tx
         self.nr = network_rules
         self.rng = rng
         self.dt = dt
         self.dissociation_retry_moves = dissociation_retry_moves
-        self.reactions = []
+        self.cr = cr
+        self.vc = vc
+        # self.reactions = []
         particles_to_step = list(particle_ids)
         for i in reversed(range(0, len(particles_to_step))):
             j = rng.uniform_int(0, i)
@@ -93,7 +101,8 @@ class BDPropagator(object):
         self.particles_to_step = particles_to_step
 
     def getP_acct(self, rt, D, sigma):
-        I = _gfrd.I_bd(sigma, self.dt, D)
+        # I = _gfrd.I_bd(sigma, self.dt, D)
+        I = _greens_functions.I_bd(sigma, self.dt, D)
         p = rt.k * self.dt / (I * 4.0 * numpy.pi)
         if not 0.0 <= p < 1.0:
             raise RuntimeError,\
@@ -163,14 +172,23 @@ class BDPropagator(object):
                     log.info('collision move rejected')
 
             return True
+
+        particle_to_update = (pid_particle_pair[0], _gfrd.Particle(newpos, pid_particle_pair[1].radius, pid_particle_pair[1].D, pid_particle_pair[1].sid))
+
+        if self.vc:
+            if not self.vc(particle_to_update[1].shape, particle_to_update[0]):
+                if __debug__:
+                    log.info('propagation move rejected.')
+                return True
     
         try:
-            self.tx.update_particle(
-                (pid_particle_pair[0],
-                 _gfrd.Particle(newpos,
-                                pid_particle_pair[1].radius,
-                                pid_particle_pair[1].D,
-                                pid_particle_pair[1].sid)))
+            self.tx.update_particle(particle_to_update)
+            # self.tx.update_particle(
+            #     (pid_particle_pair[0],
+            #      _gfrd.Particle(newpos,
+            #                     pid_particle_pair[1].radius,
+            #                     pid_particle_pair[1].D,
+            #                     pid_particle_pair[1].sid)))
         except NoSpace:
             if __debug__:
                 log.info('propagation move rejected.')
@@ -181,7 +199,7 @@ class BDPropagator(object):
         if not reaction_types:
             return None  # no reaction
 
-        rnd = self.rng.uniform() / self.dt
+        rnd = self.rng.uniform(0, 1.) / self.dt
 
         # handle the most common case efficiently.
         if len(reaction_types) == 1:  
@@ -207,9 +225,11 @@ class BDPropagator(object):
 
         if len(rt.products) == 0:
             self.tx.remove_particle(pid_particle_pair[0])
-            self.reactions.append((rt, (pid_particle_pair, None), []))
+            self.cr(_gfrd.ReactionRecord(rt.id, (), pid_particle_pair[0]))
+            # self.reactions.append((rt, (pid_particle_pair, None), []))
         elif len(rt.products) == 1:
-            product_species = rt.products[0]
+            # product_species = rt.products[0]
+            product_species = self.tx.get_species(rt.products[0])
             radius = product_species.radius
 
             if self.tx.check_overlap((oldpos, radius),
@@ -218,13 +238,24 @@ class BDPropagator(object):
                     log.info('no space for product particle.')
                 raise NoSpace()
 
-            self.tx.remove_particle(pid_particle_pair[0])
-            newparticle = self.create_particle(product_species.id, oldpos)
+            if self.vc:
+                newp = (pid_particle_pair[0], _gfrd.Particle(oldpos, radius, product_species.D, product_species.id))
+                if not self.vc(newp[1].shape, newp[0]):
+                    if __debug__:
+                        log.info('no space')
+                    raise NoSpace()
 
-            self.reactions.append((rt, (pid_particle_pair, None), [newparticle]))
+            self.tx.remove_particle(pid_particle_pair[0])
+            # newparticle = self.create_particle(product_species.id, oldpos)
+            newparticle = self.tx.new_particle(product_species.id, oldpos)
+
+            self.cr(_gfrd.ReactionRecord(rt.id, (newparticle[0], ), pid_particle_pair[0]))
+            # self.reactions.append((rt, (pid_particle_pair, None), [newparticle]))
         elif len(rt.products) == 2:
-            product_species1 = rt.products[0]
-            product_species2 = rt.products[1]
+            # product_species1 = rt.products[0]
+            # product_species2 = rt.products[1]
+            product_species1 = self.tx.get_species(rt.products[0])
+            product_species2 = self.tx.get_species(rt.products[1])
             
             D1 = product_species1.D
             D2 = product_species2.D
@@ -235,8 +266,9 @@ class BDPropagator(object):
             radius12 = radius1 + radius2
 
             for i in xrange(self.dissociation_retry_moves):
-                rnd = self.rng.uniform()
-                pair_distance = _gfrd.drawR_gbd(rnd, radius12, self.dt, D12)
+                rnd = self.rng.uniform(0, 1.)
+                # pair_distance = _gfrd.drawR_gbd(rnd, radius12, self.dt, D12)
+                pair_distance = _greens_functions.drawR_gbd(rnd, radius12, self.dt, D12)
 
                 unit_vector = random_unit_vector()
                 vector = unit_vector * pair_distance # * (1.0 + 1e-10) # safety
@@ -261,14 +293,28 @@ class BDPropagator(object):
                     log.info('no space for product particles.')
                 raise NoSpace()
 
+            if self.vc:
+                if (not self.vc(
+                        _gfrd.Particle(newpos1, radius1, D1, product_species1.id).shape,
+                        pid_particle_pair[0])
+                    or not self.vc(
+                        _gfrd.Particle(newpos2, radius2, D2, product_species2.id).shape,
+                        pid_particle_pair[0])):
+                    if __debug__:
+                        log.info('no space')
+                    raise NoSpace()
+
             # move accepted
             self.tx.remove_particle(pid_particle_pair[0])
 
-            newparticle1 = self.create_particle(product_species1.id, newpos1)
-            newparticle2 = self.create_particle(product_species2.id, newpos2)
+            # newparticle1 = self.create_particle(product_species1.id, newpos1)
+            # newparticle2 = self.create_particle(product_species2.id, newpos2)
+            newparticle1 = self.tx.new_particle(product_species1.id, newpos1)
+            newparticle2 = self.tx.new_particle(product_species2.id, newpos2)
 
-            self.reactions.append((rt, (pid_particle_pair, None), 
-                                         [newparticle1, newparticle2]))
+            self.cr(_gfrd.ReactionRecord(rt.id, (newparticle1[0], newparticle2[0]), pid_particle_pair[0]))
+            # self.reactions.append((rt, (pid_particle_pair, None), 
+            #                              [newparticle1, newparticle2]))
 
         else:
             raise RuntimeError, 'num products >= 3 not supported.'
@@ -292,6 +338,15 @@ class BDPropagator(object):
                                         pid_particle_pair2[0]):
                 raise NoSpace()
 
+            if not self.vc(
+                    _gfrd.Particle(
+                        new_pos, product_species.radius, product_species.D,
+                        product_species.id).shape,
+                    pid_particle_pair1[0], pid_particle_pair2[0]):
+                if __debug__:
+                    log.info('no space')
+                raise NoSpace()
+
             self.tx.remove_particle(pid_particle_pair1[0])
             self.tx.remove_particle(pid_particle_pair2[0])
             newparticle = self.tx.new_particle(product_species.id, new_pos)
@@ -301,9 +356,10 @@ class BDPropagator(object):
             except ValueError:  
                 pass     # particle2 already stepped, which is fine.
 
-            self.reactions.append(
-                (rt, (pid_particle_pair1, pid_particle_pair2), 
-                [newparticle]))
+            self.cr(_gfrd.ReactionRecord(rt.id, (newparticle[0], ), pid_particle_pair1[0], pid_particle_pair2[0]))
+            # self.reactions.append(
+            #     (rt, (pid_particle_pair1, pid_particle_pair2), 
+            #     [newparticle]))
         
         else:
             raise NotImplementedError,\
