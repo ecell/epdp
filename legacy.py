@@ -100,10 +100,10 @@ class BDPropagator(object):
                 particles_to_step[j], particles_to_step[i]
         self.particles_to_step = particles_to_step
 
-    def getP_acct(self, rt, D, sigma):
-        # I = _gfrd.I_bd(sigma, self.dt, D)
-        I = _greens_functions.I_bd(sigma, self.dt, D)
-        p = rt.k * self.dt / (I * 4.0 * numpy.pi)
+    def getP_acct(self, rt, D1, D2, sigma):
+        I1 = _greens_functions.I_bd(sigma, self.dt, D1)
+        I2 = _greens_functions.I_bd(sigma, self.dt, D2)
+        p = rt.k * self.dt / ((I1 + I2) * 4.0 * numpy.pi)
         if not 0.0 <= p < 1.0:
             raise RuntimeError,\
                 'Invalid acceptance ratio (%s) for reaction %s.' \
@@ -148,25 +148,31 @@ class BDPropagator(object):
             reactions = list(self.nr.query_reaction_rule(sid, closest[1].sid))
             if len(reactions) == 0:
                 return True
-            else:
-                assert len(reactions) == 1
+            # else:
+            #     assert len(reactions) == 1
 
-            rt = reactions[0]
+            radius12 = pid_particle_pair[1].radius + closest[1].radius
+            D12 = D + closest[1].D
+            rnd = self.rng.uniform(0, 1.)
+            prob = 0.0
+            for rt in reactions:
+                if rt.k == 0.0:
+                    continue
 
-            if rt.k != 0.0:
-                radius12 = pid_particle_pair[1].radius + closest[1].radius
-                D12 = D + closest[1].D
-                p = self.getP_acct(rt, D12, radius12)
-                rnd = self.rng.uniform(0, 1.)
-
-                if p > rnd:
+                p = self.getP_acct(rt, D, closest[1].D, radius12)
+                assert p >= 0.0
+                prob += p
+                if prob >= 1.:
+                    raise RuntimeError, (
+                        "invalid acceptance ratio (%f) for reaction %s."
+                        % (p, rt))
+                if prob > rnd:
                     try:
                         self.fire_reaction2(pid_particle_pair, closest, rt)
                     except NoSpace:
                         if __debug__:
                             log.info('fire_reaction2 move rejected')
                     return True
-
             else:
                 if __debug__:
                     log.info('collision move rejected')
