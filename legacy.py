@@ -61,7 +61,8 @@ class MultiParticleContainer(_gfrd.ParticleContainer):
         for pp in self.particles.iteritems():
             if pp[0] in ignores:
                 continue
-            dist = _gfrd.distance(pp[1].position, sphere[0]) - pp[1].radius
+            dist = self.world.distance(pp[1].position, sphere[0]) - pp[1].radius
+            # dist = _gfrd.distance(pp[1].position, sphere[0]) - pp[1].radius
             if dist < sphere[1]:
                 retval.append((pp, dist))
         retval.sort(lambda a, b: cmp(a[1], b[1]))
