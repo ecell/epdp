@@ -9,6 +9,7 @@
 #include "linear_algebra.hpp"
 #include "exceptions.hpp"
 #include "Logger.hpp"
+#include "utils/math.hpp"
 
 // Forward declaration of structures
 template <typename Ttraits_>
