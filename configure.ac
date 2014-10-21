@@ -1,7 +1,7 @@
 AC_REVISION([$Id$])
 dnl
 dnl
-AC_INIT
+AC_INIT([eGFRD],[0.9a])
 AC_CONFIG_SRCDIR([autogen.sh])
 dnl
 AC_DISABLE_STATIC
@@ -14,7 +14,7 @@ AH_TEMPLATE(HAVE_INLINE)
 dnl 
 dnl
 AC_CANONICAL_TARGET([])
-AM_INIT_AUTOMAKE([epdp],[0.3b])
+AM_INIT_AUTOMAKE([subdir-objects])
 
 dnl Check pdflatex
 AC_PROG_PDFLATEX()
@@ -56,7 +56,7 @@ if test -n "$DEBUG"; then
 fi
 
 if test "$GXX" = "yes"; then
-  CXXFLAGS="$CXXFLAGS -Wall -Wstrict-aliasing=0 -Wno-invalid-offsetof"
+  CXXFLAGS="$CXXFLAGS -Wall -Wno-unused-local-typedefs"
   CFLAGS="$CFLAGS -Wall"
 fi
 

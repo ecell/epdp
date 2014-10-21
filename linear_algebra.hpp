@@ -5,7 +5,7 @@
 #include <cmath>
 #include <gsl/gsl_pow_int.h>
 #include <boost/preprocessor/tuple/elem.hpp>
-#include <boost/preprocessor/repetition/repeat.hpp>
+#include <boost/preprocessor/repetition/repeat_from_to.hpp>
 #include <boost/preprocessor/repetition/enum_params.hpp>
 #include <boost/preprocessor/repetition/enum_trailing_params.hpp>
 #include <boost/mpl/bool.hpp>

@@ -81,7 +81,7 @@ ReactionRecord_test.py
 #%.py:
 #	$(TESTS_ENVIRONMENT) $(PYTHON) $<
 
-INCLUDES = -I$(top_srcdir) $(PYTHON_INCLUDES)
+AM_CPPFLAGS = -I$(top_srcdir) $(PYTHON_INCLUDES)
 AM_CXXFLAGS = @CXXFLAGS@ @GSL_CFLAGS@ -Wall -g
 
 check_PROGRAMS = $(CPP_TESTS)
