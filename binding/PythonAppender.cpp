@@ -196,62 +196,6 @@ public:
         return NULL;
     }
 
-    static PyObject* __init__(PyObject* _self, PyObject* logger)
-    try
-    {
-        BOOST_ASSERT(PyInstance_Check(_self));
-
-        CppLoggerHandler* self(new CppLoggerHandler(
-            *boost::python::extract<Logger*>(logger)()));
-
-        boost::python::handle<> ptr(
-            boost::python::allow_null(
-                PyCObject_FromVoidPtr(self, &__dealloc__)));
-        if (!ptr)
-        {
-            delete self;
-            return NULL;
-        }
-
-        if (PyObject_SetAttrString(_self, "__ptr__", ptr.get()))
-            return NULL;
-
-        boost::python::handle<> bases(
-            boost::python::borrowed(
-                reinterpret_cast<PyInstanceObject*>(_self)->in_class->cl_bases));
-
-        if (!PyTuple_Check(bases.get()))
-            return NULL;
-
-        boost::python::handle<> super_arg(PyTuple_Pack(1, _self));
-
-        for (std::size_t i(0), l(PyTuple_GET_SIZE(bases.get())); i < l; ++i)
-        {
-            boost::python::handle<> base(
-                boost::python::borrowed(PyTuple_GET_ITEM(bases.get(), i)));
-            boost::python::handle<> super_init(
-                boost::python::borrowed(
-                    PyObject_GetAttrString(base.get(), "__init__")));
-            if (PyErr_Occurred())
-            {
-                PyErr_Clear();
-                continue;
-            }
-
-            if (!boost::python::handle<>(
-                boost::python::allow_null(
-                    PyObject_Call(super_init.get(), super_arg.get(), NULL))))
-            {
-                return NULL;
-            }
-        }
-
-        return boost::python::incref(Py_None);
-    }
-    catch (boost::python::error_already_set const&)
-    {
-        return NULL;
-    }
 #else
     void* operator new(size_t)
     {
@@ -330,7 +274,6 @@ public:
         return 0;
     }
 
-#endif
     ~CppLoggerHandler()
     {
         if (__weakreflist__)
@@ -338,6 +281,7 @@ public:
             PyObject_ClearWeakRefs(reinterpret_cast<PyObject*>(this));
         }
     }
+#endif
 
     static void __dealloc__(void* ptr)
     {
