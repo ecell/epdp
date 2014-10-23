@@ -126,8 +126,9 @@ AC_DEFUN([ECELL_CHECK_NUMPY_ARRAY_DESCR], [
   ], [], [
 #include <Python.h>
 #include <numpy/arrayobject.h>
-])
+  ])
   CPPFLAGS="$ac_save_CPPFLAGS"                 
+  AC_DEFINE([NPY_NO_DEPRECATED_API], [0], [Source uses numpy deprecated api (known issue, hard to fix).])
 ])
 
 AC_DEFUN([ECELL_CHECK_LOGGING_MODULE], [

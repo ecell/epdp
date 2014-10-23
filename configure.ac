@@ -50,25 +50,16 @@ AC_ARG_ENABLE([debug],
 )
 
 if test -n "$DEBUG"; then
-  CFLAGS=""
-  CXXFLAGS=""
-  CPPFLAGS="-DDEBUG=1"
-fi
-
-if test "$GXX" = "yes"; then
-  CXXFLAGS="$CXXFLAGS -Wall -Wno-unused-local-typedefs"
-  CFLAGS="$CFLAGS -Wall"
+  CXXFLAGS="-DDEBUG=1"
+else
+  CXXFLAGS="-g -O2"
 fi
 
 AC_SUBST(DEBUG)
 
-CXXFLAGS="$CXXFLAGS -g"
-CFLAGS="$CFLAGS -g"
+CXXFLAGS="$CXXFLAGS -Wall -Wno-unused-local-typedefs"
 
 AX_BOOST_BASE([1.37],,AC_MSG_ERROR([could not find required version of BOOST.]))
-
-CPPFLAGS="$CPPFLAGS $BOOST_CPPFLAGS"
-LDFLAGS="$LDFLAGS $BOOST_LDFLAGS"
 
 BOOST_PYTHON_LIBNAME=boost_python
 

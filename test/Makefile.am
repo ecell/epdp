@@ -1,6 +1,8 @@
 PYTHON = @PYTHON@
 #PYTHONPATH = $(PYTHONPATH):$(top_srcdir)
 
+AM_CXXFLAGS = -I$(top_srcdir) @BOOST_CPPFLAGS@ @GSL_CFLAGS@ $(PYTHON_INCLUDES)
+
 CPP_TESTS =\
 DynamicPriorityQueue_test\
 SphericalBesselGenerator_test\
@@ -80,9 +82,6 @@ ReactionRecord_test.py
 
 #%.py:
 #	$(TESTS_ENVIRONMENT) $(PYTHON) $<
-
-AM_CPPFLAGS = -I$(top_srcdir) $(PYTHON_INCLUDES)
-AM_CXXFLAGS = @CXXFLAGS@ @GSL_CFLAGS@ -Wall -g
 
 check_PROGRAMS = $(CPP_TESTS)
 

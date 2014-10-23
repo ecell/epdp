@@ -17,12 +17,10 @@ pkgpyexecdir = @pkgpyexecdir@
 
 LIBPYTHON = -lpython$(PYTHON_VERSION)
 
-AM_CPPFLAGS = ${PYTHON_INCLUDES} -I${NUMPY_INCLUDE_DIR} @CPPFLAGS@ @GSL_CFLAGS@
-AM_CXXFLAGS = ${PYTHON_INCLUDES} -I${NUMPY_INCLUDE_DIR} @CXXFLAGS@ @GSL_CFLAGS@
+AM_CXXFLAGS = @BOOST_CPPFLAGS@ @GSL_CFLAGS@ ${PYTHON_INCLUDES} -I${NUMPY_INCLUDE_DIR}
+
 LIBBOOSTPYTHON = -l@BOOST_PYTHON_LIBNAME@
 LIBBOOSTREGEX = -l@BOOST_REGEX_LIBNAME@
-
-CFLAGS = @GSL_CFLAGS@ @BOOST_CPPFLAGS@
 
 PYCHECKER = @PYCHECKER@
 PYCHECKER_FLAGS = --limit 0 
@@ -217,15 +215,11 @@ _greens_functions_la_SOURCES=\
 	Logger.cpp\
 	ConsoleAppender.cpp
 
-_gfrd_la_LDFLAGS = -module -export-dynamic -avoid-version $(no_undefined) -Wl,--no-undefined
-_gfrd_la_LIBADD = binding/libbinding_utils.la
-_gfrd_la_LIBADD += $(LIBBOOSTPYTHON) $(LIBPYTHON) $(GSL_LIBS)
+_gfrd_la_LDFLAGS = -module -export-dynamic -avoid-version -Wl,--no-undefined
+_gfrd_la_LIBADD = binding/libbinding_utils.la $(LIBBOOSTPYTHON) $(LIBPYTHON) $(GSL_LIBS)
 
-_greens_functions_la_LDFLAGS = -module -export-dynamic -avoid-version $(no_undefined)
+_greens_functions_la_LDFLAGS = -module -export-dynamic -avoid-version 
 _greens_functions_la_LIBADD = $(LIBBOOSTPYTHON) $(LIBPYTHON) $(GSL_LIBS)
-
-#nodist__gfrd_la_SOURCES = \
-#	SphericalBesselTable.hpp
 
 nodist__greens_functions_la_SOURCES = \
 	SphericalBesselTable.hpp\

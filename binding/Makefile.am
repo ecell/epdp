@@ -1,17 +1,15 @@
 NUMPY_INCLUDE_DIR = @NUMPY_INCLUDE_DIR@
 PYTHON_INCLUDES = @PYTHON_INCLUDES@
 
-
-AM_CXXFLAGS = @CXXFLAGS@ @GSL_CFLAGS@ -I.. -Wall -g
-AM_CPPFLAGS = @CPPFLAGS@ -DNO_IMPORT ${PYTHON_INCLUDES} -I${NUMPY_INCLUDE_DIR}
+AM_CXXFLAGS = -DNO_IMPORT -I.. @BOOST_CPPFLAGS@ @GSL_CFLAGS@ ${PYTHON_INCLUDES} -I${NUMPY_INCLUDE_DIR}
 
 noinst_LTLIBRARIES = libbinding_utils.la
 
 noinst_HEADERS = \
-    bd_propagator_class.hpp \
+        bd_propagator_class.hpp \
 	new_bd_propagator_class.hpp \
 	BDPropagator.hpp \
-    newBDPropagator.hpp \
+        newBDPropagator.hpp \
 	binding_common.hpp \
 	box_class.hpp \
 	Box.hpp \
@@ -96,7 +94,7 @@ noinst_HEADERS = \
 
 libbinding_utils_la_SOURCES = \
 	bd_propagator_class.cpp \
-    new_bd_propagator_class.cpp \
+        new_bd_propagator_class.cpp \
 	box_class.cpp \
 	ConsoleAppender.cpp \
 	cylinder_class.cpp \
