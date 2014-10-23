@@ -1,12 +1,13 @@
 
 :author: Koichi Takahashi
+update okt-2014: Marco Seynen			
+
 
 
 Prerequisites
 -------------------------
 
-1. autotools
-   (autoconf (>=2.50), automake (>=1.11) libtool (>=2.2.6))
+1. autotools (autoconf >=2.50, automake >=1.11, libtool (>=2.2.6) or later.
 2. GNU Scientific Library (GSL) 1.11 or later.
 3. Boost C++ Library 1.37 or later.
 4. Python 2.4 or later.
@@ -15,16 +16,17 @@ Prerequisites
 If you use Fedora or any other RedHat lines of linux, check
 if the following RPM packages are installed:
 
-gsl, gsl-devel, numpy, scipy, boost, and boost-devel.
+autoconf automake libtool gcc-c++ gsl gsl-devel boost boost-devel python scipy numpy
+
 
 On Ubuntu Linux and some other Debian families, install the following:
 
-gsl-bin libgsl0-dev libboost-dev libboost-date-time-dev libboost-python-dev libboost-regex-dev libboost-test-dev python-scipy.
+autoconf automake autotools-dev libtool gsl-bin libgsl0-d libboost-all-dev python-scipy python-numpy 
 
 
-In addition to above, optionally,
-6. python-matplotlib if you want to use the plotting scripts in the samples.
-7. Pychecker if you want to run 'make pycheck'.
+In addition to above, optionally also install packages:
+
+python-matplotlib python-h5py pychecker
 
 
 A note on GSL version
@@ -39,17 +41,17 @@ For this reason, use of GSL version 1.11 or later is recommended.
 Building this package
 -------------------------
 
-1. ./configure
-2. make
+1. ./autogen.sh
+2. ./configure
+3. make
 
+has been tested on:
+Ubuntu 14.04 LTS
+Ubuntu 10.04 LTS
+Debian 7.7.0
+Fedora 20.1
+CentOS 7.0.14.06
 
-If you cannot find the configure script, or the build process
-fails to complete even if you have set up the environment correctly,
-try
-
-./autogen.sh
-
-to remake the entire build mechanism.
 
 
 Testing
