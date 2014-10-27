@@ -67,7 +67,7 @@ AM_CHECK_PYMOD(scipy,,,[AC_MSG_ERROR([could not find Python scipy module.])])
 
 dnl checks for header files
 AC_CHECK_HEADERS([limits.h unistd.h])
-AC_CHECK_HEADER_STDBOOL
+dnl AC_CHECK_HEADER_STDBOOL
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_TYPE_SIZE_T
