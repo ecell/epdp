@@ -21,7 +21,7 @@ autoconf automake libtool gcc-c++ gsl gsl-devel boost boost-devel python scipy n
 
 On Ubuntu Linux and some other Debian families, install the following:
 
-autoconf automake autotools-dev libtool gsl-bin libgsl0-d libboost-all-dev python-scipy python-numpy 
+autoconf automake autotools-dev libtool gsl-bin libgsl0-dev libboost-all-dev python-scipy python-numpy 
 
 
 In addition to above, optionally also install packages:
