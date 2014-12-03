@@ -3,6 +3,7 @@
 
 #include <boost/lexical_cast.hpp>
 #include "exceptions.hpp"
+#include "Logger.hpp"
 #include "linear_algebra.hpp"
 #include "ConnectivityContainer.hpp"
 #include "CuboidalRegion.hpp"
@@ -140,7 +141,7 @@ public:
         if ( update_structure_base(structid_plane))
         {
             // We now assume that the structure was not already in the boundary_conditions_thing
-            // add to Connectivity container for planar surfaces and set reflective boundary conditions.
+            // add to Connectivity container for planar surfaces and set *reflective* boundary conditions. // TODO This may cause many problems in single reactions!!! Overthink!!!
             planar_structs_bc_.set_neighbor_info(structid_plane.first, 0, std::make_pair(structid_plane.first, multiply(structid_plane.second->shape().unit_y(), -1.0) ));
             planar_structs_bc_.set_neighbor_info(structid_plane.first, 1, std::make_pair(structid_plane.first,          structid_plane.second->shape().unit_y() ));
             planar_structs_bc_.set_neighbor_info(structid_plane.first, 2, std::make_pair(structid_plane.first,          structid_plane.second->shape().unit_x() ));
@@ -167,33 +168,72 @@ public:
                                     planar_surface_type const& structure2, int const& side2)
     {
         // TODO if the structure are not the same, check that the planes actually touch at the right edge.
-        vector_type structure1_vector;
-        vector_type structure2_vector;
-        // FIXME cleanup code below
-        switch (side1)
+        
+        // First check whether the planes are orthogonal or parallel, or none of this.
+        bool planes_are_orthogonal(false);
+        bool planes_are_parallel(false);
+        vector_type structure1_unit_z( structure1.shape().unit_z() );
+        vector_type structure2_unit_z( structure2.shape().unit_z() );
+        
+        if( feq(dot_product(structure1_unit_z, structure2_unit_z), 0.0, 1.0) )
+            planes_are_orthogonal = true;
+        if( feq(dot_product(structure1_unit_z, structure2_unit_z), 1.0, 1.0) )
+            planes_are_parallel = true;
+        // If they are neither parallel or orthogonal we cannot treat this situation and stop here
+        if( not(planes_are_orthogonal or planes_are_parallel) )
+            throw unsupported("StructureContainer: only orthogonal or parallel planes can be connected.");
+        
+        // Now determine which of the unit vectors of the neighboring plane is the one that shall be
+        // used for transforming the position that reaches out of the origin plane. This is relevant
+        // only for the orthogonal case. If the planes are parallel, the position does not have
+        // to be transformed at all (only the StructureID changes).
+        // For parallel planes we therefore return a zero vector below. This at once serves as 
+        // a flag indicating that the planes are indeed parallel.
+        //vector_type zero_vector( zero_vector() );
+        vector_type structure1_vector( vector_type(0.0, 0.0, 0.0) );
+        vector_type structure2_vector( vector_type(0.0, 0.0, 0.0) );
+            // this is already fine for parallel planes
+        
+        if( planes_are_orthogonal )
         {
-            case 0: structure1_vector = multiply(structure1.shape().unit_y(), -1.0);
-                break;
-            case 1: structure1_vector = structure1.shape().unit_y();
-                break;
-            case 2: structure1_vector = structure1.shape().unit_x();
-                break;
-            case 3: structure1_vector = multiply(structure1.shape().unit_x(), -1.0);
-                break;
+            // Side convention for coding neighbors:
+            //
+            //  |-------------|
+            //  |      0      |
+            //  |             |
+            //  | 2         3 |
+            //  |             |
+            //  |      1      |
+            //  |-------------|
+            //
+            // FIXME cleanup code below            
+            switch (side1)
+            {
+                case 0: structure1_vector = multiply(structure1.shape().unit_y(), -1.0);
+                    break;
+                case 1: structure1_vector = structure1.shape().unit_y();
+                    break;
+                case 2: structure1_vector = structure1.shape().unit_x();
+                    break;
+                case 3: structure1_vector = multiply(structure1.shape().unit_x(), -1.0);
+                    break;
+            }
+            switch (side2)
+            {
+                case 0: structure2_vector = multiply(structure2.shape().unit_y(), -1.0);
+                    break;
+                case 1: structure2_vector = structure2.shape().unit_y();
+                    break;
+                case 2: structure2_vector = structure2.shape().unit_x();
+                    break;
+                case 3: structure2_vector = multiply(structure2.shape().unit_x(), -1.0);
+                    break;
+            }
         }
-        switch (side2)
-        {
-            case 0: structure2_vector = multiply(structure2.shape().unit_y(), -1.0);
-                break;
-            case 1: structure2_vector = structure2.shape().unit_y();
-                break;
-            case 2: structure2_vector = structure2.shape().unit_x();
-                break;
-            case 3: structure2_vector = multiply(structure2.shape().unit_x(), -1.0);
-                break;
-        }
+        
         planar_structs_bc_.set_neighbor_info(structure1.id(), side1, std::make_pair(structure2.id(), structure2_vector) );
         planar_structs_bc_.set_neighbor_info(structure2.id(), side2, std::make_pair(structure1.id(), structure1_vector) );
+        
         return true;
     }
 //    virtual bool connect_structures(cylindrical_surface_type const& structure1, cylindrical_surface_side_type const& side1,
@@ -284,9 +324,14 @@ public:
     }
     structure_id_set get_visible_structures(structure_id_type const& id) const
     {
+        // This function returns all structures that are visible form the structure with
+        // the ID passed to the function.
+        // A structure is visible if it is a substructure or if it has the same parent
+        // structure as the current structure.
         structure_id_set visible_structures;
 
         const boost::shared_ptr<const structure_type> structure(get_structure(id));
+        // First check the "sibling" structures
         if (structure->structure_id() == id)
         {
             visible_structures = structure_id_set();
@@ -296,8 +341,11 @@ public:
             visible_structures = get_visible_structures(structure->structure_id());
             visible_structures.erase(id);
         }
+        
+        // Now the substructures
         const structure_id_set substructures (get_substructure_ids(id));
         visible_structures.insert(substructures.begin(), substructures.end());
+        
         return visible_structures;
     }
 
@@ -366,18 +414,27 @@ protected:
     cylindrical_surface_bc_type cylindrical_structs_bc_;
     planar_surface_bc_type      planar_structs_bc_;
     cuboidal_region_bc_type     cuboidal_structs_bc_;
-};
+    static Logger&              log_;
+    
+}; // end of class definition
 
+
+//////// Link logger to the global logging system
+template <typename Tobj_, typename Tid_, typename Ttraits_>
+Logger& StructureContainer<Tobj_, Tid_, Ttraits_>::log_(Logger::get_logger("ecell.StructureContainer"));
+//////// Also define one that can be used by the inline functions below
+static Logger& log_(Logger::get_logger("ecell.StructureContainer"));
 
 
 //////// Inline functions applicable to the StructureContainer
-
 //// functions for Planes
 template<typename Ttraits_ >
 inline std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type>
-apply_boundary (std::pair<typename Ttraits_::position_type, typename Ttraits_::structure_id_type> const& pos_structure_id,
-                PlanarSurface<Ttraits_> const& planar_surface,
-                StructureContainer<typename Ttraits_::structure_type, typename Ttraits_::structure_id_type, Ttraits_> const& sc)
+apply_boundary (std::pair<typename Ttraits_::position_type,
+                          typename Ttraits_::structure_id_type> const&                     pos_structure_id,
+                PlanarSurface<Ttraits_> const&                                             planar_surface,
+                StructureContainer<typename Ttraits_::structure_type, 
+                                   typename Ttraits_::structure_id_type, Ttraits_> const&  sc)
 // The template needs to be parameterized with the appropriate shape (which then parameterizes the type
 // of the ConnectivityContainer that we use.
 // We supply the structure container as an argument so that we can get the structures that we need, and to
@@ -390,6 +447,7 @@ apply_boundary (std::pair<typename Ttraits_::position_type, typename Ttraits_::s
     typedef typename PlanarSurface<Ttraits_>::shape_type    plane_type;
     typedef typename plane_type::length_type                length_type;
     typedef typename plane_type::position_type              position_type;
+    typedef typename plane_type::position_type              vector_type;
 
     typedef std::pair<structure_id_type, position_type>     neighbor_id_vector_type;
     typedef std::pair<position_type, structure_id_type>     position_structid_pair_type;
@@ -397,18 +455,36 @@ apply_boundary (std::pair<typename Ttraits_::position_type, typename Ttraits_::s
     // Note that we assume that the new position is in the plane (dot(pos, unit_z)==0)
     // and that the position is already transposed for the plane.
     const plane_type origin_plane( planar_surface.shape() );
-    boost::array<length_type, 2> half_extents( origin_plane.half_extent() );
+    const boost::array<length_type, 2> half_extents( origin_plane.half_extent() );
 
     const position_type pos_vector( subtract(pos_structure_id.first, origin_plane.position()) );
-    const length_type component_x ( dot_product(pos_vector, origin_plane.unit_x()) );
-    const length_type component_y ( dot_product(pos_vector, origin_plane.unit_y()) );
+    const length_type   component_x ( dot_product(pos_vector, origin_plane.unit_x()) );
+    const length_type   component_y ( dot_product(pos_vector, origin_plane.unit_y()) );
+    const vector_type   zero_vector( vector_type(0.0, 0.0, 0.0) );
 
     // declare the variables that will be written
-    structure_id_type new_id(pos_structure_id.second);
-    position_type neighbor_plane_par;
-    position_type neighbor_plane_inl;
-
-    if ( abs(component_x) <= half_extents[0] && abs(component_y) <= half_extents[1] )
+    structure_id_type new_id( pos_structure_id.second ); // initialized with old structure ID
+    position_type     neighbor_plane_par;
+    position_type     neighbor_plane_inl;
+    
+    // info variables
+    bool planes_are_orthogonal( false );
+    bool planes_are_parallel( false );    
+    
+    // Check for (currently unsupported) self-connections
+    for( int i=0; i<4; i++ )
+    {
+        const neighbor_id_vector_type neighbor_id_vector (sc.get_neighbor_info(planar_surface, 0));
+        new_id = neighbor_id_vector.first;
+        
+        if( new_id == pos_structure_id.second )
+        {
+            log_.warn("Plane is connected to itself, which is unsupported; no boundary condition will be applied at this call.");
+            return pos_structure_id;
+        }
+    };
+    
+    if( (abs(component_x) <= half_extents[0] && abs(component_y) <= half_extents[1]) )
     {
         // we are still in the plane (did not pass any of the boundaries)
         // don't have to do anything
@@ -427,9 +503,15 @@ apply_boundary (std::pair<typename Ttraits_::position_type, typename Ttraits_::s
                 const neighbor_id_vector_type neighbor_id_vector (sc.get_neighbor_info(planar_surface, 0));
 
                 new_id = neighbor_id_vector.first;
-                neighbor_plane_par = multiply(origin_plane.unit_x(), component_x);
-                neighbor_plane_inl = add(multiply(origin_plane.unit_y(),     half_extents[1]),
-                                         multiply(neighbor_id_vector.second, (component_y - half_extents[1]) ) );
+                
+                if(neighbor_id_vector.second == zero_vector)
+                    planes_are_parallel = true;
+                else{
+                    planes_are_orthogonal = true;
+                    neighbor_plane_par = multiply(origin_plane.unit_x(), component_x);
+                    neighbor_plane_inl = add(multiply(origin_plane.unit_y(),     half_extents[1]),
+                                            multiply(neighbor_id_vector.second, (component_y - half_extents[1]) ) );
+                }
             }
             else if ( component_y < -half_extents[1] )
             {
@@ -437,9 +519,15 @@ apply_boundary (std::pair<typename Ttraits_::position_type, typename Ttraits_::s
                 const neighbor_id_vector_type neighbor_id_vector (sc.get_neighbor_info(planar_surface, 1));
 
                 new_id = neighbor_id_vector.first;
-                neighbor_plane_par = multiply(origin_plane.unit_x(), component_x);
-                neighbor_plane_inl = add(multiply(origin_plane.unit_y(),     -half_extents[1] ),
-                                         multiply(neighbor_id_vector.second, (-component_y - half_extents[1]) ) );
+                
+                if(neighbor_id_vector.second == zero_vector)
+                    planes_are_parallel = true;
+                else{
+                    planes_are_orthogonal = true;
+                    neighbor_plane_par = multiply(origin_plane.unit_x(), component_x);
+                    neighbor_plane_inl = add(multiply(origin_plane.unit_y(),     -half_extents[1] ),
+                                            multiply(neighbor_id_vector.second, (-component_y - half_extents[1]) ) );
+                }
             }
         }
         else // half_extents[1]*abs(component_x) >= half_extents[0]*abs(component_y)
@@ -450,9 +538,14 @@ apply_boundary (std::pair<typename Ttraits_::position_type, typename Ttraits_::s
                 const neighbor_id_vector_type neighbor_id_vector (sc.get_neighbor_info(planar_surface, 2));
 
                 new_id = neighbor_id_vector.first;
-                neighbor_plane_par = multiply(origin_plane.unit_y(), component_y);
-                neighbor_plane_inl = add(multiply(origin_plane.unit_x(),     -half_extents[0]),
-                                         multiply(neighbor_id_vector.second, (-component_x - half_extents[0]) ) );
+                if(neighbor_id_vector.second == zero_vector)
+                    planes_are_parallel = true;
+                else{
+                    planes_are_orthogonal = true;
+                    neighbor_plane_par = multiply(origin_plane.unit_y(), component_y);
+                    neighbor_plane_inl = add(multiply(origin_plane.unit_x(),     -half_extents[0]),
+                                            multiply(neighbor_id_vector.second, (-component_x - half_extents[0]) ) );
+                }
             }
             else if ( half_extents[0] < component_x )
             {
@@ -460,16 +553,25 @@ apply_boundary (std::pair<typename Ttraits_::position_type, typename Ttraits_::s
                 const neighbor_id_vector_type neighbor_id_vector (sc.get_neighbor_info(planar_surface, 3));
 
                 new_id = neighbor_id_vector.first;
-                neighbor_plane_par = multiply(origin_plane.unit_y(), component_y);
-                neighbor_plane_inl = add(multiply(origin_plane.unit_x(),     half_extents[0]),
-                                         multiply(neighbor_id_vector.second, (component_x - half_extents[0]) ) );
+                if(neighbor_id_vector.second == zero_vector)
+                    planes_are_parallel = true;
+                else{
+                    planes_are_orthogonal = true;
+                    neighbor_plane_par = multiply(origin_plane.unit_y(), component_y);
+                    neighbor_plane_inl = add(multiply(origin_plane.unit_x(),     half_extents[0]),
+                                            multiply(neighbor_id_vector.second, (component_x - half_extents[0]) ) );
+                }
             }
         }
 
-        const position_type new_pos ( add(origin_plane.position(), add(neighbor_plane_par, neighbor_plane_inl)));
+        position_type new_pos( origin_plane.position() );
+        if(planes_are_orthogonal)
+            new_pos = add(origin_plane.position(), add(neighbor_plane_par, neighbor_plane_inl));
 
         // Check if we are in one of the corners. If yes -> do another round of border crossing from neighboring plane.
-        if ( abs(component_x) > half_extents[0] && abs(component_y) > half_extents[1] )
+        // Only do this if the particle does not end up on another side of the same plane (the scenario of one plane 
+        // with periodic BCs), as this may cause infinite loops.
+        if( not new_id==pos_structure_id.second && abs(component_x) > half_extents[0] && abs(component_y) > half_extents[1] )
         {
             return sc.get_structure(new_id)->apply_boundary(std::make_pair(new_pos, new_id), sc);
         }

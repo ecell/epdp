@@ -34,6 +34,7 @@ from _gfrd import (
 
 from gfrdbase import *
 from gfrdbase import DomainEvent
+from utils import *
 import model
 import _gfrd
 
@@ -158,7 +159,12 @@ def save_state(simulator, filename):
                   r0 = rr.reactants[0]
                   reactant_ids = ( id_to_int(r0), )
 
-                  if len(rr.products) == 1:
+                  if len(rr.products) == 0:
+
+                      rtype = 'decay'
+                      product_ids  = ()
+
+                  elif len(rr.products) == 1:
 
                       rtype = 'unimolecular'
                       p0 = rr.products[0]
@@ -573,10 +579,22 @@ def load_state(filename):
         product_ids  = eval(cp.get(sectionname, 'product_ids'))
 
         rule = None
-        if rtype == 'unimolecular':
+        if rtype == 'decay':
 
-            assert len(reactant_ids) == 1 and reactant_ids[0] != None and \
-                   len(product_ids)  == 1 and product_ids[0]  != None, \
+            assert len(reactant_ids) == 1 and reactant_ids[0] is not None and \
+                   len(product_ids)  == 0, \
+                     'Saved reaction rule does not have the proper signature: rule = %s' % sectionname
+
+            # Get the reactant species
+            reactant = species_dict[int(reactant_ids[0])]
+
+            # Create the decay rule
+            rule = model.create_decay_reaction_rule(reactant, rate)
+
+        elif rtype == 'unimolecular':
+
+            assert len(reactant_ids) == 1 and reactant_ids[0] is not None and \
+                   len(product_ids)  == 1 and product_ids[0]  is not None, \
                      'Saved reaction rule does not have the proper signature: rule = %s' % sectionname
 
             # Get the involved species
@@ -588,8 +606,8 @@ def load_state(filename):
 
         elif rtype == 'unbinding':
 
-            assert len(reactant_ids) == 1 and reactant_ids[0] != None and \
-                   product_ids[0] != None and product_ids[1]  != None, \
+            assert len(reactant_ids) == 1     and reactant_ids[0] is not None and \
+                   product_ids[0] is not None and product_ids[1]  is not None, \
                      'Saved reaction rule does not have the proper signature: rule = %s' % sectionname
 
             # Get the involved species
@@ -602,8 +620,8 @@ def load_state(filename):
 
         elif rtype == 'binding_particle':
             
-            assert reactant_ids[0] != None and reactant_ids[1] != None and \
-                   len(product_ids) == 1   and product_ids[0]  != None, \
+            assert reactant_ids[0] is not None and reactant_ids[1] is not None and \
+                   len(product_ids) == 1       and product_ids[0]  is not None, \
                      'Saved reaction rule does not have the proper signature: rule = %s' % sectionname
 
             # Get the involved species
@@ -616,8 +634,8 @@ def load_state(filename):
 
         elif rtype == 'binding_surface':
             
-            assert reactant_ids[0] != None and reactant_ids[1] != None and \
-                   len(product_ids) == 1   and product_ids[0]  != None, \
+            assert reactant_ids[0] is not None and reactant_ids[1] is not None and \
+                   len(product_ids) == 1       and product_ids[0]  is not None, \
                      'Saved reaction rule does not have the proper signature: rule = %s' % sectionname
 
             # Get the involved species
@@ -772,7 +790,7 @@ def load_state(filename):
             structure = model.create_planar_surface(structure_type.id, name, corner_pos, unit_x, unit_y, \
                                                     2.0*half_extent[0], 2.0*half_extent[1], parent_structure.id)
             
-            assert all( [structure.shape.unit_z[c]==unit_z[c] for c in range(0,len(unit_z))] )
+            assert all_feq(structure.shape.unit_z, unit_z, tolerance=TOLERANCE)
 
         # Add it to the world
         if structure:
@@ -795,50 +813,68 @@ def load_state(filename):
     # Here we first read in all the connections and then figure out which sides are
     # connected in order to actually connect them.
     sc_sections = filter_sections(cp.sections(), 'STRUCTURECONNECTION')
-    for sectionname in sorted(sc_sections, key = lambda name : name_to_int(name)):
 
-        to_connect_id = name_to_int(sectionname)
+    if sc_sections:
 
-        neighbor_id_0 = cp.getint(sectionname, 'neighbor_id_0')
-        neighbor_id_1 = cp.getint(sectionname, 'neighbor_id_1')
-        neighbor_id_2 = cp.getint(sectionname, 'neighbor_id_2')
-        neighbor_id_3 = cp.getint(sectionname, 'neighbor_id_3')
+        for sectionname in sorted(sc_sections, key = lambda name : name_to_int(name)):
 
-        connections_dict[to_connect_id] = [neighbor_id_0, neighbor_id_1, \
-                                           neighbor_id_2, neighbor_id_3] 
+            to_connect_id = name_to_int(sectionname)
 
-    # Figure out which sides are connected
-    connections = []
-    for to_connect_id, neighbor_list in connections_dict.iteritems():
+            neighbor_id_0 = cp.getint(sectionname, 'neighbor_id_0')
+            neighbor_id_1 = cp.getint(sectionname, 'neighbor_id_1')
+            neighbor_id_2 = cp.getint(sectionname, 'neighbor_id_2')
+            neighbor_id_3 = cp.getint(sectionname, 'neighbor_id_3')
 
-        # For each neighbor_id find the side with which the neighbor is
-        # connected to the structure with con_id
-        for side in range(0,4):
+            connections_dict[to_connect_id] = [neighbor_id_0, neighbor_id_1, \
+                                              neighbor_id_2, neighbor_id_3] 
 
-            n_id = neighbor_list[side]
-            nn_list = connections_dict[n_id]
+        # Figure out which sides are connected
+        connections = []
 
-            for n_side in range(0,4):
+        if any([ to_connect_id==i for i in connections_dict[to_connect_id] ]):
+
+            # Drop a warning in case someone tries to connect a plane to itself (currently unsupported)
+            log.warn('  Avoiding connecting plane to itself. This may result in incorrectly applied boundary conditions and further errors!')
+
+        else:
             
-                nn_id = nn_list[n_side]
-                if nn_id == to_connect_id:
-                # We have found the neighbor_id that links to con_id
-                    connections.append( (to_connect_id, side, n_id, n_side) )
-                    break
+            # Everything fine, find the connections
+            for to_connect_id, neighbor_list in connections_dict.iteritems():
 
-    if __debug__:
-        log.info('  connections = %s' % str(connections) )
+                # For each neighbor_id find the side with which the neighbor is
+                # connected to the structure with con_id
+                for side in range(0,4):
 
-    # Establish the connections
-    for struct_id0, side0, struct_id1, side1 in connections:
+                    n_id = neighbor_list[side]
+                    nn_list = connections_dict[n_id]
 
-        struct0 = structures_dict[struct_id0]
-        struct1 = structures_dict[struct_id1]
+                    for n_side in range(0,4):
+                    
+                        nn_id = nn_list[n_side]
+                        if nn_id == to_connect_id:
+                        # We have found the neighbor_id that links to con_id
+                            connections.append( (to_connect_id, side, n_id, n_side) )
+                            break        
 
-        w.connect_structures(struct0, side0, struct1, side1)
         if __debug__:
-            log.info('  Connected side %s of structure %s (id=%s) with side %s of structure %s (id=%s)' \
-                     % (side0, struct0, struct0.id, side1, struct1, struct1.id) )
+            log.info('  connections = %s' % str(connections) )
+
+        # Establish the connections
+        for struct_id0, side0, struct_id1, side1 in connections:
+
+            struct0 = structures_dict[struct_id0]
+            struct1 = structures_dict[struct_id1]
+
+            w.connect_structures(struct0, side0, struct1, side1)
+            if __debug__:
+                log.info('  Connected side %s of structure %s (id=%s) with side %s of structure %s (id=%s)' \
+                        % (side0, struct0, struct0.id, side1, struct1, struct1.id) )
+
+    else: # sc_sections empty
+
+        if __debug__:
+            log.info('  No connections found in input file.')
+
 
     #### PARTICLES ####
     if __debug__:

@@ -3,6 +3,7 @@
 
 #include <boost/lexical_cast.hpp>
 #include "exceptions.hpp"
+#include <iostream>
 
 
 template<typename Tobj_, typename Tdata_, std::size_t num_neighbors>
@@ -49,12 +50,14 @@ public:
         if ( n >= max )
             throw illegal_argument(std::string("Index out of range for neighbor (n= ") + boost::lexical_cast<std::string>(n) + "), max= " + boost::lexical_cast<std::string>(num_neighbors));
 
-        typename obj_neighbor_objdata_array_map::const_iterator i(neighbor_mapping_.find(id));
-        if (neighbor_mapping_.end() == i)
+        typename obj_neighbor_objdata_array_map::const_iterator it(neighbor_mapping_.find(id));
+        //std::cout << "Checking neighbor info, id=" << boost::lexical_cast<std::string>(id) << ", it=" << it->first << std::endl; // TODO remove after debugging
+        if (it==neighbor_mapping_.end())
         {
             throw not_found(std::string("Object not found(id=") + boost::lexical_cast<std::string>(id) + ")");
         }
-        return (*i).second[n];
+        // all fine
+        return (*it).second[n];
     }
 
     ConnectivityContainer() {}

@@ -77,6 +77,11 @@ public:
     {
         return half_length_;
     }
+    
+    const int dof() const
+    {   // degrees of freedom for particle movement
+        return 1;
+    }
 
     std::string show(int precision)
     {

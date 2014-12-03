@@ -23,7 +23,7 @@ __all__ = [
     'SimplePair',
     'MixedPair2D3D',
     'MixedPair1D3D',
-    'MixedPair1DCap',
+    'MixedPair1DStatic',
     ]
 
 import logging
@@ -227,7 +227,7 @@ class Pair(ProtectiveDomain, Others):
             name1, name2,
             self.shell)
 
-class SimplePair(Pair):
+class StandardPair(Pair):
 
     def __init__(self, domain_id, shell_id, rrs):
         # Calls required parent inits and sets variables.
@@ -251,11 +251,16 @@ class SimplePair(Pair):
 
     @ classmethod
     def do_back_transform(cls, com, iv, D1, D2, radius1, radius2, structure1, structure2, unit_z, world):
-    # here we assume that the com and iv are really in the structure and no adjustments have to be
-    # made
+    # Here we assume that the com and iv are really in the structure and no adjustments 
+    # have to be made
 
-        # For simple pairs the particles live on the same structure
-        assert(structure1.id == structure2.id)
+        # Since this is meant to be a general class, we do not check explicitly whether the structures
+        # are really the same, but drop a warning if they are not (A possible situation where this matters
+        # is when one particle is on a substructure of the other particle's structure; then the structure IDs
+        # are different, but the calculations then still work perfectly fine).
+        if __debug__ and structure1.id != structure2.id:
+            log.warn('Particles live on different structures in StandardPair, structure1=%s, structure2=%s' \
+                                                                               % (structure1, structure2) )
         D_tot = D1 + D2
         pos1 = com - iv * (D1 / D_tot)
         pos2 = com + iv * (D2 / D_tot)
@@ -309,12 +314,12 @@ class SimplePair(Pair):
             radiusb = radius1
 
 
-        #aR
+        # aR
         a_R = (D_geom * (Db * (shell_size - radiusa) + \
                          Da * (shell_size - r0 - radiusa))) /\
               (Da * Da + Da * Db + D_geom * D_tot)
 
-        #ar
+        # ar
         a_r = (D_geom * r0 + D_tot * (shell_size - radiusa)) / (Da + D_geom)
 
 
@@ -345,14 +350,38 @@ class SimplePair(Pair):
             log.debug('tr = %g, tR = %g' % (tr, tR))
 
 
-        assert a_r > 0
-        assert a_r > r0, '%g %g' % (a_r, r0)
-        assert a_R > 0 or (a_R == 0 and (D1 == 0 or D2 == 0))
+        assert fgreater(a_r, 0, typical=radiusa)
+        assert fgreater(a_r, r0, typical=radiusa), '%g %g' % (a_r, r0)
+        assert fgreater(a_R, 0, typical=radiusa) or (feq(a_R, 0) and (D1 == 0 or D2 == 0))
 
         return a_R, a_r
 
     def __str__(self):
         pass
+
+class SimplePair(StandardPair):
+    # Same as StandardPair, but we check explicitly whether the particles live on the same structure
+    # in the transform function. This function is widely used, so be careful in making changes, and
+    # make sure to also make them in the parent class.
+    def __init__(self, domain_id, shell_id, rrs):
+
+        # Inits from parent classes 
+        StandardPair.__init__(self, domain_id, shell_id, rrs)
+
+    @ classmethod
+    def do_back_transform(cls, com, iv, D1, D2, radius1, radius2, structure1, structure2, unit_z, world):
+    # Here we assume that the com and iv are really in the structure and no adjustments 
+    # have to be made
+
+        # For simple pairs the particles live on the same structure
+        # Check explicitly
+        assert(structure1.id == structure2.id)
+
+        D_tot = D1 + D2
+        pos1 = com - iv * (D1 / D_tot)
+        pos2 = com + iv * (D2 / D_tot)
+
+        return pos1, pos2, structure1.id, structure2.id
 
 class SphericalPair(SimplePair, hasSphericalShell):
     """2 Particles inside a (spherical) shell not on any surface.
@@ -459,10 +488,12 @@ class SphericalPair(SimplePair, hasSphericalShell):
         return 'Spherical' + Pair.__str__(self)
 
 
-class PlanarSurfacePair(SimplePair, hasCylindricalShell):
-    """2 Particles inside a (cylindrical) shell on a PlanarSurface. 
-    (Hockey pucks).
+class PlanarSurfacePair(StandardPair, hasCylindricalShell):
+    """ 2 Particles inside a (cylindrical) shell on a PlanarSurface. 
+        (Hockey pucks).
 
+        Note that in this class they are in principle allowed to 
+        live on different structures.
     """
     def __init__(self, domain_id, shell_id, testShell, rrs):
         # Calls required parent inits and sets variables.
@@ -474,7 +505,9 @@ class PlanarSurfacePair(SimplePair, hasCylindricalShell):
         hasCylindricalShell.__init__(self, testShell, domain_id)        
         
         self.LD_MAX = 20 # Required by SimplePair.__init__
-        SimplePair.__init__(self, domain_id, shell_id, rrs)
+        StandardPair.__init__(self, domain_id, shell_id, rrs)
+
+        self.ignored_structure_ids = testShell.ignored_structure_ids
 
     def com_greens_function(self):
         return GreensFunction2DAbsSym(self.D_R, self.a_R)
@@ -664,10 +697,15 @@ class PlanarSurfaceTransitionPair(SimplePair, hasSphericalShell):
     @ classmethod
     def do_back_transform(cls, com, iv, D1, D2, radius1, radius2, structure1, structure2, unit_z, world):
 
-        # structure should be = structure1, but for safety we use the structures
-        # inherited from the test shell
+        # This function is called every time a PlanarSurfaceSingle dissociates. Sometimes this may
+        # require to deflect the particle towards an orthogonal neighboring plane. Then an additional
+        # seperation factor is applied to the interparticle vector to overcome predictable overlaps.
+        #
+        # Note that this function also is called when singles dissociate on one single plane
+        # in periodic boundary conditions. An extra check prevents that the correction factor
+        # is erronously applied in these cases.
 
-        # Calculate the new positions (still in structure1)
+        # Calculate the new positions (should be still in structure1)
         D_tot = D1 + D2
         pos1 = com - iv * (D1 / D_tot)
         pos2 = com + iv * (D2 / D_tot)
@@ -676,17 +714,21 @@ class PlanarSurfaceTransitionPair(SimplePair, hasSphericalShell):
         # In some cases the new positions may end up on adjacent planar surfaces.
         # This may lead to an overlap which has to be checked for and removed if present
         # in the next step.
+        # Note that this will be also done for unconnected planes, so it has to be
+        # made sure that apply_boundary does work correctly in these cases.
         new_pos1, new_sid1 = world.apply_boundary((pos1, structure1.id))
-        new_pos2, new_sid2 = world.apply_boundary((pos2, structure1.id))
+        new_pos2, new_sid2 = world.apply_boundary((pos2, structure1.id))        
+
+        new_structure1 = world.get_structure(new_sid1)
+        new_structure2 = world.get_structure(new_sid2)
 
         # If the new positions lead to an overlap we have to enlarge the IV by a safety factor
-        if world.distance(new_pos1, new_pos2) <= (radius1+radius2) * MINIMAL_SEPARATION_FACTOR :
+        # Only to this correction if the two planes are really orthogonal (assumed in the calculation)
+        if  world.distance(new_pos1, new_pos2) <= (radius1+radius2) * MINIMAL_SEPARATION_FACTOR \
+        and feq( numpy.dot(new_structure1.shape.unit_z, new_structure2.shape.unit_z), 0.0 ) :
 
-            log.warn('Removing overlap in PlanarSurfaceTransitionPair')
-
-            new_structure1 = world.get_structure(new_sid1)
-            new_structure2 = world.get_structure(new_sid2)
-
+            log.warn('do_back_transform: Removing overlap resulting from deflection of particles at the edge of orthogonal planes.')
+            
             # Calculate the distances from the two new positions to the edge between the planes
             # in which the particles temporarily ended up
             # This is easily done by projecting new_pos1 into new_structure2 + vice versa and
@@ -913,15 +955,19 @@ class MixedPair2D3D(Pair, hasCylindricalShell):
 
         # It then determines the CoM vector bound via
         a_R = shell_radius - space_for_iv
+        if feq(a_R, 0.0, typical=shell_radius):
+            a_R = 0.0
+            log.warn('determine_radii: setting a_R = %s to zero' % str(a_R))
 
         # Print the domain sizes and their estimated first passage times.
         if __debug__:
             tr = ((a_r - self.r0)**2.0) / (6.0 * self.D_r)  # the expected escape time of the iv
             if self.D_R == 0:
                 tR = numpy.inf 
+                log.warn('determine_radii: infinite diffusion time for CoM, tR = inf, because D_R = 0')
             else:
                 tR = (a_R**2.0) / (4.0 * self.D_R)          # the expected escape time of the CoM
-            log.debug('determine_radii: a_r= %s, tr= %s, a_R= %s, tR= %s, delta_tRr= %s' % \
+            log.debug('determine_radii: a_r = %s, tr = %s, a_R = %s, tR = %s, delta_tRr = %s' % \
                       (FORMAT_DOUBLE % a_r, FORMAT_DOUBLE % tr,
                        FORMAT_DOUBLE % a_R, FORMAT_DOUBLE % tR,
                        FORMAT_DOUBLE % (tr-tR) ))
@@ -930,7 +976,11 @@ class MixedPair2D3D(Pair, hasCylindricalShell):
 
         # Some checks that shall never fail        
         assert (self.sigma < a_r) and (a_r < 2.0*shell_half_length * self.z_scaling_factor)
-        assert (0 < a_R) and (a_R < shell_radius)
+        assert (0 <= a_R) and (a_R <= shell_radius)
+        if a_R == 0.0:
+            log.warn('determine_radii: a_R = 0')
+        if a_R == shell_radius:
+            log.warn('determine_radii: a_R = shell_radius')
 
         return a_R, a_r
 
@@ -1062,7 +1112,8 @@ class MixedPair2D3D(Pair, hasCylindricalShell):
             'MixedPair2D3D: Domain did not obey scaling relationship. '
 
         # check that the CoM is in the surface
-        assert numpy.dot( (self.com-self.structure2D.shape.position), self.structure2D.shape.unit_z) == 0.0
+        assert feq(numpy.dot(self.com-self.structure2D.shape.position, self.structure2D.shape.unit_z), 0.0, \
+                   typical=radius)
         # check that the IV is NOT in the surface
 
     def __str__(self):
@@ -1115,9 +1166,9 @@ class MixedPair1D3D(Pair):
         return math.sqrt((D1 + D2)/D2)
 
 
-class MixedPair1DCap(Pair, hasCylindricalShell):
+class MixedPair1DStatic(Pair, hasCylindricalShell):
     # This domain is for the interaction of a particle drifting and diffusing on a cylinder (1D particle)
-    # and another (static) particle which is bound to a cap of the same cylinder.
+    # and another (static) particle which is bound to a cap of the same cylinder or its interface with a plane.
     # Since the cap particle is immobile, we effectively have a one-particle problem
     # and the CoM is not used. The displacement of the 1D particle is sampled via iv_greens_function.
     # However, we have to make this a pair domain because we have two particles involved which
@@ -1127,28 +1178,28 @@ class MixedPair1DCap(Pair, hasCylindricalShell):
     def __init__(self, domain_id, shell_id, testShell, rrs):
         # Calls required parent inits and sets variables.
         #
-        # Sets:             particle1D, structure1D, cap_particle, cap_structure
+        # Sets:             particle1D, structure1D, static_particle, static_structure
         # Requires:         nothing to be set       
 
-        assert isinstance(testShell, MixedPair1DCaptestShell)
+        assert isinstance(testShell, MixedPair1DStatictestShell)
         hasCylindricalShell.__init__(self, testShell, domain_id)
         Pair.__init__(self, domain_id, shell_id, rrs)
 
-        assert isinstance(self.testShell, MixedPair1DCaptestShell)
+        assert isinstance(self.testShell, MixedPair1DStatictestShell)
 
         # Some useful definitions 
         self.particle1D    = self.testShell.particle1D
         self.structure1D   = self.testShell.structure1D
-        self.cap_particle  = self.testShell.cap_particle
-        self.cap_structure = self.testShell.cap_structure
+        self.static_particle  = self.testShell.static_particle
+        self.static_structure = self.testShell.static_structure
 
         # The latter is defined for completeness and used by check_domain() in egfrd.py:
         self.origin_structure = self.structure1D
-        self.target_structure = self.cap_structure
+        self.target_structure = self.static_structure
 
-        # The cap_particle should be immobile; check to be sure:
-        assert self.cap_particle.D == 0
-        assert self.cap_particle.v == 0
+        # The static_particle should be immobile; check to be sure:
+        assert self.static_particle.D == 0
+        assert self.static_particle.v == 0
         # D_r and D_R are inherited from Pair class;
         # This results in D_r = particle1D.D and D_R = 0
 
@@ -1160,7 +1211,7 @@ class MixedPair1DCap(Pair, hasCylindricalShell):
     def get_a_r(self):
       
         ref_pt = self.testShell.get_referencepoint()
-        assert ( all(self.cap_structure.shape.position - ref_pt == 0) )
+        assert all_feq(self.static_particle.position - ref_pt, 0.0)
 
         return abs(self.testShell.dz_right) - self.particle1D.radius
     a_r = property(get_a_r)
@@ -1198,15 +1249,15 @@ class MixedPair1DCap(Pair, hasCylindricalShell):
 
     @ classmethod
     def do_back_transform(cls, com, iv, D1, D2, radius1, radius2, structure1, structure2, unit_z, world):
-    # here we assume that structure1 = structure1D and structure2 = cap_structure
+    # here we assume that structure1 = structure1D and structure2 = static_structure
     # and that com has been correctly initialized with the initial (and constant) position
-    # of the cap particle.
+    # of the static particle.
 
-        pos2 = com          # cap particle (no. 2) stays in place
+        pos2 = com          # static particle (no. 2) stays in place
         pos1 = pos2 - iv    # IV always points from particle1 to particle2      
 
         return pos1, pos2, structure1.id, structure2.id
-        # TODO Does this give the correct new positions in case of a single reaction of cap_particle ?
+        # TODO Does this give the correct new positions in case of a single reaction of static_particle ?
 
     def create_com_vector(self, z):        
     # This returns the displacement of the com, which is zero here.
@@ -1227,5 +1278,5 @@ class MixedPair1DCap(Pair, hasCylindricalShell):
         return new_iv_z
 
     def __str__(self):
-        return 'MixedPair1DCap' + Pair.__str__(self)
+        return 'MixedPair1DStatic' + Pair.__str__(self)
 

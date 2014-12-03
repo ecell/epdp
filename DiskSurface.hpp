@@ -54,6 +54,12 @@ public:
     typedef std::pair<position_structid_pair_type, position_structid_pair_type>   position_structid_pair_pair_type;
 
     
+    /*** Info functions ***/
+    virtual position_type const& position() const
+    {
+        return base_type::shape().position();
+    }
+    
     /*** Simple structure-specific sampling functions ***/
     // Produce a "random position" in the disk, which is always its center (the only legal pos.)
     virtual position_type random_position(rng_type& rng) const        
@@ -91,8 +97,13 @@ public:
     // Reaction volume for binding to particle in the structure
     virtual Real particle_reaction_volume( length_type const& r01, length_type const& rl ) const
     {
-        // The disk can only hold 1 particle; this function therefore never should be called.
+        // The disk can only hold 1 particle; this function therefore never should be called.        
         return rl;
+        
+        // FIXME: This reaction volume is only correct for particles coming from a rod.
+        // If the interaction partner of the disk particle comes from a plane or from
+        // the bulk, a different volume factor shall be used. Then the return value of
+        // this function would depend on properties of the asker -> how to do???
     }
 
     // Reaction volume for binding to the structure
@@ -104,36 +115,37 @@ public:
     }
     
     // Vector of dissociation from the structure into the bulk
-    virtual position_type surface_dissociation_vector( rng_type& rng, length_type const& r0, length_type const& rl ) const
+    virtual position_type surface_dissociation_vector( rng_type& rng, length_type const& offset, length_type const& rl ) const
     {
-        // This function produces a position for a particle unbinding from the disk onto the rod.
+        // This function produces a position for a particle unbinding from the disk.
         // It should lie within the reaction volume around the disk.
         // Note that this is the same code as for the CylindricalSurface.
         Real X( rng.uniform(0.,1.) );
-        length_type const rod_radius = base_type::shape().radius();
+        length_type   const disk_radius = base_type::shape().radius();
         position_type const unit_z = base_type::shape().unit_z();
 
         // Calculate the length of the vector first
-        length_type const rrl( rod_radius + r0 + rl );
+        length_type const rrl( disk_radius + offset + rl );
         length_type const rrl_sq( gsl_pow_2(rrl) );
-        length_type const rr_sq( gsl_pow_2(rod_radius + r0) );        
+        length_type const rr_sq(  gsl_pow_2(disk_radius + offset) );
         // Create a random length between rr_sq and rrl_sq
         length_type const diss_vec_length( sqrt( rr_sq + X * (rrl_sq - rr_sq) ) );
 
         // Create a 3D vector with totally random orientation
         position_type v(rng.uniform(0.,1.) - .5, rng.uniform(0.,1.) - .5, rng.uniform(0.,1.) - .5);
         // Subtract the part parallel to the axis to get the orthogonal components and normalize
-        // This creates a normed random vector orthogonal to the cylinder axis
+        // This creates a normed random vector in the disk plane
         v = normalize( subtract(v, multiply( unit_z, dot_product( unit_z, v ) ) ) );
          
         // Return the created vector with the right length
-        return multiply( v, diss_vec_length); 
+        return multiply( v, MINIMAL_SEPARATION_FACTOR * diss_vec_length);
+               // TODO define a global MINIMAL_SEPARATION_FACTOR also for BD mode
     }
     
     // Normed direction of dissociation from the structure to parent structure
     virtual position_type surface_dissociation_unit_vector( rng_type& rng ) const
     {
-        return base_type::shape().unit_z();
+        return base_type::shape().unit_z(); // FIXME
     }
     
     // Vector used to determine whether a particle has crossed the structure
@@ -148,64 +160,34 @@ public:
         length_type const& rl ) const
     {
         // The positions of a particle dissociating into two new ones on the disk; should never happen,
-        // therefore this function just returns a dummy positions pair (2x the disk center)        
-        
+        // therefore this function just returns a dummy positions pair (2x the disk center)                
         return position_pair_type( base_type::shape().position(), base_type::shape().position() );
     }
     
     // Positions created at dissociation of one particle on the structure into two particles, one of which ends up in the bulk
-    virtual position_pair_type special_geminate_dissociation_positions( rng_type& rng, species_type const& s_surf, species_type const& s_bulk, 
-        position_type const& op_surf, length_type const& rl ) const
+    virtual position_pair_type special_geminate_dissociation_positions( rng_type& rng, species_type const& s_disk, species_type const& s_diss, 
+        position_type const& reactant_pos, length_type const& rl ) const
     {
-        // TODO 
         // This function produces two new positions for a dissociating particle in the case
         // that one stays on the surface and the other one changes to the parent structure.
-        // We have to distinguish between sink and cap here and between dissociation onto
-        // the rod and into the bulk for the cap!
+        // TODO We have to distinguish between sink and cap here and between dissociation onto
+        // the rod and into the bulk/plane!
         
-        Real const rod_radius( base_type::shape().radius() );
+        // Note: s_disk = disk-bound species, s_diss = dissociating species (may go to bulk or plane)
+                                                 
+        length_type const disk_radius( base_type::shape().radius() );        
+        length_type const r01( s_disk.radius() + s_diss.radius() );
         
-        //Species living on the rod should have a larger radius than the rod.
-        assert( rod_radius < s_surf.radius() );
-    
-        length_type const r01( s_bulk.radius() + s_surf.radius() );
-        Real const D01( s_bulk.D() + s_surf.D() );
-        Real const D_bulk_D01( s_bulk.D() / D01 );
-        Real const D_surf_D01( s_surf.D() / D01 );
+        // The following is the additional distance that we have to pass to surface_dissociation_vector() below
+        // to place the unbinding particle in contact with the disk particle or the disk, whatever has the 
+        // larger radius. surface_dissociation_vector() will add it to the disk_radius.
+        length_type offset( s_disk.radius() > disk_radius ? r01 - disk_radius : s_diss.radius());
         
-        //Commented code for direct binding case with c.o.m. reaction.
-        //Real const theta_min( asin(rod_radius / r01) );       
-        Real const theta_min( asin( (rod_radius + s_bulk.radius()) / r01) );       
-        Real const theta( theta_min + rng.uniform(0.,1.) * (M_PI - 2 * theta_min) );  
-        Real const phi( rng.uniform(0.,1.) * 2 * M_PI );
-        
-        Real const X( rng.uniform(0.,1.) );
-        length_type const r01l( r01 + rl );
-        length_type const r01l_cb( r01l * r01l * r01l );
-        length_type const r01_cb( r01 * r01 * r01 );
-        
-        length_type const diss_vec_length( cbrt( X * (r01l_cb - r01_cb) + r01_cb ) );
-        
-        position_type v;
-        v[0] = 1.; v[1] = 1.; v[2] = 1.;
-        
-        position_type const unit_z( base_type::shape().unit_z() );      
-        position_type const unit_x( normalize( subtract( v, 
-                                        multiply( unit_z, dot_product(v, unit_z) ) ) ) );
-        position_type const unit_y( normalize( cross_product( unit_x, unit_z ) ) );
-                
-        length_type const x( diss_vec_length * sin( theta ) * cos( phi ) );
-        length_type const y( diss_vec_length * sin( theta ) * sin( phi ) );
-        length_type const z( diss_vec_length * cos( theta ) );
-                                
-        position_pair_type pp01;
-        
-        pp01.first = subtract( op_surf, unit_z * (z * D_surf_D01) );
-        
-        pp01.second = add( op_surf, 
-                        add( unit_x * x,
-                          add( unit_y * y, 
-                                 unit_z * (z * D_bulk_D01) ) ) );
+        position_pair_type pp01;        
+        // Particle 0 is the one that stays on the origin structure. It does not move.
+        pp01.first  = reactant_pos;
+        // Particle 1 is the one that unbinds from the disk and is placed in the reaction volume around it.
+        pp01.second = add(reactant_pos, surface_dissociation_vector(rng, offset, rl));
         
         return pp01;
     }
@@ -383,6 +365,12 @@ public:
     position_structid_pair_type get_pos_sid_pair_2o_helper_any(Tstruct_ const& origin_structure1, structure_type_id_type const& target_sid, position_type const& CoM,
                                                                         length_type const& offset, length_type const& reaction_length, rng_type& rng) const
     {
+        // This method has to figure out where the product will be placed in case of a bimolecular reaction.
+        // As a default, we place particles on the substructure or the lower-dimensional structure. If the structures
+        // have the same structure type (=> same dimensionality) it does not matter on which structure we put the product,
+        // as long as it has the structure type id of the product species. This is handled in cases '1' below.
+        
+        // 1 - Check whether one of the structures is the parent of the other. If yes, the daughter structure is the target.
         if( this->is_parent_of_or_has_same_sid_as(origin_structure1) && origin_structure1.has_valid_target_sid(target_sid) )
             // origin_structure1 is target
             return ::get_pos_sid_pair<traits_type>(*this, origin_structure1, CoM, offset, reaction_length, rng);
@@ -390,8 +378,17 @@ public:
         else if( origin_structure1.is_parent_of_or_has_same_sid_as(*this) && this->has_valid_target_sid(target_sid) )
             // this structure is target
             return ::get_pos_sid_pair<traits_type>(origin_structure1, *this, CoM, offset, reaction_length, rng);
-            
-        else throw propagation_error("Invalid target structure type / particles can be at most one hierarchical level apart for a pair reaction.");
+        
+        // 2 - Check which structures has the lower dimensionality / particle degrees of freedom, and put the product there.
+        else if( origin_structure1.shape().dof() < this->shape().dof() && origin_structure1.has_valid_target_sid(target_sid) )
+            // origin_structure1 is target
+            return ::get_pos_sid_pair<traits_type>(*this, origin_structure1, CoM, offset, reaction_length, rng);
+        
+        else if( this->shape().dof() < origin_structure1.shape().dof() && this->has_valid_target_sid(target_sid) )
+            // this structure is target
+            return ::get_pos_sid_pair<traits_type>(origin_structure1, *this, CoM, offset, reaction_length, rng);
+        
+        else throw propagation_error("Invalid target structure type: does not match product species structure type or has wrong hierarchy or dimensionality.");
     }
     
 //     // *** 4 *** - Generalized functions for pair reactions with two origin structures and one target structure

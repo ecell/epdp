@@ -33,6 +33,12 @@ public:
     typedef std::pair<position_type, structure_id_type>                           position_structid_pair_type;
     typedef std::pair<position_structid_pair_type, position_structid_pair_type>   position_structid_pair_pair_type;
 
+    
+    /*** Info functions ***/
+    virtual position_type const& position() const
+    {
+        return base_type::shape().position();
+    }   
 
     /*** Simple structure-specific sampling functions ***/
     virtual position_type random_position(rng_type& rng) const
@@ -257,6 +263,12 @@ public:
     position_structid_pair_type get_pos_sid_pair_2o_helper_any(Tstruct_ const& origin_structure1, structure_type_id_type const& target_sid, position_type const& CoM,
                                                                         length_type const& offset, length_type const& reaction_length, rng_type& rng) const
     {
+        // This method has to figure out where the product will be placed in case of a bimolecular reaction.
+        // As a default, we place particles on the substructure or the lower-dimensional structure. If the structures
+        // have the same structure type (=> same dimensionality) it does not matter on which structure we put the product,
+        // as long as it has the structure type id of the product species. This is handled in cases '1' below.
+        
+        // 1 - Check whether one of the structures is the parent of the other. If yes, the daughter structure is the target.
         if( this->is_parent_of_or_has_same_sid_as(origin_structure1) && origin_structure1.has_valid_target_sid(target_sid) )
             // origin_structure1 is target
             return ::get_pos_sid_pair<traits_type>(*this, origin_structure1, CoM, offset, reaction_length, rng);
@@ -264,8 +276,17 @@ public:
         else if( origin_structure1.is_parent_of_or_has_same_sid_as(*this) && this->has_valid_target_sid(target_sid) )
             // this structure is target
             return ::get_pos_sid_pair<traits_type>(origin_structure1, *this, CoM, offset, reaction_length, rng);
-            
-        else throw propagation_error("Invalid target structure type / particles can be at most one hierarchical level apart for a pair reaction.");
+        
+        // 2 - Check which structures has the lower dimensionality / particle degrees of freedom, and put the product there.
+        else if( origin_structure1.shape().dof() < this->shape().dof() && origin_structure1.has_valid_target_sid(target_sid) )
+            // origin_structure1 is target
+            return ::get_pos_sid_pair<traits_type>(*this, origin_structure1, CoM, offset, reaction_length, rng);
+        
+        else if( this->shape().dof() < origin_structure1.shape().dof() && this->has_valid_target_sid(target_sid) )
+            // this structure is target
+            return ::get_pos_sid_pair<traits_type>(origin_structure1, *this, CoM, offset, reaction_length, rng);
+        
+        else throw propagation_error("Invalid target structure type: does not match product species structure type or has wrong hierarchy or dimensionality.");
     }
     
 //     // *** 4 *** - Generalized functions for pair reactions with two origin structures and one target structure

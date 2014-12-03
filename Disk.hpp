@@ -66,6 +66,11 @@ public:
     {
         return unit_z_;
     }
+    
+    const int dof() const
+    {   // degrees of freedom for particle movement
+        return 0;
+    }
 
     std::string show(int precision)
     {
@@ -118,6 +123,9 @@ project_point(Disk<T_> const& obj, typename Disk<T_>::position_type const& pos)
 // for the normal component (z) of 'pos' in the basis of the disk and the distance of the
 // projected point to the 'edge' of the disk. Here a positive number means the projected
 // point is outside the disk, and a negative numbers means it is 'inside' the disk.
+// As a special case, we calculate the projection differently for a position that is in 
+// the plane of the disk. Then we imagine that the particle is always 'above' the structure
+// and return -1 as a standard, instead of the distance to the disk center.
 {
     typedef typename Disk<T_>::length_type   length_type;
     typedef typename Disk<T_>::position_type position_type;
@@ -128,10 +136,24 @@ project_point(Disk<T_> const& obj, typename Disk<T_>::position_type const& pos)
     const length_type   z ( dot_product(pos_vector, obj.unit_z()) );
     const position_type r_vector (subtract(pos_vector, multiply(obj.unit_z(), z)));
     const length_type   r (length(r_vector));
-    assert(r >= 0.0 );
+    assert(r >= 0.0);
     
-    return std::make_pair( add(obj.position(), r_vector),
-                           std::make_pair(z, r - obj.radius()) );
+    // The quantities that will be return, with default values
+    // for the standard case (pos is not in plane of disk)
+    position_type proj_pos( add(obj.position(), r_vector) );
+    length_type   normal_comp( z );
+    length_type   dist_to_edge( r - obj.radius() );
+    
+    // Special case: pos is in the same plane as the disk
+    if( feq(z, 0.0, obj.radius()) ){ // third argument is typical scale
+     
+        proj_pos = obj.position(); // projected position = disk center
+        normal_comp = r;
+        dist_to_edge = -1.0;
+    }        
+    
+    return std::make_pair( proj_pos,
+                           std::make_pair(normal_comp, dist_to_edge) );
 }
 
 // The same as in case of the plane: project_point_on_surface = project_point

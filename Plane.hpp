@@ -164,6 +164,11 @@ public:
     {
         return is_one_sided_;
     }
+    
+    const int dof() const
+    {   // degrees of freedom for particle movement
+        return 2;
+    }
 
     bool operator==(const Plane& rhs) const
     {
@@ -249,13 +254,16 @@ distance(Plane<T_> const& obj, typename Plane<T_>::position_type const& pos)
     typedef typename Plane<T_>::length_type length_type;
     boost::array<length_type, 3> const x_y_z(to_internal(obj, pos));
 
+    // The (negative) distances to the plane edges (in x/y direction)
     length_type const dx(subtract( abs(x_y_z[0]), obj.half_extent()[0]));
     length_type const dy(subtract( abs(x_y_z[1]), obj.half_extent()[1]));
+    // The z-distance (may be positive or negative, depending on the side)
+    length_type const dz( x_y_z[2] );
 
     if (dx < 0 && dy < 0) {
-        // pos is positioned over the plane (projected point is in the plane and
+        // pos is positioned over the plane (projected point is in the plane,
 	// not next to it).
-        return abs(x_y_z[2]);
+        return abs(dz);
     }
 
     if (dx > 0) // outside the plane in the x direction
@@ -263,13 +271,12 @@ distance(Plane<T_> const& obj, typename Plane<T_>::position_type const& pos)
         if (dy > 0)
         {
             // outside the plane in both x and y direction
-            return std::sqrt(gsl_pow_2(dx) + gsl_pow_2(dy) +
-                             gsl_pow_2(x_y_z[2]));
+            return std::sqrt(gsl_pow_2(dx) + gsl_pow_2(dy) + gsl_pow_2(dz));
         }
         else
         {
 	    // outside the plane in x, but inside in y direction
-            return std::sqrt(gsl_pow_2(dx) + gsl_pow_2(x_y_z[2]));
+            return std::sqrt(gsl_pow_2(dx) + gsl_pow_2(dz));
         }
     }
     else   // inside the plane in x direction
@@ -277,12 +284,12 @@ distance(Plane<T_> const& obj, typename Plane<T_>::position_type const& pos)
         if (dy > 0)
         {
 	    // outside the plane in y, but inside in x direction
-            return std::sqrt(gsl_pow_2(dy) + gsl_pow_2(x_y_z[2]));
+            return std::sqrt(gsl_pow_2(dy) + gsl_pow_2(dz));
         }
         else
         {
             // inside the plane in both x and y direction (see above)
-            return abs(x_y_z[2]);
+            return abs(dz);
         }
     }
 }

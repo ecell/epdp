@@ -5,6 +5,8 @@
 #include <boost/algorithm/string/join.hpp>
 #include <boost/foreach.hpp>
 
+#include <gsl/gsl_math.h>
+
 #include "exceptions.hpp"
 #include "Domain.hpp"
 #include "ParticleContainer.hpp"
@@ -244,6 +246,12 @@ public:
     {
         return world_.check_surface_overlap(s, old_pos, current, sigma, ignore);
     }
+    
+    virtual structure_id_pair_and_distance_list* check_surface_overlap(particle_shape_type const& s, position_type const& old_pos, structure_id_type const& current,
+                                                                       length_type const& sigma, structure_id_type const& ignore1, structure_id_type const& ignore2) const
+    {
+        return world_.check_surface_overlap(s, old_pos, current, sigma, ignore1, ignore2);
+    }
 
     virtual particle_id_pair_generator* get_particles() const
     {
@@ -315,20 +323,65 @@ public:
             species_.size());
     }
     
-    /* Returns largest diffusion constant en smallest particle radius inside the mpc. */
-    real_pair maxD_minsigma() const
+    /* Determines the largest diffusion constant and largest drift coefficient inside the mpc. 
+       and whether movement is dominated by diffusion or drift for a given length scale.
+       Then it returns the typical time to travel that length scale based on which type
+       of movement is dominant.                                                             */
+    Real get_min_tau_Dv(Real r_typical) const
     {
-        Real D_max(0.), radius_min(std::numeric_limits<Real>::max());
+        Real tau_D(0.0), tau_v(0.0); // the estimated times to travel r_typical by diffusion / convection
+        Real tau_dominant(0.0), tau_min(-1.0); // always keep tau_min negative initially!
+        
+        const Real LARGE_PREF( GSL_POSINF );
+        assert( r_typical > 0.0 );
+                
+        BOOST_FOREACH(species_type s, get_species_in_multi())
+        {            
+            // First we calculate the typical times to travel r_typical by
+            // diffusion and convection, respectively.
+            if( s.D()==0 && s.v()==0)
+              
+                tau_dominant = GSL_POSINF; // static particle, will never move
+            
+            else{
+              
+                tau_D = s.D() > 0.0 ? 2.0 * gsl_pow_2(r_typical) / s.D() : LARGE_PREF * r_typical / s.v();
+                tau_v = s.v() > 0.0 ? r_typical / s.v() : LARGE_PREF * 2.0 * gsl_pow_2(r_typical) / s.D() ;
+                
+                tau_dominant = tau_v < 0.1 * tau_D ? tau_v : tau_D;
+                // We believe that convective movement is dominant if it takes a tenth of the
+                // time to travel the typical distance by convection as compared to diffusion,
+                // and then also the associated time is the relevant timescale.
+                // Note that the 0.1 prefactor is to ensure that we pick the convective
+                // timescale only when the movement is clearly dominated by convection,
+                // i.e. when both timescales are comparable we prefer the diffusion timescale.
+                if(tau_dominant == tau_D){ LOG_DEBUG(("Diffusion dominates on given reaction length"));}
+                else                     { LOG_DEBUG(("Convection dominates on given reaction length"));    }
+            }
+            
+            // Now compare if within the current set of species this is the smallest time scale.
+            assert( tau_dominant > 0.0 );
+            if( tau_min < 0.0 || tau_dominant < tau_min )
+                  tau_min = tau_dominant;
+        }
+        
+        assert( tau_min > 0.0 );
+        
+        return tau_min;
+    }
+    
+    /* Returns smallest particle radius inside the mpc. */
+    Real get_min_radius() const
+    {
+        Real radius_min(std::numeric_limits<Real>::max());
 
         BOOST_FOREACH(species_type s, get_species_in_multi())
         {
-            if (D_max < s.D())
-                D_max = s.D();
-            if (radius_min > s.radius())
-                radius_min = s.radius();
+            if(radius_min > s.radius())
+                    radius_min = s.radius();
         }
         
-        return real_pair(D_max, radius_min);
+        return radius_min;
     }
     
     /* Functions returns largest _1D_ intrinsic reaction rate in the multi. */
@@ -371,7 +424,7 @@ public:
                 for (typename boost::range_const_iterator<reaction_rules>::type
                 it(boost::begin(rrules)), e(boost::end(rrules)); it != e; ++it)
                 {
-                    Real const k( struct_and_dist.first->get_1D_rate_surface( (*it).k(), s.radius() ) ); 
+                    Real const k( struct_and_dist.first->get_1D_rate_surface( (*it).k(), s.radius() ) );                     
 
                     if ( k_max < k )
                         k_max = k;
@@ -418,23 +471,40 @@ public:
                         k = get_some_structure_of_type(s1.structure_type_id())->get_1D_rate_geminate( (*it).k(), r01 );
                     
                     else
-                    // If both particles live on lower dimensionality structures for now we take the maximal rate
-                    // as determined from get_1D_rate_geminate() of both structures. TODO This may lead to a maximal
-                    // rate which actually is higher than the one used in BD propagation and therefore waste resources.
+                    // If both particles live on lower dimensionality structures more care has to be taken in determining
+                    // what is the right modifier function for the bare rate.
+                    // For now by default we take the maximal rate as determined from get_1D_rate_geminate() of both structures.
+                    // However, if one of the two interacting species is static (D=0, v=0), the "dimensionality" of the motion
+                    // is exclusively determined by the mobile species, and we have to take the modifier function of that one.
+                    // FIXME Taking the max by default may lead to a rate which actually is higher than the one that should
+                    // be used in BD propagation and therefore wastes resources.
                     // Until now this case basically only comprises the rod-particle/cap-particle interaction. Since
                     // both rates are equal in this case we do not make any approximation in that case. However, if we
                     // allow for other types of lower dimensionality particle-particle reactions we should fix this.
                     {
-                        k0 = get_some_structure_of_type(s0.structure_type_id())->get_1D_rate_geminate( (*it).k(), r01 );
-                        k1 = get_some_structure_of_type(s1.structure_type_id())->get_1D_rate_geminate( (*it).k(), r01 );
+                        // In case that one of the two particles is static, make sure we modify the rate using the
+                        // modifier function of the structure that holds the *mobile* species:
+                        if(s0.D()==0.0 and s0.v()==0.0) // s1 is the mobile species
+                          k = get_some_structure_of_type(s1.structure_type_id())->get_1D_rate_geminate( (*it).k(), r01 );
                         
-                        k = k0 > k1 ? k0 : k1;
+                        else if(s1.D()==0.0 and s1.v()==0.0) // s0 is the mobile species
+                          k = get_some_structure_of_type(s0.structure_type_id())->get_1D_rate_geminate( (*it).k(), r01 );
+                        
+                        else{
+                            // Pick the higher of the modified rates
+                            k0 = get_some_structure_of_type(s0.structure_type_id())->get_1D_rate_geminate( (*it).k(), r01 );
+                            k1 = get_some_structure_of_type(s1.structure_type_id())->get_1D_rate_geminate( (*it).k(), r01 );                            
+                                                    
+                            k = k0 > k1 ? k0 : k1;
+                            // FIXME This is not very elegant yet and may cause that a rate that is way too high is picked 
+                            // if the species' structures have different dimensionalities
+                        }                        
                     }
                     // NOTE: If a structure of the required structure type can not be found a not_found exception
                     // is risen. This however should never happen, because whenever a particle of species s0 (s1)
                     // is in the system also at least one structure of the associated structure type should exist.
                     
-                    // Compare with the fasted rate found so far
+                    // Compare with the fastest rate found so far
                     k_max = k > k_max ? k : k_max;
                 }
             }
@@ -460,28 +530,39 @@ public:
     */    
     real_pair determine_dt_and_reaction_length(network_rules_type const& rules, Real const& step_size_factor, Real const& dt_hardcore_min = -1.0) const
     {               
-        const real_pair maxD_minr( maxD_minsigma() );
+        
         const Real k_max( get_max_rate(rules) );
-        const Real D_max( maxD_minr.first );
-        const Real r_min( maxD_minr.second );
+        const Real r_min( get_min_radius() );
+        
+        // The following gives us the typical timescale to travel the length step_size_factor * r_min,
+        // taking into account all species in the Multi and automatically comparing whether their movement
+        // is dominated by convection or diffusion, respectively.
+        const Real tau_Dv( get_min_tau_Dv(step_size_factor * r_min) );
+        
         const Real Pacc_max( 0.1 ); // Maximum allowed value of the acceptance probability. // TESTING was 0.01
                                     // This should be kept very low (max. 0.01), otherwise the approximation of
-                                    // treating the reaction as two sequential attempts fails
-        Real dt;
-        const Real tau_D( 2. * gsl_pow_2(step_size_factor * r_min) / D_max );
+                                    // treating the reaction as two sequential attempts (first move, then react)
+                                    // might break down!
+        Real dt, dt_temp;
         
         if( k_max > 0)
         {
             // step_size_factor * r_min is the reaction length
             // Here it is assumed that the RL is linear in any dimension,
             // which requires it to be very small!
-            Real dt_temp( 2. * Pacc_max * step_size_factor * r_min / k_max );
-            dt = std::min( dt_temp, tau_D ); // tau_D is upper limit of dt.
+            dt_temp = 2. * Pacc_max * step_size_factor * r_min / k_max;
+            dt = std::min( dt_temp, tau_Dv ); // tau_Dv is upper limit of dt.
+            
+            if(dt == tau_Dv){ LOG_DEBUG(("Time step set by timescale of motion"));  }
+            else            { LOG_DEBUG(("Time step set by largest reaction rate, k_max = %e, r_min = %e", k_max, r_min));}
         }
         else
-            dt = tau_D;
+            dt = tau_Dv;        
         
-        if( dt < dt_hardcore_min )      dt = dt_hardcore_min;
+        if( dt < dt_hardcore_min ){
+          dt = dt_hardcore_min;
+          LOG_WARNING(("Setting timestep to hard-coded minimal bound, dt = %e", dt));
+        }
 
         return real_pair(dt, step_size_factor * r_min);
     }

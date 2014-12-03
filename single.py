@@ -22,6 +22,7 @@ from domain import (
 from shells import *
 
 __all__ = [
+    'ShellUpdateError',
     'CylindricalSurfaceSingle',
     'DiskSurfaceSingle',
     'PlanarSurfaceSingle',
@@ -31,14 +32,23 @@ __all__ = [
     'InteractionSingle',
     'CylindricalSurfaceInteraction',
     'CylindricalSurfaceCapInteraction',
+    'CylindricalSurfacePlanarSurfaceInteractionSingle',
+    'CylindricalSurfacePlanarSurfaceIntermediateSingle',
     'CylindricalSurfaceSink',
     'PlanarSurfaceInteraction',
+    'PlanarSurfaceDiskSurfaceInteraction',
     'TransitionSingle',
     'PlanarSurfaceTransitionSingle',
     ]
 
 import logging
 log = logging.getLogger('ecell')
+
+
+class ShellUpdateError(Exception):
+    # The ShellUpdateError is raised when a domain (typically a Single)
+    # could not be updated although that was excpected in the given situation.
+    pass
 
 
 class Single(ProtectiveDomain):
@@ -156,7 +166,7 @@ class Single(ProtectiveDomain):
     def __str__(self):
         pid = self.pid_particle_pair[0]
         sid = self.pid_particle_pair[1].sid
-        name = self.world.model.get_species_type_by_id(sid)["name"]
+        name = self.testShell.world.model.get_species_type_by_id(sid)["name"]
         if name[0] != '(':
             name = '(' + name + ')'
         return 'Single[%s: %s, ST%s, %s]' % (self.domain_id, pid, name,
@@ -322,7 +332,7 @@ class SphericalSingle(NonInteractionSingle, hasSphericalShell):
             return self.create_new_shell(position, radius, self.domain_id)
 
         except ShellmakingError as e:
-            raise Exception('SphericalSingle, create_updated_shell failed: %s' %
+            raise ShellUpdateError('SphericalSingle, create_updated_shell failed: %s' %
                             (str(e)))
 
     def create_position_vector(self, r):
@@ -337,7 +347,7 @@ class SphericalSingle(NonInteractionSingle, hasSphericalShell):
         if not self.is_reset():
             assert self.shell.shape.radius*SAFETY >= self.testShell.get_min_radius()
         if self.is_reset():
-            assert self.shell.shape.radius == self.pid_particle_pair[1].radius
+            assert feq(self.shell.shape.radius, self.pid_particle_pair[1].radius)
 
         assert self.is_reset() ^ (self.dt != 0.0)
         assert isinstance(self.structure, CuboidalRegion)
@@ -411,7 +421,7 @@ class PlanarSurfaceSingle(NonInteractionSingle, hasCylindricalShell):
             
             return self.create_new_shell(center, radius, half_length, self.domain_id)
         except ShellmakingError as e:
-            raise Exception('PlanarSurfaceSingle, create_updated_shell failed: %s' % str(e) )
+            raise ShellUpdateError('PlanarSurfaceSingle, create_updated_shell failed: %s' % str(e) )
 
     def create_position_vector(self, r):
         # project the vector onto the surface unit vectors to make sure that the coordinates are in the surface
@@ -429,15 +439,15 @@ class PlanarSurfaceSingle(NonInteractionSingle, hasCylindricalShell):
         if not self.is_reset():
             min_radius, _, _ = self.testShell.get_min_dr_dzright_dzleft()
             assert self.shell.shape.radius*SAFETY >= min_radius
-        assert self.shell.shape.half_length == self.testShell.z_right(self.shell.shape.radius) 
-        assert self.shell.shape.half_length == self.testShell.z_left (self.shell.shape.radius)
+        assert feq(self.shell.shape.half_length, self.testShell.z_right(self.shell.shape.radius))
+        assert feq(self.shell.shape.half_length, self.testShell.z_left (self.shell.shape.radius))
         if self.is_reset():
-            assert self.shell.shape.radius == self.pid_particle_pair[1].radius
+            assert feq(self.shell.shape.radius, self.pid_particle_pair[1].radius)
 
         assert self.is_reset() ^ (self.dt != 0.0)
         assert isinstance(self.structure, PlanarSurface)
         assert self.greens_function
-        assert (self.shell.shape.unit_z == self.structure.shape.unit_z).all()
+        assert all_feq(self.shell.shape.unit_z, self.structure.shape.unit_z)
 
         # Assert that new position is in the structure
         assert feq(numpy.dot(self.pid_particle_pair[1].position - self.structure.shape.position,\
@@ -520,7 +530,7 @@ class CylindricalSurfaceSingle(NonInteractionSingle, hasCylindricalShell):
                                                                              dr, dz_right, dz_left)
             return self.create_new_shell(center, radius, half_length, self.domain_id)
         except ShellmakingError as e:
-            raise Exception('CylindricalSurfaceSingle, create_updated_shell failed: %s' % str(e) )
+            raise ShellUpdateError('CylindricalSurfaceSingle, create_updated_shell failed: %s' % str(e) )
 
     def create_position_vector(self, z):
         # 'z' can be interpreted in two different ways here, it may a coordinate in the z direction or it may
@@ -562,12 +572,12 @@ class CylindricalSurfaceSingle(NonInteractionSingle, hasCylindricalShell):
 #        if not self.is_reset():
 #            assert self.shell.shape.radius >= self.testShell.get_min_radius()
         if self.is_reset():
-            assert self.shell.shape.half_length == self.pid_particle_pair[1].radius
+            assert feq(self.shell.shape.half_length, self.pid_particle_pair[1].radius)
 
         assert self.is_reset() ^ (self.dt != 0.0)
         assert isinstance(self.structure, CylindricalSurface)
         assert self.greens_function
-        assert (self.shell.shape.unit_z == self.structure.shape.unit_z).all()
+        assert all_feq(self.shell.shape.unit_z, self.structure.shape.unit_z)
         assert self.v < numpy.inf
 
         return True
@@ -589,6 +599,8 @@ class DiskSurfaceSingle(NonInteractionSingle, hasCylindricalShell):
         assert isinstance(testShell, DiskSurfaceSingletestShell)
         hasCylindricalShell.__init__(self, testShell, domain_id)
         NonInteractionSingle.__init__(self, domain_id, shell_id, reactionrules)
+
+        self.ignored_structure_ids = self.testShell.ignored_structure_ids
 
     def get_inner_a(self):
         return self.pid_particle_pair[1].radius
@@ -633,7 +645,8 @@ class DiskSurfaceSingle(NonInteractionSingle, hasCylindricalShell):
         # TODO what should we do with the position now?
         # maybe update the reference_point of the shell before updating the shell
         try:
-            dr, dz_right, dz_left = self.testShell.determine_possible_shell(self.structure.id, [self.domain_id], [])
+            ignores = self.ignored_structure_ids
+            dr, dz_right, dz_left = self.testShell.determine_possible_shell(self.structure.id, [self.domain_id], ignores)
             dz_right = min(dz_right, dz_left)       # make sure the domain is symmetric around the particle
             dz_left  = dz_right                     # This is not necessary but it's assumed later
             center, radius, half_length = self.r_zright_zleft_to_r_center_hl(self.testShell.get_referencepoint(),
@@ -641,7 +654,7 @@ class DiskSurfaceSingle(NonInteractionSingle, hasCylindricalShell):
                                                                              dr, dz_right, dz_left)
             return self.create_new_shell(center, radius, half_length, self.domain_id)
         except ShellmakingError as e:
-            raise Exception('DiskSurfaceSingle, create_updated_shell failed: %s' % str(e) )
+            raise ShellUpdateError('DiskSurfaceSingle, create_updated_shell failed: %s' % str(e) )
 
     def create_position_vector(self, z):
         # Particles on DiskStructures are immobile; always keep them in the center of the structure
@@ -654,12 +667,12 @@ class DiskSurfaceSingle(NonInteractionSingle, hasCylindricalShell):
         assert isinstance(self.shell.shape, Cylinder)
 
         if self.is_reset():
-            assert self.shell.shape.half_length == self.pid_particle_pair[1].radius
+            assert feq(self.shell.shape.half_length, self.pid_particle_pair[1].radius)
 
         assert self.is_reset() ^ (self.dt != 0.0)
         assert isinstance(self.structure, DiskSurface)
         #assert self.greens_function
-        assert (self.shell.shape.unit_z == self.structure.shape.unit_z).all()
+        assert all_feq(self.shell.shape.unit_z, self.structure.shape.unit_z)
 
         return True
 
@@ -692,7 +705,9 @@ class InteractionSingle(Single, hasCylindricalShell, Others):
 
         self.origin_structure = self.testShell.origin_structure
         self.target_structure = self.testShell.target_structure 
-             # The surface with which the particle is trying to interact                         
+             # The surface with which the particle is trying to interact
+        self.product_structure = self.testShell.product_structure
+             # The surface that later will hold the product (= target_structure in almost all cases)
 
     def get_interaction_rule(self):
         if self.intrule == None:
@@ -954,6 +969,82 @@ class CylindricalSurfaceInteraction(InteractionSingle):
                'radius = %s, half_length = %s' %
                 (self.shell.shape.radius, self.shell.shape.half_length))
 
+class PlanarSurfaceDiskSurfaceInteraction(CylindricalSurfaceInteraction):
+    """1 Particle on a PlanarSurface close to a DiskSurface, 
+       inside a cylindrical shell that surrounds the DiskSurface.
+
+        * Particle coordinates inside shell: r, theta, z.
+        * Domains: composite r-theta, cartesian z.
+        * Initial position: r = r, theta = 0, z = z.
+        * Selected randomly when drawing displacement vector: none.
+
+    """
+    def __init__(self, domain_id, shell_id, testShell, reactionrules, interactionrules):
+
+        # This domain is basically equivalent to CylindricalSurfaceInteraction. It uses
+        # the same Green's function for binding, but the particle's z-coordinate does not
+        # change here. Thus we have to modify draw_new_position() accordingly.
+        assert isinstance(testShell, PlanarSurfaceDiskSurfaceInteractiontestShell)
+        # Initialize the parent class. This should be fine since the test shell also has
+        # CylindricalSurfaceInteractiontestShell as a parent class.
+        CylindricalSurfaceInteraction.__init__(self, domain_id, shell_id, testShell, reactionrules, interactionrules)
+
+        self.product_structure = self.target_structure # DEPRECATED rethink this
+
+    def draw_escape_time_tuple(self):
+        # This draws the time for escape in z-direction; since the particle in this domain
+        # remains bound to the plane, we do not want to draw any z-escape time and just
+        # return t=infinity for the SINGLE_ESCAPE event here.
+        return numpy.inf, EventType.SINGLE_ESCAPE
+
+    def draw_new_position(self, dt, event_type):
+        oldpos = self.pid_particle_pair[1].position
+
+        if self.D == 0:
+            newpos = oldpos
+        elif event_type == EventType.SINGLE_REACTION and len(self.reactionrule.products) == 0:
+            newpos = oldpos
+        else:
+            # 1) Draw z.
+            # Here z does not change, the particle stays on the plane
+            # => do nothing here
+
+            # The rest is the same as in the parent class.
+
+            # 2) Draw r and theta.
+            # If the event was not yet fully specified
+            if event_type == EventType.IV_EVENT:        
+                self.event_type = self.draw_iv_event_type()
+                event_type = self.event_type
+
+            sigma = self.get_inner_sigma()
+            a_r = self.get_inner_a()
+            gf_iv = self.iv_greens_function()
+
+            if event_type == EventType.IV_ESCAPE:
+                r = a_r
+            elif event_type == EventType.IV_INTERACTION:
+                r = sigma
+            else:
+                r = draw_r_wrapper(gf_iv, dt, a_r, sigma)
+            theta = draw_theta_wrapper(gf_iv, r, dt)
+
+            r_vector = r * rotate_vector(self.unit_r, self.shell.shape.unit_z,
+                                     theta)
+
+            # Add displacement to shell.shape.position, not to particle.position.  
+            newpos = self.shell.shape.position + r_vector
+
+        # The structure on which the particle ended is always the same as on which it began.
+        structure_id = self.origin_structure.id
+
+        return newpos, structure_id
+
+    def __str__(self):
+        return ('PlanarSurfaceDiskSurfaceInteraction' + Single.__str__(self) + \
+               'radius = %s, half_length = %s' %
+                (self.shell.shape.radius, self.shell.shape.half_length))
+
 
 class CylindricalSurfaceSink(InteractionSingle):
     """1 Particle inside a (Cylindrical) shell on a CylindricalSurface.
@@ -1149,6 +1240,73 @@ class CylindricalSurfaceCapInteraction(InteractionSingle):
 
     def __str__(self):
         return 'CylindricalSurfaceCapInteraction ' + Single.__str__(self)
+
+class CylindricalSurfacePlanarSurfaceInteractionSingle(CylindricalSurfaceCapInteraction):
+    """1 Particle inside a (Cylindrical) shell on a CylindricalSurface
+       limited by a plane. The plane is a reactive surface to the particle
+       and its intersection with the cylinder axis defines the exit point 
+       from the cylinder.
+
+        * Particle coordinates on surface: z.
+        * Domain: cartesian z.
+        * Initial position: z = 0.
+    """
+    def __init__(self, domain_id, shell_id, testShell, reactionrules, interactionrules):
+
+        assert isinstance(testShell, CylindricalSurfacePlanarSurfaceInteractionSingletestShell)
+        CylindricalSurfaceCapInteraction.__init__(self, domain_id, shell_id, testShell, reactionrules, interactionrules)
+        # For now this just does the same as the cap interaction, but the test shells
+        # slightly differ and we like to keep things apart and organized.
+
+    def __str__(self):
+        return 'CylindricalSurfacePlanarSurfaceInteraction ' + Single.__str__(self)
+
+class CylindricalSurfacePlanarSurfaceIntermediateSingle(CylindricalSurfaceCapInteraction):
+    """1 Particle on a DiskSurface at the interface of a PlanarSurface and CylindricalSurface.
+
+        * Particle coordinates on surface: z.
+        * Domain: cartesian z.
+        * Initial position: z = 0.
+        * Selected randomly when drawing displacement vector: none.
+    """
+    def __init__(self, domain_id, shell_id, testShell, reactionrules, interactionrules):
+
+        assert isinstance(testShell, CylindricalSurfacePlanarSurfaceIntermediateSingletestShell)
+        CylindricalSurfaceCapInteraction.__init__(self, domain_id, shell_id, testShell, reactionrules, interactionrules)
+
+    def getv(self):
+        
+        pass
+
+    def get_inner_dz_left(self):
+       
+        pass
+
+    def get_inner_dz_right(self):
+        
+        pass
+
+    def determine_next_event(self):
+        # For this special domain, we always return dt=0, imagining that the plane particle
+        # interacts instantly with the sub-disk
+        return 0.0, EventType.IV_INTERACTION
+
+    def iv_greens_function(self):
+
+        # We do not draw new positions in this domain anyhow
+        # TODO Do we really have to define that here?
+        inner_half_length = self.pid_particle_pair[1].position
+        return GreensFunction1DAbsAbs(0.0, 0.0, 0.0, -inner_half_length, inner_half_length)
+
+    def draw_new_position(self, dt, event_type):
+
+        # The particle does not move within this domain, but always ends up on the target structure
+        new_pos = self.pid_particle_pair[1].position
+
+        return new_pos, self.target_structure.id        
+
+    def __str__(self):
+        return 'CylindricalSurfacePlanarSurfaceIntermediate ' + Single.__str__(self)
 
 
 class TransitionSingle(Single, TransitionTools, Others):

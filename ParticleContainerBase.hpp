@@ -212,10 +212,10 @@ public:
         // TODO Clean this up when it is clear that cyclic_transpose is unnecessary here.
         const position_structid_pair_type cyc_pos_struct_id( pos_struct_id );
         // Get the structure
-        const boost::shared_ptr<const structure_type> structure (get_structure(pos_struct_id.second));
+        const boost::shared_ptr<const structure_type> structure( get_structure(pos_struct_id.second) );
         // The generalized boundary condition application first:
         // 1. applies the boundary of the structure/surface (go around the corner etc)
-        const position_structid_pair_type new_pos_struct_id(structure->apply_boundary(cyc_pos_struct_id, structures_));
+        const position_structid_pair_type new_pos_struct_id( structure->apply_boundary(cyc_pos_struct_id, structures_) );
         
         // 2. Then also apply the boundary condition of the world
         return std::make_pair(apply_boundary(new_pos_struct_id.first), new_pos_struct_id.second);
@@ -290,16 +290,8 @@ public:
         typename utils::template overlap_checker<particle_id_pair_and_distance_list, boost::array<particle_id_type, 0> > oc;
         traits_type::take_neighbor(pmat_, oc, s);
         return oc.result();
-    }
-
-    virtual structure_id_pair_and_distance_list* check_surface_overlap(particle_shape_type const& s, position_type const& old_pos, structure_id_type const& current,
-                                                                       length_type const& sigma, structure_id_type const& ignore) const
-    {
-        typename utils::template overlap_checker<structure_id_pair_and_distance_list, boost::array<structure_id_type, 1> > checker(array_gen(ignore));
-        surface_overlap_checker(s, old_pos, current, sigma, checker);
-        return checker.result();
-    }
-
+    }    
+    
     virtual structure_id_pair_and_distance_list* check_surface_overlap(particle_shape_type const& s, position_type const& old_pos, structure_id_type const& current,
                                                                        length_type const& sigma) const
     {
@@ -307,31 +299,49 @@ public:
         surface_overlap_checker(s, old_pos, current, sigma, checker);
         return checker.result();
     }
+    
+    virtual structure_id_pair_and_distance_list* check_surface_overlap(particle_shape_type const& s, position_type const& old_pos, structure_id_type const& current,
+                                                                       length_type const& sigma, structure_id_type const& ignore) const
+    {
+        typename utils::template overlap_checker<structure_id_pair_and_distance_list, boost::array<structure_id_type, 1> > checker(array_gen(ignore));
+        surface_overlap_checker(s, old_pos, current, sigma, checker);
+        return checker.result();
+    }
+    
+    virtual structure_id_pair_and_distance_list* check_surface_overlap(particle_shape_type const& s, position_type const& old_pos, structure_id_type const& current,
+                                                                       length_type const& sigma, structure_id_type const& ignore1, structure_id_type const& ignore2) const
+    {
+        typename utils::template overlap_checker<structure_id_pair_and_distance_list, boost::array<structure_id_type, 2> > checker(array_gen(ignore1, ignore2));
+        surface_overlap_checker(s, old_pos, current, sigma, checker);
+        return checker.result();
+    }
 
     template<typename Tfun_>
     void surface_overlap_checker(particle_shape_type const& s, position_type const& old_pos, structure_id_type const& current,
-                                        length_type const& sigma, Tfun_& checker ) const
+                                 length_type const& sigma, Tfun_& checker ) const
     {
-        const structure_id_set visible_structures (structures_.get_visible_structures(current));
+        const structure_id_set visible_structure_IDs (structures_.get_visible_structures(current));
 
-        // get and temporarily store all the visibles structures (upto now we only had their IDs)
-        structure_map temp_map;
-        for (typename structure_id_set::const_iterator i(visible_structures.begin()),
-                                                       e(visible_structures.end());
+        // Get and temporarily store all the visibles structures (upto now we only had their IDs)
+        structure_map visible_structures;
+        for (typename structure_id_set::const_iterator i(visible_structure_IDs.begin()),
+                                                       e(visible_structure_IDs.end());
              i != e; ++i)
         {
-            temp_map[(*i)] = get_structure(*i);
+            visible_structures[(*i)] = get_structure(*i);
         }
 
-        // calculate the distances and store the surface,distance tuple in the overlap checker if smaller than the particle radius.
-        for (typename structure_map::const_iterator i(temp_map.begin()),
-                                                    e(temp_map.end());
+        // Calculate the distances and store the surface,distance tuple in the overlap checker if smaller than the particle radius.
+        for (typename structure_map::const_iterator i(visible_structures.begin()),
+                                                    e(visible_structures.end());
              i != e; ++i)
         {
-            const position_type cyc_old_pos (cyclic_transpose(old_pos, s.position()));      // The old position transposed towards the new position (which may also be modified by periodic BC's)
-            const position_type displacement (subtract(s.position(), cyc_old_pos));         // the relative displacement from the 'old' position towards the real new position
-            const position_type cyc_pos      (cyclic_transpose(s.position(), ((*i).second)->position()));    // new position transposed to the structure in question
-            const position_type cyc_old_pos2 (subtract(cyc_pos, displacement));             // calculate the old_pos relative to the transposed new position.
+            const position_type cyc_old_pos  ( cyclic_transpose(old_pos, s.position()) ); // The old position transposed towards the new position (which may also be modified by periodic BC's)
+            const position_type displacement ( subtract(s.position(), cyc_old_pos) );     // the relative displacement from the 'old' position towards the real new position
+            const position_type cyc_pos      ( cyclic_transpose(s.position(), ((*i).second)->position()) ); // new position transposed to the structure in question
+            const position_type cyc_old_pos2 ( subtract(cyc_pos, displacement) );         // calculate the old_pos relative to the transposed new position.
+            // This is where the actual distance measurement happens
+            // TODO What precisely does newBD_distance calculate? Clarify!
             const length_type dist((*i).second->newBD_distance(cyc_pos, s.radius(), cyc_old_pos2, sigma));
             if (dist < s.radius())
             {
@@ -430,28 +440,32 @@ public:
     }
     
     // Get all structures close to a position pos, taking care of structure types
-    // and an ignore parameter
+    // and an ignore parameter (defining a set of ignored structures)
+    // The actual distance measurement is performed by method structure->distance(cyc_pos) below,
+    // which is implemented in the respective structure (sub-) classes.
     virtual structure_id_pair_and_distance_list* get_close_structures(position_type const& pos, structure_id_type const& current_struct_id,
                                                                       structure_id_type const& ignore) const
     {
         typename utils::template overlap_checker<structure_id_pair_and_distance_list, boost::array<structure_id_type, 1> > checker(array_gen(ignore));
-        const structure_id_set visible_structures (structures_.get_visible_structures(current_struct_id));
+        
+        const structure_id_set visible_structure_IDs (structures_.get_visible_structures(current_struct_id));
 
-        // get and temporarily store all the visibles structures (upto now we only had their IDs)
-        structure_map temp_map;
-        for (typename structure_id_set::const_iterator i(visible_structures.begin()),
-                                                       e(visible_structures.end());
+        // Get and temporarily store all the visibles structures (upto now we only had their IDs)
+        structure_map visible_structures;
+        for (typename structure_id_set::const_iterator i(visible_structure_IDs.begin()),
+                                                       e(visible_structure_IDs.end());
              i != e; ++i)
         {
-            temp_map[(*i)] = get_structure(*i);
+            visible_structures[(*i)] = get_structure(*i);
         }
 
-        // calculate the distances and store the surface,distance tuple in the overlap checker (in a list is sorted by distance).
-        for (typename structure_map::const_iterator i(temp_map.begin()),
-                                                    e(temp_map.end());
+        // Calculate the distances and store the surface,distance tuple in the overlap checker (in a list is sorted by distance).
+        for (typename structure_map::const_iterator i(visible_structures.begin()),
+                                                    e(visible_structures.end());
              i != e; ++i)
         {
             const position_type cyc_pos(cyclic_transpose(pos, ((*i).second)->position()));
+            // Here we perform the actual distance measurement
             const length_type dist((*i).second->distance(cyc_pos));
             checker(i, dist);
         }
