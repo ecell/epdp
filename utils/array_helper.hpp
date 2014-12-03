@@ -3,7 +3,7 @@
 
 #include <boost/array.hpp>
 #include <boost/preprocessor/config/limits.hpp>
-#include <boost/preprocessor/repetition/repeat.hpp>
+#include <boost/preprocessor/repetition/repeat_from_to.hpp>
 #include <boost/preprocessor/repetition/enum_params.hpp>
 #include <boost/preprocessor/cat.hpp>
 #include <boost/call_traits.hpp>

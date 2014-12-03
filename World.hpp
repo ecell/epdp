@@ -272,7 +272,7 @@ public:
             position_type const& pos)
     {
         species_type const& species(get_species(sid));
-        const boost::shared_ptr<const structure_type> structure(get_structure(structure_id));
+        const boost::shared_ptr<const structure_type> structure(base_type::get_structure(structure_id));
         // assert that the structure is of the type denoted by the species of the particle.
         BOOST_ASSERT(structure->sid() == species.structure_type_id());
 
@@ -317,7 +317,7 @@ public:
     virtual bool remove_particle(particle_id_type const& id)
     {
         bool found(false);
-        particle_id_pair pp(get_particle(id, found));               // call method in ParticleContainerBase
+        particle_id_pair pp(base_type::get_particle(id, found));               // call method in ParticleContainerBase
         if (!found)
         {
             return false;

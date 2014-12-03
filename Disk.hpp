@@ -6,6 +6,7 @@
 #include "Vector3.hpp"
 #include "Shape.hpp"
 #include "linear_algebra.hpp"
+#include "utils/math.hpp"
 
 template<typename T_>
 class Disk
