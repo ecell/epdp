@@ -1620,7 +1620,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
             # 1.5 No new position/structure_id required
             # 2. No space required
             # 3. No space required
-            # 4. process the changes (remove particle, make new ones)
+            # 4. process the changes (remove particle, make new ones)            
             self.world.remove_particle(reactant[0])
             products = []
             # zero_singles/ignore is unchanged.
@@ -2241,6 +2241,9 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
             ### 5. Make a new domain (or reuse the old one) for each particle(s)
             #      (Re)schedule the (new) domain
+            if __debug__ and particles == []:
+                log.info('Empty particles list, no new domains will be made.')
+
             zero_singles = []
             for pid_particle_pair in particles:
 #               single.pid_particle_pair = pid_particle_pair         # TODO reuse single
