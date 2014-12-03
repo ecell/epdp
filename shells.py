@@ -226,7 +226,9 @@ class testTransitionSingle(testSingle, Others):
     def __init__(self, single, target_structure):
 
         testSingle.__init__(self, single.pid_particle_pair, single.structure)
-        assert (self.structure.sid == target_structure.sid)     # Both structures are of same structure_type
+        if not self.structure.sid == target_structure.sid:
+            # Both structures should be of same structure_type for a transition
+            raise testShellError('Structures are not of equal structure type in test transition.')
 
         self.single = single
 
@@ -1712,7 +1714,7 @@ class SphericaltestShell(testShell):
                                            'domain = %s, radius = %s, min_radius = %s, testShell = %s' %
                                            (neighbor, radius, min_radius, self))
 
-        # we calculated a valid radius -> suscess!
+        # we calculated a valid radius -> success!
         assert radius >= min_radius, 'SphericaltestShell radius smaller than the minimum, radius = %s, min_radius = %s.' % \
                                      (radius, min_radius)
 
