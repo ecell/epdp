@@ -72,7 +72,7 @@ def feq(a, b, typical=1, tolerance=TOLERANCE):
 
     The (relative) tolerance must be positive and << 1.0
 
-    Instead of specifying an absolute tolerance, you can speciy a 
+    Instead of specifying an absolute tolerance, you can specify a 
     typical value for a or b. The absolute tolerance is then the 
     relative tolerance multipied by this typical value, and will be 
     used when comparing a value to zero. By default, the typical 
