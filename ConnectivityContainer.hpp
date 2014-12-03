@@ -39,7 +39,7 @@ public:
     {
         // check that the index is not too large
         if ( n >= max )
-            throw illegal_argument(std::string("Index out of range for neighbor (n= ") + boost::lexical_cast<std::string>(n) + "), max= " + boost::lexical_cast<std::string>(max));
+            throw illegal_argument(std::string("Index out of range for neighbor (n= ") + boost::lexical_cast<std::string>(n) + "), max= " + boost::lexical_cast<std::string>(num_neighbors));
 
         neighbor_mapping_[obj][n] = obj_data_pair;
     }
@@ -48,7 +48,7 @@ public:
     {
         // check that the index is not too large
         if ( n >= max )
-            throw illegal_argument(std::string("Index out of range for neighbor (n= ") + boost::lexical_cast<std::string>(n) + "), max= " + boost::lexical_cast<std::string>(max));
+            throw illegal_argument(std::string("Index out of range for neighbor (n= ") + boost::lexical_cast<std::string>(n) + "), max= " + boost::lexical_cast<std::string>(num_neighbors));
 
         typename obj_neighbor_objdata_array_map::const_iterator it(neighbor_mapping_.find(id));
         //std::cout << "Checking neighbor info, id=" << boost::lexical_cast<std::string>(id) << ", it=" << it->first << std::endl; // TODO remove after debugging

@@ -1,7 +1,6 @@
 noinst_PROGRAMS = hardbody
 
-INCLUDES = -I$(top_srcdir) $(PYTHON_INCLUDES)
-AM_CXXFLAGS = @CXXFLAGS@ @GSL_CFLAGS@
+AM_CXXFLAGS = -I$(top_srcdir) @BOOST_CPPFLAGS@ @GSL_CFLAGS@ $(PYTHON_INCLUDES)
 
 hardbody_SOURCES = hardbody.cpp ../../NetworkRules.cpp ../../BasicNetworkRulesImpl.cpp ../../Logger.cpp ../../freeFunctions.cpp
 

@@ -126,6 +126,18 @@ AC_DEFUN([ECELL_CHECK_NUMPY_ARRAY_DESCR], [
   ], [], [
 #include <Python.h>
 #include <numpy/arrayobject.h>
-])
+  ])
   CPPFLAGS="$ac_save_CPPFLAGS"                 
+  dnl AC_DEFINE([NPY_NO_DEPRECATED_API], [7], [Source uses numpy deprecated api (known issue, hard to fix).])
+])
+
+AC_DEFUN([ECELL_CHECK_LOGGING_MODULE], [
+  AC_MSG_CHECKING([if classes in the Python's logging module is old-fashioned])
+  AC_REQUIRE([AM_PATH_PYTHON])
+  if "$PYTHON" -c "import sys, logging; sys.exit(type(logging.Handler) == type)"; then
+    AC_MSG_RESULT(yes)
+    AC_DEFINE([HAVE_OLD_FASHIONED_LOGGER_CLASSES], [1], [Defined to 1 if Python's logging module is old-fashioned])
+  else
+    AC_MSG_RESULT(no)
+  fi
 ])
