@@ -121,13 +121,13 @@ GreensFunction2DRadAbs::f_alpha0( const Real alpha ) const
     // Needed? TODO
 //  const Real h_s( h * sigma);
 
-    const double J0_s_An (gsl_sf_bessel_J0(s_An));
-    const double J1_s_An (gsl_sf_bessel_J1(s_An));
-    const double J0_a_An (gsl_sf_bessel_J0(a_An));
+    const Real J0_s_An (gsl_sf_bessel_J0(s_An));
+    const Real J1_s_An (gsl_sf_bessel_J1(s_An));
+    const Real J0_a_An (gsl_sf_bessel_J0(a_An));
 
-    const double Y0_s_An (gsl_sf_bessel_Y0(s_An));
-    const double Y1_s_An (gsl_sf_bessel_Y1(s_An));
-    const double Y0_a_An (gsl_sf_bessel_Y0(a_An));	
+    const Real Y0_s_An (gsl_sf_bessel_Y0(s_An));
+    const Real Y1_s_An (gsl_sf_bessel_Y1(s_An));
+    const Real Y0_a_An (gsl_sf_bessel_Y0(a_An));	
 
 //  const double rho1 ( ( (h_s * J0_s_An) + (s_An * J1_s_An) ) * Y0_a_An );
 //  const double rho2 ( ( (h_s * Y0_s_An) + (s_An * Y1_s_An) ) * J0_a_An );
@@ -135,8 +135,8 @@ GreensFunction2DRadAbs::f_alpha0( const Real alpha ) const
 
     // Sigma can be divided out, roots will remain same:
     // (Note: actually double checked this).
-    const double rho1 ( ( (h * J0_s_An) + (alpha * J1_s_An) ) * Y0_a_An );
-    const double rho2 ( ( (h * Y0_s_An) + (alpha * Y1_s_An) ) * J0_a_An );
+    const Real rho1 ( ( (h * J0_s_An) + (alpha * J1_s_An) ) * Y0_a_An );
+    const Real rho2 ( ( (h * Y0_s_An) + (alpha * Y1_s_An) ) * J0_a_An );
 
     return rho1 - rho2;
 }
@@ -172,16 +172,16 @@ const Real GreensFunction2DRadAbs::f_alpha( const Real alpha,
     const Real realn( static_cast<Real>( n ) );
     const Real h_sigma( h * sigma);
 
-    const double Jn_s_An (gsl_sf_bessel_Jn(n,s_An));
-    const double Jn1_s_An (gsl_sf_bessel_Jn(n+1,s_An));
-    const double Jn_a_An (gsl_sf_bessel_Jn(n,a_An));
+    const Real Jn_s_An (gsl_sf_bessel_Jn(n,s_An));
+    const Real Jn1_s_An (gsl_sf_bessel_Jn(n+1,s_An));
+    const Real Jn_a_An (gsl_sf_bessel_Jn(n,a_An));
 
-    const double Yn_s_An (gsl_sf_bessel_Yn(n,s_An));
-    const double Yn1_s_An (gsl_sf_bessel_Yn(n+1,s_An));
-    const double Yn_a_An (gsl_sf_bessel_Yn(n,a_An));
+    const Real Yn_s_An (gsl_sf_bessel_Yn(n,s_An));
+    const Real Yn1_s_An (gsl_sf_bessel_Yn(n+1,s_An));
+    const Real Yn_a_An (gsl_sf_bessel_Yn(n,a_An));
 
-    const double rho1 ( ( (h_sigma * Jn_s_An) + (s_An * Jn1_s_An) - realn*Jn_s_An ) * Yn_a_An );
-    const double rho2 ( ( (h_sigma * Yn_s_An) + (s_An * Yn1_s_An) - realn*Yn_s_An ) * Jn_a_An );
+    const Real rho1 ( ( (h_sigma * Jn_s_An) + (s_An * Jn1_s_An) - realn*Jn_s_An ) * Yn_a_An );
+    const Real rho2 ( ( (h_sigma * Yn_s_An) + (s_An * Yn1_s_An) - realn*Yn_s_An ) * Jn_a_An );
     return (rho1 - rho2); 
 
 //  Or..?
@@ -842,10 +842,10 @@ GreensFunction2DRadAbs::p_survival_table( const        Real t,
           
     if( psurvTable.size() < maxi + 1 )           // if the dimensions are good then this means
     {                                            // that the table is filled
-        IGNORE_RETURN getAlpha( 0, maxi );       // this updates the table of roots
-            this->createPsurvTable( psurvTable); // then the table is filled with data
+       getAlpha( 0, maxi );                      // this updates the table of roots
+       this->createPsurvTable( psurvTable);      // then the table is filled with data
     }
-    // A sum over terms is performed, where convergence is assumed. It is not 
+        // A sum over terms is performed, where convergence is assumed. It is not 
     // clear if this is a just assumption.
     // TODO!
     p = funcSum_all( boost::bind( &GreensFunction2DRadAbs::p_survival_i_exp_table,
@@ -1674,7 +1674,7 @@ Real GreensFunction2DRadAbs::givePDFR( const Real r, const Real t ) const
             return r0;
     }
 
-    const Real psurv( p_survival( t ) ); // calculate the survival probability at this time
+    p_survival(t); // calculate the survival probability at this time
                                          // this is used as the normalization factor
                                          // BEWARE!!! This also produces the roots An and therefore
                                          // SETS THE HIGHEST INDEX -> side effect

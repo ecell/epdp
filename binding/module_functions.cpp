@@ -15,8 +15,6 @@ calculate_pair_CoM(Position const& p1,
                    element_type_of< Position >::type const& D2,
                    element_type_of< Position >::type const& world_size)
 {
-    typedef element_type_of<Position>::type element_type;   
-
     Position retval;
 
     const Position p2t(cyclic_transpose<Position>(p2, p1, world_size));

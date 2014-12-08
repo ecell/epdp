@@ -490,7 +490,7 @@ Real GreensFunction3DRadInf::ip_corr_n(unsigned int n, RealVector const& RnTable
 
 Real GreensFunction3DRadInf::p_corr_table(Real theta, Real r, Real t, RealVector const& RnTable) const
 {
-    const Index tableSize(RnTable.size());
+    const size_t tableSize(RnTable.size());
     if(tableSize == 0)
     {
         return 0.0;
@@ -524,7 +524,7 @@ Real GreensFunction3DRadInf::p_corr_table(Real theta, Real r, Real t, RealVector
 Real GreensFunction3DRadInf::ip_corr_table(Real theta, Real r,
                                             Real t, RealVector const& RnTable) const
 {
-    const Index tableSize(RnTable.size());
+    const size_t tableSize(RnTable.size());
     if(tableSize == 0)
     {
         return 0.0;
