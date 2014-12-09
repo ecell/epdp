@@ -162,7 +162,7 @@ public:
     static PyObject* get_position(ParticleWrapper* self)
     {
         typename Timpl_::position_type const& pos(self->impl_.position());
-        const npy_intp dims[1] = { boost::size(pos) };
+        const npy_intp dims[1] = { static_cast<const npy_intp>(boost::size(pos)) };
         PyObject* retval = PyArray_New(&PyArray_Type, 1,
                 const_cast<npy_intp*>(dims),
                 peer::util::get_numpy_typecode<typename Timpl_::length_type>::value,
