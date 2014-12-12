@@ -429,7 +429,7 @@ template<typename T, typename Trng>
 inline typename Plane<T>::position_type
 random_position(Plane<T> const& shape, Trng& rng)
 {
-    typedef typename Plane<T>::length_type length_type;
+  //typedef typename Plane<T>::length_type length_type;
 
     // -1 < rng() < 1. See for example PlanarSurface.hpp.
     return add(

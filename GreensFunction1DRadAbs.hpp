@@ -262,12 +262,11 @@ private:
     uint guess_maxi( Real const& t ) const;
 
     /* this is the appropriate definition of the function in gsl. */
-    static double tan_f (double x, void *p);
-
+    static Real tan_f (Real x, void *p);
 
     /* functions for drawTime / p_survival */
 
-    static double drawT_f (double t, void *p);
+    static Real drawT_f (Real t, void *p);
 
     Real p_survival_table( Real  t, RealVector& psurvTable ) const;
 

@@ -450,7 +450,7 @@ apply_boundary (std::pair<typename Ttraits_::position_type,
     typedef typename plane_type::position_type              vector_type;
 
     typedef std::pair<structure_id_type, position_type>     neighbor_id_vector_type;
-    typedef std::pair<position_type, structure_id_type>     position_structid_pair_type;
+    //typedef std::pair<position_type, structure_id_type>     position_structid_pair_type;
 
     // Note that we assume that the new position is in the plane (dot(pos, unit_z)==0)
     // and that the position is already transposed for the plane.
@@ -469,7 +469,8 @@ apply_boundary (std::pair<typename Ttraits_::position_type,
     
     // info variables
     bool planes_are_orthogonal( false );
-    bool planes_are_parallel( false );    
+
+    //bool planes_are_parallel( false );    
     
     // Check for (currently unsupported) self-connections
     for( int i=0; i<4; i++ )
@@ -505,7 +506,7 @@ apply_boundary (std::pair<typename Ttraits_::position_type,
                 new_id = neighbor_id_vector.first;
                 
                 if(neighbor_id_vector.second == zero_vector)
-                    planes_are_parallel = true;
+		  ;//planes_are_parallel = true;
                 else{
                     planes_are_orthogonal = true;
                     neighbor_plane_par = multiply(origin_plane.unit_x(), component_x);
@@ -521,7 +522,7 @@ apply_boundary (std::pair<typename Ttraits_::position_type,
                 new_id = neighbor_id_vector.first;
                 
                 if(neighbor_id_vector.second == zero_vector)
-                    planes_are_parallel = true;
+		  ;//planes_are_parallel = true;
                 else{
                     planes_are_orthogonal = true;
                     neighbor_plane_par = multiply(origin_plane.unit_x(), component_x);
@@ -539,7 +540,7 @@ apply_boundary (std::pair<typename Ttraits_::position_type,
 
                 new_id = neighbor_id_vector.first;
                 if(neighbor_id_vector.second == zero_vector)
-                    planes_are_parallel = true;
+		  ;//planes_are_parallel = true;
                 else{
                     planes_are_orthogonal = true;
                     neighbor_plane_par = multiply(origin_plane.unit_y(), component_y);
@@ -554,7 +555,7 @@ apply_boundary (std::pair<typename Ttraits_::position_type,
 
                 new_id = neighbor_id_vector.first;
                 if(neighbor_id_vector.second == zero_vector)
-                    planes_are_parallel = true;
+		  ;//planes_are_parallel = true;
                 else{
                     planes_are_orthogonal = true;
                     neighbor_plane_par = multiply(origin_plane.unit_y(), component_y);

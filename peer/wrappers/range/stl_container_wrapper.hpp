@@ -189,7 +189,6 @@ public:
         }
         catch (boost::python::error_already_set const&)
         {
-            return NULL;
         }
         return 0;
     }

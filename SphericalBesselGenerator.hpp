@@ -12,9 +12,6 @@
 
 class SphericalBesselGenerator
 {
-
-    typedef UnsignedInteger Index;
-
 public:
 
     SphericalBesselGenerator()
