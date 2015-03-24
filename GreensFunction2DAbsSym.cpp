@@ -244,7 +244,7 @@ GreensFunction2DAbsSym::drawR( const Real rnd, const Real t ) const
         return 0.0;
     }
 
-    const Real thresholdDistance( this->CUTOFF_H * sqrt( 4.0 * D * t ) );
+    //const Real thresholdDistance( this->CUTOFF_H * sqrt( 4.0 * D * t ) );
 
     gsl_function F;
     Real psurv;

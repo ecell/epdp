@@ -57,9 +57,9 @@ get_pos_sid_pair( CuboidalRegion<Ttraits_>              const& origin_structure,
                   typename Ttraits_::length_type        const& reaction_length,
                   typename Ttraits_::rng_type           &rng              )
 {
-    typedef typename Ttraits_::structure_id_type        structure_id_type;
-    typedef typename Ttraits_::position_type            position_type;
-    typedef typename Ttraits_::length_type              length_type;
+  //typedef typename Ttraits_::structure_id_type        structure_id_type;
+  //typedef typename Ttraits_::position_type            position_type;
+  //typedef typename Ttraits_::length_type              length_type;
     
     // Currently only species change and decay are supported
     if(origin_structure.id() == target_structure.id()){
@@ -83,7 +83,7 @@ get_pos_sid_pair( CuboidalRegion<Ttraits_>              const& origin_structure,
 {
     typedef typename Ttraits_::structure_id_type        structure_id_type;
     typedef typename Ttraits_::position_type            position_type;
-    typedef typename Ttraits_::length_type              length_type;
+    //typedef typename Ttraits_::length_type              length_type;
 
     /*** COMBINATION NOT SUPPORTED ***/
     throw illegal_propagation_attempt("Structure transition between combination of origin structure and target structure not supported (CuboidalRegion->Sphere).");
@@ -191,7 +191,7 @@ get_pos_sid_pair( SphericalSurface<Ttraits_>            const& origin_structure,
 {
     typedef typename Ttraits_::structure_id_type        structure_id_type;
     typedef typename Ttraits_::position_type            position_type;
-    typedef typename Ttraits_::length_type              length_type;
+    //typedef typename Ttraits_::length_type              length_type;
 
     /*** COMBINATION NOT SUPPORTED ***/
     throw illegal_propagation_attempt("Structure transition between combination of origin structure and target structure not supported (Sphere->CuboidalRegion).");
@@ -211,7 +211,7 @@ get_pos_sid_pair( SphericalSurface<Ttraits_>            const& origin_structure,
 {
     typedef typename Ttraits_::structure_id_type        structure_id_type;
     typedef typename Ttraits_::position_type            position_type;
-    typedef typename Ttraits_::length_type              length_type;
+    //typedef typename Ttraits_::length_type              length_type;
 
     /*** COMBINATION NOT SUPPORTED ***/
     throw illegal_propagation_attempt("Structure transition between combination of origin structure and target structure not supported (Sphere->Sphere).");
@@ -231,7 +231,7 @@ get_pos_sid_pair( SphericalSurface<Ttraits_>            const& origin_structure,
 {
     typedef typename Ttraits_::structure_id_type        structure_id_type;
     typedef typename Ttraits_::position_type            position_type;
-    typedef typename Ttraits_::length_type              length_type;
+    //typedef typename Ttraits_::length_type              length_type;
 
     /*** COMBINATION NOT SUPPORTED ***/
     throw illegal_propagation_attempt("Structure transition between combination of origin structure and target structure not supported (Sphere->Cylinder).");
@@ -251,7 +251,7 @@ get_pos_sid_pair( SphericalSurface<Ttraits_>            const& origin_structure,
 {
     typedef typename Ttraits_::structure_id_type        structure_id_type;
     typedef typename Ttraits_::position_type            position_type;
-    typedef typename Ttraits_::length_type              length_type;
+    //typedef typename Ttraits_::length_type              length_type;
 
     /*** COMBINATION NOT SUPPORTED ***/
     throw illegal_propagation_attempt("Structure transition between combination of origin structure and target structure not supported (Sphere->Disk).");
@@ -271,7 +271,7 @@ get_pos_sid_pair( SphericalSurface<Ttraits_>            const& origin_structure,
 {
     typedef typename Ttraits_::structure_id_type        structure_id_type;
     typedef typename Ttraits_::position_type            position_type;
-    typedef typename Ttraits_::length_type              length_type;
+    //typedef typename Ttraits_::length_type              length_type;
 
     /*** COMBINATION NOT SUPPORTED ***/
     throw illegal_propagation_attempt("Structure transition between combination of origin structure and target structure not supported (Sphere->Plane).");
@@ -292,9 +292,9 @@ get_pos_sid_pair( CylindricalSurface<Ttraits_>          const& origin_structure,
                   typename Ttraits_::length_type        const& reaction_length,
                   typename Ttraits_::rng_type           &rng              )
 {
-    typedef typename Ttraits_::structure_id_type        structure_id_type;
+  //typedef typename Ttraits_::structure_id_type        structure_id_type;
     typedef typename Ttraits_::position_type            position_type;
-    typedef typename Ttraits_::length_type              length_type;
+    //typedef typename Ttraits_::length_type              length_type;
     
     position_type displacement( origin_structure.surface_dissociation_vector(rng, offset, reaction_length) );
     position_type new_pos( add(old_pos, displacement) );    
@@ -313,9 +313,9 @@ get_pos_sid_pair( CylindricalSurface<Ttraits_>          const& origin_structure,
                   typename Ttraits_::length_type        const& reaction_length,
                   typename Ttraits_::rng_type           &rng              )
 {
-    typedef typename Ttraits_::structure_id_type        structure_id_type;
-    typedef typename Ttraits_::position_type            position_type;
-    typedef typename Ttraits_::length_type              length_type;
+  //typedef typename Ttraits_::structure_id_type        structure_id_type;
+  //typedef typename Ttraits_::position_type            position_type;
+  //typedef typename Ttraits_::length_type              length_type;
 
     // Currently only species change and decay are supported
     if(origin_structure.id() == target_structure.id()){
@@ -339,7 +339,7 @@ get_pos_sid_pair( CylindricalSurface<Ttraits_>          const& origin_structure,
 {
     typedef typename Ttraits_::structure_id_type        structure_id_type;
     typedef typename Ttraits_::position_type            position_type;
-    typedef typename Ttraits_::length_type              length_type;
+    //typedef typename Ttraits_::length_type              length_type;
 
     /*** COMBINATION NOT SUPPORTED ***/
     throw illegal_propagation_attempt("Structure transition between combination of origin structure and target structure not supported (Cylinder->Sphere).");
@@ -428,9 +428,9 @@ get_pos_sid_pair( DiskSurface<Ttraits_>                 const& origin_structure,
                   typename Ttraits_::length_type        const& reaction_length,
                   typename Ttraits_::rng_type           &rng              )
 {
-    typedef typename Ttraits_::structure_id_type        structure_id_type;
+  //typedef typename Ttraits_::structure_id_type        structure_id_type;
     typedef typename Ttraits_::position_type            position_type;
-    typedef typename Ttraits_::length_type              length_type;
+    //typedef typename Ttraits_::length_type              length_type;
     
     // Here offset should be the radius of the product species
     
@@ -453,7 +453,7 @@ get_pos_sid_pair( DiskSurface<Ttraits_>                 const& origin_structure,
 {
     typedef typename Ttraits_::structure_id_type        structure_id_type;
     typedef typename Ttraits_::position_type            position_type;
-    typedef typename Ttraits_::length_type              length_type;
+    //typedef typename Ttraits_::length_type              length_type;
 
     /*** COMBINATION NOT SUPPORTED ***/
     throw illegal_propagation_attempt("Structure transition between combination of origin structure and target structure not supported (Disk->Sphere).");
@@ -471,9 +471,9 @@ get_pos_sid_pair( DiskSurface<Ttraits_>                 const& origin_structure,
                   typename Ttraits_::length_type        const& reaction_length,
                   typename Ttraits_::rng_type           &rng              )
 {
-    typedef typename Ttraits_::structure_id_type        structure_id_type;
+  //typedef typename Ttraits_::structure_id_type        structure_id_type;
     typedef typename Ttraits_::position_type            position_type;
-    typedef typename Ttraits_::length_type              length_type;
+    //typedef typename Ttraits_::length_type              length_type;
 
     position_type u( origin_structure.surface_dissociation_unit_vector(rng) );
     
@@ -498,9 +498,9 @@ get_pos_sid_pair( DiskSurface<Ttraits_>                 const& origin_structure,
                   typename Ttraits_::length_type        const& reaction_length,
                   typename Ttraits_::rng_type           &rng              )
 {
-    typedef typename Ttraits_::structure_id_type        structure_id_type;
-    typedef typename Ttraits_::position_type            position_type;
-    typedef typename Ttraits_::length_type              length_type;
+  //typedef typename Ttraits_::structure_id_type        structure_id_type;
+  //typedef typename Ttraits_::position_type            position_type;
+  //typedef typename Ttraits_::length_type              length_type;
 
     // Currently only species change and decay are supported
     if(origin_structure.id() == target_structure.id()){
@@ -522,9 +522,9 @@ get_pos_sid_pair( DiskSurface<Ttraits_>                 const& origin_structure,
                   typename Ttraits_::length_type        const& reaction_length,
                   typename Ttraits_::rng_type           &rng              )
 {
-    typedef typename Ttraits_::structure_id_type        structure_id_type;
+  //typedef typename Ttraits_::structure_id_type        structure_id_type;
     typedef typename Ttraits_::position_type            position_type;
-    typedef typename Ttraits_::length_type              length_type;
+    //typedef typename Ttraits_::length_type              length_type;
 
     // Treated in the same way as unbinding from disk to bulk (see above)
     // Here offset should be the radius of the product species
@@ -549,9 +549,9 @@ get_pos_sid_pair( PlanarSurface<Ttraits_>               const& origin_structure,
                   typename Ttraits_::length_type        const& reaction_length,
                   typename Ttraits_::rng_type           &rng              )
 {
-    typedef typename Ttraits_::structure_id_type        structure_id_type;
+  //typedef typename Ttraits_::structure_id_type        structure_id_type;
     typedef typename Ttraits_::position_type            position_type;
-    typedef typename Ttraits_::length_type              length_type;
+    //typedef typename Ttraits_::length_type              length_type;
 
     position_type displacement( origin_structure.surface_dissociation_vector(rng, offset, reaction_length) );
     position_type new_pos( add(old_pos, displacement) );
@@ -572,7 +572,7 @@ get_pos_sid_pair( PlanarSurface<Ttraits_>               const& origin_structure,
 {
     typedef typename Ttraits_::structure_id_type        structure_id_type;
     typedef typename Ttraits_::position_type            position_type;
-    typedef typename Ttraits_::length_type              length_type;
+    //typedef typename Ttraits_::length_type              length_type;
 
     /*** COMBINATION NOT SUPPORTED ***/
     throw illegal_propagation_attempt("Structure transition between combination of origin structure and target structure not supported (Plane->Sphere).");
@@ -592,7 +592,7 @@ get_pos_sid_pair( PlanarSurface<Ttraits_>               const& origin_structure,
 {
     typedef typename Ttraits_::structure_id_type        structure_id_type;
     typedef typename Ttraits_::position_type            position_type;
-    typedef typename Ttraits_::length_type              length_type;
+    //typedef typename Ttraits_::length_type              length_type;
 
     /*** COMBINATION NOT SUPPORTED ***/
     throw illegal_propagation_attempt("Structure transition between combination of origin structure and target structure not supported (Plane->Cylinder).");
@@ -645,7 +645,7 @@ get_pos_sid_pair( PlanarSurface<Ttraits_>               const& origin_structure,
                   typename Ttraits_::length_type        const& reaction_length,
                   typename Ttraits_::rng_type           &rng              )
 {
-    typedef typename Ttraits_::structure_id_type          structure_id_type;
+  //typedef typename Ttraits_::structure_id_type          structure_id_type;
     typedef typename Ttraits_::position_type              position_type;
     typedef typename Ttraits_::length_type                length_type;
     typedef std::pair<length_type, length_type>           length_pair_type;
@@ -719,7 +719,7 @@ get_pos_sid_pair_pair( CuboidalRegion<Ttraits_>               const& origin_stru
 {
     typedef typename Ttraits_::structure_id_type        structure_id_type;
     typedef typename Ttraits_::position_type            position_type;
-    typedef typename Ttraits_::length_type              length_type;
+    //typedef typename Ttraits_::length_type              length_type;
 
     // Currently we do not allow for pair forward/backward reactions between two different cubes
     if(origin_structure.id() == target_structure.id()){
@@ -752,7 +752,7 @@ get_pos_sid_pair_pair( CuboidalRegion<Ttraits_>               const& origin_stru
 {
     typedef typename Ttraits_::structure_id_type        structure_id_type;
     typedef typename Ttraits_::position_type            position_type;
-    typedef typename Ttraits_::length_type              length_type;
+    //typedef typename Ttraits_::length_type              length_type;
 
     /*** COMBINATION NOT SUPPORTED ***/
     throw illegal_propagation_attempt("Structure transition between combination of origin structure and target structure not supported (CuboidalRegion->CuboidalRegion/Sphere).");
@@ -775,7 +775,7 @@ get_pos_sid_pair_pair( CuboidalRegion<Ttraits_>               const& origin_stru
 {
     typedef typename Ttraits_::structure_id_type        structure_id_type;
     typedef typename Ttraits_::position_type            position_type;
-    typedef typename Ttraits_::length_type              length_type;
+    //typedef typename Ttraits_::length_type              length_type;
 
     /*** COMBINATION NOT SUPPORTED ***/
     throw illegal_propagation_attempt("Structure transition between combination of origin structure and target structure not supported (CuboidalRegion->CuboidalRegion/Cylinder).");
@@ -799,7 +799,7 @@ get_pos_sid_pair_pair( CuboidalRegion<Ttraits_>               const& origin_stru
 {
     typedef typename Ttraits_::structure_id_type        structure_id_type;
     typedef typename Ttraits_::position_type            position_type;
-    typedef typename Ttraits_::length_type              length_type;
+    //typedef typename Ttraits_::length_type              length_type;
 
     /*** COMBINATION NOT SUPPORTED ***/
     throw illegal_propagation_attempt("Structure transition between combination of origin structure and target structure not supported (CuboidalRegion->CuboidalRegion/Disk).");
@@ -822,7 +822,7 @@ get_pos_sid_pair_pair( CuboidalRegion<Ttraits_>               const& origin_stru
 {
     typedef typename Ttraits_::structure_id_type        structure_id_type;
     typedef typename Ttraits_::position_type            position_type;
-    typedef typename Ttraits_::length_type              length_type;
+    //typedef typename Ttraits_::length_type              length_type;
 
     /*** COMBINATION NOT SUPPORTED ***/
     throw illegal_propagation_attempt("Structure transition between combination of origin structure and target structure not supported (CuboidalRegion->CuboidalRegion/Plane).");
@@ -848,7 +848,7 @@ get_pos_sid_pair_pair( SphericalSurface<Ttraits_>             const& origin_stru
 {
     typedef typename Ttraits_::structure_id_type        structure_id_type;
     typedef typename Ttraits_::position_type            position_type;
-    typedef typename Ttraits_::length_type              length_type;
+    //typedef typename Ttraits_::length_type              length_type;
 
     /*** COMBINATION NOT SUPPORTED ***/
     throw illegal_propagation_attempt("Structure transition between combination of origin structure and target structure not supported (Sphere->Sphere/CuboidalRegion).");
@@ -871,7 +871,7 @@ get_pos_sid_pair_pair( SphericalSurface<Ttraits_>             const& origin_stru
 {
     typedef typename Ttraits_::structure_id_type        structure_id_type;
     typedef typename Ttraits_::position_type            position_type;
-    typedef typename Ttraits_::length_type              length_type;
+    //typedef typename Ttraits_::length_type              length_type;
 
     /*** COMBINATION NOT SUPPORTED ***/
     throw illegal_propagation_attempt("Structure transition between combination of origin structure and target structure not supported (Sphere->Sphere/Sphere).");
@@ -894,7 +894,7 @@ get_pos_sid_pair_pair( SphericalSurface<Ttraits_>             const& origin_stru
 {
     typedef typename Ttraits_::structure_id_type        structure_id_type;
     typedef typename Ttraits_::position_type            position_type;
-    typedef typename Ttraits_::length_type              length_type;
+    //typedef typename Ttraits_::length_type              length_type;
 
     /*** COMBINATION NOT SUPPORTED ***/
     throw illegal_propagation_attempt("Structure transition between combination of origin structure and target structure not supported (Sphere->Sphere/Cylinder).");
@@ -917,7 +917,7 @@ get_pos_sid_pair_pair( SphericalSurface<Ttraits_>             const& origin_stru
 {
     typedef typename Ttraits_::structure_id_type        structure_id_type;
     typedef typename Ttraits_::position_type            position_type;
-    typedef typename Ttraits_::length_type              length_type;
+    //typedef typename Ttraits_::length_type              length_type;
 
     /*** COMBINATION NOT SUPPORTED ***/
     throw illegal_propagation_attempt("Structure transition between combination of origin structure and target structure not supported (Sphere->Sphere/Disk).");
@@ -940,7 +940,7 @@ get_pos_sid_pair_pair( SphericalSurface<Ttraits_>             const& origin_stru
 {
     typedef typename Ttraits_::structure_id_type        structure_id_type;
     typedef typename Ttraits_::position_type            position_type;
-    typedef typename Ttraits_::length_type              length_type;
+    //typedef typename Ttraits_::length_type              length_type;
 
     /*** COMBINATION NOT SUPPORTED ***/
     throw illegal_propagation_attempt("Structure transition between combination of origin structure and target structure not supported (Sphere->Sphere/Plane).");
@@ -964,9 +964,9 @@ get_pos_sid_pair_pair( CylindricalSurface<Ttraits_>           const& origin_stru
                        typename Ttraits_::length_type         const& reaction_length,
                        typename Ttraits_::rng_type            &rng                )
 {
-    typedef typename Ttraits_::structure_id_type        structure_id_type;
+  //typedef typename Ttraits_::structure_id_type        structure_id_type;
     typedef typename Ttraits_::position_type            position_type;
-    typedef typename Ttraits_::length_type              length_type;
+    //typedef typename Ttraits_::length_type              length_type;
 
     std::pair<position_type, position_type> new_positions( origin_structure.special_geminate_dissociation_positions(rng, s_orig, s_targ, old_pos, reaction_length) );
     // special_geminate_dissociation_positions will produce two new positions close to old_pos taking into account
@@ -993,7 +993,7 @@ get_pos_sid_pair_pair( CylindricalSurface<Ttraits_>           const& origin_stru
 {
     typedef typename Ttraits_::structure_id_type        structure_id_type;
     typedef typename Ttraits_::position_type            position_type;
-    typedef typename Ttraits_::length_type              length_type;
+    //typedef typename Ttraits_::length_type              length_type;
 
     // Currently we do not allow for pair forward/backward reactions between two different cylinders
     if(origin_structure.id() == target_structure.id()){
@@ -1026,7 +1026,7 @@ get_pos_sid_pair_pair( CylindricalSurface<Ttraits_>           const& origin_stru
 {
     typedef typename Ttraits_::structure_id_type        structure_id_type;
     typedef typename Ttraits_::position_type            position_type;
-    typedef typename Ttraits_::length_type              length_type;
+    //typedef typename Ttraits_::length_type              length_type;
 
     /*** COMBINATION NOT SUPPORTED ***/
     throw illegal_propagation_attempt("Structure transition between combination of origin structure and target structure not supported (Cylinder->Cylinder/Sphere).");
@@ -1049,7 +1049,7 @@ get_pos_sid_pair_pair( CylindricalSurface<Ttraits_>           const& origin_stru
 {
     typedef typename Ttraits_::structure_id_type        structure_id_type;
     typedef typename Ttraits_::position_type            position_type;
-    typedef typename Ttraits_::length_type              length_type;
+    //typedef typename Ttraits_::length_type              length_type;
 
     /*** COMBINATION NOT SUPPORTED ***/
     throw illegal_propagation_attempt("Structure transition between combination of origin structure and target structure not supported (Cylinder->Cylinder/Disk).");
@@ -1072,7 +1072,7 @@ get_pos_sid_pair_pair( CylindricalSurface<Ttraits_>           const& origin_stru
 {
     typedef typename Ttraits_::structure_id_type        structure_id_type;
     typedef typename Ttraits_::position_type            position_type;
-    typedef typename Ttraits_::length_type              length_type;
+    //typedef typename Ttraits_::length_type              length_type;
 
     /*** COMBINATION NOT SUPPORTED ***/
     throw illegal_propagation_attempt("Structure transition between combination of origin structure and target structure not supported (Cylinder->Cylinder/Plane).");
@@ -1096,9 +1096,9 @@ get_pos_sid_pair_pair( DiskSurface<Ttraits_>                  const& origin_stru
                        typename Ttraits_::length_type         const& reaction_length,
                        typename Ttraits_::rng_type            &rng                )
 {
-    typedef typename Ttraits_::structure_id_type        structure_id_type;
+  //typedef typename Ttraits_::structure_id_type        structure_id_type;
     typedef typename Ttraits_::position_type            position_type;
-    typedef typename Ttraits_::length_type              length_type;
+    //typedef typename Ttraits_::length_type              length_type;
 
     std::pair<position_type, position_type> new_positions( origin_structure.special_geminate_dissociation_positions(rng, s_orig, s_targ, old_pos, reaction_length) );
     // special_geminate_dissociation_positions will produce two new positions close to old_pos taking into account
@@ -1125,7 +1125,7 @@ get_pos_sid_pair_pair( DiskSurface<Ttraits_>                  const& origin_stru
 {
     typedef typename Ttraits_::structure_id_type        structure_id_type;
     typedef typename Ttraits_::position_type            position_type;
-    typedef typename Ttraits_::length_type              length_type;
+    //typedef typename Ttraits_::length_type              length_type;
 
     /*** COMBINATION NOT SUPPORTED ***/
     throw illegal_propagation_attempt("Structure transition between combination of origin structure and target structure not supported (Disk->Disk/Sphere).");
@@ -1148,7 +1148,7 @@ get_pos_sid_pair_pair( DiskSurface<Ttraits_>                  const& origin_stru
 {
     typedef typename Ttraits_::structure_id_type        structure_id_type;
     typedef typename Ttraits_::position_type            position_type;
-    typedef typename Ttraits_::length_type              length_type;
+    //typedef typename Ttraits_::length_type              length_type;
 
     // TODO TODO TODO
     // IMPLEMENT THE UNBINDING FROM THE DISK ACTING AS A SINK!
@@ -1174,7 +1174,7 @@ get_pos_sid_pair_pair( DiskSurface<Ttraits_>                  const& origin_stru
 {
     typedef typename Ttraits_::structure_id_type        structure_id_type;
     typedef typename Ttraits_::position_type            position_type;
-    typedef typename Ttraits_::length_type              length_type;
+    //typedef typename Ttraits_::length_type              length_type;
 
     /*** COMBINATION NOT SUPPORTED ***/
     throw illegal_propagation_attempt("Structure transition between combination of origin structure and target structure not supported (Disk->Disk/Disk).");
@@ -1195,9 +1195,9 @@ get_pos_sid_pair_pair( DiskSurface<Ttraits_>                  const& origin_stru
                        typename Ttraits_::length_type         const& reaction_length,
                        typename Ttraits_::rng_type            &rng                )
 {
-    typedef typename Ttraits_::structure_id_type        structure_id_type;
+  //typedef typename Ttraits_::structure_id_type        structure_id_type;
     typedef typename Ttraits_::position_type            position_type;
-    typedef typename Ttraits_::length_type              length_type;
+    //typedef typename Ttraits_::length_type              length_type;
 
     std::pair<position_type, position_type> new_positions( origin_structure.special_geminate_dissociation_positions(rng, s_orig, s_targ, old_pos, reaction_length) );
     // special_geminate_dissociation_positions will produce two new positions close to old_pos taking into account
@@ -1226,7 +1226,7 @@ get_pos_sid_pair_pair( PlanarSurface<Ttraits_>                const& origin_stru
                        typename Ttraits_::length_type         const& reaction_length,
                        typename Ttraits_::rng_type            &rng                )
 {
-    typedef typename Ttraits_::structure_id_type        structure_id_type;
+  //typedef typename Ttraits_::structure_id_type        structure_id_type;
     typedef typename Ttraits_::position_type            position_type;
     typedef typename Ttraits_::length_type              length_type;
     
@@ -1271,7 +1271,7 @@ get_pos_sid_pair_pair( PlanarSurface<Ttraits_>                const& origin_stru
 {
     typedef typename Ttraits_::structure_id_type        structure_id_type;
     typedef typename Ttraits_::position_type            position_type;
-    typedef typename Ttraits_::length_type              length_type;
+    //typedef typename Ttraits_::length_type              length_type;
 
     /*** COMBINATION NOT SUPPORTED ***/
     throw illegal_propagation_attempt("Structure transition between combination of origin structure and target structure not supported (Plane->Plane/Sphere).");
@@ -1294,7 +1294,7 @@ get_pos_sid_pair_pair( PlanarSurface<Ttraits_>                const& origin_stru
 {
     typedef typename Ttraits_::structure_id_type        structure_id_type;
     typedef typename Ttraits_::position_type            position_type;
-    typedef typename Ttraits_::length_type              length_type;
+    //typedef typename Ttraits_::length_type              length_type;
 
     /*** COMBINATION NOT SUPPORTED ***/
     throw illegal_propagation_attempt("Structure transition between combination of origin structure and target structure not supported (Plane->Plane/Cylinder).");
@@ -1317,7 +1317,7 @@ get_pos_sid_pair_pair( PlanarSurface<Ttraits_>                const& origin_stru
 {
     typedef typename Ttraits_::structure_id_type        structure_id_type;
     typedef typename Ttraits_::position_type            position_type;
-    typedef typename Ttraits_::length_type              length_type;
+    //typedef typename Ttraits_::length_type              length_type;
 
     /*** COMBINATION NOT SUPPORTED ***/
     throw illegal_propagation_attempt("Structure transition between combination of origin structure and target structure not supported (Plane->Plane/Disk).");
@@ -1340,7 +1340,7 @@ get_pos_sid_pair_pair( PlanarSurface<Ttraits_>                const& origin_stru
 {
     typedef typename Ttraits_::structure_id_type        structure_id_type;
     typedef typename Ttraits_::position_type            position_type;
-    typedef typename Ttraits_::length_type              length_type;
+    //typedef typename Ttraits_::length_type              length_type;
 
     // As a default we produce two new positions on the same plane; in principle the particles can end up
     // on different planes, but this should be treated afterwards via apply_boundary.

@@ -111,7 +111,7 @@ public:
     
     // Vector used to determine whether a particle has crossed the structure
     // Here we return the zero-vector because there is no "sides" to cross
-    virtual position_type const& side_comparison_vector() const
+    virtual position_type const side_comparison_vector() const
     {
         return create_vector<position_type>(0.0, 0.0, 0.0);
     }

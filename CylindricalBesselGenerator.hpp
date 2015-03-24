@@ -11,9 +11,6 @@
 
 class CylindricalBesselGenerator
 {
-
-    typedef UnsignedInteger Index;
-
 public:
 
     CylindricalBesselGenerator()

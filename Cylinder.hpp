@@ -180,7 +180,7 @@ inline typename Cylinder<T_>::length_type
 distance(Cylinder<T_> const& obj,
                 typename Cylinder<T_>::position_type const& pos)
 {
-    typedef typename Cylinder<T_>::position_type position_type;
+  //typedef typename Cylinder<T_>::position_type position_type;
     typedef typename Cylinder<T_>::length_type length_type;
 
     /* First compute the (r,z) components of pos in a coordinate system 

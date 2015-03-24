@@ -246,7 +246,7 @@ public:
         typename element_type_of<T1_>::type const& D1,
         typename element_type_of<T1_>::type const& D2)
     {
-        typedef typename element_type_of< T1_ >::type element_type;   
+      //typedef typename element_type_of< T1_ >::type element_type;   
 
         T1_ retval;
 

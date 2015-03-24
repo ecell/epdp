@@ -616,7 +616,7 @@ Real I_bd_1D(Real sigma, Real t, Real D, Real v)
 
     const Real Dt4(4 * D * t);
     const Real sqrt4Dt(std::sqrt(Dt4));
-    double vt = v*t;
+    Real vt = v*t;
 
     const Real arg1(-(2*sigma + vt)*(2*sigma + vt)/Dt4);
     const Real term1(expl( -vt*vt/Dt4 ) - expl( arg1 ));
