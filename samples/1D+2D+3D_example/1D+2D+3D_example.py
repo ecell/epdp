@@ -1,13 +1,31 @@
 #!/usr/bin/python
 
 #####################################################
-##### A simple A+B <-> C reaction on a 2D plane #####
-##### by TR Sokolowski, 2013                    #####
+##### An example featuring a closed box made up #####
+##### from six planes ("membranes"), involving: #####
 #####                                           #####
+#####   - 3D diffusion inside the box           #####
+#####   - 2D diffusion on the planes            #####
+#####   - 1D transport on rods inside the box   #####
+#####   - reactions in 3D                       #####
+#####   - reactions in 2D                       #####
+#####   - reactions (binding to a cap) in 1D    #####
+#####   - "direct binding" between 3D and 2D    #####
+#####                                           #####
+##### by TR Sokolowski, 2015                    #####
 #####################################################
 
 ##### Start with:
-##### PYTHONPATH=[egfrd directory] LOGLEVEL=[ERROR|DEBUG] python ./2D_example [seed] [no. of particles]
+##### PYTHONPATH=[egfrd directory] LOGLEVEL=[ERROR|DEBUG] python ./1D+2D+3D_example.py [parameters]
+##### where [parameters] = 
+#####         [seed] (random generator seed)
+#####         [surface_to_bulk_ratio] (ratio btw. no. of particles on membrane/in bulk)
+#####         [cap_dwelltime] (1 / unbinding rate from the rod caps)
+#####         [membrane_dwelltime] (1 / unbinding rate from membrane)
+#####         [membrane_slowdown] (ratio bulk diff. const. / membrane single part. diff. const.)
+#####         [complex_slowdown]  (ratio bulk diff. const. / membrane complex diff. const.)
+#####
+##### (in that order)
 
 
 # #### Importing necessary files ####
@@ -143,7 +161,7 @@ def setup_model():
         # should be zero if the following are not, and vice versa
     # Binding to cap cluster
     kb_to_cc         = 1e-5
-    ku_from_cc       = 1.0/tip_dwelltime
+    ku_from_cc       = 1.0/cap_dwelltime
 
     # Binding to a sink on the rod
     kb_to_sink       = 0
@@ -393,12 +411,12 @@ def setup_VTK():
 
 def main():
 
-        global input_seed, surface_to_bulk_no_ratio, tip_dwelltime, membrane_dwelltime, membrane_slowdown, complex_slowdown
+        global input_seed, surface_to_bulk_no_ratio, cap_dwelltime, membrane_dwelltime, membrane_slowdown, complex_slowdown
 
         # #### Read input parameters ####
         input_seed		 = int(sys.argv[1])
         surface_to_bulk_no_ratio = float(sys.argv[2])
-        tip_dwelltime		 = float(sys.argv[3])
+        cap_dwelltime		 = float(sys.argv[3])
         membrane_dwelltime	 = float(sys.argv[4])
         membrane_slowdown	 = float(sys.argv[5])
         complex_slowdown	 = float(sys.argv[6])
@@ -419,8 +437,8 @@ def main():
         print '* Initialization complete, starting simulation.'
         print '* SINGLE_SHELL_FACTOR=%s, MULTI_SHELL_FACTOR=%s, MINIMAL_SEPARATION_FACTOR=%s, SAFETY=%s, TOLERANCE=%s' \
                         % (SINGLE_SHELL_FACTOR, MULTI_SHELL_FACTOR, MINIMAL_SEPARATION_FACTOR, SAFETY, TOLERANCE)
-        print '* surface_to_bulk_no_ratio=%s, tip_dwelltime=%s, membrane_dwelltime=%s, membrane_slowdown=%s, complex_slowdown=%s, input_seed=%s' \
-                        % (surface_to_bulk_no_ratio, tip_dwelltime, membrane_dwelltime, membrane_slowdown, complex_slowdown, input_seed)        
+        print '* surface_to_bulk_no_ratio=%s, cap_dwelltime=%s, membrane_dwelltime=%s, membrane_slowdown=%s, complex_slowdown=%s, input_seed=%s' \
+                        % (surface_to_bulk_no_ratio, cap_dwelltime, membrane_dwelltime, membrane_slowdown, complex_slowdown, input_seed)        
         print [structure.id for structure in w.structures]
         
         
