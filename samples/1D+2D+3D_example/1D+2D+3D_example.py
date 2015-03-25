@@ -55,7 +55,7 @@ def set_constants():
     Pi = math.pi
 
     # Run and logging parameters
-    N_run = 1e5         # number of simulation steps
+    N_run = 1e6         # number of simulation steps
     N_log = 1e9         # number of *last* steps it will log; if N_log>N_run, we will log N_run steps
     log_step = 0        # number of steps between two log outputs
                         # if this is 0 the script will log in time intervals instead (defined below)
@@ -71,7 +71,7 @@ def set_constants():
         log_time = 0.0
 
     # The random seed
-    _SEED_ = int(par1)
+    _SEED_ = int(input_seed)
 
     # Some control flags
     _INFO_ = 1
@@ -165,7 +165,7 @@ def setup_model():
 
     # Binding to a sink on the rod
     kb_to_sink       = 0
-    kb_from_sink     = 0 # not used so far
+    ku_from_sink     = 0 # not used so far
 
     # Reactions on the membrane
     kb_on_membrane = 1e-11
@@ -266,7 +266,7 @@ def setup_model():
         rb_ABm_dir = model.create_binding_reaction_rule(A, Bm, ABm, kb_to_membrane_particle)
         existing_rules.append(rb_ABm_dir)
     if(ku_from_membrane_particle > 0.0):    
-        rb_ABm_dir = model.create_unbinding_reaction_rule(ABm, A, Bm, ku_from_membrane_particle)
+        ru_ABm_dir = model.create_unbinding_reaction_rule(ABm, A, Bm, ku_from_membrane_particle)
         existing_rules.append(ru_ABm_dir)
 
     # "Direct" binding of B from bulk to membrane-bound Am
@@ -275,7 +275,7 @@ def setup_model():
         rb_ABm_dir_2 = model.create_binding_reaction_rule(Am, B, ABm, kb_to_membrane_particle)
         existing_rules.append(rb_ABm_dir_2)
     if(ku_from_membrane_particle > 0.0):    
-        rb_ABm_dir_2 = model.create_unbinding_reaction_rule(ABm, Am, B, ku_from_membrane_particle)
+        ru_ABm_dir_2 = model.create_unbinding_reaction_rule(ABm, Am, B, ku_from_membrane_particle)
         existing_rules.append(ru_ABm_dir_2)
 
     ### TODO: A + B <-> C in bulk        
@@ -291,12 +291,12 @@ def setup_model():
         Ac.append( model.Species('Ac'+str(i+1), 0, cluster_radius, cap) )
         m.add_species_type(Ac[i])
 
-    existing_rules.append( model.create_binding_reaction_rule(At, cap, Ac[0], kb_to_cap_cluster) )
-    existing_rules.append( model.create_unimolecular_reaction_rule(Ac[0], A, ku_from_cap_cluster) )
+    existing_rules.append( model.create_binding_reaction_rule(At, cap, Ac[0], kb_to_cc) )
+    existing_rules.append( model.create_unimolecular_reaction_rule(Ac[0], A, ku_from_cc) )
 
     for i in range(1,Ncluster_max):
-        existing_rules.append( model.create_binding_reaction_rule(At, Ac[i-1], Ac[i], kb_to_cap_cluster) )
-        existing_rules.append( model.create_unbinding_reaction_rule(Ac[i], Ac[i-1], A, ku_from_cap_cluster) )
+        existing_rules.append( model.create_binding_reaction_rule(At, Ac[i-1], Ac[i], kb_to_cc) )
+        existing_rules.append( model.create_unbinding_reaction_rule(Ac[i], Ac[i-1], A, ku_from_cc) )
     
     # Finalize:
     # Add all the rules to the particle model
