@@ -1,6 +1,6 @@
 FROM ubuntu:14.04
 
-RUN apt update && apt install -y autoconf libtool python libgsl0-dev libpython-dev libboost-dev g++ python-numpy python-scipy make
+RUN apt update && apt install -y autoconf libtool python libgsl0-dev libpython-dev libboost-dev g++ python-numpy python-scipy make libboost-python-dev libboost-regex-dev
 
 RUN mkdir -p /srv/
 ADD . /srv/epdp
