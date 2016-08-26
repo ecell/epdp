@@ -53,6 +53,23 @@ public:
     typedef std::pair<position_type, structure_id_type>                           position_structid_pair_type;
     typedef std::pair<position_structid_pair_type, position_structid_pair_type>   position_structid_pair_pair_type;
 
+    // As a specialty, the DiskStructure has a flag that can be set to prevent a move of the particle
+    // upon a dissociation event; this can be used for disks that are "sinks" (binding sites) on cylindrical structures
+    bool MOVES_AFTER_DISSOCIATION; // by default it is true, automatically set by constructor below
+    // Setters for the flag
+    virtual void forbid_move_after_dissociation()
+    {
+        this->MOVES_AFTER_DISSOCIATION = false;
+    }    
+    virtual void allow_move_after_dissociation()
+    {
+        this->MOVES_AFTER_DISSOCIATION = true;
+    }
+    // Getters
+    virtual bool const& moves_after_dissociation() const
+    {
+        return this->MOVES_AFTER_DISSOCIATION;
+    }
     
     /*** Info functions ***/
     virtual position_type const& position() const
@@ -456,7 +473,7 @@ public:
     }
         
     DiskSurface(structure_name_type const& name, structure_type_id_type const& sid, structure_id_type const& parent_struct_id, shape_type const& shape)
-        : base_type(name, sid, parent_struct_id, shape) {}
+        : base_type(name, sid, parent_struct_id, shape), MOVES_AFTER_DISSOCIATION(true) {}
 };
 
 #endif /* DISK_SURFACE_HPP */

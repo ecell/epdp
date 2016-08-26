@@ -21,6 +21,9 @@ inline boost::python::objects::class_base register_disk_surface_class(char const
                        typename impl_type::shape_type>())
         .add_property("shape",
             make_function((typename impl_type::shape_type const&(impl_type::*)()const)&impl_type::shape, return_value_policy<return_by_value>()))
+        .def("allow_move_after_dissociation", &impl_type::allow_move_after_dissociation)
+        .def("forbid_move_after_dissociation", &impl_type::forbid_move_after_dissociation)
+        .def("moves_after_dissociation", &impl_type::moves_after_dissociation, return_value_policy<return_by_value>())
         ;
 }
 
