@@ -1225,14 +1225,21 @@ class EGFRDSimulator(ParticleSimulatorBase):
                         product_pos_list.append(vector)
 
                 elif isinstance(reactant_structure, DiskSurface):
-                    # The particle unbinds perpendicularly to disk unit vector (i.e. like on cylinder)
-                    vector_length = (product_radius + reactant_structure.shape.radius) * MINIMAL_SEPARATION_FACTOR
-                    for _ in range(self.dissociation_retry_moves):
-                        unit_vector3D = random_unit_vector()
-                        unit_vector2D = normalize(unit_vector3D - 
-                                        (reactant_structure.shape.unit_z * numpy.dot(unit_vector3D, reactant_structure.shape.unit_z)))
-                        vector = reactant_pos + vector_length * unit_vector2D
-                        product_pos_list.append(vector)
+                    # Initially check whether the DiskSurface dissociates the particles in radial direction (default setting)
+                    if reactant_structure.dissociates_radially():
+                      
+                      # The particle unbinds perpendicularly to disk unit vector (i.e. like on cylinder)
+                      vector_length = (product_radius + reactant_structure.shape.radius) * MINIMAL_SEPARATION_FACTOR
+                      for _ in range(self.dissociation_retry_moves):
+                          unit_vector3D = random_unit_vector()
+                          unit_vector2D = normalize(unit_vector3D - 
+                                          (reactant_structure.shape.unit_z * numpy.dot(unit_vector3D, reactant_structure.shape.unit_z)))
+                          vector = reactant_pos + vector_length * unit_vector2D
+                          product_pos_list.append(vector)
+                          
+                    else:
+                      # The particle stays where it is
+                      product_pos_list.append(reactant_pos)
 
                 else:
                     # cannot decay from 3D to other structure
@@ -1313,7 +1320,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
                     log.warn('Reactant structure is default structure, but products do not end up in bulk. Something seems wrong!')
 
                 # Figure out which product stays in the surface and which one goes to the bulk or parent structure
-                # Note that A is a particle in the surface and B is in the 3D
+                # Note that A is a particle staying in the surface of origin (of the reactant) and B goes to the "higher" structure
                 if product2_structure_type_id == def_sid or product2_structure_type_id == parent_sid:
                     # product2 goes to bulk or parent structure and is now particleB (product1 is particleA and is on the surface)
                     product1_structure_id = reactant_structure_id # TODO after the displacement the structure can change!
@@ -1451,17 +1458,33 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
                     # productA always must stay on the disk, in the position of the reactant
                     newposA = reactant_pos
+                    
+                    # Check whether the DiskSurface dissociates the particles in radial direction (default setting)
+                    if reactant_structure.dissociates_radially():
 
-                    # Create the position of the particle that goes into the bulk (productB)
-                    # This is the same as for the single reaction of a completely dissociating disk-bound particle (see above)
-                    vector_length = (productB_radius + max(productA_radius, reactant_structure.shape.radius)) * MINIMAL_SEPARATION_FACTOR
-                    for _ in range(self.dissociation_retry_moves):
-                        unit_vector3D = random_unit_vector()
-                        unit_vector2D = normalize(unit_vector3D - 
-                                        (reactant_structure.shape.unit_z * numpy.dot(unit_vector3D, reactant_structure.shape.unit_z)))
-                        newposB = reactant_pos + vector_length * unit_vector2D                    
+                      # Create the position of the particle that goes into the bulk (productB)
+                      # This is the same as for the single reaction of a completely dissociating disk-bound particle (see above)
+                      vector_length = (productB_radius + max(productA_radius, reactant_structure.shape.radius)) * MINIMAL_SEPARATION_FACTOR
+                      for _ in range(self.dissociation_retry_moves):
+                          unit_vector3D = random_unit_vector()
+                          unit_vector2D = normalize(unit_vector3D - 
+                                          (reactant_structure.shape.unit_z * numpy.dot(unit_vector3D, reactant_structure.shape.unit_z)))
+                          newposB = reactant_pos + vector_length * unit_vector2D                    
 
-                        product_pos_list.append(conditional_swap(newposA, newposB))
+                          product_pos_list.append(conditional_swap(newposA, newposB))
+                          
+                    else:
+                      # The particle does not dissociate into the bulk but moves back onto the parent cylinder
+                      # and is placed adjacent (touching) next to particle A
+                      vector_length = (productB_radius + productA_radius) * MINIMAL_SEPARATION_FACTOR
+                      for _ in range(self.dissociation_retry_moves):
+                          # Determine a random dissociation direction
+                          unit_vector1D =  random_sign() * reactant_structure.shape.unit_z
+                          newposB = reactant_pos + vector_length * unit_vector1D
+                          # TODO We may have to carry out additional checks for free space here first, 
+                          # but in principle the code below should handle it correctly as in all other cases
+
+                          product_pos_list.append(conditional_swap(newposA, newposB))                      
 
                 else:
                     # cannot decay from 3D to other structure
