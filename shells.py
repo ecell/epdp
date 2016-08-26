@@ -2695,8 +2695,10 @@ class CylindricalSurfaceCapInteractiontestShell(CylindricaltestShell, testIntera
         testInteractionSingle.__init__(self, single, single.structure, target_structure)
 
         # We want to form this domain only if the cap actually is a substructure of the cylinder of origin
-        #if not target_structure.id == single.structure.structure_id:
+        #if not target_structure.structure_id == single.structure.id:
             #raise testShellError('(CylindricalSurfaceCapInteraction). Target structure is not a substructure of the origin structure.')
+            ### FIXME This cannot be longer fulfilled when the cylinder-plane interaction test shells
+            ### inherit from this class!
 
         # Initialize scaling parameters
         # - the reference point is at the cap disk position
