@@ -53,22 +53,23 @@ public:
     typedef std::pair<position_type, structure_id_type>                           position_structid_pair_type;
     typedef std::pair<position_structid_pair_type, position_structid_pair_type>   position_structid_pair_pair_type;
 
-    // As a specialty, the DiskStructure has a flag that can be set to prevent a move of the particle
-    // upon a dissociation event; this can be used for disks that are "sinks" (binding sites) on cylindrical structures
-    bool MOVES_AFTER_DISSOCIATION; // by default it is true, automatically set by constructor below
+    // As a specialty, the DiskStructure has a flag that can be set to make the particle not move radially upon
+    // a dissociation event, but axially (i.e., in direction of the cylinder axis of the parent cylinder)
+    // This can be used for disks that are "sinks" (binding sites) on cylindrical structures
+    bool RADIAL_DISSOCIATION; // by default it is true, automatically set by constructor below
     // Setters for the flag
-    virtual void forbid_move_after_dissociation()
+    virtual void forbid_radial_dissociation()
     {
-        this->MOVES_AFTER_DISSOCIATION = false;
+        this->RADIAL_DISSOCIATION = false;
     }    
-    virtual void allow_move_after_dissociation()
+    virtual void allow_radial_dissociation()
     {
-        this->MOVES_AFTER_DISSOCIATION = true;
+        this->RADIAL_DISSOCIATION = true;
     }
     // Getters
-    virtual bool const& moves_after_dissociation() const
+    virtual bool const& dissociates_radially() const
     {
-        return this->MOVES_AFTER_DISSOCIATION;
+        return this->RADIAL_DISSOCIATION;
     }
     
     /*** Info functions ***/
@@ -473,7 +474,7 @@ public:
     }
         
     DiskSurface(structure_name_type const& name, structure_type_id_type const& sid, structure_id_type const& parent_struct_id, shape_type const& shape)
-        : base_type(name, sid, parent_struct_id, shape), MOVES_AFTER_DISSOCIATION(true) {}
+        : base_type(name, sid, parent_struct_id, shape), RADIAL_DISSOCIATION(true) {}
 };
 
 #endif /* DISK_SURFACE_HPP */
