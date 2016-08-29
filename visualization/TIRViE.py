@@ -67,7 +67,7 @@ class TheImperialRoyalVisualizerForEGFRD:
     
     self.SCENE_BACKGROUND_COLOR = v.color.white
     
-    self.info_label_strings_order = ('b', 's', 'd', 'c', 'o', 'w', 'i')
+    self.info_label_strings_order = ('b', 's', 'd', 'r', 'c', 'o', 'w', 'i')
     self.INFO_TIME_ONLY           = False
     
     # Some flags tuning visual behavior of the objects
@@ -99,6 +99,11 @@ class TheImperialRoyalVisualizerForEGFRD:
     
     # A flag to pause/resume the execution of the simulation
     self.PAUSED = False
+    
+    # A flag to activate/inactivate retarding of progress in case
+    # the visualization cannot keep speed with the simulation
+    self.RETARD = False
+    self.RETARDING_SECONDS = 0.1
     
     # Color lists and dictionaries for objects of different species    
     self.create_default_color_list()
@@ -141,6 +146,9 @@ class TheImperialRoyalVisualizerForEGFRD:
         
     if self.PAUSED:
       self.pause()
+
+    if self.RETARD:
+      self.retard()
       
     self.clear_scene()    
     
@@ -327,8 +335,13 @@ class TheImperialRoyalVisualizerForEGFRD:
         self.PAUSED = False
         self.paused_label.visible = False
         print '***** CONTINUING *****'
-        
-    # Visibility of logo and info label
+
+    # Screen output retarding
+    elif k == 'r' or k == 'R':
+      
+      self.RETARD = not(self.RETARD)
+      
+    # Visibility of info label
     if k == 'i' or k == 'I':
       
       self.info_label.visible = not(self.info_label.visible)
@@ -417,7 +430,12 @@ class TheImperialRoyalVisualizerForEGFRD:
         key = self.scene.kb.getkey()
         self.handle_key(key)
 
-        
+
+  def retard(self):
+    
+      time.sleep(self.RETARDING_SECONDS)
+      
+      
   def set_info_label_strings(self):
     
     self.info_label_strings = {}        
@@ -437,10 +455,15 @@ class TheImperialRoyalVisualizerForEGFRD:
     else:
       self.info_label_strings['s'] = '\n[s] hiding structures'
       
+    if self.RETARD:
+      self.info_label_strings['r'] = '\n[r] output retarding ON'
+    else:
+      self.info_label_strings['r'] = '\n[r] output retarding OFF'
+      
     if self.CAPTURE:
       self.info_label_strings['c'] = '\n[c] output capturing ON'
     else:
-      self.info_label_strings['c'] = '\n[c] output capturing OFF'              
+      self.info_label_strings['c'] = '\n[c] output capturing OFF'                        
     
     #if self.RODS_AS_HELICES:
       #self.info_label_strings['h'] = '\nrods shown as helices'
