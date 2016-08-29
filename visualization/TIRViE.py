@@ -260,7 +260,7 @@ class TheImperialRoyalVisualizerForEGFRD:
     self.scene.background = self.SCENE_BACKGROUND_COLOR
     self.scene.select()
     
-    self.info_label   = v.label(pos=(-1.1*self.world_size, 1.1*self.world_size, 0), text = 't = 0', height=10)
+    self.info_label   = v.label(pos=(-1.1*self.world_size, 1.1*self.world_size, 0), text = 't = 0 s', height=10)
     self.paused_label = v.label(text = 'PAUSED', color = v.color.red, linecolor = v.color.red, visible = False)
     
     #self.logo = v.text(pos=(-self.world_size, 1.1*self.world_size, 0), text='TIRViE', height=0.1*self.world_size, width=0.2*self.world_size)
@@ -482,7 +482,7 @@ class TheImperialRoyalVisualizerForEGFRD:
     
     try:
       time_str = "%0.3f" % self.sim.t
-      newtext = 't = ' + time_str
+      newtext = 't = ' + time_str + ' s'
       
       if not(self.INFO_TIME_ONLY):
         newtext = newtext + '\n'
