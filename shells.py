@@ -193,9 +193,13 @@ class testInteractionSingle(testSingle, Others):
         # Cyclic transpose needed when calling target_structure.project_point!
         pos_transposed = self.world.cyclic_transpose(self.pid_particle_pair[1].position,
                                                      self.target_structure.shape.position)
-        self.reference_point, (_, dist_to_surface_edge) = self.target_structure.project_point(pos_transposed)
+        self.reference_point, (normal_comp, dist_to_surface_edge) = self.target_structure.project_point(pos_transposed)
         if dist_to_surface_edge >= 0:
             raise testShellError('(testInteractionSingle). Projected point of particle is not in surface.')
+        elif feq(normal_comp, 0.0, self.pid_particle_pair[1].radius):
+            raise testShellError('(testInteractionSingle). Normal component = %g / particle is already in surface.' % normal_comp)
+            # If the distance to the reactive surface is zero we want to better use BD, because the
+            # zero distance can cause problems with (cylinder) shellmaking and reaction sampling.
 
         self.min_dist_proj_to_edge = abs(dist_to_surface_edge)
         # projection_distance can be negative in case of plane
