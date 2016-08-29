@@ -547,7 +547,9 @@ class TheImperialRoyalVisualizerForEGFRD:
             # and set the color accordingly
             
             # Single and pairs
-            color = self.shell_color_dict[object.multiplicity]
+            if object.multiplicity <= 2:
+                # if it is > 2 it is a Multi, handled below
+                color = self.shell_color_dict[object.multiplicity]
 
             # Highlight top_event for singles and pairs
             if top_event_id != None and object.event_id == top_event_id:                
