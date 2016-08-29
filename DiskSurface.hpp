@@ -136,28 +136,40 @@ public:
     virtual position_type surface_dissociation_vector( rng_type& rng, length_type const& offset, length_type const& rl ) const
     {
         // This function produces a position for a particle unbinding from the disk.
-        // It should lie within the reaction volume around the disk.
-        // Note that this is the same code as for the CylindricalSurface.
-        Real X( rng.uniform(0.,1.) );
-        length_type   const disk_radius = base_type::shape().radius();
-        position_type const unit_z = base_type::shape().unit_z();
+        // If it unbinds radially (standard case), it should lie within the reaction volume around the disk        
+        // (Note that in that case this is the same code as for the CylindricalSurface!)
+        // If it unbinds axially (i.e., back to the cylinder), it does not change its position.
+        // We therefore initialize the new position with the Disk position by default,
+        // and only create a new vector if needed below.
+        position_type new_pos( base_type::shape().position() );
+        
+        if( this->RADIAL_DISSOCIATION == true ){
+          
+            Real X( rng.uniform(0.,1.) );
+            length_type   const disk_radius = base_type::shape().radius();
+            position_type const unit_z = base_type::shape().unit_z();
 
-        // Calculate the length of the vector first
-        length_type const rrl( disk_radius + offset + rl );
-        length_type const rrl_sq( gsl_pow_2(rrl) );
-        length_type const rr_sq(  gsl_pow_2(disk_radius + offset) );
-        // Create a random length between rr_sq and rrl_sq
-        length_type const diss_vec_length( sqrt( rr_sq + X * (rrl_sq - rr_sq) ) );
+            // Calculate the length of the vector first
+            length_type const rrl( disk_radius + offset + rl );
+            length_type const rrl_sq( gsl_pow_2(rrl) );
+            length_type const rr_sq(  gsl_pow_2(disk_radius + offset) );
+            // Create a random length between rr_sq and rrl_sq
+            length_type const diss_vec_length( sqrt( rr_sq + X * (rrl_sq - rr_sq) ) );
 
-        // Create a 3D vector with totally random orientation
-        position_type v(rng.uniform(0.,1.) - .5, rng.uniform(0.,1.) - .5, rng.uniform(0.,1.) - .5);
-        // Subtract the part parallel to the axis to get the orthogonal components and normalize
-        // This creates a normed random vector in the disk plane
-        v = normalize( subtract(v, multiply( unit_z, dot_product( unit_z, v ) ) ) );
-         
-        // Return the created vector with the right length
-        return multiply( v, MINIMAL_SEPARATION_FACTOR * diss_vec_length);
-               // TODO define a global MINIMAL_SEPARATION_FACTOR also for BD mode
+            // Create a 3D vector with totally random orientation
+            position_type v(rng.uniform(0.,1.) - .5, rng.uniform(0.,1.) - .5, rng.uniform(0.,1.) - .5);
+            // Subtract the part parallel to the axis to get the orthogonal components and normalize
+            // This creates a normed random vector in the disk plane
+            v = normalize( subtract(v, multiply( unit_z, dot_product( unit_z, v ) ) ) );
+            
+            new_pos = multiply( v, MINIMAL_SEPARATION_FACTOR * diss_vec_length);
+                      // TODO define a global MINIMAL_SEPARATION_FACTOR also for BD mode
+        }
+        else
+            ; // nothing changes, new_pos already correctly initialized above
+                    
+        return new_pos;
+        
     }
     
     // Normed direction of dissociation from the structure to parent structure
@@ -191,21 +203,44 @@ public:
         // TODO We have to distinguish between sink and cap here and between dissociation onto
         // the rod and into the bulk/plane!
         
-        // Note: s_disk = disk-bound species, s_diss = dissociating species (may go to bulk or plane)
-                                                 
-        length_type const disk_radius( base_type::shape().radius() );        
-        length_type const r01( s_disk.radius() + s_diss.radius() );
-        
-        // The following is the additional distance that we have to pass to surface_dissociation_vector() below
-        // to place the unbinding particle in contact with the disk particle or the disk, whatever has the 
-        // larger radius. surface_dissociation_vector() will add it to the disk_radius.
-        length_type offset( s_disk.radius() > disk_radius ? r01 - disk_radius : s_diss.radius());
-        
-        position_pair_type pp01;        
+        // Note: s_disk = disk-bound species, s_diss = dissociating species (may go to bulk or cylinder)
+
+        // Initialize the position_pair that will hold the new positions of the 2 particles
+        position_pair_type pp01;
         // Particle 0 is the one that stays on the origin structure. It does not move.
         pp01.first  = reactant_pos;
-        // Particle 1 is the one that unbinds from the disk and is placed in the reaction volume around it.
-        pp01.second = add(reactant_pos, surface_dissociation_vector(rng, offset, rl));
+        // Particle 1 is the one that unbinds from the disk and is placed in the reaction volume
+        // around it (in case of radial unbinding) or next to/touching the first particle
+        // (taking into account the reaction vol.) on the cylinder (in case of axial unbinding)
+        
+        if( this->RADIAL_DISSOCIATION == true )
+        {
+            length_type const disk_radius( base_type::shape().radius() );        
+            length_type const r01( s_disk.radius() + s_diss.radius() );
+            
+            // The following is the additional distance that we have to pass to surface_dissociation_vector() below
+            // to place the unbinding particle in contact with the disk particle or the disk, whatever has the larger radius.
+            // Later surface_dissociation_vector() will add this offset length to the disk_radius.
+            // If the disk-bound particle is larger than the disk, the final distance should be equal to r01, 
+            // so we subtract disk_radius here (because it will be automatically added later); if in turn the 
+            // disk is larger than the disk-bound particle, the offset is the radius of the dissoc. particle.
+            length_type offset( s_disk.radius() > disk_radius ? r01 - disk_radius : s_diss.radius());
+                                                
+            pp01.second = add(reactant_pos, surface_dissociation_vector(rng, offset, rl));
+        }
+        else
+        {                        
+            // Generate a random distance within the reaction volume
+            Real X( rng.uniform(0.0, 1.0) );            
+            length_type const r01( s_disk.radius() + s_diss.radius() + X * rl );
+            // Generate another random number to determine the direction of dissociaton
+            Real D( rng.uniform(0.0, 1.0) );
+            // Construct the dissociation vector in axial direction (given by unit_z of the disk)
+            position_type const disk_unit_z( base_type::shape().unit_z() );
+            position_type const axial_diss_vector( D>0.5? multiply(disk_unit_z, r01) : multiply(disk_unit_z, -r01) );
+            // Add to the original position of the reactant
+            pp01.second = add(reactant_pos, axial_diss_vector);
+        }
         
         return pp01;
     }
