@@ -52,6 +52,12 @@ class TheImperialRoyalVisualizerForEGFRD:
         
     TODO Add more info about usage etc.
     
+    TODO:
+      - Use the central eGFRD error logger for warnings/error messages
+      - Custom output window size
+      - Stereo view for 3D glasses (easily supported by VPython)
+      - Optional PoVRay output (files that can be rendered by PoVRay)
+    
   """
   def __init__(self, eGFRDsim, particle_color_dict={}, structure_color_dict={}, capture=False, capture_dir='./tirvie_frames'):
 
