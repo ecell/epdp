@@ -340,6 +340,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
                              'MAKE_NEW_DOMAIN':0}
         self.interaction_steps = {EventType.IV_INTERACTION:0,
                                   EventType.IV_ESCAPE:0,
+                                  EventType.SINGLE_ESCAPE:0,
                                   EventType.BURST:0}
         self.pair_steps = {EventType.SINGLE_REACTION:0,
                            EventType.IV_REACTION:0,
@@ -2254,8 +2255,12 @@ class EGFRDSimulator(ParticleSimulatorBase):
                 zero_singles_b = []   # no bursting takes place, ignore list remains unchanged
                 # Update statistics
                 if single.event_type == EventType.SINGLE_ESCAPE or\
+                   single.event_type == EventType.IV_ESCAPE or\
                    single.event_type == EventType.BURST:
-                    self.single_steps[single.event_type] += 1
+                      if isinstance(single, InteractionSingle):
+                          self.interaction_steps[single.event_type] += 1
+                      else:
+                          self.single_steps[single.event_type] += 1
                 elif __debug__:
                     log.warning('Omitting to count a single event with unforeseen event type (%s).' % single.event_type)
                     
