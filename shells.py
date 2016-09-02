@@ -2193,8 +2193,12 @@ class MixedPair2DStatictestShell(PlanarSurfacePairtestShell):
         disk_radius = self.static_single.structure.shape.radius
         search_pos  = disk_pos
 
-        closest_cyl, closest_cyl_dist = \
-                get_closest_structure(self.world, search_pos, self.static_single.structure.id, [], structure_class=CylindricalSurface)
+        try:
+            closest_cyl, closest_cyl_dist = \
+                    get_closest_structure(self.world, search_pos, self.static_single.structure.id, [], structure_class=CylindricalSurface)
+        except:
+            raise testShellError('(MixedPair2DStatic) get_closest_structure() failed, could not determine closest cylinder.')
+                    
 
         disk_to_cylinder_axis_distance = closest_cyl.project_point(disk_pos)[1][0]
         if not feq(disk_to_cylinder_axis_distance, 0.0, typical=disk_radius):
@@ -2383,13 +2387,16 @@ class CylindricalSurfacePlanarSurfaceInterfaceSingletestShell(DiskSurfaceSinglet
         disk_radius = self.structure.shape.radius
         search_pos  = disk_pos
 
-        closest_cyl, closest_cyl_dist = \
-                get_closest_structure(self.world, search_pos, self.structure.id, [], structure_class=CylindricalSurface)
+        try:
+            closest_cyl, closest_cyl_dist = \
+                    get_closest_structure(self.world, search_pos, self.structure.id, [], structure_class=CylindricalSurface)
+        except:
+            raise testShellError('(CylindricalSurfacePlanarSurfaceInterfaceSingle) get_closest_structure() failed, could not determine closest cylinder.')
 
         disk_to_cylinder_axis_distance = closest_cyl.project_point(disk_pos)[1][0]
         if not feq(disk_to_cylinder_axis_distance, 0.0, typical=disk_radius):
 
-              raise testShellError('(CylindricalSurfacePlanarSurfaceInterfaceSingle) Disk is not below closest cylinder, distance to axis = %s' \
+            raise testShellError('(CylindricalSurfacePlanarSurfaceInterfaceSingle) Disk is not below closest cylinder, distance to axis = %s' \
                                                                                                                 % disk_to_cylinder_axis_distance)
         if closest_cyl is not None:
             ignore_list = [closest_cyl.id]
@@ -2673,8 +2680,11 @@ class PlanarSurfaceDiskSurfaceInteractiontestShell(CylindricalSurfaceInteraction
         disk_radius = self.target_structure.shape.radius
         search_pos  = disk_pos
 
-        closest_cyl, closest_cyl_dist = \
-                get_closest_structure(self.world, search_pos, self.target_structure.id, [], structure_class=CylindricalSurface)
+        try:
+            closest_cyl, closest_cyl_dist = \
+                    get_closest_structure(self.world, search_pos, self.target_structure.id, [], structure_class=CylindricalSurface)
+        except:
+            raise testShellError('(PlanarSurfaceDiskSurfaceInteractionSingle) get_closest_structure() failed, could not determine closest cylinder.')
 
         disk_to_cylinder_axis_distance = closest_cyl.project_point(disk_pos)[1][0]
         if not feq(disk_to_cylinder_axis_distance, 0.0, typical=disk_radius):
@@ -2810,8 +2820,11 @@ class CylindricalSurfacePlanarSurfaceInteractionSingletestShell(CylindricalSurfa
         search_pos      = self.pid_particle_pair[1].position        
         found_good_disk = False
 
-        closest_disk, closest_disk_dist = \
-                get_closest_structure(self.world, search_pos, self.target_structure.id, [], structure_class=DiskSurface)
+        try:
+            closest_disk, closest_disk_dist = \
+                    get_closest_structure(self.world, search_pos, self.target_structure.id, [], structure_class=DiskSurface)
+        except:
+            raise testShellError('(CylindricalSurfacePlanarSurfaceInteractionSingle) get_closest_structure() failed, could not determine closest disk.')
 
         if closest_disk is not None:
                                     
@@ -2909,8 +2922,12 @@ class CylindricalSurfacePlanarSurfaceIntermediateSingletestShell(CylindricalSurf
         disk_radius = self.target_structure.shape.radius
         search_pos  = disk_pos
 
-        closest_cyl, closest_cyl_dist = \
-                get_closest_structure(self.world, search_pos, self.target_structure.id, [], structure_class=CylindricalSurface)
+        try:
+            closest_cyl, closest_cyl_dist = \
+                    get_closest_structure(self.world, search_pos, self.target_structure.id, [], structure_class=CylindricalSurface)
+        except:
+            raise testShellError('(CylindricalSurfacePlanarSurfaceIntermediateSingle) get_closest_structure() failed, could not determine closest cylinder.')
+                    
 
         disk_to_cylinder_axis_distance = closest_cyl.project_point(disk_pos)[1][0]
         if not feq(disk_to_cylinder_axis_distance, 0.0, typical=disk_radius):
