@@ -57,7 +57,7 @@ from shells import (
     PlanarSurfaceInteractiontestShell,
     PlanarSurfaceDiskSurfaceInteractiontestShell,
     CylindricalSurfaceInteractiontestShell,
-    CylindricalSurfaceCapInteractiontestShell,
+    CylindricalSurfaceDiskInteractiontestShell,
     CylindricalSurfacePlanarSurfaceInteractionSingletestShell,
     CylindricalSurfacePlanarSurfaceIntermediateSingletestShell,
     CylindricalSurfacePlanarSurfaceInterfaceSingletestShell,
@@ -128,7 +128,7 @@ def try_default_testinteraction(single, target_structure, geometrycontainer, dom
             raise testShellError('(Interaction). Combination of (2D particle, target_structure) is not supported')
     elif isinstance(single.structure, CylindricalSurface):
         if isinstance(target_structure, DiskSurface):
-            return CylindricalSurfaceCapInteractiontestShell (single, target_structure, geometrycontainer, domains)
+            return CylindricalSurfaceDiskInteractiontestShell (single, target_structure, geometrycontainer, domains)
         elif isinstance(target_structure, CylindricalSurface):
             return CylindricalSurfaceSinktestShell (single, target_structure, geometrycontainer, domains)
         elif isinstance(target_structure, PlanarSurface):
@@ -145,13 +145,13 @@ def create_default_interaction(domain_id, shell_id, testShell, reaction_rules, i
         return CylindricalSurfaceInteraction    (domain_id, shell_id, testShell, reaction_rules, interaction_rules)
     elif isinstance(testShell, PlanarSurfaceInteractiontestShell):
         return PlanarSurfaceInteraction         (domain_id, shell_id, testShell, reaction_rules, interaction_rules)
-    elif isinstance(testShell, CylindricalSurfacePlanarSurfaceInteractionSingletestShell): # must be first because it is a special case of CylindricalSurfaceCapInteractiontestShell
+    elif isinstance(testShell, CylindricalSurfacePlanarSurfaceInteractionSingletestShell): # must be first because it is a special case of CylindricalSurfaceDiskInteractiontestShell
         return CylindricalSurfacePlanarSurfaceInteractionSingle (domain_id, shell_id, testShell, reaction_rules, interaction_rules)
     elif isinstance(testShell, CylindricalSurfacePlanarSurfaceIntermediateSingletestShell): # this is actually not a "real" interaction, but we need to put it here to ignore the target structure
         return CylindricalSurfacePlanarSurfaceIntermediateSingle (domain_id, shell_id, testShell, reaction_rules, interaction_rules)
-    elif isinstance(testShell, CylindricalSurfaceCapInteractiontestShell):
-        return CylindricalSurfaceCapInteraction (domain_id, shell_id, testShell, reaction_rules, interaction_rules)
-    elif isinstance(testShell, CylindricalSurfaceSinktestShell):
+    elif isinstance(testShell, CylindricalSurfaceDiskInteractiontestShell):
+        return CylindricalSurfaceDiskInteraction (domain_id, shell_id, testShell, reaction_rules, interaction_rules)
+    elif isinstance(testShell, CylindricalSurfaceSinktestShell): # FIXME not sure we ever construct this; we have to give it priority over Cyl.Surf.DiskInteraction for non-capping disks!
         return CylindricalSurfaceSink           (domain_id, shell_id, testShell, reaction_rules, interaction_rules)
 
 ### Transitions

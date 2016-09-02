@@ -50,7 +50,7 @@ __all__ = [
     'CylindricalSurfacePairtestShell',
     'PlanarSurfaceInteractiontestShell',
     'CylindricalSurfaceInteractiontestShell',
-    'CylindricalSurfaceCapInteractiontestShell',
+    'CylindricalSurfaceDiskInteractiontestShell',
     'CylindricalSurfacePlanarSurfaceInteractionSingletestShell',
     'CylindricalSurfacePlanarSurfaceIntermediateSingletestShell',
     'CylindricalSurfacePlanarSurfaceInterfaceSingletestShell',
@@ -467,7 +467,7 @@ class testMixedPair1DStatic(testPair):
                 
         testPair.__init__(self, single1D, static_single)
         # Note: this makes self.single1/self.pid_particle_pair1/self.structure1 for the 1D particle
-        #              and self.single2/self.pid_particle_pair2/self.structure2 for the cap particle
+        #              and self.single2/self.pid_particle_pair2/self.structure2 for the disk particle
 
         # For clarity define:
         self.single1D         = single1D
@@ -480,7 +480,7 @@ class testMixedPair1DStatic(testPair):
         # Note that we have to use pid_particle_pair1(2) in the methods defined below
         # because they are called at the initialization of testPair().
 
-        # Make sure cap particle is immobile; this is required for testSimplePair routines
+        # Make sure disk particle is immobile; this is required for testSimplePair routines
         # to give the proper results for this case.
         if not(self.static_particle.D == 0 and self.static_particle.v == 0):
             raise testShellError('Particle %s is not static in testMixedPair1DStatic.' % str(self.static_particle))
@@ -508,7 +508,7 @@ class testMixedPair1DStatic(testPair):
 
         # In the MixedPair1DStatic only the 1D particle moves. We therefore use
         # iv to sample its position and com for the position of the static
-        # cap particle; this is initialized here:
+        # disk particle; this is initialized here:
         com = pos2
         com = self.world.apply_boundary(pos2)
         
@@ -2299,11 +2299,11 @@ class DiskSurfaceSingletestShell(CylindricaltestShell, testNonInteractionSingle)
         testNonInteractionSingle.__init__(self, pid_particle_pair, structure)
 
         # Initialize scaling parameters
-        # - the reference point is at the cap disk position
-        # - the orientation vector points from the cap towards the rod center, i.e.:
+        # - the reference point is at the disk position
+        # - the orientation vector points from the disk towards the rod center, i.e.:
         #       - the right scaling point is for the scaling "inwards", i.e. onto the rod
-        #       - the left scaling point is for the scaling "outwards", i.e. away from the rod (and cap)
-        #       - dz_left stays constant and is equal to the cap-bound particle radius
+        #       - the left scaling point is for the scaling "outwards", i.e. away from the rod (and disk)
+        #       - dz_left stays constant and is equal to the disk-bound particle radius
         #       - dz_right can be scaled, minimum is set accordingly
         # - dr stays constant and is determined by the maximal radius involved
         self.dr_const   = self.pid_particle_pair[1].radius*CYLINDER_R_FACTOR
@@ -2692,24 +2692,24 @@ class PlanarSurfaceDiskSurfaceInteractiontestShell(CylindricalSurfaceInteraction
         # NOTE copied from CylindricalSurfacePlanarSurfaceIntermediateSingle
         
 
-class CylindricalSurfaceCapInteractiontestShell(CylindricaltestShell, testInteractionSingle):
+class CylindricalSurfaceDiskInteractiontestShell(CylindricaltestShell, testInteractionSingle):
 
     def __init__(self, single, target_structure, geometrycontainer, domains):
         CylindricaltestShell.__init__(self, geometrycontainer, domains)  # this must be first because of world definition
         testInteractionSingle.__init__(self, single, single.structure, target_structure)
 
-        # We want to form this domain only if the cap actually is a substructure of the cylinder of origin
+        # We want to form this domain only if the disk actually is a substructure of the cylinder of origin
         #if not target_structure.structure_id == single.structure.id:
-            #raise testShellError('(CylindricalSurfaceCapInteraction). Target structure is not a substructure of the origin structure.')
+            #raise testShellError('(CylindricalSurfaceDiskInteraction). Target structure is not a substructure of the origin structure.')
             ### FIXME This cannot be longer fulfilled when the cylinder-plane interaction test shells
             ### inherit from this class!
 
         # Initialize scaling parameters
-        # - the reference point is at the cap disk position
-        # - the orientation vector points from the cap towards the rod particle, i.e.:
-        #       - the right scaling point is for the scaling "inwards", i.e. onto the rod
-        #       - the left scaling point is for the scaling "outwards", i.e. away from the rod (and cap)
-        #       - dz_left stays constant and is equal to the cap-bound particle radius * a safety factor
+        # - the reference point is at the disk position
+        # - the orientation vector points from the disk towards the cylinder-bound particle, i.e.:
+        #       - the right scaling point is for the scaling "inwards", i.e. onto the cylinder
+        #       - the left scaling point is for the scaling "outwards", i.e. away from the cylinder (and the disk if it is a "cap")
+        #       - dz_left stays constant and is equal to the disk-bound particle radius * a safety factor
         #       - dz_right can be scaled, minimum is set accordingly
         # - dr stays constant and is determined by the maximal radius involved
         self.dr_const   = self.pid_particle_pair[1].radius * CYLINDER_R_FACTOR
@@ -2740,10 +2740,10 @@ class CylindricalSurfaceCapInteractiontestShell(CylindricaltestShell, testIntera
                             self.determine_possible_shell(self.origin_structure.id, [self.single.domain_id], \
                                                                                     self.ignored_structure_ids)
         except ShellmakingError as e:
-            raise testShellError('(CylindricalSurfaceCapInteraction). %s' % (str(e)) )
+            raise testShellError('(CylindricalSurfaceDiskInteraction). %s' % (str(e)) )
 
     def get_orientation_vector(self):
-        # The orientation vector is the (normalized) vector that points from the cap
+        # The orientation vector is the (normalized) vector that points from the disk
         # towards the particle on the rod
         return normalize(self.pid_particle_pair[1].position - self.target_structure.shape.position)
 
@@ -2762,14 +2762,15 @@ class CylindricalSurfaceCapInteractiontestShell(CylindricaltestShell, testIntera
     def get_max_dr_dzright_dzleft(self):
         dr       = self.dr_const
         dz_left  = self.get_const_z_left() # same as the minimum and initial value, i.e. no scaling of this length
-        # TODO include max distance to other side of rod?
+        # TODO include max distance to other side of cylinder?
         dz_right = min( 3.0*dz_left, math.sqrt((self.get_searchradius())**2 - dr**2) + self.particle_surface_distance)
                    # stay within the searchradius and do not allow for terribly asymmetric domains
                    # in order to prevent convergence problems with the 1D RadAbs GF
         return dr, dz_right, dz_left
 
     def get_const_z_left(self):
-        # This defines how far the shell extends "outwards" from the rod, i.e. behind the cap
+        # This defines how far the shell extends "outwards" from the cylinder, i.e. behind the disk
+        # FIXME: We want to distinguish between a real "cap" disk and a disk in the middle of the cylinder here!
         return self.pid_particle_pair[1].radius * math.sqrt(MULTI_SHELL_FACTOR**2 - 1.0)
 
     def apply_safety(self, r, z_right, z_left):
@@ -2779,11 +2780,11 @@ class CylindricalSurfaceCapInteractiontestShell(CylindricaltestShell, testIntera
 
         return [self.target_structure.id]
 
-class CylindricalSurfacePlanarSurfaceInteractionSingletestShell(CylindricalSurfaceCapInteractiontestShell):
+class CylindricalSurfacePlanarSurfaceInteractionSingletestShell(CylindricalSurfaceDiskInteractiontestShell):
 
     def __init__(self, single, target_structure, geometrycontainer, domains):
-        CylindricalSurfaceCapInteractiontestShell.__init__(self, single, target_structure, geometrycontainer, domains)
-        # This is essentially the same as CylindricalSurfaceCapInteractiontestShell, only that
+        CylindricalSurfaceDiskInteractiontestShell.__init__(self, single, target_structure, geometrycontainer, domains)
+        # This is essentially the same as CylindricalSurfaceDiskInteractiontestShell, only that
         # the orientation vector has to be calculated in a different way.
         
         assert isinstance(target_structure, PlanarSurface)
@@ -2846,7 +2847,7 @@ class CylindricalSurfacePlanarSurfaceInteractionSingletestShell(CylindricalSurfa
         else:
             raise testShellError('Could not find correct disk surface at the interface between cylinder and plane.')
 
-class CylindricalSurfacePlanarSurfaceIntermediateSingletestShell(CylindricalSurfaceCapInteractiontestShell):
+class CylindricalSurfacePlanarSurfaceIntermediateSingletestShell(CylindricalSurfaceDiskInteractiontestShell):
 
     def __init__(self, single, target_structure, geometrycontainer, domains):
 
@@ -2861,7 +2862,7 @@ class CylindricalSurfacePlanarSurfaceIntermediateSingletestShell(CylindricalSurf
             raise testShellError('(CylindricalSurfacePlanarSurfaceIntermediateSingle) Particle is not directly at disk position, distance from center = %s' % distance_from_center)
 
         # If everything seems OK, we can proceed with creating the test shell
-        CylindricalSurfaceCapInteractiontestShell.__init__(self, single, target_structure, geometrycontainer, domains)
+        CylindricalSurfaceDiskInteractiontestShell.__init__(self, single, target_structure, geometrycontainer, domains)
 
         # Override the shellsize determined for CylindricalSurfacePlanarSurfaceInteractionSingletestShell
         # This one has the size of a zero single; the scaling parameters can stay the same, since we are not scaling anyhow
@@ -2894,7 +2895,7 @@ class CylindricalSurfacePlanarSurfaceIntermediateSingletestShell(CylindricalSurf
         return dr, dz_right, dz_left
 
     def get_const_z_left(self):
-        # This defines how far the shell extends "outwards" from the rod, i.e. behind the cap
+        # This defines how far the shell extends "outwards" from the rod, i.e. behind the disk
         # This method is used in the parent class to define some scaling parameters, which 
         # slightly differ here.
         return self.pid_particle_pair[1].radius
@@ -2928,6 +2929,8 @@ class CylindricalSurfaceSinktestShell(CylindricaltestShell, testInteractionSingl
     def __init__(self, single, target_structure, geometrycontainer, domains):
         CylindricaltestShell.__init__(self, geometrycontainer, domains)  # this must be first because of world definition
         testInteractionSingle.__init__(self, single, single.structure, target_structure)
+        
+        # FIXME Check: Is this actually ever created, or does the main loop always pick 'CylindricalSurfaceDiskInteraction'?
 
         # initialize scaling parameters
         self.dr_const   = self.pid_particle_pair[1].radius * CYLINDER_R_FACTOR
@@ -3215,20 +3218,20 @@ class MixedPair2D3DtestShell(CylindricaltestShell, testMixedPair2D3D):
 
 class MixedPair1DStatictestShell(CylindricaltestShell, testMixedPair1DStatic):
 
-    def __init__(self, single1D, cap_single, geometrycontainer, domains): # TODO Do we need target_structure (for the ignore list)?
+    def __init__(self, single1D, disk_single, geometrycontainer, domains): # TODO Do we need target_structure (for the ignore list)?
         CylindricaltestShell.__init__(self, geometrycontainer, domains)  # this must be first because of world definition
-        testMixedPair1DStatic.__init__(self, single1D, cap_single)
+        testMixedPair1DStatic.__init__(self, single1D, disk_single)
 
         # NOTE: The following is already defined by testMixedPair1DStatic:
         # - self.single1D, self.structure1D, self.particle1D
         # - self.static_single, self.static_structure, self.static_particle
 
         # Initialize scaling parameters
-        # - the reference point is at the cap disk position
-        # - the orientation vector points from the cap towards the rod particle, i.e.:
+        # - the reference point is at the disk position
+        # - the orientation vector points from the disk towards the rod particle, i.e.:
         #       - the right scaling point is for the scaling "inwards", i.e. onto the rod
-        #       - the left scaling point is for the scaling "outwards", i.e. away from the rod (and cap)
-        #       - dz_left stays constant and is equal to the cap-bound particle radius * a safety factor
+        #       - the left scaling point is for the scaling "outwards", i.e. away from the rod (and disk)
+        #       - dz_left stays constant and is equal to the disk-bound particle radius * a safety factor
         #       - dz_right can be scaled, minimum is set accordingly
         # - dr stays constant and is determined by the maximal radius involved
         CRF             = CYLINDER_R_FACTOR
@@ -3263,7 +3266,7 @@ class MixedPair1DStatictestShell(CylindricaltestShell, testMixedPair1DStatic):
                                  (str(e)))
 
     def get_orientation_vector(self):        
-        # The orientation vector is the (normalized) vector that points from the cap
+        # The orientation vector is the (normalized) vector that points from the disk
         # towards the particle on the rod
         return normalize(self.particle1D.position - self.static_particle.position)
 
