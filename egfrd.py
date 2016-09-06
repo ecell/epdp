@@ -498,21 +498,13 @@ class EGFRDSimulator(ParticleSimulatorBase):
         
         # 1. Get the next event from the scheduler
         #
+        log.info('step: getting next event from scheduler')
         id, event = self.scheduler.pop()
         domain = self.domains[event.data]
         if event.time == numpy.inf:
             self.t, self.last_event = self.MAX_TIME_STEP, event
         else:
-            self.t, self.last_event = event.time, event
-        
-        if __debug__:
-            domain_counts = self.count_domains()
-            log.info('\n\n%d: t=%s dt=%e (next_time=%s)\t' %
-                     (self.step_counter, self.t,
-                      self.dt, self.scheduler.top[1].time) + 
-                     'Singles: %d, Pairs: %d, Multis: %d\n' % domain_counts + 
-                     'event=#%d reactions=%d rejectedmoves=%d' %
-                     (id, self.reaction_events, self.rejected_moves))
+            self.t, self.last_event = event.time, event               
 
         # 2. Use the correct method to process (fire) the shell that produced the event
         #
@@ -520,6 +512,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
         # different classes of shells (see bottom egfrd.py) 
         # event.data holds the object (Single, Pair, Multi) that is associated with the next event.
         # e.g. "if class is Single, then process_single_event" ~ MW
+        log.info('step: dispatching to appropriate event handler')
         for klass, f in self.dispatch:
 
             if isinstance(domain, klass):
@@ -535,9 +528,22 @@ class EGFRDSimulator(ParticleSimulatorBase):
         # 3. Adjust the simulation time
         #
         next_time = self.scheduler.top[1].time
-        log.info('next_time=%s' % next_time)
+        log.info('step: next_time=%s' % next_time)
         self.dt = next_time - self.t
 
+        # Print some info
+        # Make sure this comes after the new event has been created, 
+        # otherwise we risk a SEGFAULT here at low particle numbers,
+        # because self.scheduler.top[1] may not exist!
+        if __debug__:
+            domain_counts = self.count_domains()
+            log.info('\n\n%d: t=%s dt=%e (next_time=%s)\t' %
+                     (self.step_counter, self.t,
+                      self.dt, self.scheduler.top[1].time) + 
+                     'Singles: %d, Pairs: %d, Multis: %d\n' % domain_counts + 
+                     'event=#%d reactions=%d rejectedmoves=%d' %
+                     (id, self.reaction_events, self.rejected_moves))
+                     
         # assert if not too many successive dt=0 steps occur.
         if __debug__:
             if self.dt < 1e-10: # We consider 0.1 nanoseconds a zero-step
