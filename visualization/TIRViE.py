@@ -89,7 +89,7 @@ class TheImperialRoyalVisualizerForEGFRD:
     self.CYLINDER_SURFACES_OPACITY = 0.20
     self.DISK_SURFACES_OPACITY     = 0.60
     self.PARTICLE_RADIUS_FACTOR    = 1  # will show particle sphere radii this times larger than actual
-    self.ROD_RADIUS_FACTOR         = 2  # will show radii of cyl. surfaces this times larger than actual
+    self.CYL_SURF_RADIUS_FACTOR    = 1  # will show radii of cyl. surfaces this times larger than actual
     self.N_HELIX_COILS             = 30 # sth. btw. 15-30 seems to be a good choice; this is eyecandy anyhow ;-)
     self.WIREFRAME_RADIUS          = self.world_size/500 # seems fair enough
     self.HELIX_THICKNESS_FACTOR    = 0.4
@@ -813,13 +813,13 @@ class TheImperialRoyalVisualizerForEGFRD:
       # TODO Check that lists all have the same length
       for n in range(len(position_list)):
 
-          outer_radius = self.ROD_RADIUS_FACTOR*radius_list[n]
+          outer_radius = self.CYL_SURF_RADIUS_FACTOR*radius_list[n]
       
           if self.RODS_AS_HELICES == True and length_list[n] > 0.0:
             # The standard VPython helix object cannot be properly erased from the scene, so we use an own one ;-)            
             obj = self.tomeks_double_helix(pos=position_list[n], axis=orientation_list[n], radius=outer_radius, \
                                               length=length_list[n], color=color_list[n], thickness=self.HELIX_THICKNESS_FACTOR*outer_radius)
-                                              # thickness=self.ROD_RADIUS_FACTOR*radius_list[n]/7 also worked well
+                                              # thickness=self.CYL_SURF_RADIUS_FACTOR*radius_list[n]/7 also worked well
           elif length_list[n] > 0.0:
             obj = v.cylinder(pos=position_list[n], axis=orientation_list[n], radius=outer_radius, \
                                   length=length_list[n], color=color_list[n], opacity=self.CYLINDER_SURFACES_OPACITY)
