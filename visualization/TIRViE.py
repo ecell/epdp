@@ -78,7 +78,7 @@ class TheImperialRoyalVisualizerForEGFRD:
     
     # Some flags tuning visual behavior of the objects
     self.SHOW_SIM_BOX     = True
-    self.WIREFRAME_BOX    = False
+    self.WIREFRAME_BOX    = True
     self.WIREFRAME_PLANES = False
     self.SHOW_DOMAINS     = True
     self.SHOW_STRUCTURES  = True
