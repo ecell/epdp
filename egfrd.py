@@ -320,6 +320,14 @@ class EGFRDSimulator(ParticleSimulatorBase):
         else:
             return self.scheduler.top[1].time
 
+    # Some alias methods for the one above
+    def get_next_event_time(self):        
+        return self.get_next_time()        
+    def next_time(self):
+        return self.get_next_time()
+    def next_event_time(self):
+        return self.get_next_time()
+
     #####################################################
     #### METHODS FOR GENERAL SIMULATOR FUNCTIONALITY ####
     #####################################################
@@ -435,10 +443,10 @@ class EGFRDSimulator(ParticleSimulatorBase):
             return                              # FIXME: is this accurate? Probably use feq from utils.py
 
         if t >= self.scheduler.top[1].time:     # Can't schedule a stop later than the next event time
-            raise RuntimeError('Stop time >= next event time.')
+            raise RuntimeError('stop: stop time >= next event time.')
 
         if t < self.t:
-            raise RuntimeError('Stop time < current time.')
+            raise RuntimeError('stop: stop time < current time.')
 
         self.t = t
 
@@ -494,7 +502,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
         if __debug__:
             if self.scheduler.size == 0:
-                raise RuntimeError('No Events in scheduler.')
+                raise RuntimeError('step: no Events in scheduler.')
         
         # 1. Get the next event from the scheduler
         #
@@ -523,7 +531,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
         if __debug__:
             if self.scheduler.size == 0:
-                raise RuntimeError('Zero events left.')
+                raise RuntimeError('step: zero events left.')
 
         # 3. Adjust the simulation time
         #
@@ -552,7 +560,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
                 self.zero_steps += 1
 
                 if self.zero_steps >= max(self.scheduler.size * 3, self.MAX_NUM_DT0_STEPS): 
-                    raise RuntimeError('too many successive dt=zero steps -> Simulator stalled?'
+                    raise RuntimeError('step: too many successive dt=zero steps --> Simulator stalled???'
                                        'dt= %.10e-%.10e' % (next_time, self.t))
                 
             else:
@@ -1433,7 +1441,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
                             Ns = Ns + 1
                             if Ns > self.MAX_NUM_DT0_STEPS:   # To avoid an infinite loop we need some kind of break condition
                                                               # We take the same looping limit as for dt=0 steps because this is a similar situation
-                                raise RuntimeError('Too many resampling attempts in fire_single on PlanarSurface with two products: Ns = %s > %s' \
+                                raise RuntimeError('fire_single_reaction: too many resampling attempts in reaction on PlanarSurface with two products: Ns = %s > %s' \
                                                   % (Ns, self.MAX_NUM_DT0_STEPS) )
                                                   # TODO This should not necessarily raise RuntimeError but just a warning;
                                                   # this is for TESTING only; replace by something better
@@ -1495,7 +1503,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
                 else:
                     # cannot decay from 3D to other structure
-                    raise RuntimeError('fire_single_reaction: Can not decay from 3D to other structure')
+                    raise RuntimeError('fire_single_reaction: can not decay from 3D to other structure')
 
 
             # 1.5 Get new positions and structure_ids of particles
@@ -2995,7 +3003,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
     def obj_distance_array(self, pos, domains):
         dists = numpy.array([self.domain_distance(pos, domain) for domain in domains])
         return dists
-            
+        
 
     ####################
     #### STATISTICS ####
@@ -3449,7 +3457,7 @@ max. overlap error:  %g
                     assert (abs(domain.last_time + domain.dt - event.time) <= TIME_TOLERANCE * event.time)
                     break
             else:
-                raise RuntimeError('Event for domain_id %s could not be found in scheduler' % str(domain_id) )
+                raise RuntimeError('check_event_stoichiometry: event for domain_id %s could not be found in scheduler' % str(domain_id) )
 
             # make sure that we had not already found it earlier
             assert domain_id not in already_in_scheduler
@@ -3467,7 +3475,7 @@ max. overlap error:  %g
             domain_population += domain.multiplicity
 
         if world_population != domain_population:
-            raise RuntimeError('population %d != domain_population %d' %
+            raise RuntimeError('check_event_stoichiometry: population %d != domain_population %d' %
                                (world_population, domain_population))
 
         # If control bounds are defined, check whether all particles are within
@@ -3539,7 +3547,7 @@ max. overlap error:  %g
                 for sid in diff:
                     print shell_map.get(sid, None)
 
-                raise RuntimeError('number of shells are inconsistent '
+                raise RuntimeError('check_shell_matrix: number of shells are inconsistent '
                                    '(%d != %d; %s) - %s' %
                                    (len(shell_ids), domain.num_shells, 
                                     domain.domain_id, diff))
@@ -3547,7 +3555,7 @@ max. overlap error:  %g
         # check that total number of shells in domains==total number of shells in shell container
         matrix_population = self.geometrycontainer.get_total_num_shells()
         if shell_population != matrix_population:
-            raise RuntimeError('num shells (%d) != matrix population (%d)' %
+            raise RuntimeError('check_shell_matrix: num shells (%d) != matrix population (%d)' %
                                (shell_population, matrix_population))
         # Since the number of shells in the domains is equal to the number of shells in the
         # geometrycontainer this now also means that all the shells in the geometrycontainer are
@@ -3612,15 +3620,15 @@ max. overlap error:  %g
         # check that all the event_id in the scheduler are also stored in a domain
         for id, event in self.scheduler:
             if id not in event_ids:
-                raise RuntimeError('Event %s in EventScheduler has no domain in self.domains' %
+                raise RuntimeError('check_domains: event %s in event scheduler has no domain in self.domains' %
                                    event)
             else:
                 event_ids.remove(id)
 
         # self.domains always include a None  --> this can change in future
         if event_ids:
-            raise RuntimeError('following domains in self.domains are not in '
-                               'Event Scheduler: %s' % str(tuple(event_ids)))
+            raise RuntimeError('check_domains: following domains in self.domains are not in '
+                               'event scheduler: %s' % str(tuple(event_ids)))
 
     def check_pair_pos(self, pair, pos1, pos2, com, radius):
         particle1 = pair.pid_particle_pair1[1]
@@ -3648,7 +3656,7 @@ max. overlap error:  %g
         d1 = self.world.distance(old_com, pos1) + particle1.radius
         d2 = self.world.distance(old_com, pos2) + particle2.radius
         if d1 > radius or d2 > radius:
-            raise RuntimeError('New particle(s) out of protective sphere. ' 
+            raise RuntimeError('check_pair_pos: new particle(s) out of protective sphere. ' 
                                'radius = %s, d1 = %s, d2 = %s ' %
                                (FORMAT_DOUBLE % radius, FORMAT_DOUBLE % d1,
                                 FORMAT_DOUBLE % d2))
@@ -3779,7 +3787,7 @@ max. overlap error:  %g
             elif isinstance(d, Multi):
                 num_multis += 1
             else:
-                raise RuntimeError('DO NOT GET HERE')
+                raise RuntimeError('count_domains: domain has unknown type!')
 
         return (num_singles, num_pairs, num_multis)
 
