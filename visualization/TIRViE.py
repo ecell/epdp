@@ -179,8 +179,6 @@ class TheImperialRoyalVisualizerForEGFRD:
     
       self.capture()
       
-    
-    #sys.exit()
   #################################################################
   #################################################################
   #################################################################
@@ -440,6 +438,23 @@ class TheImperialRoyalVisualizerForEGFRD:
   def retard(self):
     
       time.sleep(self.RETARDING_SECONDS)
+      
+
+  def exit(self):
+    
+      print "TIRViE: Stopping"
+      self.scene.exit = True
+      exit()
+
+      
+  def quit(self):
+      # Just an alias
+      self.exit()
+
+      
+  def stop(self):
+      # Just an alias
+      self.exit()
       
       
   def set_info_label_strings(self):
