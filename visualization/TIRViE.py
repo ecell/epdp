@@ -955,13 +955,18 @@ class TheImperialRoyalVisualizerForEGFRD:
   def tomeks_helix(self, pos=(0,0,0), axis=(1,0,0), radius=1.0, length=10.0, color=(1,0,0), thickness=0.01):
           
       Ncoils  = self.N_HELIX_COILS
-      Npoints = 10 * Ncoils 
+      Npoints = 10 * self.N_HELIX_COILS
+      
+      intercoil_dist = length / Ncoils
+      interpnt_dist  = length / Npoints            
       
       # Draw the helix in the default coordinate system and tie it to a frame
-      f = v.frame()
-      c = v.curve( x = v.arange(0,length,length/Npoints), frame=f, color=color, radius = thickness)
-      c.y = radius * np.sin(c.x * 2.0*np.pi/length * Ncoils)
-      c.z = radius * np.cos(c.x * 2.0*np.pi/length * Ncoils)
+      f         = v.frame()
+      x_lattice = v.arange(0, length, interpnt_dist)
+      
+      c = v.curve(x = x_lattice, frame=f, color=color, radius = thickness)
+      c.y = radius * np.sin(c.x * 2.0*np.pi/intercoil_dist)
+      c.z = radius * np.cos(c.x * 2.0*np.pi/intercoil_dist)
       
       # Now rotate it to the right orientation
       f.pos  = pos
@@ -973,21 +978,25 @@ class TheImperialRoyalVisualizerForEGFRD:
   def tomeks_double_helix(self, pos=(0,0,0), axis=(1,0,0), radius=1.0, length=10.0, color=(1,0,0), thickness=0.01):
 
       # This is just the two of the standard 'tomeks_helices' with an offset of 1/2 of a coil
-      Ncoils  = self.N_HELIX_COILS
-      Npoints = 10 * Ncoils 
+      Ncoils  = int(self.N_HELIX_COILS * length/self.world_size)
+      Npoints = 10 * self.N_HELIX_COILS
       
-      offset = length / Ncoils / 2.0
+      intercoil_dist = length / Ncoils
+      interpnt_dist  = length / Npoints
+      
+      offset = intercoil_dist / 2.0 # offset of second helix with respect to first one
       
       # Draw the helices in the default coordinate system and tie it to a frame
-      f = v.frame()
+      f         = v.frame()      
+      x_lattice = v.arange(0, length, interpnt_dist)
       
-      c1 = v.curve( x = v.arange(0,length,length/Npoints), frame=f, color=color, radius = thickness)
-      c1.y = radius * np.sin(c1.x * 2.0*np.pi/length * Ncoils)
-      c1.z = radius * np.cos(c1.x * 2.0*np.pi/length * Ncoils)
+      c1 = v.curve(x = x_lattice, frame=f, color=color, radius = thickness)
+      c1.y = radius * np.sin(c1.x * 2.0*np.pi/intercoil_dist)
+      c1.z = radius * np.cos(c1.x * 2.0*np.pi/intercoil_dist)
       
-      c2 = v.curve( x = v.arange(0,length,length/Npoints), frame=f, color=self.complementary(color), radius = thickness)
-      c2.y = radius * np.sin( (c2.x - offset) * 2.0*np.pi/length * Ncoils)
-      c2.z = radius * np.cos( (c2.x - offset) * 2.0*np.pi/length * Ncoils)
+      c2 = v.curve(x = x_lattice, frame=f, color=self.complementary(color), radius = thickness)
+      c2.y = radius * np.sin( (c2.x - offset) * 2.0*np.pi/intercoil_dist)
+      c2.z = radius * np.cos( (c2.x - offset) * 2.0*np.pi/intercoil_dist)
       
       # Now rotate it to the right orientation
       f.pos  = pos
