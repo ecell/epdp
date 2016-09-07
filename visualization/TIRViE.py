@@ -282,15 +282,25 @@ class TheImperialRoyalVisualizerForEGFRD:
     
     for obj in self.objects:          
           
-          try:
-            # First make the object invisible
-            obj.visible = False                        
+          if isinstance(obj, v.frame) or isinstance(obj, v.curve):
+            # In frames we want to loop over the grouped objects individually
+            # to make sure that Python 'del' works correctly on all of them below
+            # BEWARE! Omitting this extra step may cause memory leaks!
+            try:
+              primitives = obj.objects
+            except:
+              print "WARNING! Primitive object list does not exist for supposed frame object => risk of incomplete deletion!"
+              primitives = [obj]
+              
+          else:
+            primitives = [obj]
             
-            # Now delete the object
-            del obj
-            
-          except:
-            print "WARNING! Could not delete 3D object " + str(obj) + " from scene!"
+          for p in primitives:
+            self.delete_vpython_object(p)
+              
+          # Do not forget to properly delete the frame as well
+          if isinstance(obj, v.frame):
+            self.delete_vpython_object(obj)
     
     self.objects = [] # This is way faster than self.objects.remove() while iterating
     
@@ -298,7 +308,21 @@ class TheImperialRoyalVisualizerForEGFRD:
         # One object usually remains on scene--the info label
         print "WARNING! Not all 3D objects deleted from scene!"
         print "self.scene.objects = " + str(self.scene.objects)
+
     
+  # Helper function for clear_scene() above
+  def delete_vpython_object(self, obj):
+    
+    try:
+      # First make the object invisible
+      obj.visible = False
+      
+      # Now delete the object
+      del obj
+      
+    except:
+      print "WARNING! Could not delete primitive 3D object " + str(obj) + " from scene!"
+          
 
   #########################      
   ### CAPTURING METHODS ###
