@@ -59,7 +59,8 @@ class TheImperialRoyalVisualizerForEGFRD:
       - Optional PoVRay output (files that can be rendered by PoVRay)
     
   """
-  def __init__(self, eGFRDsim, particle_color_dict={}, structure_color_dict={}, capture=False, capture_dir='./tirvie_frames', radius_factor=1):
+  def __init__(self, eGFRDsim, particle_color_dict={}, structure_color_dict={}, \
+                        capture=False, capture_dir='./tirvie_frames', particle_radius_factor=1, cyl_radius_factor=1):
 
     self.sim = eGFRDsim
     self.world_size = self.get_world_size()
@@ -88,8 +89,8 @@ class TheImperialRoyalVisualizerForEGFRD:
     self.PLANAR_SURFACES_OPACITY   = 0.20
     self.CYLINDER_SURFACES_OPACITY = 0.20
     self.DISK_SURFACES_OPACITY     = 0.60
-    self.PARTICLE_RADIUS_FACTOR    = radius_factor  # will show particle sphere radii this times larger than actual
-    self.CYL_SURF_RADIUS_FACTOR    = radius_factor  # will show radii of cyl. surfaces this times larger than actual
+    self.PARTICLE_RADIUS_FACTOR    = particle_radius_factor  # will show particle sphere radii this times larger than actual
+    self.CYL_SURF_RADIUS_FACTOR    = cyl_radius_factor       # will show radii of cyl. surfaces this times larger than actual
     self.N_HELIX_COILS             = 30 # sth. btw. 15-30 seems to be a good choice; this is eyecandy anyhow ;-)
     self.WIREFRAME_RADIUS          = self.world_size/500 # seems fair enough
     self.HELIX_THICKNESS_FACTOR    = 0.4
@@ -1053,11 +1054,11 @@ class TIRViE(TheImperialRoyalVisualizerForEGFRD):
     This is just an alias for 'TheImperialRoyalVisualizerForEGFRD'
   
   """
-  def __init__(self, eGFRDsim, particle_color_dict={}, structure_color_dict={}, capture=False, capture_dir='./tirvie_frames',radius_factor=1):
+  def __init__(self, eGFRDsim, particle_color_dict={}, structure_color_dict={}, capture=False, capture_dir='./tirvie_frames', particle_radius_factor=1, cyl_radius_factor=1):
 
     TheImperialRoyalVisualizerForEGFRD.__init__(self, eGFRDsim=eGFRDsim, \
                                                       particle_color_dict=particle_color_dict, structure_color_dict=structure_color_dict, \
                                                       capture=capture, capture_dir=capture_dir, \
-                                                      radius_factor=radius_factor)
+                                                      particle_radius_factor=particle_radius_factor, cyl_radius_factor=cyl_radius_factor)
                                                       
     
