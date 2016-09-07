@@ -276,19 +276,28 @@ class TheImperialRoyalVisualizerForEGFRD:
     print "Scene created."    
     
   
-  def clear_scene(self, types_list = [v.box, v.sphere, v.cylinder, v.ring, v.helix, v.frame, v.curve]):
-      
-    for t in types_list:
-      for obj in self.objects:
-          if isinstance(obj, t):
-            
-            # First make the object invisible            
-            obj.visible = False
+  def clear_scene(self):
+    
+    #self.scene.delete() ### not functional in older VPython versions; we need the workaround below    
+    
+    for obj in self.objects:          
+          
+          try:
+            # First make the object invisible
+            obj.visible = False                        
             
             # Now delete the object
             del obj
-        
-    self.objects = []
+            
+          except:
+            print "WARNING! Could not delete 3D object " + str(obj) + " from scene!"
+    
+    self.objects = [] # This is way faster than self.objects.remove() while iterating
+    
+    if len(self.scene.objects) > 1:
+        # One object usually remains on scene--the info label
+        print "WARNING! Not all 3D objects deleted from scene!"
+        print "self.scene.objects = " + str(self.scene.objects)
     
 
   #########################      
