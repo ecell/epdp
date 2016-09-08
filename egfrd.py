@@ -446,10 +446,10 @@ class EGFRDSimulator(ParticleSimulatorBase):
             return                              # FIXME: is this accurate? Probably use feq from utils.py
 
         if t >= self.scheduler.top[1].time:     # Can't schedule a stop later than the next event time
-            raise RuntimeError('stop: stop time >= next event time.')
+            raise RuntimeError('stop: stop time (%g) >= next event time (%g).' % (t, self.next_time()))
 
         if t < self.t:
-            raise RuntimeError('stop: stop time < current time.')
+            raise RuntimeError('stop: stop time (%g) < current time (%g).' % (t, self.t))
 
         self.t = t
 
