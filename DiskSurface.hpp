@@ -53,20 +53,42 @@ public:
     typedef std::pair<position_type, structure_id_type>                           position_structid_pair_type;
     typedef std::pair<position_structid_pair_type, position_structid_pair_type>   position_structid_pair_pair_type;
 
-    // As a specialty, the DiskStructure has a flag that can be set to make the particle not move radially upon
+    // As a specialty, the DiskStructure has flags that can be set to specify its usage/behavior
+    // If a DiskStructure is set to be a "cap" it is assumed that it "caps" a cylinder, i.e. is located
+    // at the end of a finite cylinder. If it is a "sink" it is inside the cylinder; in that case, the
+    // main loop will try to make a CylindricalSurfaceSinkInteraction domain, which also allows
+    // for diffusion of the particle past the sink. If the disk is a cap, particles cannot diffuse past it!
+    // In addition, the flag "RADIAL_DISSOCIATION" can be used to make the particle not move radially upon
     // a dissociation event, but axially (i.e., in direction of the cylinder axis of the parent cylinder)
     // This can be used for disks that are "sinks" (binding sites) on cylindrical structures
-    bool RADIAL_DISSOCIATION; // by default it is true, automatically set by constructor below
-    // Setters for the flag
+    bool IS_CAP;              // by default it is assumed that the disk is a cap; automatically set by constructor below
+    bool RADIAL_DISSOCIATION; // accordingly, this is assumed to be true by default as well
+    // Setters for these flags
+    virtual void treat_as_sink()
+    {
+        this->IS_CAP = false;
+    }
+    virtual void treat_as_cap()
+    {
+        this->IS_CAP = true;
+    }
     virtual void forbid_radial_dissociation()
     {
         this->RADIAL_DISSOCIATION = false;
-    }    
+    }
     virtual void allow_radial_dissociation()
     {
         this->RADIAL_DISSOCIATION = true;
     }
-    // Getters
+    // Getters    
+    virtual bool const& is_cap() const
+    {
+        return this->IS_CAP;
+    }
+    virtual bool const& is_sink() const
+    {
+        return not(this->IS_CAP);
+    }
     virtual bool const& dissociates_radially() const
     {
         return this->RADIAL_DISSOCIATION;
@@ -509,7 +531,7 @@ public:
     }
         
     DiskSurface(structure_name_type const& name, structure_type_id_type const& sid, structure_id_type const& parent_struct_id, shape_type const& shape)
-        : base_type(name, sid, parent_struct_id, shape), RADIAL_DISSOCIATION(true) {}
+        : base_type(name, sid, parent_struct_id, shape), IS_CAP(true), RADIAL_DISSOCIATION(true) {}
 };
 
 #endif /* DISK_SURFACE_HPP */
