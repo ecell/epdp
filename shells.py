@@ -2949,6 +2949,9 @@ class CylindricalSurfaceSinktestShell(CylindricaltestShell, testInteractionSingl
         
         # FIXME Check: Is this actually ever created, or does the main loop always pick 'CylindricalSurfaceDiskInteraction'?
 
+        if self.target_structure.is_barrier():
+            raise testShellError('(CylindricalSurfaceSink) DiskSurface is not a sink')
+          
         # initialize scaling parameters
         self.dr_const   = self.pid_particle_pair[1].radius * CYLINDER_R_FACTOR
 
@@ -2975,7 +2978,7 @@ class CylindricalSurfaceSinktestShell(CylindricaltestShell, testInteractionSingl
             self.dr, self.dz_right, self.dz_left = \
                             self.determine_possible_shell(self.origin_structure.id, [self.single.domain_id], [self.target_structure.id])
         except ShellmakingError as e:
-            raise testShellError('(CylindricalSurfaceSink). %s' %
+            raise testShellError('(CylindricalSurfaceSink) %s' %
                                  (str(e)))
 
         # make sure the domain is symmetric around the particle
@@ -2984,7 +2987,7 @@ class CylindricalSurfaceSinktestShell(CylindricaltestShell, testInteractionSingl
         # check if the domain is still large enough for the interaction
         _, _, min_dz_left = self.get_min_dr_dzright_dzleft()
         if self.dz_left < min_dz_left:
-            raise testShellError('(CylindricalSurfaceSink). Domain too small after symmetricalizing.')
+            raise testShellError('(CylindricalSurfaceSink) Domain too small after symmetricalizing')
 
 
     def get_orientation_vector(self):

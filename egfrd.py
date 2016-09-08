@@ -128,9 +128,12 @@ def try_default_testinteraction(single, target_structure, geometrycontainer, dom
             raise testShellError('(Interaction). Combination of (2D particle, target_structure) is not supported')
     elif isinstance(single.structure, CylindricalSurface):
         if isinstance(target_structure, DiskSurface):
-            return CylindricalSurfaceDiskInteractiontestShell (single, target_structure, geometrycontainer, domains)
-        elif isinstance(target_structure, CylindricalSurface):
-            return CylindricalSurfaceSinktestShell (single, target_structure, geometrycontainer, domains)
+            try:
+                return CylindricalSurfaceSinktestShell (single, target_structure, geometrycontainer, domains)
+            except testShellError as e:
+                if __debug__:
+                      log.warn('Could not make CylindricalSurfaceSinktestShell, %s; now trying CylindricalSurfaceDiskInteractiontestShell.' % str(e))
+                return CylindricalSurfaceDiskInteractiontestShell (single, target_structure, geometrycontainer, domains)
         elif isinstance(target_structure, PlanarSurface):
             return CylindricalSurfacePlanarSurfaceInteractionSingletestShell (single, target_structure, geometrycontainer, domains)
         else:
