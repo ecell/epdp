@@ -44,6 +44,7 @@ __all__ = [
     'PlanarSurfacePairtestShell',
     'PlanarSurfaceTransitionSingletestShell',
     'PlanarSurfaceTransitionPairtestShell',
+    #'PlanarSurfaceCylindricalSurfaceInteractiontestShell',
     'PlanarSurfaceDiskSurfaceInteractiontestShell',
     'CylindricalSurfaceSingletestShell',
     'DiskSurfaceSingletestShell',
@@ -2614,7 +2615,7 @@ class CylindricalSurfaceInteractiontestShell(CylindricaltestShell, testInteracti
     def set_structure_ignore_list(self):
 
         return [self.target_structure.id]
-
+        
 class PlanarSurfaceDiskSurfaceInteractiontestShell(CylindricalSurfaceInteractiontestShell):
 
     # This class is in essence the same as CylindricalSurfaceInteractiontestShell, but with
@@ -2797,7 +2798,8 @@ class CylindricalSurfacePlanarSurfaceInteractionSingletestShell(CylindricalSurfa
     def __init__(self, single, target_structure, geometrycontainer, domains):
         CylindricalSurfaceDiskInteractiontestShell.__init__(self, single, target_structure, geometrycontainer, domains)
         # This is essentially the same as CylindricalSurfaceDiskInteractiontestShell, only that
-        # the orientation vector has to be calculated in a different way.
+        # the orientation vector has to be calculated in a different way, and the structure ignore list
+        # also contains possible subdisks of the origin cylinder, located at the interface
         
         assert isinstance(target_structure, PlanarSurface)
         assert isinstance(self.origin_structure, CylindricalSurface)
@@ -2861,6 +2863,19 @@ class CylindricalSurfacePlanarSurfaceInteractionSingletestShell(CylindricalSurfa
 
         else:
             raise testShellError('Could not find correct disk surface at the interface between cylinder and plane.')
+          
+    def set_structure_ignore_list(self):
+
+        # This checks whether there is also a sub-disk of the origin structure (cylinder) nearby
+        # If yes, we want to ignore these as well, because then they are part of the (double-sided) interface
+        search_pos = self.pid_particle_pair[1].position
+        other_disk, other_disk_dist = \
+                    get_closest_structure(self.world, search_pos, self.origin_structure.id, [], structure_class=DiskSurface)
+                    
+        if other_disk is not None:
+          return [self.target_structure.id, other_disk.id]
+        else:
+          return [self.target_structure.id]
 
 class CylindricalSurfacePlanarSurfaceIntermediateSingletestShell(CylindricalSurfaceDiskInteractiontestShell):
 
