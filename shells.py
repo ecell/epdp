@@ -44,7 +44,7 @@ __all__ = [
     'PlanarSurfacePairtestShell',
     'PlanarSurfaceTransitionSingletestShell',
     'PlanarSurfaceTransitionPairtestShell',
-    #'PlanarSurfaceCylindricalSurfaceInteractiontestShell',
+    'PlanarSurfaceCylindricalSurfaceInteractiontestShell',
     'PlanarSurfaceDiskSurfaceInteractiontestShell',
     'CylindricalSurfaceSingletestShell',
     'DiskSurfaceSingletestShell',
@@ -2615,6 +2615,20 @@ class CylindricalSurfaceInteractiontestShell(CylindricaltestShell, testInteracti
     def set_structure_ignore_list(self):
 
         return [self.target_structure.id]
+
+class PlanarSurfaceCylindricalSurfaceInteractiontestShell(CylindricalSurfaceInteractiontestShell):
+
+    # A special case of CylindricalSurfaceInteractiontestShell in which the origin structure is a plane
+    # Here we allow for a different ignore list which ignores any disk surfaces
+    # Apart from that it is the same as the mother class
+    def __init__(self, single, target_structure, geometrycontainer, domains):
+        CylindricalSurfaceInteractiontestShell.__init__(self, single, target_structure, geometrycontainer, domains)
+        
+        assert( isinstance(self.origin_structure, PlanarSurface) )
+    
+    def set_structure_ignore_list(self):
+
+        return [self.target_structure.id] ### TODO adapt!
         
 class PlanarSurfaceDiskSurfaceInteractiontestShell(CylindricalSurfaceInteractiontestShell):
 
