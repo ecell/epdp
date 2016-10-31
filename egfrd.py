@@ -3158,15 +3158,19 @@ max. overlap error:  %g
             associated = []
 
         elif isinstance(domain, DiskSurfaceSingle):
-            # Particles bound to DiskSurfaces ignore all rods for now.
-            ignores = [s.id for s in self.world.structures if isinstance(s, CylindricalSurface)] # TODO Only ignore closest cylinder
+            # Particles bound to DiskSurfaces ignore all rods and other disks for now.
+            ignores_cyl = [s.id for s in self.world.structures if isinstance(s, CylindricalSurface)] # TODO Only ignore closest cylinder
+            ignores_dsk = [s.id for s in self.world.structures if isinstance(s, DiskSurface)] # TODO Only ignore closest disks
+            ignores = ignores_cyl + ignores_dsk
             associated = [domain.structure.id, domain.structure.structure_id] # the latter is the ID of the parent structure
 
         elif isinstance(domain, CylindricalSurfacePlanarSurfaceIntermediateSingle) or isinstance(domain, MixedPair1DStatic) \
           or isinstance(domain, PlanarSurfaceDiskSurfaceInteraction):
-            # Ignore the planar surface and sub-disk that holds/will hold the particle, and the neighboring cylinder
+            # Ignore the planar surface and sub-disk that holds/will hold the particle, and the neighboring cylinder PLUS its disks
             # Note that the plane is the parent structure of the disk, which in both cases is the target structure
-            ignores = [s.id for s in self.world.structures if isinstance(s, CylindricalSurface)] # TODO Only ignore closest cylinder
+            ignores_cyl = [s.id for s in self.world.structures if isinstance(s, CylindricalSurface)] # TODO Only ignore closest cylinder
+            ignores_dsk = [s.id for s in self.world.structures if isinstance(s, DiskSurface)] # TODO Only ignore closest disks
+            ignores = ignores_cyl + ignores_dsk
             associated = [domain.origin_structure.id, domain.target_structure.id, domain.target_structure.structure_id]
                                                                                   # the latter is the ID of the parent structure
 

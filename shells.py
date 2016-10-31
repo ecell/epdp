@@ -2929,6 +2929,10 @@ class CylindricalSurfacePlanarSurfaceIntermediateSingletestShell(CylindricalSurf
                     get_closest_structure(self.world, search_pos, self.target_structure.id, [], structure_class=CylindricalSurface)
         except:
             raise testShellError('(CylindricalSurfacePlanarSurfaceIntermediateSingle) get_closest_structure() failed, could not determine closest cylinder.')
+          
+        # We also want to ignore possible other disk structures that are substructures of the cylinder
+        # No 'try' here, because there simply may be no such
+        closest_cyl_disk, closest_cyl_disk_dist = get_closest_structure(self.world, search_pos, closest_cyl.id, [], structure_class=DiskSurface)
                     
 
         disk_to_cylinder_axis_distance = closest_cyl.project_point(disk_pos)[1][0]
@@ -2937,7 +2941,7 @@ class CylindricalSurfacePlanarSurfaceIntermediateSingletestShell(CylindricalSurf
               raise testShellError('(CylindricalSurfacePlanarSurfaceIntermediateSingle) Disk is not below closest cylinder, distance to axis = %s' \
                                                                                                                 % disk_to_cylinder_axis_distance)
         if closest_cyl is not None:
-            ignore_list = [self.target_structure.id, closest_cyl.id]
+            ignore_list = [self.target_structure.id, closest_cyl.id, closest_cyl_disk.id]
         else:
             ignore_list = [self.target_structure.id]
         
