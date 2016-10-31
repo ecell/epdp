@@ -196,10 +196,12 @@ class testInteractionSingle(testSingle, Others):
         self.reference_point, (normal_comp, dist_to_surface_edge) = self.target_structure.project_point(pos_transposed)
         if dist_to_surface_edge >= 0:
             raise testShellError('(testInteractionSingle). Projected point of particle is not in surface.')
-        elif feq(normal_comp, 0.0, self.pid_particle_pair[1].radius):
+        elif feq(normal_comp, 0.0, self.pid_particle_pair[1].radius) and not isinstance(self, CylindricalSurfacePlanarSurfaceIntermediateSingletestShell):
             raise testShellError('(testInteractionSingle). Normal component = %g / particle is already in surface.' % normal_comp)
             # If the distance to the reactive surface is zero we want to better use BD, because the
             # zero distance can cause problems with (cylinder) shellmaking and reaction sampling.
+            # We make an exception here for CylindricalSurfacePlanarSurfaceIntermediateSingletestShell,
+            # because here the particle already is "in" the surface by purpose (and a precondition for forming the shell)
 
         self.min_dist_proj_to_edge = abs(dist_to_surface_edge)
         # projection_distance can be negative in case of plane
