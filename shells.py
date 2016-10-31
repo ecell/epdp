@@ -2628,8 +2628,22 @@ class PlanarSurfaceCylindricalSurfaceInteractiontestShell(CylindricalSurfaceInte
     
     def set_structure_ignore_list(self):
 
-        return [self.target_structure.id] ### TODO adapt!
+        # This checks whether there is also a sub-disk of the origin structure (plane) or the target structure (cylinder) nearby
+        # If yes, we want to ignore these as well, because then they are part of the (double-sided) interface
+        search_pos = self.pid_particle_pair[1].position
+        plane_disk, plane_disk_dist = \
+                    get_closest_structure(self.world, search_pos, self.origin_structure.id, [], structure_class=DiskSurface)
+        cyl_disk, cyl_disk_dist = \
+                    get_closest_structure(self.world, search_pos, self.target_structure.id, [], structure_class=DiskSurface)
         
+        nearby_disk_list = []
+        if plane_disk is not None:
+          nearby_disk_list = nearby_disk_list + [plane_disk]
+        if cyl_disk is not None:
+          nearby_disk_list = nearby_disk_list + [cyl_disk]
+          
+        return [self.target_structure.id] + nearby_disk_list
+                
 class PlanarSurfaceDiskSurfaceInteractiontestShell(CylindricalSurfaceInteractiontestShell):
 
     # This class is in essence the same as CylindricalSurfaceInteractiontestShell, but with
