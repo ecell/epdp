@@ -56,6 +56,7 @@ from shells import (
     DiskSurfaceSingletestShell,
     PlanarSurfaceInteractiontestShell,
     PlanarSurfaceDiskSurfaceInteractiontestShell,
+    PlanarSurfaceCylindricalSurfaceInteractiontestShell,
     CylindricalSurfaceInteractiontestShell,
     CylindricalSurfaceDiskInteractiontestShell,
     CylindricalSurfacePlanarSurfaceInteractiontestShell,
@@ -79,20 +80,22 @@ import os
 ### Singles
 def create_default_single(domain_id, shell_id, pid_particle_pair, structure, reaction_rules, geometrycontainer, domains):
     if isinstance(structure, CuboidalRegion):
-        # first make the test shell
+        # First make the test shell
         testSingle = SphericalSingletestShell(pid_particle_pair, structure, geometrycontainer, domains)
         return SphericalSingle          (domain_id, shell_id, testSingle, reaction_rules)
     elif isinstance(structure, PlanarSurface):
-        # first make the test shell
+        # First make the test shell
         testSingle = PlanarSurfaceSingletestShell(pid_particle_pair, structure, geometrycontainer, domains)
         return PlanarSurfaceSingle      (domain_id, shell_id, testSingle, reaction_rules)
     elif isinstance(structure, CylindricalSurface):
-        # first make the test shell
+        # First make the test shell
         testSingle = CylindricalSurfaceSingletestShell(pid_particle_pair, structure, geometrycontainer, domains)
         return CylindricalSurfaceSingle (domain_id, shell_id, testSingle, reaction_rules)
     elif isinstance(structure, DiskSurface):
-        # first make the test shell
+        # First make the test shell        
         try:
+            # Here we first want to try a special case, in which the particle is at the "interface" btw. cylinder and plane
+            # The corresponding test shell is akin to the standard DiskSurfaceSingle, but has an extended ignore list
             testSingle = CylindricalSurfacePlanarSurfaceInterfaceSingletestShell(pid_particle_pair, structure, geometrycontainer, domains)
         except testShellError as e:
             if __debug__:
@@ -100,20 +103,21 @@ def create_default_single(domain_id, shell_id, pid_particle_pair, structure, rea
             # making the default testShell should never fail
             testSingle = DiskSurfaceSingletestShell(pid_particle_pair, structure, geometrycontainer, domains)
 
-        return DiskSurfaceSingle (domain_id, shell_id, testSingle, reaction_rules)
+        return DiskSurfaceSingle        (domain_id, shell_id, testSingle, reaction_rules)
 
 ### Interactions
 def try_default_testinteraction(single, target_structure, geometrycontainer, domains):
     if isinstance(single.structure, CuboidalRegion):
         if isinstance(target_structure, PlanarSurface):
-            return PlanarSurfaceInteractiontestShell(single, target_structure, geometrycontainer, domains)
+            return PlanarSurfaceInteractiontestShell      (single, target_structure, geometrycontainer, domains)
         elif isinstance(target_structure, CylindricalSurface):
-            return CylindricalSurfaceInteractiontestShell(single, target_structure, geometrycontainer, domains)
+            return CylindricalSurfaceInteractiontestShell (single, target_structure, geometrycontainer, domains)
         else:
             raise testShellError('(Interaction). Combination of (3D particle, target_structure) is not supported')
     elif isinstance(single.structure, PlanarSurface):
-        if isinstance(target_structure, CylindricalSurface):
-            raise testShellError('(Interaction). Combination of (2D particle, target_structure) is not supported')
+        if isinstance(target_structure, CylindricalSurface): ### TESTING ###
+            return PlanarSurfaceCylindricalSurfaceInteractiontestShell (single, target_structure, geometrycontainer, domains)
+            #raise testShellError('(Interaction). Combination of (2D particle, target_structure) is not supported')
         elif isinstance(target_structure, DiskSurface):
             # Here we have 2 possibilities; first we try the less probable one (special conditions apply that are checked
             # upon test shell construction), then the more common one.
@@ -122,18 +126,18 @@ def try_default_testinteraction(single, target_structure, geometrycontainer, dom
             except testShellError as e:
                 if __debug__:
                     log.warn('Could not make CylindricalSurfacePlanarSurfaceIntermediateSingletestShell, %s; now trying PlanarSurfaceDiskSurfaceInteractiontestShell.' % str(e))
-                return PlanarSurfaceDiskSurfaceInteractiontestShell (single, target_structure, geometrycontainer, domains)
+                return PlanarSurfaceDiskSurfaceInteractiontestShell               (single, target_structure, geometrycontainer, domains)
                 # if both shells do not work in this situation the second try will result in raising another shellmaking exception       
         else:
             raise testShellError('(Interaction). Combination of (2D particle, target_structure) is not supported')
     elif isinstance(single.structure, CylindricalSurface):
         if isinstance(target_structure, DiskSurface):
             try:
-                return CylindricalSurfaceSinktestShell (single, target_structure, geometrycontainer, domains)
+                return CylindricalSurfaceSinktestShell                 (single, target_structure, geometrycontainer, domains)
             except testShellError as e:
                 if __debug__:
                       log.warn('Could not make CylindricalSurfaceSinktestShell, %s; now trying CylindricalSurfaceDiskInteractiontestShell.' % str(e))
-                return CylindricalSurfaceDiskInteractiontestShell (single, target_structure, geometrycontainer, domains)
+                return CylindricalSurfaceDiskInteractiontestShell      (single, target_structure, geometrycontainer, domains)
         elif isinstance(target_structure, PlanarSurface):
             return CylindricalSurfacePlanarSurfaceInteractiontestShell (single, target_structure, geometrycontainer, domains)
         else:
@@ -142,20 +146,22 @@ def try_default_testinteraction(single, target_structure, geometrycontainer, dom
         raise testShellError('(Interaction). structure of particle was of invalid type')
 
 def create_default_interaction(domain_id, shell_id, testShell, reaction_rules, interaction_rules):
-    if isinstance(testShell, PlanarSurfaceDiskSurfaceInteractiontestShell): # must be first because it is a special case of CylindricalSurfaceInteractiontestShell
-        return PlanarSurfaceDiskSurfaceInteraction (domain_id, shell_id, testShell, reaction_rules, interaction_rules)
+    if isinstance(testShell, PlanarSurfaceCylindricalSurfaceInteractiontestShell): # must be first because it is a special case of PlanarSurfaceDiskSurfaceInteractiontestShell below
+        return PlanarSurfaceCylindricalSurfaceInteraction (domain_id, shell_id, testShell, reaction_rules, interaction_rules)
+    if isinstance(testShell, PlanarSurfaceDiskSurfaceInteractiontestShell): # must be first because it is a special case of CylindricalSurfaceInteractiontestShell below
+        return PlanarSurfaceDiskSurfaceInteraction        (domain_id, shell_id, testShell, reaction_rules, interaction_rules)
     elif isinstance(testShell, CylindricalSurfaceInteractiontestShell):
-        return CylindricalSurfaceInteraction    (domain_id, shell_id, testShell, reaction_rules, interaction_rules)
+        return CylindricalSurfaceInteraction              (domain_id, shell_id, testShell, reaction_rules, interaction_rules)
     elif isinstance(testShell, PlanarSurfaceInteractiontestShell):
-        return PlanarSurfaceInteraction         (domain_id, shell_id, testShell, reaction_rules, interaction_rules)
+        return PlanarSurfaceInteraction                   (domain_id, shell_id, testShell, reaction_rules, interaction_rules)
     elif isinstance(testShell, CylindricalSurfacePlanarSurfaceInteractiontestShell): # must be first because it is a special case of CylindricalSurfaceDiskInteractiontestShell
-        return CylindricalSurfacePlanarSurfaceInteraction (domain_id, shell_id, testShell, reaction_rules, interaction_rules)
+        return CylindricalSurfacePlanarSurfaceInteraction        (domain_id, shell_id, testShell, reaction_rules, interaction_rules)
     elif isinstance(testShell, CylindricalSurfacePlanarSurfaceIntermediateSingletestShell): # this is actually not a "real" interaction, but we need to put it here to ignore the target structure
         return CylindricalSurfacePlanarSurfaceIntermediateSingle (domain_id, shell_id, testShell, reaction_rules, interaction_rules)
     elif isinstance(testShell, CylindricalSurfaceDiskInteractiontestShell):
-        return CylindricalSurfaceDiskInteraction (domain_id, shell_id, testShell, reaction_rules, interaction_rules)
+        return CylindricalSurfaceDiskInteraction                 (domain_id, shell_id, testShell, reaction_rules, interaction_rules)
     elif isinstance(testShell, CylindricalSurfaceSinktestShell): # FIXME not sure we ever construct this; we have to give it priority over Cyl.Surf.DiskInteraction for non-capping disks!
-        return CylindricalSurfaceSink           (domain_id, shell_id, testShell, reaction_rules, interaction_rules)
+        return CylindricalSurfaceSink                            (domain_id, shell_id, testShell, reaction_rules, interaction_rules)
 
 ### Transitions
 def try_default_testtransition(single, target_structure, geometrycontainer, domains):
@@ -173,7 +179,7 @@ def try_default_testtransition(single, target_structure, geometrycontainer, doma
 
 def create_default_transition(domain_id, shell_id, testShell, reaction_rules):
     if isinstance(testShell, PlanarSurfaceTransitionSingletestShell):
-        return PlanarSurfaceTransitionSingle                   (domain_id, shell_id, testShell, reaction_rules)
+        return PlanarSurfaceTransitionSingle              (domain_id, shell_id, testShell, reaction_rules)
 
 ### Pairs
 def try_default_testpair(single1, single2, geometrycontainer, domains):
