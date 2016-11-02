@@ -2618,20 +2618,53 @@ class CylindricalSurfaceInteractiontestShell(CylindricaltestShell, testInteracti
 
 class PlanarSurfaceCylindricalSurfaceInteractiontestShell(CylindricalSurfaceInteractiontestShell):
 
-    # A special case of CylindricalSurfaceInteractiontestShell in which the origin structure is a plane
+    # This test shell treats the case of a plane-bound particle trying to interact with a cylinder
+    # that has a (disk-) interface with the planar surface.
+    # It is in essence the same as CylindricalSurfaceInteractiontestShell, but with
+    # different shellscaling parameters. Therefore a new constructor has to be defined.
     # Here we allow for a different ignore list which ignores any disk surfaces
-    # Apart from that, it is the same as the mother class
-    def __init__(self, single, target_structure, geometrycontainer, domains):
-        CylindricalSurfaceInteractiontestShell.__init__(self, single, target_structure, geometrycontainer, domains)
-        
-        assert( isinstance(self.origin_structure, PlanarSurface) )
+    # The working principle put forward here is akin to (->) CylindricalSurfacePlanarSurfaceInteractiontestShell    
+    def __init__(self, single, target_structure, geometrycontainer, domains):              
         assert( isinstance(self.target_structure, CylindricalSurface) )
-        
-        try:
-            self.daughter_disk = self.find_daughter_disk()
+        CylindricaltestShell.__init__(self, geometrycontainer, domains)  # this must be first because of world definition
+        testInteractionSingle.__init__(self, single, single.structure, target_structure)
 
-        except testShellError as e:
-            raise testShellError('(CylindricalSurfacePlanarSurfaceInteraction) %s' % (str(e)) )
+        if feq(self.particle_surface_distance, 0.0, typical=self.target_structure.shape.radius) \
+           or self.particle_surface_distance < 0.0:
+            raise testShellError('(PlanarSurfaceDiskSurfaceInteractiontestShell). Zero or negative particle-surface distance, value = %s. Particle is most likely already on the disk.' \
+                                                                                  % self.particle_surface_distance                                                                      )
+
+        # Initialize the scaling parameters
+        # These are copied from PlanarSurfacePairtestShell
+        self.dzdr_right = 0.0
+        self.drdz_right = numpy.inf
+        self.r0_right   = 0.0
+        self.z0_right   = self.pid_particle_pair[1].radius
+        self.dzdr_left  = 0.0
+        self.drdz_left  = numpy.inf
+        self.r0_left    = 0.0
+        self.z0_left    = self.z0_right
+
+        # Now we can also define the scaling angle
+        self.right_scalingangle = self.get_right_scalingangle()
+        self.left_scalingangle  = self.get_left_scalingangle()
+        # In particular store the tangent, because math.tan is expensive!
+        self.tan_right_scalingangle = math.tan(self.right_scalingangle)
+        self.tan_left_scalingangle  = math.tan(self.left_scalingangle)
+
+        # This will determine if the shell is possible.
+        # If possible, it will write the dr, dz_right, dz_left defining the dimensions of the cylindrical shell.
+        # If not possible, it throws an exception and the construction of the testShell IS ABORTED!        
+        self.ignored_structure_ids = self.set_structure_ignore_list()
+        try:
+            # First we check whether the cylinder that we try to interact with actually has an interface disk
+            self.daughter_disk = self.find_daughter_disk()
+          
+            self.dr, self.dz_right, self.dz_left = \
+                            self.determine_possible_shell(self.origin_structure.id, [self.single.domain_id], \
+                                                                                    self.ignored_structure_ids)
+        except ShellmakingError as e:
+            raise testShellError('(PlanarSurfaceDiskSurfaceInteraction). %s' % (str(e)) )                                     
 
     def find_daughter_disk(self):
 
@@ -2682,7 +2715,22 @@ class PlanarSurfaceCylindricalSurfaceInteractiontestShell(CylindricalSurfaceInte
 
         else:
             raise testShellError('Could not find correct (cylinder-associated) disk surface at the interface between cylinder and plane.')
-          
+
+    def get_min_dr_dzright_dzleft(self):        
+        dr       = self.pid_particle_pair[1].radius * SINGLE_SHELL_FACTOR + (self.particle_surface_distance + self.target_structure.shape.radius)
+        dz_right = self.pid_particle_pair[1].radius
+        dz_left  = dz_right
+        return dr, dz_right, dz_left
+
+    def get_max_dr_dzright_dzleft(self): # same as for PlanarSurfaceSingletestShell
+        dz_right = self.pid_particle_pair[1].radius
+        dz_left  = dz_right
+        dr_sr    = math.sqrt((self.get_searchradius())**2 - dz_right**2) # stay within the searchradius
+#        dr_edge  = self.structure.min_dist_proj_to_edge(self.get_referencepoint()) # TODO rethink this
+#        dr       = min(dr_sr, dr_edge)
+        dr = dr_sr
+        return dr, dz_right, dz_left
+        
     def set_structure_ignore_list(self):
 
         # This checks whether there is also a sub-disk of the origin structure (plane) or the target structure (cylinder) nearby
@@ -2700,7 +2748,7 @@ class PlanarSurfaceCylindricalSurfaceInteractiontestShell(CylindricalSurfaceInte
           nearby_disk_list = nearby_disk_list + [cyl_disk]
           
         return [self.target_structure.id] + nearby_disk_list
-                
+        
 class PlanarSurfaceDiskSurfaceInteractiontestShell(CylindricalSurfaceInteractiontestShell):
 
     # This class is in essence the same as CylindricalSurfaceInteractiontestShell, but with
@@ -2772,7 +2820,7 @@ class PlanarSurfaceDiskSurfaceInteractiontestShell(CylindricalSurfaceInteraction
             closest_cyl, closest_cyl_dist = \
                     get_closest_structure(self.world, search_pos, self.target_structure.id, [], structure_class=CylindricalSurface)
         except:
-            raise testShellError('(PlanarSurfaceDiskSurfaceInteractionSingle) get_closest_structure() failed, could not determine closest cylinder.')
+            raise testShellError('(PlanarSurfaceDiskSurfaceInteraction) get_closest_structure() failed, could not determine closest cylinder.')
 
         disk_to_cylinder_axis_distance = closest_cyl.project_point(disk_pos)[1][0]
         if not feq(disk_to_cylinder_axis_distance, 0.0, typical=disk_radius):
@@ -2880,11 +2928,12 @@ class CylindricalSurfaceDiskInteractiontestShell(CylindricaltestShell, testInter
 
 class CylindricalSurfacePlanarSurfaceInteractiontestShell(CylindricalSurfaceDiskInteractiontestShell):
 
+    # This is essentially the same as CylindricalSurfaceDiskInteractiontestShell, only that
+    # the orientation vector has to be calculated in a different way, and the structure ignore list
+    # also contains possible subdisks of the origin cylinder, located at the interface
+    # The working principle put forward here is akin to (->) PlanarSurfaceCylindricalSurfaceInteractiontestShell
     def __init__(self, single, target_structure, geometrycontainer, domains):
-        CylindricalSurfaceDiskInteractiontestShell.__init__(self, single, target_structure, geometrycontainer, domains)
-        # This is essentially the same as CylindricalSurfaceDiskInteractiontestShell, only that
-        # the orientation vector has to be calculated in a different way, and the structure ignore list
-        # also contains possible subdisks of the origin cylinder, located at the interface
+        CylindricalSurfaceDiskInteractiontestShell.__init__(self, single, target_structure, geometrycontainer, domains)        
         
         assert isinstance(target_structure, PlanarSurface)
         assert isinstance(self.origin_structure, CylindricalSurface)
