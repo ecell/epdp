@@ -970,9 +970,9 @@ class CylindricalSurfaceInteraction(InteractionSingle):
                'radius = %s, half_length = %s' %
                 (self.shell.shape.radius, self.shell.shape.half_length))
 
-class PlanarSurfaceDiskSurfaceInteraction(CylindricalSurfaceInteraction):
-    """1 Particle on a PlanarSurface close to a DiskSurface, 
-       inside a cylindrical shell that surrounds the DiskSurface.
+class PlanarSurfaceCylindricalSurfaceInteraction(CylindricalSurfaceInteraction):
+    """1 Particle on a PlanarSurface close to a CylindricalSurface, 
+       inside a cylindrical shell that surrounds the cap of the CylindricalSurface.
 
         * Particle coordinates inside shell: r, theta, z.
         * Domains: composite r-theta, cartesian z.
@@ -985,13 +985,13 @@ class PlanarSurfaceDiskSurfaceInteraction(CylindricalSurfaceInteraction):
         # This domain is basically equivalent to CylindricalSurfaceInteraction. It uses
         # the same Green's function for binding, but the particle's z-coordinate does not
         # change here. Thus we have to modify draw_new_position() accordingly.
-        assert isinstance(testShell, PlanarSurfaceDiskSurfaceInteractiontestShell) \
-            or isinstance(testShell, PlanarSurfaceCylindricalSurfaceInteractiontestShell)
+        assert isinstance(testShell, PlanarSurfaceCylindricalSurfaceInteractiontestShell) \
+            or isinstance(testShell, PlanarSurfaceDiskSurfaceInteractiontestShell) # the latter is a special case of this one
         # Initialize the parent class. This should be fine since the test shell also has
         # CylindricalSurfaceInteractiontestShell as a parent class.
         CylindricalSurfaceInteraction.__init__(self, domain_id, shell_id, testShell, reactionrules, interactionrules)
 
-        self.product_structure = self.target_structure # DEPRECATED rethink this
+        self.product_structure = self.target_structure # DEPRECATED do we actually need this?
 
     def draw_escape_time_tuple(self):
         # This draws the time for escape in z-direction; since the particle in this domain
@@ -1043,19 +1043,21 @@ class PlanarSurfaceDiskSurfaceInteraction(CylindricalSurfaceInteraction):
         return newpos, structure_id
 
     def __str__(self):
-        return ('PlanarSurfaceDiskSurfaceInteraction' + Single.__str__(self) + \
+        return ('PlanarSurfaceCylindricalSurfaceInteraction' + Single.__str__(self) + \
                'radius = %s, half_length = %s' %
                 (self.shell.shape.radius, self.shell.shape.half_length))
 
-class PlanarSurfaceCylindricalSurfaceInteraction(PlanarSurfaceDiskSurfaceInteraction):
-      # For now this is just a wrapper around / special case of PlanarSurfaceDiskSurfaceInteraction
+class PlanarSurfaceDiskSurfaceInteraction(PlanarSurfaceCylindricalSurfaceInteraction):
+      # This is just a wrapper around / special case of PlanarSurfaceCylindricalSurfaceInteraction,
+      # meaning that we treat the binding to a disk as a special case of binding to a cylinder      
       def __init__(self, domain_id, shell_id, testShell, reactionrules, interactionrules):
-        PlanarSurfaceDiskSurfaceInteraction.__init__(self, domain_id, shell_id, testShell, reactionrules, interactionrules)
+        PlanarSurfaceCylindricalSurfaceInteraction.__init__(self, domain_id, shell_id, testShell, reactionrules, interactionrules)
         
-        isinstance(testShell, PlanarSurfaceCylindricalSurfaceInteractiontestShell)
+        isinstance(testShell, PlanarSurfaceDiskSurfaceInteractiontestShell)
+        # TODO Maybe some extra checks are still needed here
   
       def __str__(self):
-        return ('PlanarSurfaceCylindricalSurfaceInteraction' + Single.__str__(self) + \
+        return ('PlanarSurfaceDiskSurfaceInteraction' + Single.__str__(self) + \
                'radius = %s, half_length = %s' %
                 (self.shell.shape.radius, self.shell.shape.half_length))                
 
