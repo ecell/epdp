@@ -37,6 +37,7 @@ __all__ = [
     'CylindricalSurfaceSink',
     'PlanarSurfaceInteraction',
     'PlanarSurfaceDiskSurfaceInteraction',
+    'PlanarSurfaceCylindricalSurfaceInteraction',
     'TransitionSingle',
     'PlanarSurfaceTransitionSingle',
     ]
@@ -984,7 +985,8 @@ class PlanarSurfaceDiskSurfaceInteraction(CylindricalSurfaceInteraction):
         # This domain is basically equivalent to CylindricalSurfaceInteraction. It uses
         # the same Green's function for binding, but the particle's z-coordinate does not
         # change here. Thus we have to modify draw_new_position() accordingly.
-        assert isinstance(testShell, PlanarSurfaceDiskSurfaceInteractiontestShell)
+        assert isinstance(testShell, PlanarSurfaceDiskSurfaceInteractiontestShell) \
+            or isinstance(testShell, PlanarSurfaceCylindricalSurfaceInteractiontestShell)
         # Initialize the parent class. This should be fine since the test shell also has
         # CylindricalSurfaceInteractiontestShell as a parent class.
         CylindricalSurfaceInteraction.__init__(self, domain_id, shell_id, testShell, reactionrules, interactionrules)
@@ -1045,6 +1047,17 @@ class PlanarSurfaceDiskSurfaceInteraction(CylindricalSurfaceInteraction):
                'radius = %s, half_length = %s' %
                 (self.shell.shape.radius, self.shell.shape.half_length))
 
+class PlanarSurfaceCylindricalSurfaceInteraction(PlanarSurfaceDiskSurfaceInteraction):
+      # For now this is just a wrapper around / special case of PlanarSurfaceDiskSurfaceInteraction
+      def __init__(self, domain_id, shell_id, testShell, reactionrules, interactionrules):
+        PlanarSurfaceDiskSurfaceInteraction.__init__(self, domain_id, shell_id, testShell, reactionrules, interactionrules)
+        
+        isinstance(testShell, PlanarSurfaceCylindricalSurfaceInteractiontestShell)
+  
+      def __str__(self):
+        return ('PlanarSurfaceCylindricalSurfaceInteraction' + Single.__str__(self) + \
+               'radius = %s, half_length = %s' %
+                (self.shell.shape.radius, self.shell.shape.half_length))                
 
 class CylindricalSurfaceSink(InteractionSingle):
     """1 Particle inside a (Cylindrical) shell on a CylindricalSurface.
