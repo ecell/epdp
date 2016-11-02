@@ -2625,7 +2625,64 @@ class PlanarSurfaceCylindricalSurfaceInteractiontestShell(CylindricalSurfaceInte
         CylindricalSurfaceInteractiontestShell.__init__(self, single, target_structure, geometrycontainer, domains)
         
         assert( isinstance(self.origin_structure, PlanarSurface) )
-    
+        assert( isinstance(self.target_structure, CylindricalSurface) )
+        
+        try:
+            self.daughter_disk = self.find_daughter_disk()
+
+        except testShellError as e:
+            raise testShellError('(CylindricalSurfacePlanarSurfaceInteraction) %s' % (str(e)) )
+
+    def find_daughter_disk(self):
+
+        # Determine the distance to the daughter disk of the cylindrical surface
+        # First get the closest disk, then check whether it is actually at the interface between plane and cylinder,
+        # and whether the plane (target structure) is its parent structure
+        search_pos      = self.pid_particle_pair[1].position        
+        found_good_disk = False
+
+        try:
+            # The following will (should!) find only disks that are visible from the target structure (=cylinder),
+            # i.e. already is limited to daughter disks of the cylinder
+            closest_disk, closest_disk_dist = \
+                    get_closest_structure(self.world, search_pos, self.target_structure.id, [], structure_class=DiskSurface)
+        except:
+            raise testShellError('(PlanarSurfaceCylindricalSurfaceInteraction) get_closest_structure() failed, could not determine plane-associated disk.')
+
+        if closest_disk is not None:
+                                    
+            disk_parent_structure       = self.world.get_structure(closest_disk.structure_id)
+            distance_from_cylinder_axis = self.target_structure.project_point(closest_disk.shape.position)[1][0]
+            distance_from_plane         = self.origin_structure.project_point(closest_disk.shape.position)[1][0]            
+
+            found_good_disk = True
+            
+            # Check whether the disk indeed fulfills all requirements, if not drop warnings.
+            if not disk_parent_structure.id == self.target_structure.id:
+
+                found_good_disk = False
+                if __debug__:
+                    log.warn('(PlanarSurfaceCylindricalSurfaceInteraction) Disk surface does not have target cylinder as parent structure.')            
+
+            if not feq(distance_from_cylinder_axis, 0.0, typical = self.origin_structure.shape.radius):
+
+                found_good_disk = False
+                if __debug__:
+                    log.warn('(PlanarSurfaceCylindricalSurfaceInteraction) Disk surface is not situated in target cylinder.')
+                    
+            if not feq(distance_from_plane, 0.0, typical = closest_disk.shape.radius):
+
+                found_good_disk = False
+                if __debug__:
+                    log.warn('(PlanarSurfaceCylindricalSurfaceInteraction) Disk surface is not situated below target cylinder in the origin plane.')
+
+        # OK, if everything is good, return the disk. If not, we don't make this domain and the plane is an obstacle.
+        if found_good_disk:
+            return closest_disk
+
+        else:
+            raise testShellError('Could not find correct (cylinder-associated) disk surface at the interface between cylinder and plane.')
+          
     def set_structure_ignore_list(self):
 
         # This checks whether there is also a sub-disk of the origin structure (plane) or the target structure (cylinder) nearby
