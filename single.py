@@ -32,7 +32,7 @@ __all__ = [
     'InteractionSingle',
     'CylindricalSurfaceInteraction',
     'CylindricalSurfaceDiskInteraction',
-    'CylindricalSurfacePlanarSurfaceInteractionSingle',
+    'CylindricalSurfacePlanarSurfaceInteraction',
     'CylindricalSurfacePlanarSurfaceIntermediateSingle',
     'CylindricalSurfaceSink',
     'PlanarSurfaceInteraction',
@@ -1242,7 +1242,7 @@ class CylindricalSurfaceDiskInteraction(InteractionSingle):
     def __str__(self):
         return 'CylindricalSurfaceDiskInteraction ' + Single.__str__(self)
 
-class CylindricalSurfacePlanarSurfaceInteractionSingle(CylindricalSurfaceDiskInteraction):
+class CylindricalSurfacePlanarSurfaceInteraction(CylindricalSurfaceDiskInteraction):
     """1 Particle inside a (Cylindrical) shell on a CylindricalSurface
        limited by a plane. The plane is a reactive surface to the particle
        and its intersection with the cylinder axis defines the exit point 
@@ -1254,7 +1254,7 @@ class CylindricalSurfacePlanarSurfaceInteractionSingle(CylindricalSurfaceDiskInt
     """
     def __init__(self, domain_id, shell_id, testShell, reactionrules, interactionrules):
 
-        assert isinstance(testShell, CylindricalSurfacePlanarSurfaceInteractionSingletestShell)
+        assert isinstance(testShell, CylindricalSurfacePlanarSurfaceInteractiontestShell)
         CylindricalSurfaceDiskInteraction.__init__(self, domain_id, shell_id, testShell, reactionrules, interactionrules)
         # For now this just does the same as the disk interaction, but the test shells
         # slightly differ and we like to keep things apart and organized.
