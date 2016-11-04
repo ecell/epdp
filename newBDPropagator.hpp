@@ -204,6 +204,9 @@ public:
         while(!bounced && j < particles_in_overlap)
             bounced = overlap_particles->at(j++).second < r0;
         
+        if(bounced)
+            LOG_DEBUG( ("particle bounced with another particle.") );
+        
         //// 4.2 CHECK FOR CORE OVERLAPS WITH STRUCTURES
         /* If the particle has not bounced with another particle check for overlap with a surface. */
         boost::scoped_ptr<structure_id_pair_and_distance_list> overlap_structures;
@@ -214,11 +217,14 @@ public:
             boost::scoped_ptr<structure_id_pair_and_distance_list> overlap_structures_tmp(
                 tx_.check_surface_overlap(particle_shape_type( new_pos, r0 + reaction_length_ ), old_pos, new_structure_id, r0, old_struct_id));
             overlap_structures.swap(overlap_structures_tmp);
-            structures_in_overlap = (int)(overlap_structures ? overlap_structures->size(): 0);
+            structures_in_overlap = (int)(overlap_structures ? overlap_structures->size(): 0);            
  
             j = 0;
             while(!bounced && j < structures_in_overlap)
                 bounced = overlap_structures->at(j++).second < r0;
+            
+            if(bounced)
+                LOG_DEBUG( ("particle bounced with structure.") );
         }
          
         /*** 5. TREAT BOUNCING => CHECK FOR POTENTIAL REACTIONS / INTERACTIONS ***/
@@ -240,8 +246,8 @@ public:
             overlap_particles.swap( overlap_particles_after_bounce );     // FIXME is there no better way?
             // NOTE that it is asserted that the particle overlap criterium for the particle with other particles
             // and surfaces is False!
-            particles_in_overlap = overlap_particles ? overlap_particles->size(): 0; 
-            LOG_DEBUG( ("particles_in_overlap = %g", particles_in_overlap) ); // TESTING
+            particles_in_overlap = (int)(overlap_particles ? overlap_particles->size(): 0); 
+            LOG_DEBUG( ("now particles_in_overlap = %u", particles_in_overlap) ); // TESTING
             
             // re-get the reaction partners (structures), now on old position.
             boost::scoped_ptr<structure_id_pair_and_distance_list> overlap_structures_after_bounce( 
@@ -250,7 +256,7 @@ public:
             // NOTE that it is asserted that the particle overlap criterium for the particle with other particles
             // and surfaces is False!
             structures_in_overlap = (int)(overlap_structures ? overlap_structures->size(): 0);
-            LOG_DEBUG( ("structures_in_overlap = %g", structures_in_overlap) ); // TESTING
+            LOG_DEBUG( ("now structures_in_overlap = %u", structures_in_overlap) ); // TESTING
         }
         
 
