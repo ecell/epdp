@@ -1970,8 +1970,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
         pair_interaction_partners = sorted(pair_interaction_partners, key=lambda domain_overlap: domain_overlap[1])
 
-        # For each particles/particle or particle/surface pair, check if a pair or interaction can be
-        # made. Note that we check the closest one first and only check if the object are within the horizon
+        # For each particles/particle or particle/surface pair, check if a pair or interaction can be made
+        # Note that we check the closest one first and only check if the object are within the horizon
         domain = None
         for obj, hor_overlap in pair_interaction_partners:
 
@@ -2148,7 +2148,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
         single.shell_id_shell_pair = shell_id_shell_pair
         self.geometrycontainer.move_shell(shell_id_shell_pair)
         if __debug__:
-            log.info('        *Updated single: single: %s, new_shell = %s' % \
+            log.info('        * Updated single: single: %s, new_shell = %s' % \
                      (single, str(new_shell)))
 
         single.dt, single.event_type = single.determine_next_event()
@@ -2678,7 +2678,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
             # make the domain
             interaction = self.create_interaction(testShell)
             if __debug__:
-                log.info('        *Created: %s' % (interaction))
+                log.info('        * Created: %s' % (interaction))
+                log.info('        * Total interaction rate: k_tot = %g' % interaction.interaction_ktot)
 
             # get the next event time
             interaction.dt, interaction.event_type, = interaction.determine_next_event()
@@ -2727,7 +2728,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
             # make the domain
             transition = self.create_transition(testShell)
             if __debug__:
-                log.info('        *Created: %s' % (transition))
+                log.info('        * Created: %s' % (transition))
 
             # get the next event time
             transition.dt, transition.event_type, = transition.determine_next_event()
@@ -2778,7 +2779,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
         if testShell:
             pair = self.create_pair(testShell)
             if __debug__:
-                log.info('        *Created: %s' % (pair))
+                log.info('        * Created: %s' % (pair))
 
             pair.dt, pair.event_type, pair.reactingsingle = pair.determine_next_event(pair.r0)
             if __debug__:

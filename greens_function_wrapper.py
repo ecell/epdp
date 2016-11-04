@@ -12,7 +12,7 @@ def draw_time_wrapper(gf):
     rnd = myrandom.uniform()
 
     if __debug__:
-        log.debug('        *drawTime. ' + gf.__class__.__name__)
+        log.debug('        * drawTime: ' + gf.__class__.__name__)
     try:
         dt = gf.drawTime(rnd)
     except Exception, e:
@@ -25,7 +25,7 @@ def draw_event_type_wrapper(gf, dt):
     rnd = myrandom.uniform()
 
     if __debug__:
-        log.debug('        *drawEventType. ' + gf.__class__.__name__)
+        log.debug('        * drawEventType: ' + gf.__class__.__name__)
     try:
         event_type = gf.drawEventType(rnd, dt)
     except Exception, e:
@@ -38,12 +38,12 @@ def draw_r_wrapper(gf, dt, a, sigma=None):
     rnd = myrandom.uniform()
 
     if __debug__:
-        log.debug('        *drawR. ' + gf.__class__.__name__)
+        log.debug('        * drawR: ' + gf.__class__.__name__)
     try:
         r = gf.drawR(rnd, dt)
         while r > a or r <= sigma: # redraw; shouldn't happen often
             if __debug__:
-                log.debug('        *drawR: redraw')
+                log.debug('        * drawR: redraw')
             rnd = myrandom.uniform()
             r = gf.drawR(rnd, dt)
     except Exception, e:
@@ -64,7 +64,7 @@ def draw_theta_wrapper(gf, r, dt):
     rnd = myrandom.uniform()
 
     if __debug__:
-        log.debug('        *drawTheta. ' + gf.__class__.__name__)
+        log.debug('        * drawTheta: ' + gf.__class__.__name__)
     try:
         theta = gf.drawTheta(rnd, r, dt)
     except Exception, e:
