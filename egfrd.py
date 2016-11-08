@@ -86,6 +86,9 @@ import os
 # The "filter" map is based on the test shells, because certain special
 # test shells result in the same domain type later in spite of different
 # initial circumstances.
+# Note that for the Singles setting the respective value to "False" will
+# only block their "upscaling" in update_single(), because by convention
+# we always allow for the creation of "zero-Singles".
 allowed_to_make = {
         # Singles
         SphericalSingletestShell:                                       True,
@@ -107,6 +110,7 @@ allowed_to_make = {
         # Transitions
         PlanarSurfaceTransitionSingletestShell:                         True,
         # Pairs
+        ### TODO
         }        
 
 # Now in the following we define the "gearbox" functions that figure out
@@ -2124,11 +2128,16 @@ class EGFRDSimulator(ParticleSimulatorBase):
                     log.debug('Overlap partner = %s' % str(multi_partners[0][0]))
 
             # If the closest partner is within the multi horizon we do Multi, otherwise Single
-            if closest_overlap > 0.0 and not self.BD_ONLY_FLAG : 
+            # Here we also check whether the uses force-deactivated the construction of this particular
+            # Single type, or wants to run the simulator in BD mode only anyhow
+            if  closest_overlap > 0.0 and not self.BD_ONLY_FLAG:
                 try:
-                    # Just make a normal NonInteractionSingle
-                    self.update_single(single)
-                    bin_domain = single
+                    if allowed_to_make[single.testShell.__class__]:                    
+                        # Just make a normal NonInteractionSingle
+                        self.update_single(single)
+                        bin_domain = single
+                    else:
+                        raise testShellError('Creation of domain type deactivated.')
 
                 except Exception as e:
                     # If in rare cases the single update fails, make at least a Multi and warn
