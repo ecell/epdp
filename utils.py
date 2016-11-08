@@ -17,7 +17,7 @@ INF = numpy.inf
 ZEROPOS = numpy.array([0., 0., 0.])
 NOWHERE = numpy.array((INF, INF, INF))
 
-SAFETY = 1.0 + 1e-2     # Lengths of shell in construction are divided by this safety factor 
+SAFETY = 1.0 + 3e-2     # Lengths of shell in construction are divided by this safety factor 
                         # to make sure that they do not overlap due to numerical rounding errors
 
 # Tolerance used for float comparison functions. Oversimplifying: two floats a 
