@@ -89,6 +89,9 @@ import os
 # Note that for the Singles setting the respective value to "False" will
 # only block their "upscaling" in update_single(), because by convention
 # we always allow for the creation of "zero-Singles".
+# Use this feature with care, because switching off the formation of
+# domains with central importance, such as the SphericalSingle, can lead
+# to substantial performance loss. This is mainly to be used for testing.
 allowed_to_make = {
         # Singles
         SphericalSingletestShell:                                       True,
