@@ -105,11 +105,11 @@ allowed_to_make = {
         PlanarSurfaceInteractiontestShell:                              True,
         CylindricalSurfaceInteractiontestShell:                         True,
         # (Among 2D and 1D structures)
-        PlanarSurfaceCylindricalSurfaceInteractiontestShell:            True,
-        PlanarSurfaceDiskSurfaceInteractiontestShell:                   True,
-        CylindricalSurfacePlanarSurfaceInteractiontestShell:            True,
-        CylindricalSurfacePlanarSurfaceIntermediateSingletestShell:     True,        
-        CylindricalSurfaceDiskInteractiontestShell:                     True,
+        PlanarSurfaceCylindricalSurfaceInteractiontestShell:            False,
+        PlanarSurfaceDiskSurfaceInteractiontestShell:                   False,
+        CylindricalSurfacePlanarSurfaceInteractiontestShell:            False,
+        CylindricalSurfacePlanarSurfaceIntermediateSingletestShell:     False,        
+        CylindricalSurfaceDiskInteractiontestShell:                     False,
         CylindricalSurfaceSinktestShell:                                True,
         # Transitions
         PlanarSurfaceTransitionSingletestShell:                         True,
@@ -252,7 +252,7 @@ def create_default_interaction(domain_id, shell_id, testShell, reaction_rules, i
         return CylindricalSurfaceInteraction              (domain_id, shell_id, testShell, reaction_rules, interaction_rules)
     elif isinstance(testShell, PlanarSurfaceInteractiontestShell):
         return PlanarSurfaceInteraction                   (domain_id, shell_id, testShell, reaction_rules, interaction_rules)
-    elif isinstance(testShell, CylindricalSurfacePlanarSurfaceInteractiontestShell): # must be first because it is a special case of CylindricalSurfaceDiskInteractiontestShell
+    elif isinstance(testShell, CylindricalSurfacePlanarSurfaceInteractiontestShell) and not(testShell.daughter_disk==None): # must be first because it is a special case of CylindricalSurfaceDiskInteractiontestShell
         return CylindricalSurfacePlanarSurfaceInteraction        (domain_id, shell_id, testShell, reaction_rules, interaction_rules)
     elif isinstance(testShell, CylindricalSurfacePlanarSurfaceIntermediateSingletestShell): # this is actually not a "real" interaction, but we need to put it here to ignore the target structure
         return CylindricalSurfacePlanarSurfaceIntermediateSingle (domain_id, shell_id, testShell, reaction_rules, interaction_rules)

@@ -2952,6 +2952,8 @@ class CylindricalSurfacePlanarSurfaceInteractiontestShell(CylindricalSurfaceDisk
 
         try:
             self.daughter_disk = self.find_daughter_disk()
+            # Note (see below) that this can result in self.daughter_disk being set to 'None'
+            # In that case we have to make sure to construct a domain that does not require a daughter disk on the plane
 
         except testShellError as e:
             raise testShellError('(CylindricalSurfacePlanarSurfaceInteraction) %s' % (str(e)) )
@@ -3004,14 +3006,14 @@ class CylindricalSurfacePlanarSurfaceInteractiontestShell(CylindricalSurfaceDisk
 
                 found_good_disk = False
                 if __debug__:
-                    log.warn('(CylindricalSurfacePlanarSurfaceInteraction) Disk surface is not situated below cylinder.')
+                    log.warn('(CylindricalSurfacePlanarSurfaceInteraction) Disk surface is not situated below cylinder.')                    
 
-        # OK, if everything is good, return the disk. If not, we don't make this domain and the plane is an obstacle.
-        if found_good_disk:
-            return closest_disk
-
-        else:
-            raise testShellError('Could not find correct (plane-associated) disk surface at the interface between cylinder and plane.')
+            # OK, if everything is good, return the disk. If not, we return 'None' in order to indicate that there is no disk
+            # Then we still do not raise a testShellError and return this test shell, but another domain has to be constructed afterwards
+            if not found_good_disk:
+                raise testShellError('Closest disk surface at the interface between cylinder and plane does not match requirements.')
+                
+        return closest_disk # which may be 'None'
           
     def set_structure_ignore_list(self):
 
