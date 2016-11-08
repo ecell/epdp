@@ -104,10 +104,10 @@ allowed_to_make = {
         # (Among 2D and 1D structures)
         PlanarSurfaceCylindricalSurfaceInteractiontestShell:            True,
         PlanarSurfaceDiskSurfaceInteractiontestShell:                   True,
-        CylindricalSurfacePlanarSurfaceIntermediateSingletestShell:     True,
-        CylindricalSurfaceSinktestShell:                                True,
-        CylindricalSurfaceDiskInteractiontestShell:                     True,
         CylindricalSurfacePlanarSurfaceInteractiontestShell:            True,
+        CylindricalSurfacePlanarSurfaceIntermediateSingletestShell:     True,        
+        CylindricalSurfaceDiskInteractiontestShell:                     True,
+        CylindricalSurfaceSinktestShell:                                True,
         # Transitions
         PlanarSurfaceTransitionSingletestShell:                         True,
         # Pairs
