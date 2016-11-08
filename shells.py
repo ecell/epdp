@@ -2632,7 +2632,7 @@ class PlanarSurfaceCylindricalSurfaceInteractiontestShell(CylindricalSurfaceInte
 
         if feq(self.particle_surface_distance, 0.0, typical=self.target_structure.shape.radius) \
            or self.particle_surface_distance < 0.0:
-            raise testShellError('(PlanarSurfaceDiskSurfaceInteractiontestShell). Zero or negative particle-surface distance, value = %s. Particle is most likely already on the disk.' \
+            raise testShellError('(PlanarSurfaceCylindricalSurfaceInteractiontestShell). Zero or negative particle-surface distance, value = %s. Particle is most likely already on the disk.' \
                                                                                   % self.particle_surface_distance                                                                      )
 
         # Initialize the scaling parameters
