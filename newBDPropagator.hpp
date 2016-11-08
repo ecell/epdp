@@ -345,7 +345,7 @@ public:
                 }
                 else
                 {
-                    LOG_DEBUG( ("particle attempted an interaction with the non-interactive surface %s.", 
+                    LOG_DEBUG( ("particle attempted an interaction with surface %s; interaction not accepted.", 
                                 boost::lexical_cast<std::string>(overlap_struct.first.first).c_str()) );
                 }
             }
@@ -417,7 +417,7 @@ public:
             }
             else                
             {
-                LOG_DEBUG(("particle attempted a reaction with particle %s and failed.", 
+                LOG_DEBUG(("particle attempted a reaction with particle %s; reaction not accepted.", 
                     boost::lexical_cast<std::string>(overlap_particle.first.first).c_str()));
             }
             
