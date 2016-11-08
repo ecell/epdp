@@ -77,73 +77,147 @@ log = logging.getLogger('ecell')
 
 import os
 
+
+# Hashtable that selectively decides which domains can be constructed,
+# irrespective of all other circumstances; this can be used, e.g., to
+# switch off the construction of certain domains for testing, and to
+# force the system to use Brownian Dynamics (make a Multi) in certain
+# situations / circumstances instead.
+# The "filter" map is based on the test shells, because certain special
+# test shells result in the same domain type later in spite of different
+# initial circumstances.
+allowed_to_make = {
+        # Singles
+        SphericalSingletestShell:                                       True,
+        PlanarSurfaceSingletestShell:                                   True,
+        CylindricalSurfaceSingletestShell:                              True,
+        # (Special singles)
+        CylindricalSurfacePlanarSurfaceInterfaceSingletestShell:        True,
+        # Interactions
+        # (Bulk -> 2D and 1D)
+        PlanarSurfaceInteractiontestShell:                              True,
+        CylindricalSurfaceInteractiontestShell:                         True,
+        # (Among 2D and 1D structures)
+        PlanarSurfaceCylindricalSurfaceInteractiontestShell:            True,
+        PlanarSurfaceDiskSurfaceInteractiontestShell:                   True,
+        CylindricalSurfacePlanarSurfaceIntermediateSingletestShell:     True,
+        CylindricalSurfaceSinktestShell:                                True,
+        CylindricalSurfaceDiskInteractiontestShell:                     True,
+        CylindricalSurfacePlanarSurfaceInteractiontestShell:            True,
+        # Transitions
+        PlanarSurfaceTransitionSingletestShell:                         True,
+        # Pairs
+        }        
+
+# Now in the following we define the "gearbox" functions that figure out
+# which domain type should be constructed
+
 ### Singles
 def create_default_single(domain_id, shell_id, pid_particle_pair, structure, reaction_rules, geometrycontainer, domains):
+    # Bulk single
     if isinstance(structure, CuboidalRegion):
         # First make the test shell
         testSingle = SphericalSingletestShell(pid_particle_pair, structure, geometrycontainer, domains)
         return SphericalSingle          (domain_id, shell_id, testSingle, reaction_rules)
+    # Plane single
     elif isinstance(structure, PlanarSurface):
         # First make the test shell
         testSingle = PlanarSurfaceSingletestShell(pid_particle_pair, structure, geometrycontainer, domains)
         return PlanarSurfaceSingle      (domain_id, shell_id, testSingle, reaction_rules)
+    # Cylinder single
     elif isinstance(structure, CylindricalSurface):
         # First make the test shell
         testSingle = CylindricalSurfaceSingletestShell(pid_particle_pair, structure, geometrycontainer, domains)
         return CylindricalSurfaceSingle (domain_id, shell_id, testSingle, reaction_rules)
+    # Disk single
     elif isinstance(structure, DiskSurface):
-        # First make the test shell        
+        # Here we first want to try a special case, in which the particle is at the "interface" btw. cylinder and plane
+        # The corresponding test shell is akin to the standard DiskSurfaceSingle, but has an extended ignore list
         try:
-            # Here we first want to try a special case, in which the particle is at the "interface" btw. cylinder and plane
-            # The corresponding test shell is akin to the standard DiskSurfaceSingle, but has an extended ignore list
-            testSingle = CylindricalSurfacePlanarSurfaceInterfaceSingletestShell(pid_particle_pair, structure, geometrycontainer, domains)
+            if allowed_to_make[CylindricalSurfacePlanarSurfaceInterfaceSingletestShell]:
+                testSingle = CylindricalSurfacePlanarSurfaceInterfaceSingletestShell (pid_particle_pair, structure, geometrycontainer, domains)
+            else:
+                raise testShellError('Creation of domain type deactivated')
         except testShellError as e:
             if __debug__:
                 log.warn('Could not make CylindricalSurfacePlanarSurfaceInterfaceSingletestShell, %s' % str(e))
-            # making the default testShell should never fail
-            testSingle = DiskSurfaceSingletestShell(pid_particle_pair, structure, geometrycontainer, domains)
+            # Making the default testShell should never fail
+            testSingle = DiskSurfaceSingletestShell (pid_particle_pair, structure, geometrycontainer, domains)
 
         return DiskSurfaceSingle        (domain_id, shell_id, testSingle, reaction_rules)
 
 ### Interactions
 def try_default_testinteraction(single, target_structure, geometrycontainer, domains):
+  
+    # [Bulk -> Plane] or [Bulk -> Cylinder]
     if isinstance(single.structure, CuboidalRegion):
-        if isinstance(target_structure, PlanarSurface):
+        # [Bulk -> Plane]
+        if isinstance(target_structure, PlanarSurface) and allowed_to_make[PlanarSurfaceInteractiontestShell]:
             return PlanarSurfaceInteractiontestShell      (single, target_structure, geometrycontainer, domains)
-        elif isinstance(target_structure, CylindricalSurface):
+        # [Bulk -> Cylinder]
+        elif isinstance(target_structure, CylindricalSurface) and allowed_to_make[CylindricalSurfaceInteractiontestShell]:
             return CylindricalSurfaceInteractiontestShell (single, target_structure, geometrycontainer, domains)
         else:
-            raise testShellError('(Interaction). Combination of (3D particle, target_structure) is not supported')
+            raise testShellError('(Interaction). Combination of (3D particle, target_structure) is not supported or deactivated')
+    
+    # [Plane -> Cylinder] or [Plane -> Disk]
     elif isinstance(single.structure, PlanarSurface):
-        if isinstance(target_structure, CylindricalSurface): ### TESTING ###
+        # [Plane -> Cylinder]
+        if isinstance(target_structure, CylindricalSurface) and allowed_to_make[PlanarSurfaceCylindricalSurfaceInteractiontestShell]: ### TESTING ###
             return PlanarSurfaceCylindricalSurfaceInteractiontestShell (single, target_structure, geometrycontainer, domains)
-            #raise testShellError('(Interaction). Combination of (2D particle, target_structure) is not supported')
-        elif isinstance(target_structure, DiskSurface):
+        # [Plane -> Disk]
+        elif isinstance(target_structure, DiskSurface) \
+             and (  allowed_to_make[CylindricalSurfacePlanarSurfaceIntermediateSingletestShell] \
+                 or allowed_to_make[PlanarSurfaceDiskSurfaceInteractiontestShell]               ):
             # Here we have 2 possibilities; first we try the less probable one (special conditions apply that are checked
             # upon test shell construction), then the more common one.
             try:
-                return CylindricalSurfacePlanarSurfaceIntermediateSingletestShell (single, target_structure, geometrycontainer, domains)
+                if allowed_to_make[CylindricalSurfacePlanarSurfaceIntermediateSingletestShell]:
+                    return CylindricalSurfacePlanarSurfaceIntermediateSingletestShell (single, target_structure, geometrycontainer, domains)                    
+                else:
+                    raise testShellError('Creation of domain type deactivated')
             except testShellError as e:
                 if __debug__:
-                    log.warn('Could not make CylindricalSurfacePlanarSurfaceIntermediateSingletestShell, %s; now trying PlanarSurfaceDiskSurfaceInteractiontestShell.' % str(e))
-                return PlanarSurfaceDiskSurfaceInteractiontestShell               (single, target_structure, geometrycontainer, domains)
-                # if both shells do not work in this situation the second try will result in raising another shellmaking exception       
+                    log.warn('Could not make CylindricalSurfacePlanarSurfaceIntermediateSingletestShell, %s.' % str(e))
+            # OK, we could not make the special domain, but we still want to try the more standard one instead
+            # If both shells do not work in this situation the second try will result in raising another shellmaking exception
+            if allowed_to_make[PlanarSurfaceDiskSurfaceInteractiontestShell]:
+                log.info('Now trying PlanarSurfaceDiskSurfaceInteractiontestShell.')
+                return PlanarSurfaceDiskSurfaceInteractiontestShell    (single, target_structure, geometrycontainer, domains)                
+            else:
+                raise testShellError('Creation of domain type deactivated')
+        # Unsupported cases
         else:
-            raise testShellError('(Interaction). Combination of (2D particle, target_structure) is not supported')
+            raise testShellError('(Interaction). Combination of (2D particle, target_structure) is not supported or deactivated')
+          
+    # [Cylinder -> Disk] or [Cylinder -> Plane]
     elif isinstance(single.structure, CylindricalSurface):
-        if isinstance(target_structure, DiskSurface):
+        # [Cylinder -> Disk]
+        if isinstance(target_structure, DiskSurface) \
+           and (  allowed_to_make[CylindricalSurfaceSinktestShell] \
+               or allowed_to_make[CylindricalSurfaceDiskInteractiontestShell] ):
             try:
-                return CylindricalSurfaceSinktestShell                 (single, target_structure, geometrycontainer, domains)
+                if allowed_to_make[CylindricalSurfaceSinktestShell]:
+                    return CylindricalSurfaceSinktestShell             (single, target_structure, geometrycontainer, domains)
+                else:
+                    raise testShellError('Creation of domain type deactivated')
             except testShellError as e:
                 if __debug__:
                       log.warn('Could not make CylindricalSurfaceSinktestShell, %s; now trying CylindricalSurfaceDiskInteractiontestShell.' % str(e))
-                return CylindricalSurfaceDiskInteractiontestShell      (single, target_structure, geometrycontainer, domains)
-        elif isinstance(target_structure, PlanarSurface):
+                if allowed_to_make[CylindricalSurfaceDiskInteractiontestShell]:
+                    return CylindricalSurfaceDiskInteractiontestShell  (single, target_structure, geometrycontainer, domains)                
+                else:
+                    raise testShellError('Creation of domain type deactivated')
+        # [Cylinder -> Plane]
+        elif isinstance(target_structure, PlanarSurface) and allowed_to_make[CylindricalSurfacePlanarSurfaceInteractiontestShell]:
             return CylindricalSurfacePlanarSurfaceInteractiontestShell (single, target_structure, geometrycontainer, domains)
+        # Unsupported cases
         else:
-            raise testShellError('(Interaction). Combination of (1D particle, target_structure) is not supported')
+            raise testShellError('(Interaction). Combination of (1D particle, target_structure) is not supported or deactivated')
+          
+    # All other unsupported cases
     else:
-        raise testShellError('(Interaction). structure of particle was of invalid type')
+        raise testShellError('(Interaction). Structure of particle was of invalid type')
 
 def create_default_interaction(domain_id, shell_id, testShell, reaction_rules, interaction_rules):
     if isinstance(testShell, PlanarSurfaceCylindricalSurfaceInteractiontestShell): # must be first because it is a special case of PlanarSurfaceDiskSurfaceInteractiontestShell below
@@ -169,17 +243,20 @@ def try_default_testtransition(single, target_structure, geometrycontainer, doma
             raise testShellError('(Transition). Combination of (3D particle, target_structure) is not supported')
     elif isinstance(single.structure, PlanarSurface):
         if isinstance(target_structure, PlanarSurface):
-            return PlanarSurfaceTransitionSingletestShell (single, target_structure, geometrycontainer, domains)
+            if allowed_to_make[PlanarSurfaceTransitionSingletestShell]:
+                return PlanarSurfaceTransitionSingletestShell (single, target_structure, geometrycontainer, domains)
+            else:
+                raise testShellError('Creation of domain type deactivated')
         else:
             raise testShellError('(Transition). Combination of (2D particle, target_structure other than plane) is not supported')
     elif isinstance(single.structure, CylindricalSurface):
             raise testShellError('(Transition). Combination of (1D particle, target_structure) is not supported')
     else:
-        raise testShellError('(Transition). structure of particle was of invalid type')
+        raise testShellError('(Transition). Structure of particle was of invalid type')
 
 def create_default_transition(domain_id, shell_id, testShell, reaction_rules):
     if isinstance(testShell, PlanarSurfaceTransitionSingletestShell):
-        return PlanarSurfaceTransitionSingle              (domain_id, shell_id, testShell, reaction_rules)
+        return PlanarSurfaceTransitionSingle (domain_id, shell_id, testShell, reaction_rules)
 
 ### Pairs
 def try_default_testpair(single1, single2, geometrycontainer, domains):
@@ -3234,7 +3311,7 @@ max. overlap error:  %g
                             log.warn('%s (%s) overlaps with %s by %s.' % \
                                       (str(domain), str(shell), str(surface), FORMAT_DOUBLE % overlap) )
                 assert overlap >= -1.0*overlap_tolerance, \
-                    'Overlap out of overlap_tolerance = %s.' % str(overlap_tolerance)
+                    'Overlap (%s) out of overlap_tolerance (%s).' % (str(overlap), str(overlap_tolerance))
                     
 
             ### Check that shells DO overlap with associated surfaces.
