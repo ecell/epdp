@@ -2659,6 +2659,8 @@ class PlanarSurfaceCylindricalSurfaceInteractiontestShell(CylindricalSurfaceInte
         self.ignored_structure_ids = self.set_structure_ignore_list()
         try:
             # First we check whether the cylinder that we try to interact with actually has an interface disk
+            # and also compute the position at which the cylinder hits the plane (assuming orthogonality)
+            self.interface_position, _ = self.origin_structure.project_point(self.target_structure.shape.position)
             self.daughter_disk = self.find_daughter_disk()
           
             self.dr, self.dz_right, self.dz_left = \
@@ -2671,10 +2673,12 @@ class PlanarSurfaceCylindricalSurfaceInteractiontestShell(CylindricalSurfaceInte
         return self.structure.shape.unit_z
 
     def get_searchpoint(self):
-        return self.daughter_disk.shape.position
+        return self.interface_position
+        #return self.daughter_disk.shape.position
 
     def get_referencepoint(self):
-        return self.daughter_disk.shape.position
+        return self.interface_position
+        #return self.daughter_disk.shape.position
         
     def find_daughter_disk(self):
 
@@ -2688,8 +2692,13 @@ class PlanarSurfaceCylindricalSurfaceInteractiontestShell(CylindricalSurfaceInte
         try:
             # The following will (should!) find only disks that are visible from the target structure (=cylinder),
             # i.e. already is limited to daughter disks of the cylinder
-            closest_disk, closest_disk_dist = \
-                    get_closest_structure(self.world, search_pos, self.target_structure.id, [], structure_class=DiskSurface)
+            closest_disk_info = get_closest_structure(self.world, search_pos, self.target_structure.id, [], structure_class=DiskSurface)
+            
+            if closest_disk_info != None:
+                closest_disk, closest_disk_dist = closest_disk_info
+            else:
+                closest_disk = None
+                
         except:
             raise testShellError('(PlanarSurfaceCylindricalSurfaceInteraction) get_closest_structure() failed, could not determine plane-associated disk.')
 
@@ -2723,10 +2732,8 @@ class PlanarSurfaceCylindricalSurfaceInteractiontestShell(CylindricalSurfaceInte
         # OK, if everything is good, return the disk. If not, we don't make this domain and the cylinder is an obstacle.
         if found_good_disk:
             log.warn('(PlanarSurfaceCylindricalSurfaceInteraction) Found proper daughter disk.')
-            return closest_disk
-
-        else:
-            raise testShellError('Could not find correct (cylinder-associated) disk surface at the interface between cylinder and plane.')
+            
+        return closest_disk # which may be 'None'
 
     def get_min_dr_dzright_dzleft(self):        
         dr       = self.pid_particle_pair[1].radius * SINGLE_SHELL_FACTOR + (self.particle_surface_distance + self.target_structure.shape.radius)
@@ -2748,15 +2755,18 @@ class PlanarSurfaceCylindricalSurfaceInteractiontestShell(CylindricalSurfaceInte
         # This checks whether there is also a sub-disk of the origin structure (plane) or the target structure (cylinder) nearby
         # If yes, we want to ignore these as well, because then they are part of the (double-sided) interface
         search_pos = self.pid_particle_pair[1].position
-        plane_disk, plane_disk_dist = \
-                    get_closest_structure(self.world, search_pos, self.origin_structure.id, [], structure_class=DiskSurface)
-        cyl_disk, cyl_disk_dist = \
-                    get_closest_structure(self.world, search_pos, self.target_structure.id, [], structure_class=DiskSurface)
+        
+        plane_disk_info = get_closest_structure(self.world, search_pos, self.origin_structure.id, [], structure_class=DiskSurface)        
+        cyl_disk_info   = get_closest_structure(self.world, search_pos, self.target_structure.id, [], structure_class=DiskSurface)
         
         nearby_disk_id_list = []
-        if plane_disk is not None:
+        
+        if plane_disk_info is not None:
+          plane_disk, plane_disk_dist = plane_disk_info
           nearby_disk_id_list = nearby_disk_id_list + [plane_disk.id]
-        if cyl_disk is not None:
+          
+        if cyl_disk_info is not None:
+          cyl_disk, cyl_disk_dist = cyl_disk_info
           nearby_disk_id_list = nearby_disk_id_list + [cyl_disk.id]          
           
         return [self.target_structure.id] + nearby_disk_id_list
@@ -2976,8 +2986,12 @@ class CylindricalSurfacePlanarSurfaceInteractiontestShell(CylindricalSurfaceDisk
         try:
             # The following will (should!) find only disks that are visible from the target structure (=plane),
             # i.e. already is limited to daughter disks of the plane
-            closest_disk, closest_disk_dist = \
-                    get_closest_structure(self.world, search_pos, self.target_structure.id, [], structure_class=DiskSurface)
+            closest_disk_info = get_closest_structure(self.world, search_pos, self.target_structure.id, [], structure_class=DiskSurface)
+            if closest_disk_info != None:
+                closest_disk, closest_disk_dist = closest_disk_info
+            else:
+                closest_disk = None
+                
         except:
             raise testShellError('(CylindricalSurfacePlanarSurfaceInteraction) get_closest_structure() failed, could not determine plane-associated disk.')
 
@@ -3020,11 +3034,13 @@ class CylindricalSurfacePlanarSurfaceInteractiontestShell(CylindricalSurfaceDisk
         # This checks whether there is also a sub-disk of the origin structure (cylinder) nearby
         # If yes, we want to ignore these as well, because then they are part of the (double-sided) interface
         search_pos = self.pid_particle_pair[1].position
-        other_disk, other_disk_dist = \
-                    get_closest_structure(self.world, search_pos, self.origin_structure.id, [], structure_class=DiskSurface)
-                    
-        if other_disk is not None:
+        
+        closest_structure_info = get_closest_structure(self.world, search_pos, self.origin_structure.id, [], structure_class=DiskSurface)
+        
+        if closest_structure_info != None:        
+          other_disk, other_disk_dist = closest_structure_info
           return [self.target_structure.id, other_disk.id]
+          
         else:
           return [self.target_structure.id]
 

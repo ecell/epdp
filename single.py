@@ -980,6 +980,8 @@ class PlanarSurfaceCylindricalSurfaceInteraction(CylindricalSurfaceInteraction):
         * Selected randomly when drawing displacement vector: none.
 
     """
+    ### TODO: Use self.testShell.daughter_disk to also allow placement of the product on a daughter disk
+    ###       of the cylinder, akin to the inverse processs in CylindricalSurfacePlanarSurfaceInteraction
     def __init__(self, domain_id, shell_id, testShell, reactionrules, interactionrules):
 
         # This domain is basically equivalent to CylindricalSurfaceInteraction. It uses
@@ -1292,7 +1294,7 @@ class CylindricalSurfacePlanarSurfaceInteraction(CylindricalSurfaceDiskInteracti
         # post process it, based on whether the target plane has a daughter disk or not
         # (we post process in the latter case by yet adding a random unbinding vector)
         try:
-            daughter_disk = testShell.daughter_disk
+            daughter_disk = self.testShell.daughter_disk
         except AttributeError:
             raise ShellmakingError('Could not make CylindricalSurfacePlanarSurfaceInteraction, %s' % str(e))
           
@@ -1305,7 +1307,7 @@ class CylindricalSurfacePlanarSurfaceInteraction(CylindricalSurfaceDiskInteracti
           
           particle_radius = self.pid_particle_pair[1].radius
           
-          vector_length = (origin_structure.shape.radius + particle_radius) * MINIMAL_SEPARATION_FACTOR
+          vector_length = (self.origin_structure.shape.radius + particle_radius) * MINIMAL_SEPARATION_FACTOR
           unit_vector3D = random_unit_vector()
           unit_vector2D = normalize(unit_vector3D - \
                           (self.origin_structure.shape.unit_z * numpy.dot(unit_vector3D, self.origin_structure.shape.unit_z)))
