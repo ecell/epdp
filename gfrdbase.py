@@ -192,7 +192,7 @@ def get_closest_structure(world, pos, current_struct_id, ignores=[], structure_c
                   CuboidalRegion, PlanarSurface, CylindricalSurface, DiskSurface, SphericalSurface
     """
     sorted_close_structures = \
-            get_neighbor_structures(world, pos, current_struct_id, ignores, structure_class)
+            get_neighbor_structures(world, pos, current_struct_id, ignores, structure_class)    
 
     if sorted_close_structures != []:
         return sorted_close_structures[0]
@@ -710,8 +710,8 @@ def place_particle(world, sid, position):
         if not (surface and 
                 distance < TOLERANCE*radius and 
                 surface.id in structure_ids):
-            raise RuntimeError('  Placing particle failed: %s %s. Position should be in structure of structure_type \"%s\".' %
-                                  (sid, position, world.get_structure_type(species.structure_type_id)['name']) )
+            raise RuntimeError('  Placing particle failed: %s %s. Position should be in structure of structure_type \"%s\" (distance to %s = %s).' %
+                                  (sid, position, world.get_structure_type(species.structure_type_id)['name'], surface, distance) )
         else:
             structure_id = surface.id
 
