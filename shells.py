@@ -2956,9 +2956,9 @@ class CylindricalSurfacePlanarSurfaceInteractiontestShell(CylindricalSurfaceDisk
     # The working principle put forward here is akin to (->) PlanarSurfaceCylindricalSurfaceInteractiontestShell
     def __init__(self, single, target_structure, geometrycontainer, domains):
         CylindricalSurfaceDiskInteractiontestShell.__init__(self, single, target_structure, geometrycontainer, domains)        
-        
-        assert isinstance(target_structure, PlanarSurface)
+                
         assert isinstance(self.origin_structure, CylindricalSurface)
+        assert isinstance(self.target_structure, PlanarSurface)
 
         try:
             self.daughter_disk = self.find_daughter_disk()
