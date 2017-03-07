@@ -790,10 +790,16 @@ class TheImperialRoyalVisualizerForEGFRD:
             # Planes don't have half_extent[2].
             dz = ALMOST_ZERO
                             
-        orientation_ux = self.to_vector(box.unit_x) # we take the x-axis to be "length"
+        # Now construct the corresponding vectors in VPython coordinates
+        # Here we have to take into account that the orientation vector for boxes in
+        # VPython is aligned with the x-axis, while for eGFRD planes it is aligned 
+        # with the z-axis; this is why we have to make the z-axis of eGFRD the x-axis
+        # of the box in VPython
+        orientation_ux = self.to_vector(box.unit_z) # we take the x-axis to be "length"
         orientation_uy = self.to_vector(box.unit_y) # we also want the other vectors to be able 
-        orientation_uz = self.to_vector(box.unit_z) # to fully construct the box when needed
-        size = (2.0 * box.half_extent[0], 2.0 * box.half_extent[1], 2.0 * dz)
+        orientation_uz = self.to_vector(box.unit_x) # to fully construct the box when needed
+
+        size = (2.0 * dz, 2.0 * box.half_extent[1], 2.0 * box.half_extent[0])
         
         position_list.append(position)
         orientation_list.append( [orientation_ux, orientation_uy, orientation_uz] )
@@ -829,13 +835,13 @@ class TheImperialRoyalVisualizerForEGFRD:
       # TODO Check that lists all have the same length
       for n in range(len(position_list)):
         
-          orientation_ux, _, _ = orientation_list[n]
+          orientation_ux, orientation_uy, orientation_uz = orientation_list[n]
           
           if not(self.WIREFRAME_PLANES):
             # Standard planes are treated as boxes with inifinitesimal length in one of the three directions
             plane = v.box(pos=position_list[n], axis=orientation_ux, size=size_list[n], color=color_list[n], opacity=self.PLANAR_SURFACES_OPACITY)
           else:
-            plane = box = self.wireframe_box(pos=position_list[n], orientation=orientation_list[n], size=size_list[n], color=color_list[n], radius=self.WIREFRAME_RADIUS)
+            plane = self.wireframe_box(pos=position_list[n], orientation=orientation_list[n], size=size_list[n], color=color_list[n], radius=self.WIREFRAME_RADIUS)
             
           self.objects.append(plane)
   
