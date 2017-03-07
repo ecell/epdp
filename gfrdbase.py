@@ -33,6 +33,7 @@ __all__ = [
     'p_free',
     'throw_in_particles',
     'place_particle',
+    'remove_all_particles',
     'NoSpace',
     'create_world',
     'create_box',
@@ -729,6 +730,17 @@ def place_particle(world, sid, position):
         log.info('  Particle info: (%s, %s)' % (particle[0], particle[1]) )
 
     return particle
+
+
+def remove_all_particles(world):
+
+    all_particles = list(world)
+    # Keep in mind that the entries of this list 
+    # are actually pid_particle_pairs
+
+    for p in all_particles:
+
+        world.remove_particle(p[0])
 
 
 class DomainEvent(_gfrd.Event):
