@@ -3879,9 +3879,9 @@ max. overlap error:  %g
         self.t = time_info[0]
 
 
-    ###############################
-    #### METHODS FOR DEBUGGING ####
-    ###############################
+    #########################################
+    #### METHODS FOR DEBUGGING & TESTING ####
+    #########################################
     def dump_scheduler(self):
         """Dump scheduler information.
 
@@ -3913,6 +3913,15 @@ max. overlap error:  %g
                 raise RuntimeError('count_domains: domain has unknown type!')
 
         return (num_singles, num_pairs, num_multis)
+
+    def set_BD_only(self):
+
+        self.BD_ONLY_FLAG = True
+
+    def unset_BD_only(self):
+
+        self.BD_ONLY_FLAG = False
+
 
     dispatch = [
         (Single, process_single_event),
