@@ -732,15 +732,23 @@ def place_particle(world, sid, position):
     return particle
 
 
-def remove_all_particles(world):
+def remove_all_particles(world, species=None):
 
-    all_particles = list(world)
-    # Keep in mind that the entries of this list 
-    # are actually pid_particle_pairs
+    if species == None:
 
-    for p in all_particles:
+        all_particles = list(world)
+        # Keep in mind that the entries of this list 
+        # are actually pid_particle_pairs
 
-        world.remove_particle(p[0])
+        for p in all_particles:
+
+            world.remove_particle(p[0])
+            # p[0] is the particle ID, see comment above
+    else:
+
+        for pid in world.get_particle_ids(species):
+
+            world.remove_particle(pid)
 
 
 class DomainEvent(_gfrd.Event):
