@@ -2241,13 +2241,12 @@ class EGFRDSimulator(ParticleSimulatorBase):
         # The method only works for NonInteractionSingles
         assert isinstance(single, NonInteractionSingle)
 
-        singlepos = single.pid_particle_pair[1].position    # TODO get the position as an argument
-
+        single_pos = single.pid_particle_pair[1].position    # TODO get the position as an argument
 
         # Create a new updated shell
         # If this does not work for some reason an exception is risen;
         # then make_new_domain() will make a Multi as a default fallback
-        new_shell = single.create_updated_shell(singlepos)
+        new_shell = single.create_updated_shell(single_pos)
         assert new_shell, 'Method single.create_updated_shell() returned None.'
 
         # Replace shell in domain and geometrycontainer.
