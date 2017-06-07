@@ -14,6 +14,40 @@ static void Model___setitem__(Timpl* model, std::string const& key, std::string 
 }
 
 
+template<typename Tmodel_>
+struct rfr_attr
+{
+   typedef Tmodel_ impl_type;
+   typedef typename boost::remove_reference<typename impl_type::attributes_range>::type range_type;
+   typedef typename boost::range_const_iterator<range_type>::type result_type;
+
+   typedef peer::wrappers::stl_iterator_wrapper<result_type, boost::python::object> wrapper_type;
+
+   static PyObject* create_wrapper(boost::python::back_reference<const impl_type &> backref)
+   {
+      wrapper_type::__class_init__(typeid(result_type).name());
+      return wrapper_type::create(backref.get().attributes(), backref.source());
+   }
+};
+
+template<typename Tmodel_>
+struct rfr_species
+{
+   typedef Tmodel_ impl_type;
+   typedef typename boost::remove_reference<typename impl_type::species_type_range>::type range_type;
+   typedef typename boost::range_const_iterator<range_type>::type result_type;
+
+   typedef peer::wrappers::stl_iterator_wrapper<result_type, boost::python::object> wrapper_type;
+
+   static PyObject* create_wrapper(boost::python::back_reference<const impl_type &> backref)
+   {
+      wrapper_type::__class_init__(typeid(result_type).name());
+      return wrapper_type::create(backref.get().get_species_types(), backref.source());
+   }
+};
+
+
+
 ////// Registering master function
 template<typename Tmodel_>
 inline void register_model_class(char const* name)
@@ -35,14 +69,10 @@ inline void register_model_class(char const* name)
                 &impl_type::operator[], return_value_policy<copy_const_reference>())
         .def("__setitem__", &Model___setitem__<Tmodel_>)
         .add_property("attributes",
-                peer::util::range_from_range<
-                    typename impl_type::attributes_range,
-                    impl_type, &impl_type::attributes>())
+               boost::python::make_function(&rfr_attr<impl_type>::create_wrapper))
         .add_property("species_types",
-                peer::util::range_from_range<
-                    typename impl_type::species_type_range,
-                    impl_type, &impl_type::get_species_types>())
-        ;
+               boost::python::make_function(&rfr_species<impl_type>::create_wrapper))
+       ;
 }
 
 } // namespace binding
