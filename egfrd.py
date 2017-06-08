@@ -382,13 +382,14 @@ class EGFRDSimulator(ParticleSimulatorBase):
                                                 # Make sure that DEFAULT_STEP_SIZE_FACTOR < MULTI_SHELL_FACTOR, or else the 
                                                 # reaction volume sticks out of the multi. 
 
-        self.BD_ONLY_FLAG = False               # Will force the algorithm into Multi-creation, i.e. always to use BD
-                                                # Take care: This is for testing only! Keep this 'False' for normal sims!
-
         self.BD_DT_HARDCORE_MIN = +1e-9         # This is to define a hardcore lower bound for the timestep that will be
                                                 # dynamically determined by the new BD scheme. It will prevent the algorithm
                                                 # to calculate ridiculously small timesteps, but will break detail balance.
                                                 # Take care: This is for testing only! Keep this at a negative value for normal sims!
+	if reset:
+      		self.BD_ONLY_FLAG = False       # Will force the algorithm into Multi-creation, i.e. always to use BD
+                                        	# Take care: This is for testing only! Keep this 'False' for normal sims!
+						# (However, we want to retain user-set values if the __init__ is not a reset)
 
         self.REMOVE_OVERLAPS = True             # Ignore overlaps, only warn when they happen and move particles apart
         self.max_overlap_error = 0.0            # This remembers the largest relative error produced by removing overlaps
@@ -453,7 +454,9 @@ class EGFRDSimulator(ParticleSimulatorBase):
         run before starting the "real experiment".
         """ #~ MW
         self.t = 0.0        
-        self.dt = 0.0        
+        self.dt = 0.0
+	self.t0 = self.t # Saves the starting time before the first event was fired
+			 # Can be reset when loading a state via load_state()
         self.step_counter = 0
         self.single_steps = {EventType.SINGLE_ESCAPE:0,
                              EventType.SINGLE_REACTION:0,
@@ -485,6 +488,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
         self.reaction_events = 0
         self.last_event = None
         self.last_reaction = None
+
+	self.t0 = 0.0
 
         self.is_dirty = True            # simulator needs to be re-initialized
 
@@ -3148,6 +3153,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
         report = '''
 t = %g
+t0 = %g
+sim. time: %g
 \tNonmulti: %g\tMulti: %g
 steps: %d 
 updates: %d
@@ -3162,7 +3169,10 @@ rejected moves:      %d
 overlap remover was: %s
 max. overlap error:  %g
 ''' \
-            % (self.t, self.nonmulti_time, self.multi_time,
+            % (self.t, 
+	       self.t0,
+	       self.t - self.t0,
+	       self.nonmulti_time, self.multi_time,
                self.step_counter, total_steps,
                single_steps,
                (100.0*single_steps) / total_steps,
@@ -3845,16 +3855,26 @@ max. overlap error:  %g
             if(delay > 0.0):
                     sleep(delay)
 
-            self.load_state(filename)
+            self.load_state(filename, reset_t0=False)
+	    # When reloading to continue the simulation, we
+	    # want to make sure that the recorded starting time
+	    # is not overwritten
 
 
-    def load_state(self, filename):
+    def load_state(self, filename, reset_t0=True):
         """ Load a state previously saved via save_state()
             and re-initialize the simulator with the loaded
             data.
             
             Takes the name of the save-file as an argument
             of string-type.
+
+	    If the optional parameter reset_t0 is set to 'True'
+	    the starting time of the scheduler (self.t0) will be
+	    set to the scheduler time saved in the input file.
+	    It is 'True' by default and typically only set to
+	    'False' during temporary interrupts with saving and
+	    reloading of the current state.
         """
         # Run the load function which will return a
         # new world containing the read-in model and
@@ -3875,7 +3895,10 @@ max. overlap error:  %g
         # This is to avoid divergence between the original and the
         # restarted simulation because of the limited floating point 
         # precision of Python
-        self.t = time_info[0]
+        self.t  = time_info[0]
+
+	if reset_t0:
+	        self.t0 = self.t
 
 
     #########################################
