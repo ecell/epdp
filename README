@@ -2,7 +2,7 @@
 :author: Thomas R. Sokolowski, Koichi Takahashi
 
 
-=== 1D-2D-3D eGFRD Prototype ===
+=== eGFRD 2 Prototype ===
 
 originally based on the E-Cell Particle Dynamics Prototype
 
@@ -14,7 +14,7 @@ Copyright (C) 2005-2008 The Molecular Sciences Institute
 About this package
 ========================
 
-This package is tentatively named "1D-2D-3D eGFRD Prototype", and was
+This package is tentatively named "eGFRD 2 Prototype", and was 
 originally forked from RIKEN's E-Cell Particle Dynamics Prototype (EPDP).
 It currently implements the enhanced Greens Function Reaction Dynamics 
 (eGFRD) algorithm working in all dimensions, the Reaction Brownian 
@@ -22,23 +22,24 @@ Dynamics (RBD) simulation algorithm, and another BD simulator based on
 the Rection Volume Method (rvm-BD). Implementation of the original 
 version of GFRD will possibly be added in future. The code was designed
 and implemented with the hope that it will eventually be part of the 
-E-Cell System Version 4 multi-algorithm, multi-space simulation platform.
+"E-Cell System Version 4" multi-algorithm, multi-space simulation 
+platform, or its subsequent versions.
 
 The purpose of this prototype code written in mixed Python and C++ is
 to establish a solid and practical implementation of the algorithms,
 and to extend it into a form that is suitable for large-scale
 biochemical and cell simulations.
 
-The eGFRD algorithm first appeared and be used in a paper by
+The eGFRD algorithm first appeared and was used in a paper by
 Takahashi, Tanase-Nicola and ten Wolde [1]. A detailed introduction 
 to eGFRD, and in particular a description of the extensions to lower 
 dimensions is found in the PhD Thesis of Sokolowski [2]. Review [3]
 also contains a good introduction into the current eGFRD version.
-All new features will be described in detail in a forthcoming paper [4]. 
+Moreover, eGFRD 2 will be described in detail in a forthcoming paper [4]. 
 
 The Reaction Brownian Dynamics algorithm is described in a paper by
 Morrelli and ten Wolde [5]; the Reaction Volume Method and rvm-BD
-are described in detail in the Master's Thesis of Paijmans[6], and 
+are described in detail in the Master's Thesis of Paijmans [6], and 
 also briefly in [2-4].
 
 
@@ -101,13 +102,12 @@ BD simulation method that preserves detailed balance, based on the
 Reaction Volume Method (described in more detail in [6, 2-4]).
 
 All extensions to lower dimensions were assembled together by Bossen 
-and Sokolowski in 2012-2013. In 2013, Sokolowski finally created a
-first working prototype comprising all new features mentioned above.
-In the following years, this prototype was tested and improved, and
-some further new features, such as the option of transiting particles
-between cylinders and planes, were integrated. The prototype code
-then was used to simulate an idealized model of Pom1 gradient formation,
-as described in [4].
+and Sokolowski in 2012-2013. In 2013, Sokolowski created a first working 
+prototype comprising all new features mentioned above. In the following 
+years, this prototype was tested and improved, and some further new features, 
+such as the option of transiting particles between cylinders and planes, 
+were integrated. The prototype code then was used to simulate an idealized 
+model of Pom1 gradient formation, as described in [4].
 
 
 Plans
