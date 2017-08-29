@@ -630,7 +630,17 @@ class EGFRDSimulator(ParticleSimulatorBase):
         if event.time == numpy.inf:
             self.t, self.last_event = self.MAX_TIME_STEP, event
         else:
-            self.t, self.last_event = event.time, event               
+            self.t, self.last_event = event.time, event
+
+        # Retained from earlier, but currently switched off
+        #if __debug__:
+        #    domain_counts = self.count_domains()
+        #    log.info('\n\n%d: t=%s dt=%e (next_time=%s)\t' %
+        #             (self.step_counter, self.t,
+        #             self.dt, self.scheduler.top[1].time if self.scheduler.size > 0 else 0) + 
+        #             'Singles: %d, Pairs: %d, Multis: %d\n' % domain_counts + 
+        #             'event=#%d reactions=%d rejectedmoves=%d' %
+        #             (id, self.reaction_events, self.rejected_moves))
 
         # 2. Use the correct method to process (fire) the shell that produced the event
         #
