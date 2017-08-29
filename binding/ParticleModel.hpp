@@ -46,3 +46,4 @@ inline void register_particle_model_class(char const* name)
 } // namespace binding
 
 #endif /* BINDING_MODEL_HPP */
+

@@ -17,7 +17,7 @@ INF = numpy.inf
 ZEROPOS = numpy.array([0., 0., 0.])
 NOWHERE = numpy.array((INF, INF, INF))
 
-SAFETY = 1.0 + 1e-2     # Lengths of shell in construction are divided by this safety factor 
+SAFETY = 1.0 + 3e-2     # Lengths of shell in construction are divided by this safety factor 
                         # to make sure that they do not overlap due to numerical rounding errors
 
 # Tolerance used for float comparison functions. Oversimplifying: two floats a 
@@ -208,7 +208,7 @@ def random_unit_vector_s():
 
 def random_unit_vector():
     v = [myrandom.uniform(-1,1), myrandom.uniform(-1,1), myrandom.uniform(-1,1)]
-    return _gfrd.normalize(v, 1)
+    return _gfrd.normalize(v, 1)   
 
 def random_vector(r):
     # v, s = [0.0, 0.0, 0.0], 2.0
@@ -239,6 +239,15 @@ def random_vector2D(r):
     norm = numpy.linalg.norm(v)
     return v * (r / norm)
 
+def random_sign():
+    # NOTE Do not use the numpy.sign function,
+    # because it returns 0 for 0 input!
+    r = myrandom.uniform(-1,1)
+    if r<0:
+      return -1
+    else:
+      return 1
+    
 def length(a):
     return _gfrd.length(a)
 

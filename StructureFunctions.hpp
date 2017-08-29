@@ -366,8 +366,8 @@ get_pos_sid_pair( CylindricalSurface<Ttraits_>          const& origin_structure,
     length_type         proj_dist( target_structure.project_point(old_pos).second.second );
         // the distance of the projection of old_pos on target_structure to the boundary of target_structure
     
-    // Note that this function also correctly handles the pair reaction between a particle on a disk
-    // and a particle on a cylinder. Since we assume that the product will end up on the disk, new_pos
+    // Note that this function also correctly handles the pair reaction between a particle on a cylinder
+    // and a particle on a disk. Since we assume that the product will end up on the disk, new_pos
     // (which is the projection of the center of mass of both particles on the disk) will be the
     // correct product position.
     if(proj_dist < 0){ // if projection of old_pos is in structure
@@ -394,12 +394,18 @@ get_pos_sid_pair( CylindricalSurface<Ttraits_>          const& origin_structure,
     typedef typename Ttraits_::length_type              length_type;
 
     structure_id_type   new_id(    target_structure.id() );
-    position_type       new_pos(   target_structure.project_point(old_pos).first );
+    position_type       proj_pos(  target_structure.project_point(old_pos).first );
     length_type         proj_dist( target_structure.project_point(old_pos).second.second );
         // the distance of the projection of old_pos on target_structure to the boundary of target_structure
         
     if(proj_dist < 0){ // if projection of old_pos is in structure
      
+          // The old position projected on the plane is not yet the correct new position!
+          // We still have to displace the particle by the cylinder (!) radius at a random angle
+          // The latter is generated in the same way as for regular cylinder unbinding
+          position_type displacement( origin_structure.surface_dissociation_vector(rng, offset, reaction_length) );
+          position_type new_pos( add(proj_pos, displacement) );
+          
           return std::make_pair( new_pos, new_id );
     }
     else // structure transition not allowed
@@ -407,12 +413,7 @@ get_pos_sid_pair( CylindricalSurface<Ttraits_>          const& origin_structure,
       throw illegal_propagation_attempt("Illegal original particle position for structure transition (Cylinder->Plane).");
     
     // TODO Does that also handle correctly the interaction of a rod particle with a particle located on the plane?
-    // (whether this is relevant for now is the other question...)
-    
-//     /*** COMBINATION NOT SUPPORTED ***/
-//     throw illegal_propagation_attempt("Structure transition between combination of origin structure and target structure not supported (Cylinder->Plane).");
-//     
-//     return std::make_pair(position_type(), structure_id_type());
+    // (whether this is relevant for now is the other question...)    
 };
 
 /***************************/
@@ -592,10 +593,25 @@ get_pos_sid_pair( PlanarSurface<Ttraits_>               const& origin_structure,
 {
     typedef typename Ttraits_::structure_id_type        structure_id_type;
     typedef typename Ttraits_::position_type            position_type;
-    //typedef typename Ttraits_::length_type              length_type;
+    typedef typename Ttraits_::length_type              length_type;
+    
+    // This is treated in the same way as the case CuboidalRegion->Cylinder
+    structure_id_type   new_id(    target_structure.id() );
+    position_type       new_pos(   target_structure.project_point(old_pos).first );
+    length_type         proj_dist( target_structure.project_point(old_pos).second.second );
+        // the distance of the projection of old_pos on target_structure to target_structure
+    
+    if(proj_dist < 0){ // if projection of old_pos is in structure
+     
+          return std::make_pair( new_pos, new_id );
+    }
+    else // structure transition not allowed
+      
+      throw illegal_propagation_attempt("Illegal original particle position for structure transition (Plane->Cylinder).");
 
-    /*** COMBINATION NOT SUPPORTED ***/
+    /*** COMBINATION NOT SUPPORTED 
     throw illegal_propagation_attempt("Structure transition between combination of origin structure and target structure not supported (Plane->Cylinder).");
+    ***/            
     
     return std::make_pair(position_type(), structure_id_type());
 };
@@ -619,10 +635,6 @@ get_pos_sid_pair( PlanarSurface<Ttraits_>               const& origin_structure,
     length_type         proj_dist( target_structure.project_point(old_pos).second.second );
         // the distance of the projection of old_pos on target_structure to the boundary of target_structure
     
-    // Note that this function also correctly handles the pair reaction between a particle on a disk
-    // and a particle on a cylinder. Since we assume that the product will end up on the disk, new_pos
-    // (which is the projection of the center of mass of both particles on the disk) will be the
-    // correct product position.
     if(proj_dist < 0){ // if projection of old_pos is in structure
                        // Note: Disk.project_point also returns a neg. value if the position is in one plane with the disk
      
@@ -630,7 +642,7 @@ get_pos_sid_pair( PlanarSurface<Ttraits_>               const& origin_structure,
     }
     else // structure transition not allowed
       
-      throw illegal_propagation_attempt("Illegal original particle position for structure transition (Plane->Disk).");        
+      throw illegal_propagation_attempt("Illegal original particle position for structure transition (Plane->Disk).");
     
     return std::make_pair(position_type(), structure_id_type());
 };

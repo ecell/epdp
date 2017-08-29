@@ -21,6 +21,12 @@ inline boost::python::objects::class_base register_disk_surface_class(char const
                        typename impl_type::shape_type>())
         .add_property("shape",
             make_function((typename impl_type::shape_type const&(impl_type::*)()const)&impl_type::shape, return_value_policy<return_by_value>()))
+        .def("treat_as_barrier", &impl_type::treat_as_barrier)
+        .def("treat_as_sink",    &impl_type::treat_as_sink)
+        .def("allow_radial_dissociation",  &impl_type::allow_radial_dissociation)
+        .def("forbid_radial_dissociation", &impl_type::forbid_radial_dissociation)
+        .def("is_barrier",  &impl_type::is_barrier,  return_value_policy<return_by_value>())
+        .def("dissociates_radially", &impl_type::dissociates_radially, return_value_policy<return_by_value>())
         ;
 }
 

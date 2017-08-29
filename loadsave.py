@@ -302,6 +302,8 @@ def save_state(simulator, filename):
 
             cp.set(sectionname, 'unit_z', list(structure.shape.unit_z))
             cp.set(sectionname, 'radius', structure.shape.radius)
+            cp.set(sectionname, 'dissociates_radially', int(structure.dissociates_radially()))
+            # we store boolean flags as int, which facilitates reading them in later
 
         elif isinstance(structure, PlanarSurface):
 
@@ -767,13 +769,18 @@ def load_state(filename):
             
             unit_z      = vectorize(cp.get(sectionname, 'unit_z'))            
             radius      = cp.getfloat(sectionname, 'radius')
+            diss_rad    = cp.getint(sectionname, 'dissociates_radially')
 
             structure_type = structure_types_dict[st_id]            
 
             # Create the structure
             structure = model.create_disk_surface(structure_type.id, name, position, radius, \
                                                   unit_z, parent_structure.id)
-
+                                                  
+            # Check whether it does not dissociate radially (standard setting by constructor)
+            if not(diss_rad):
+                structure.forbid_radial_dissociation()
+                
         elif structure_object_type == PlanarSurface:
 
             unit_x      = vectorize(cp.get(sectionname, 'unit_x'))

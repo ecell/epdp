@@ -31,12 +31,13 @@ __all__ = [
     'NonInteractionSingle',
     'InteractionSingle',
     'CylindricalSurfaceInteraction',
-    'CylindricalSurfaceCapInteraction',
-    'CylindricalSurfacePlanarSurfaceInteractionSingle',
+    'CylindricalSurfaceDiskInteraction',
+    'CylindricalSurfacePlanarSurfaceInteraction',
     'CylindricalSurfacePlanarSurfaceIntermediateSingle',
     'CylindricalSurfaceSink',
     'PlanarSurfaceInteraction',
     'PlanarSurfaceDiskSurfaceInteraction',
+    'PlanarSurfaceCylindricalSurfaceInteraction',
     'TransitionSingle',
     'PlanarSurfaceTransitionSingle',
     ]
@@ -969,9 +970,9 @@ class CylindricalSurfaceInteraction(InteractionSingle):
                'radius = %s, half_length = %s' %
                 (self.shell.shape.radius, self.shell.shape.half_length))
 
-class PlanarSurfaceDiskSurfaceInteraction(CylindricalSurfaceInteraction):
-    """1 Particle on a PlanarSurface close to a DiskSurface, 
-       inside a cylindrical shell that surrounds the DiskSurface.
+class PlanarSurfaceCylindricalSurfaceInteraction(CylindricalSurfaceInteraction):
+    """1 Particle on a PlanarSurface close to a CylindricalSurface, 
+       inside a cylindrical shell that surrounds the cap of the CylindricalSurface.
 
         * Particle coordinates inside shell: r, theta, z.
         * Domains: composite r-theta, cartesian z.
@@ -979,17 +980,20 @@ class PlanarSurfaceDiskSurfaceInteraction(CylindricalSurfaceInteraction):
         * Selected randomly when drawing displacement vector: none.
 
     """
+    ### TODO: Use self.testShell.daughter_disk to also allow placement of the product on a daughter disk
+    ###       of the cylinder, akin to the inverse processs in CylindricalSurfacePlanarSurfaceInteraction
     def __init__(self, domain_id, shell_id, testShell, reactionrules, interactionrules):
 
         # This domain is basically equivalent to CylindricalSurfaceInteraction. It uses
         # the same Green's function for binding, but the particle's z-coordinate does not
         # change here. Thus we have to modify draw_new_position() accordingly.
-        assert isinstance(testShell, PlanarSurfaceDiskSurfaceInteractiontestShell)
+        assert isinstance(testShell, PlanarSurfaceCylindricalSurfaceInteractiontestShell) \
+            or isinstance(testShell, PlanarSurfaceDiskSurfaceInteractiontestShell) # the latter is a special case of this one
         # Initialize the parent class. This should be fine since the test shell also has
         # CylindricalSurfaceInteractiontestShell as a parent class.
         CylindricalSurfaceInteraction.__init__(self, domain_id, shell_id, testShell, reactionrules, interactionrules)
 
-        self.product_structure = self.target_structure # DEPRECATED rethink this
+        self.product_structure = self.target_structure # DEPRECATED do we actually need this?
 
     def draw_escape_time_tuple(self):
         # This draws the time for escape in z-direction; since the particle in this domain
@@ -1041,10 +1045,23 @@ class PlanarSurfaceDiskSurfaceInteraction(CylindricalSurfaceInteraction):
         return newpos, structure_id
 
     def __str__(self):
-        return ('PlanarSurfaceDiskSurfaceInteraction' + Single.__str__(self) + \
+        return ('PlanarSurfaceCylindricalSurfaceInteraction' + Single.__str__(self) + \
                'radius = %s, half_length = %s' %
                 (self.shell.shape.radius, self.shell.shape.half_length))
 
+class PlanarSurfaceDiskSurfaceInteraction(PlanarSurfaceCylindricalSurfaceInteraction):
+      # This is just a wrapper around / special case of PlanarSurfaceCylindricalSurfaceInteraction,
+      # meaning that we treat the binding to a disk as a special case of binding to a cylinder      
+      def __init__(self, domain_id, shell_id, testShell, reactionrules, interactionrules):
+        PlanarSurfaceCylindricalSurfaceInteraction.__init__(self, domain_id, shell_id, testShell, reactionrules, interactionrules)
+        
+        isinstance(testShell, PlanarSurfaceDiskSurfaceInteractiontestShell)
+        # TODO Maybe some extra checks are still needed here
+  
+      def __str__(self):
+        return ('PlanarSurfaceDiskSurfaceInteraction' + Single.__str__(self) + \
+               'radius = %s, half_length = %s' %
+                (self.shell.shape.radius, self.shell.shape.half_length))                
 
 class CylindricalSurfaceSink(InteractionSingle):
     """1 Particle inside a (Cylindrical) shell on a CylindricalSurface.
@@ -1139,10 +1156,11 @@ class CylindricalSurfaceSink(InteractionSingle):
         return 'CylindricalSurfaceSink ' + Single.__str__(self)
 
 
-class CylindricalSurfaceCapInteraction(InteractionSingle):
+class CylindricalSurfaceDiskInteraction(InteractionSingle):
     """1 Particle inside a (Cylindrical) shell on a CylindricalSurface
-       limited by a cap. The cap is a reactive surface to the particle
-       and defines the exit point from the cylinder.
+       interacting with a disk (mostly a cap limiting the cylinder).
+       The disk is a reactive surface to the particle and defines 
+       the exit point from the cylinder.
 
         * Particle coordinates on surface: z.
         * Domain: cartesian z.
@@ -1151,10 +1169,10 @@ class CylindricalSurfaceCapInteraction(InteractionSingle):
     """
     def __init__(self, domain_id, shell_id, testShell, reactionrules, interactionrules):
 
-        assert isinstance(testShell, CylindricalSurfaceCapInteractiontestShell)
+        assert isinstance(testShell, CylindricalSurfaceDiskInteractiontestShell)
         InteractionSingle.__init__(self, domain_id, shell_id, testShell, reactionrules, interactionrules)
 
-        self.zcap = self.testShell.get_referencepoint()
+        self.zdisk = self.testShell.get_referencepoint()
 
     def getv(self):
         return self.pid_particle_pair[1].v
@@ -1162,17 +1180,17 @@ class CylindricalSurfaceCapInteraction(InteractionSingle):
 
     def get_inner_dz_left(self):
         # This is the distance that the particle can travel from its initial position
-        # towards the reactive cap.
-        # For the cap it is the center of particle that "reacts" with it.
+        # towards the reactive disk.
+        # For the disk it is the center of particle that "reacts" with it.
         # The testShell is taking this into account at construction to ensure that
-        # there is enough space around the cap in case of reaction.
-        # Note that the reference point of the shell is the cap position.
+        # there is enough space around the disk in case of reaction.
+        # Note that the reference point of the shell is the disk position.
         return self.testShell.particle_surface_distance
 
     def get_inner_dz_right(self):
         # This is the distance that the particle can travel from its initial position
-        # towards the absorbing cylinder boundary opposite of the cap.
-        # Note that the reference point of the shell is the cap position,
+        # towards the absorbing cylinder boundary opposite of the disk.
+        # Note that the reference point of the shell is the disk position,
         # therefore we have to subtract particle_surface_distance here.
         to_abs_bnd_distance = self.testShell.dz_right \
                               - self.testShell.particle_surface_distance \
@@ -1190,18 +1208,29 @@ class CylindricalSurfaceCapInteraction(InteractionSingle):
 
     def iv_greens_function(self):
 
-        # zcap = position of the cap relative to the initial particle position.
-        # zabs = position of the absorbing cylinder boundary opposite of the cap
-        dz_cap = -self.get_inner_dz_left()
-        dz_abs = self.get_inner_dz_right()
+        # dz_disk = position of the disk relative to the initial particle position.
+        # dz_abs  = position of the absorbing cylinder boundary opposite of the disk
+        dz_disk = -self.get_inner_dz_left()
+        dz_abs  = self.get_inner_dz_right()
 
         if( numpy.isinf(self.interaction_ktot) ):
-            return GreensFunction1DAbsAbs(self.D, self.v, 0.0, dz_cap, dz_abs)
+            return GreensFunction1DAbsAbs(self.D, self.v, 0.0, dz_disk, dz_abs)
         else:
-            return GreensFunction1DRadAbs(self.D, self.v, self.interaction_ktot, 0.0, dz_cap, dz_abs)
+            return GreensFunction1DRadAbs(self.D, self.v, self.interaction_ktot, 0.0, dz_disk, dz_abs)
 
     def draw_new_position(self, dt, event_type):
-
+      
+        # A wrapper method; we need to do this because some daughter classes still
+        # post-process the position generated by self.draw_new_position_on_disk(..)
+        return self.draw_new_position_on_disk(dt, event_type)
+        
+    def draw_new_position_on_disk(self, dt, event_type):
+        
+        # dz_disk = position of the disk relative to the initial particle position.
+        # dz_abs  = position of the absorbing cylinder boundary opposite of the disk
+        dz_disk = -self.get_inner_dz_left()
+        dz_abs  = self.get_inner_dz_right()
+        
         oldpos = self.pid_particle_pair[1].position
 
         if self.D == 0 or \
@@ -1211,14 +1240,14 @@ class CylindricalSurfaceCapInteraction(InteractionSingle):
             gf = self.iv_greens_function()
 
             if event_type == EventType.IV_INTERACTION:
-                # The particle left the domain through the reactive boundary, i.e. bound to the cap.
-                dz = -self.get_inner_dz_left()
+                # The particle left the domain through the reactive boundary, i.e. bound to the disk.
+                dz = dz_disk
                 structure_id = self.target_structure.id
 
             elif event_type == EventType.IV_ESCAPE:
                 # The particle left the domain through the absorbing boundary,
-                # i.e. opposite of the cap.
-                dz = self.get_inner_dz_right()
+                # i.e. opposite of the disk.
+                dz = dz_abs
                 structure_id = self.origin_structure.id
 
             else:
@@ -1226,12 +1255,12 @@ class CylindricalSurfaceCapInteraction(InteractionSingle):
                 # as a consequence it stays on the origin structure.
                 # NOTE: draw_r_wrapper(): attention, order of arguments inverted!
                 # Last two arguments are a, sigma (in this order!)
-                dz = draw_r_wrapper(gf, dt, self.get_inner_dz_right(), -self.get_inner_dz_left())
+                dz = draw_r_wrapper(gf, dt, dz_abs, dz_disk)
                 structure_id = self.origin_structure.id
 
             # Add displacement to particle.position.
             # The direction of the shell is leading (not direction of the structure)
-            # The convention is that shell.shape.unit_z points from the cap towards
+            # The convention is that shell.shape.unit_z points from the disk towards
             # the particle's initial position.
             dz_vector = self.shell.shape.unit_z * dz
             newpos = oldpos + dz_vector
@@ -1239,9 +1268,9 @@ class CylindricalSurfaceCapInteraction(InteractionSingle):
         return newpos, structure_id
 
     def __str__(self):
-        return 'CylindricalSurfaceCapInteraction ' + Single.__str__(self)
+        return 'CylindricalSurfaceDiskInteraction ' + Single.__str__(self)
 
-class CylindricalSurfacePlanarSurfaceInteractionSingle(CylindricalSurfaceCapInteraction):
+class CylindricalSurfacePlanarSurfaceInteraction(CylindricalSurfaceDiskInteraction):
     """1 Particle inside a (Cylindrical) shell on a CylindricalSurface
        limited by a plane. The plane is a reactive surface to the particle
        and its intersection with the cylinder axis defines the exit point 
@@ -1253,15 +1282,48 @@ class CylindricalSurfacePlanarSurfaceInteractionSingle(CylindricalSurfaceCapInte
     """
     def __init__(self, domain_id, shell_id, testShell, reactionrules, interactionrules):
 
-        assert isinstance(testShell, CylindricalSurfacePlanarSurfaceInteractionSingletestShell)
-        CylindricalSurfaceCapInteraction.__init__(self, domain_id, shell_id, testShell, reactionrules, interactionrules)
-        # For now this just does the same as the cap interaction, but the test shells
+        assert isinstance(testShell, CylindricalSurfacePlanarSurfaceInteractiontestShell)
+        CylindricalSurfaceDiskInteraction.__init__(self, domain_id, shell_id, testShell, reactionrules, interactionrules)
+        # For now this just does the same as the disk interaction, but the test shells
         # slightly differ and we like to keep things apart and organized.
 
+    def draw_new_position(self, dt, event_type):
+      
+        # Method self.draw_new_position_on_disk(..) is inherited from the parent class
+        # Here we decide whether we use the position generated by this method, or still
+        # post process it, based on whether the target plane has a daughter disk or not
+        # (for the IV_INTERACTION event, when the particle actually undergoes a successful
+        #  interaction with the plane, we post-process the position by still 
+        #  adding a random unbinding vector)
+        try:
+            daughter_disk = self.testShell.daughter_disk
+        except AttributeError:
+            raise ShellmakingError('Could not make CylindricalSurfacePlanarSurfaceInteraction, %s' % str(e))
+          
+        if daughter_disk == None and event_type == EventType.IV_INTERACTION:
+            
+          # Get the position in the prolongation of the cylinder axis,
+          # which we still have to post-process
+          axis_pos, structure_id = self.draw_new_position_on_disk(dt, event_type)
+          assert(structure_id == self.target_structure.id)
+          
+          particle_radius = self.pid_particle_pair[1].radius
+          
+          vector_length = (self.origin_structure.shape.radius + particle_radius) * MINIMAL_SEPARATION_FACTOR
+          unit_vector3D = random_unit_vector()
+          unit_vector2D = normalize(unit_vector3D - \
+                          (self.origin_structure.shape.unit_z * numpy.dot(unit_vector3D, self.origin_structure.shape.unit_z)))
+          
+          return axis_pos + vector_length * unit_vector2D, structure_id
+        
+        else:            
+          
+          return self.draw_new_position_on_disk(dt, event_type)          
+        
     def __str__(self):
         return 'CylindricalSurfacePlanarSurfaceInteraction ' + Single.__str__(self)
 
-class CylindricalSurfacePlanarSurfaceIntermediateSingle(CylindricalSurfaceCapInteraction):
+class CylindricalSurfacePlanarSurfaceIntermediateSingle(CylindricalSurfaceDiskInteraction):
     """1 Particle on a DiskSurface at the interface of a PlanarSurface and CylindricalSurface.
 
         * Particle coordinates on surface: z.
@@ -1272,7 +1334,7 @@ class CylindricalSurfacePlanarSurfaceIntermediateSingle(CylindricalSurfaceCapInt
     def __init__(self, domain_id, shell_id, testShell, reactionrules, interactionrules):
 
         assert isinstance(testShell, CylindricalSurfacePlanarSurfaceIntermediateSingletestShell)
-        CylindricalSurfaceCapInteraction.__init__(self, domain_id, shell_id, testShell, reactionrules, interactionrules)
+        CylindricalSurfaceDiskInteraction.__init__(self, domain_id, shell_id, testShell, reactionrules, interactionrules)
 
     def getv(self):
         

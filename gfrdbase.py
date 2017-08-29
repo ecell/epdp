@@ -33,6 +33,7 @@ __all__ = [
     'p_free',
     'throw_in_particles',
     'place_particle',
+    'remove_all_particles',
     'NoSpace',
     'create_world',
     'create_box',
@@ -192,7 +193,7 @@ def get_closest_structure(world, pos, current_struct_id, ignores=[], structure_c
                   CuboidalRegion, PlanarSurface, CylindricalSurface, DiskSurface, SphericalSurface
     """
     sorted_close_structures = \
-            get_neighbor_structures(world, pos, current_struct_id, ignores, structure_class)
+            get_neighbor_structures(world, pos, current_struct_id, ignores, structure_class)    
 
     if sorted_close_structures != []:
         return sorted_close_structures[0]
@@ -710,8 +711,8 @@ def place_particle(world, sid, position):
         if not (surface and 
                 distance < TOLERANCE*radius and 
                 surface.id in structure_ids):
-            raise RuntimeError('  Placing particle failed: %s %s. Position should be in structure of structure_type \"%s\".' %
-                                  (sid, position, world.get_structure_type(species.structure_type_id)['name']) )
+            raise RuntimeError('  Placing particle failed: %s %s. Position should be in structure of structure_type \"%s\" (distance to %s = %s).' %
+                                  (sid, position, world.get_structure_type(species.structure_type_id)['name'], surface, distance) )
         else:
             structure_id = surface.id
 
@@ -729,6 +730,25 @@ def place_particle(world, sid, position):
         log.info('  Particle info: (%s, %s)' % (particle[0], particle[1]) )
 
     return particle
+
+
+def remove_all_particles(world, species=None):
+
+    if species == None:
+
+        all_particles = list(world)
+        # Keep in mind that the entries of this list 
+        # are actually pid_particle_pairs
+
+        for p in all_particles:
+
+            world.remove_particle(p[0])
+            # p[0] is the particle ID, see comment above
+    else:
+
+        for pid in world.get_particle_ids(species):
+
+            world.remove_particle(pid)
 
 
 class DomainEvent(_gfrd.Event):

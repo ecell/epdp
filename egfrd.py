@@ -56,9 +56,10 @@ from shells import (
     DiskSurfaceSingletestShell,
     PlanarSurfaceInteractiontestShell,
     PlanarSurfaceDiskSurfaceInteractiontestShell,
+    PlanarSurfaceCylindricalSurfaceInteractiontestShell,
     CylindricalSurfaceInteractiontestShell,
-    CylindricalSurfaceCapInteractiontestShell,
-    CylindricalSurfacePlanarSurfaceInteractionSingletestShell,
+    CylindricalSurfaceDiskInteractiontestShell,
+    CylindricalSurfacePlanarSurfaceInteractiontestShell,
     CylindricalSurfacePlanarSurfaceIntermediateSingletestShell,
     CylindricalSurfacePlanarSurfaceInterfaceSingletestShell,
     CylindricalSurfaceSinktestShell,
@@ -76,83 +77,189 @@ log = logging.getLogger('ecell')
 
 import os
 
+
+# Hashtable that selectively decides which domains can be constructed,
+# irrespective of all other circumstances; this can be used, e.g., to
+# switch off the construction of certain domains for testing, and to
+# force the system to use Brownian Dynamics (make a Multi) in certain
+# situations / circumstances instead.
+# The "filter" map is based on the test shells, because certain special
+# test shells result in the same domain type later in spite of different
+# initial circumstances.
+# Note that for the Singles setting the respective value to "False" will
+# only block their "upscaling" in update_single(), because by convention
+# we always allow for the creation of "zero-Singles".
+# Use this feature with care, because switching off the formation of
+# domains with central importance, such as the SphericalSingle, can lead
+# to substantial performance loss. This is mainly to be used for testing.
+allowed_to_make = {
+        # Singles
+        SphericalSingletestShell:                                       True,
+        PlanarSurfaceSingletestShell:                                   True,
+        CylindricalSurfaceSingletestShell:                              True,
+        DiskSurfaceSingletestShell:                                     True,
+        # (Special singles)
+        CylindricalSurfacePlanarSurfaceInterfaceSingletestShell:        True,
+        # Interactions
+        # (Bulk -> 2D and 1D)
+        PlanarSurfaceInteractiontestShell:                              True,
+        CylindricalSurfaceInteractiontestShell:                         True,
+        # (Among 2D and 1D structures)
+        PlanarSurfaceCylindricalSurfaceInteractiontestShell:            True,
+        PlanarSurfaceDiskSurfaceInteractiontestShell:                   True,
+        CylindricalSurfacePlanarSurfaceInteractiontestShell:            True,
+        CylindricalSurfacePlanarSurfaceIntermediateSingletestShell:     True,        
+        CylindricalSurfaceDiskInteractiontestShell:                     True,
+        CylindricalSurfaceSinktestShell:                                True,
+        # Transitions
+        PlanarSurfaceTransitionSingletestShell:                         True,
+        # Pairs
+        SphericalPairtestShell:                                         True,
+        PlanarSurfacePairtestShell:                                     True,
+        CylindricalSurfacePairtestShell:                                True,
+        PlanarSurfaceTransitionPairtestShell:                           True,
+        MixedPair2D3DtestShell:                                         True,
+        MixedPair2DStatictestShell:                                     True,
+        MixedPair1DStatictestShell:                                     True
+}        
+
+# A helper function to unify/facilitate checking whether construction of Pairs 
+# is activated, used further below
+def pair_testShell_if_allowed(pair_testShell_class, singleA, singleB, geometrycontainer, domains):
+
+    if allowed_to_make[pair_testShell_class]:
+        return pair_testShell_class(singleA,  singleB, geometrycontainer, domains)
+    else:
+        raise testShellError('Creation of test shell type deactivated for %s' % pair_testShell_class)
+      
+        
+# Now in the following we define the "gearbox" functions that figure out
+# which domain type should be constructed
+
 ### Singles
 def create_default_single(domain_id, shell_id, pid_particle_pair, structure, reaction_rules, geometrycontainer, domains):
+    # Bulk single
     if isinstance(structure, CuboidalRegion):
-        # first make the test shell
+        # First make the test shell
         testSingle = SphericalSingletestShell(pid_particle_pair, structure, geometrycontainer, domains)
         return SphericalSingle          (domain_id, shell_id, testSingle, reaction_rules)
+    # Plane single
     elif isinstance(structure, PlanarSurface):
-        # first make the test shell
+        # First make the test shell
         testSingle = PlanarSurfaceSingletestShell(pid_particle_pair, structure, geometrycontainer, domains)
         return PlanarSurfaceSingle      (domain_id, shell_id, testSingle, reaction_rules)
+    # Cylinder single
     elif isinstance(structure, CylindricalSurface):
-        # first make the test shell
+        # First make the test shell
         testSingle = CylindricalSurfaceSingletestShell(pid_particle_pair, structure, geometrycontainer, domains)
         return CylindricalSurfaceSingle (domain_id, shell_id, testSingle, reaction_rules)
+    # Disk single
     elif isinstance(structure, DiskSurface):
-        # first make the test shell
+        # Here we first want to try a special case, in which the particle is at the "interface" btw. cylinder and plane
+        # The corresponding test shell is akin to the standard DiskSurfaceSingle, but has an extended ignore list
         try:
-            testSingle = CylindricalSurfacePlanarSurfaceInterfaceSingletestShell(pid_particle_pair, structure, geometrycontainer, domains)
+            if allowed_to_make[CylindricalSurfacePlanarSurfaceInterfaceSingletestShell]:
+                testSingle = CylindricalSurfacePlanarSurfaceInterfaceSingletestShell (pid_particle_pair, structure, geometrycontainer, domains)
+            else:
+                raise testShellError('Creation of test shell type deactivated for %s' % CylindricalSurfacePlanarSurfaceInterfaceSingletestShell)
         except testShellError as e:
             if __debug__:
                 log.warn('Could not make CylindricalSurfacePlanarSurfaceInterfaceSingletestShell, %s' % str(e))
-            # making the default testShell should never fail
-            testSingle = DiskSurfaceSingletestShell(pid_particle_pair, structure, geometrycontainer, domains)
+            # Making the default testShell should never fail
+            testSingle = DiskSurfaceSingletestShell (pid_particle_pair, structure, geometrycontainer, domains)
 
-        return DiskSurfaceSingle (domain_id, shell_id, testSingle, reaction_rules)
+        return DiskSurfaceSingle        (domain_id, shell_id, testSingle, reaction_rules)
 
 ### Interactions
 def try_default_testinteraction(single, target_structure, geometrycontainer, domains):
+  
+    # [Bulk -> Plane] or [Bulk -> Cylinder]
     if isinstance(single.structure, CuboidalRegion):
-        if isinstance(target_structure, PlanarSurface):
-            return PlanarSurfaceInteractiontestShell(single, target_structure, geometrycontainer, domains)
-        elif isinstance(target_structure, CylindricalSurface):
-            return CylindricalSurfaceInteractiontestShell(single, target_structure, geometrycontainer, domains)
+        # [Bulk -> Plane]
+        if isinstance(target_structure, PlanarSurface) and allowed_to_make[PlanarSurfaceInteractiontestShell]:
+            return PlanarSurfaceInteractiontestShell      (single, target_structure, geometrycontainer, domains)
+        # [Bulk -> Cylinder]
+        elif isinstance(target_structure, CylindricalSurface) and allowed_to_make[CylindricalSurfaceInteractiontestShell]:
+            return CylindricalSurfaceInteractiontestShell (single, target_structure, geometrycontainer, domains)
         else:
-            raise testShellError('(Interaction). Combination of (3D particle, target_structure) is not supported')
+            raise testShellError('(Interaction). Combination of (3D particle, target_structure) is not supported or deactivated')
+    
+    # [Plane -> Cylinder] or [Plane -> Disk]
     elif isinstance(single.structure, PlanarSurface):
-        if isinstance(target_structure, CylindricalSurface):
-            raise testShellError('(Interaction). Combination of (2D particle, target_structure) is not supported')
-        elif isinstance(target_structure, DiskSurface):
+        # [Plane -> Cylinder]
+        if isinstance(target_structure, CylindricalSurface) and allowed_to_make[PlanarSurfaceCylindricalSurfaceInteractiontestShell]: ### TESTING ###
+            return PlanarSurfaceCylindricalSurfaceInteractiontestShell (single, target_structure, geometrycontainer, domains)
+        # [Plane -> Disk]
+        elif isinstance(target_structure, DiskSurface) \
+             and (  allowed_to_make[CylindricalSurfacePlanarSurfaceIntermediateSingletestShell] \
+                 or allowed_to_make[PlanarSurfaceDiskSurfaceInteractiontestShell]               ):
             # Here we have 2 possibilities; first we try the less probable one (special conditions apply that are checked
             # upon test shell construction), then the more common one.
             try:
-                return CylindricalSurfacePlanarSurfaceIntermediateSingletestShell (single, target_structure, geometrycontainer, domains)
+                if allowed_to_make[CylindricalSurfacePlanarSurfaceIntermediateSingletestShell]:
+                    return CylindricalSurfacePlanarSurfaceIntermediateSingletestShell (single, target_structure, geometrycontainer, domains)                    
+                else:
+                    raise testShellError('Creation of test shell type deactivated for %s' % CylindricalSurfacePlanarSurfaceIntermediateSingletestShell)
             except testShellError as e:
                 if __debug__:
-                    log.warn('Could not make CylindricalSurfacePlanarSurfaceIntermediateSingletestShell, %s; now trying PlanarSurfaceDiskSurfaceInteractiontestShell.' % str(e))
-                return PlanarSurfaceDiskSurfaceInteractiontestShell (single, target_structure, geometrycontainer, domains)
-                # if both shells do not work in this situation the second try will result in raising another shellmaking exception       
+                    log.warn('Could not make CylindricalSurfacePlanarSurfaceIntermediateSingletestShell, %s.' % str(e))
+            # OK, we could not make the special domain, but we still want to try the more standard one instead
+            # If both shells do not work in this situation the second try will result in raising another shellmaking exception
+            if allowed_to_make[PlanarSurfaceDiskSurfaceInteractiontestShell]:
+                log.info('Now trying PlanarSurfaceDiskSurfaceInteractiontestShell.')
+                return PlanarSurfaceDiskSurfaceInteractiontestShell    (single, target_structure, geometrycontainer, domains)                
+            else:
+                raise testShellError('Creation of test shell type deactivated for %s' % PlanarSurfaceDiskSurfaceInteractiontestShell)
+        # Unsupported cases
         else:
-            raise testShellError('(Interaction). Combination of (2D particle, target_structure) is not supported')
+            raise testShellError('(Interaction). Combination of (2D particle, target_structure) is not supported or deactivated')
+          
+    # [Cylinder -> Disk] or [Cylinder -> Plane]
     elif isinstance(single.structure, CylindricalSurface):
-        if isinstance(target_structure, DiskSurface):
-            return CylindricalSurfaceCapInteractiontestShell (single, target_structure, geometrycontainer, domains)
-        elif isinstance(target_structure, CylindricalSurface):
-            return CylindricalSurfaceSinktestShell (single, target_structure, geometrycontainer, domains)
-        elif isinstance(target_structure, PlanarSurface):
-            return CylindricalSurfacePlanarSurfaceInteractionSingletestShell (single, target_structure, geometrycontainer, domains)
+        # [Cylinder -> Disk]
+        if isinstance(target_structure, DiskSurface) \
+           and (  allowed_to_make[CylindricalSurfaceSinktestShell] \
+               or allowed_to_make[CylindricalSurfaceDiskInteractiontestShell] ):
+            try:
+                if allowed_to_make[CylindricalSurfaceSinktestShell]:
+                    return CylindricalSurfaceSinktestShell             (single, target_structure, geometrycontainer, domains)
+                else:
+                    raise testShellError('Creation of test shell type deactivated for %s' % CylindricalSurfaceSinktestShell)
+            except testShellError as e:
+                if __debug__:
+                      log.warn('Could not make CylindricalSurfaceSinktestShell, %s; now trying CylindricalSurfaceDiskInteractiontestShell.' % str(e))
+                if allowed_to_make[CylindricalSurfaceDiskInteractiontestShell]:
+                    return CylindricalSurfaceDiskInteractiontestShell  (single, target_structure, geometrycontainer, domains)                
+                else:
+                    raise testShellError('Creation of test shell type deactivated for %s' % CylindricalSurfaceDiskInteractiontestShell)
+        # [Cylinder -> Plane]
+        elif isinstance(target_structure, PlanarSurface) and allowed_to_make[CylindricalSurfacePlanarSurfaceInteractiontestShell]:
+            return CylindricalSurfacePlanarSurfaceInteractiontestShell (single, target_structure, geometrycontainer, domains)
+        # Unsupported cases
         else:
-            raise testShellError('(Interaction). Combination of (1D particle, target_structure) is not supported')
+            raise testShellError('(Interaction). Combination of (1D particle, target_structure) is not supported or deactivated')
+          
+    # All other unsupported cases
     else:
-        raise testShellError('(Interaction). structure of particle was of invalid type')
+        raise testShellError('(Interaction). Structure of particle was of invalid type')
 
 def create_default_interaction(domain_id, shell_id, testShell, reaction_rules, interaction_rules):
-    if isinstance(testShell, PlanarSurfaceDiskSurfaceInteractiontestShell): # must be first because it is a special case of CylindricalSurfaceInteractiontestShell
-        return PlanarSurfaceDiskSurfaceInteraction (domain_id, shell_id, testShell, reaction_rules, interaction_rules)
+    if isinstance(testShell, PlanarSurfaceCylindricalSurfaceInteractiontestShell): # must be first because it is a special case of PlanarSurfaceDiskSurfaceInteractiontestShell below
+        return PlanarSurfaceCylindricalSurfaceInteraction (domain_id, shell_id, testShell, reaction_rules, interaction_rules)
+    if isinstance(testShell, PlanarSurfaceDiskSurfaceInteractiontestShell): # must be first because it is a special case of CylindricalSurfaceInteractiontestShell below
+        return PlanarSurfaceDiskSurfaceInteraction        (domain_id, shell_id, testShell, reaction_rules, interaction_rules)
     elif isinstance(testShell, CylindricalSurfaceInteractiontestShell):
-        return CylindricalSurfaceInteraction    (domain_id, shell_id, testShell, reaction_rules, interaction_rules)
+        return CylindricalSurfaceInteraction              (domain_id, shell_id, testShell, reaction_rules, interaction_rules)
     elif isinstance(testShell, PlanarSurfaceInteractiontestShell):
-        return PlanarSurfaceInteraction         (domain_id, shell_id, testShell, reaction_rules, interaction_rules)
-    elif isinstance(testShell, CylindricalSurfacePlanarSurfaceInteractionSingletestShell): # must be first because it is a special case of CylindricalSurfaceCapInteractiontestShell
-        return CylindricalSurfacePlanarSurfaceInteractionSingle (domain_id, shell_id, testShell, reaction_rules, interaction_rules)
+        return PlanarSurfaceInteraction                   (domain_id, shell_id, testShell, reaction_rules, interaction_rules)
+    elif isinstance(testShell, CylindricalSurfacePlanarSurfaceInteractiontestShell): # must be first because it is a special case of CylindricalSurfaceDiskInteractiontestShell
+        return CylindricalSurfacePlanarSurfaceInteraction        (domain_id, shell_id, testShell, reaction_rules, interaction_rules)
     elif isinstance(testShell, CylindricalSurfacePlanarSurfaceIntermediateSingletestShell): # this is actually not a "real" interaction, but we need to put it here to ignore the target structure
         return CylindricalSurfacePlanarSurfaceIntermediateSingle (domain_id, shell_id, testShell, reaction_rules, interaction_rules)
-    elif isinstance(testShell, CylindricalSurfaceCapInteractiontestShell):
-        return CylindricalSurfaceCapInteraction (domain_id, shell_id, testShell, reaction_rules, interaction_rules)
-    elif isinstance(testShell, CylindricalSurfaceSinktestShell):
-        return CylindricalSurfaceSink           (domain_id, shell_id, testShell, reaction_rules, interaction_rules)
+    elif isinstance(testShell, CylindricalSurfaceDiskInteractiontestShell):
+        return CylindricalSurfaceDiskInteraction                 (domain_id, shell_id, testShell, reaction_rules, interaction_rules)
+    elif isinstance(testShell, CylindricalSurfaceSinktestShell): # FIXME not sure we ever construct this; we have to give it priority over Cyl.Surf.DiskInteraction for non-capping disks!
+        return CylindricalSurfaceSink                            (domain_id, shell_id, testShell, reaction_rules, interaction_rules)
 
 ### Transitions
 def try_default_testtransition(single, target_structure, geometrycontainer, domains):
@@ -160,44 +267,50 @@ def try_default_testtransition(single, target_structure, geometrycontainer, doma
             raise testShellError('(Transition). Combination of (3D particle, target_structure) is not supported')
     elif isinstance(single.structure, PlanarSurface):
         if isinstance(target_structure, PlanarSurface):
-            return PlanarSurfaceTransitionSingletestShell (single, target_structure, geometrycontainer, domains)
+            if allowed_to_make[PlanarSurfaceTransitionSingletestShell]:
+                return PlanarSurfaceTransitionSingletestShell (single, target_structure, geometrycontainer, domains)
+            else:
+                raise testShellError('Creation of test shell type deactivated for %s' % PlanarSurfaceTransitionSingletestShell)
         else:
             raise testShellError('(Transition). Combination of (2D particle, target_structure other than plane) is not supported')
     elif isinstance(single.structure, CylindricalSurface):
             raise testShellError('(Transition). Combination of (1D particle, target_structure) is not supported')
     else:
-        raise testShellError('(Transition). structure of particle was of invalid type')
+        raise testShellError('(Transition). Structure of particle was of invalid type')
 
 def create_default_transition(domain_id, shell_id, testShell, reaction_rules):
     if isinstance(testShell, PlanarSurfaceTransitionSingletestShell):
-        return PlanarSurfaceTransitionSingle                   (domain_id, shell_id, testShell, reaction_rules)
+        return PlanarSurfaceTransitionSingle (domain_id, shell_id, testShell, reaction_rules)
 
 ### Pairs
 def try_default_testpair(single1, single2, geometrycontainer, domains):
     if single1.structure == single2.structure:
         if isinstance(single1.structure, CuboidalRegion):
-            return SphericalPairtestShell           (single1, single2, geometrycontainer, domains)
+            return pair_testShell_if_allowed(SphericalPairtestShell, single1, single2, geometrycontainer, domains)
         elif isinstance(single1.structure, PlanarSurface):
-            return PlanarSurfacePairtestShell       (single1, single2, geometrycontainer, domains)
+            return pair_testShell_if_allowed(PlanarSurfacePairtestShell, single1, single2, geometrycontainer, domains)
         elif isinstance(single1.structure, CylindricalSurface):
-            return CylindricalSurfacePairtestShell  (single1, single2, geometrycontainer, domains)
+            return pair_testShell_if_allowed(CylindricalSurfacePairtestShell, single1, single2, geometrycontainer, domains)
     elif (isinstance(single1.structure, PlanarSurface) and isinstance(single2.structure, PlanarSurface)):
-        return PlanarSurfaceTransitionPairtestShell (single1, single2, geometrycontainer, domains) 
+        return pair_testShell_if_allowed(PlanarSurfaceTransitionPairtestShell, single1, single2, geometrycontainer, domains) 
     elif (isinstance(single1.structure, PlanarSurface) and isinstance(single2.structure, CuboidalRegion)):
-        return MixedPair2D3DtestShell               (single1, single2, geometrycontainer, domains) 
+        return pair_testShell_if_allowed(MixedPair2D3DtestShell, single1, single2, geometrycontainer, domains) 
     elif (isinstance(single2.structure, PlanarSurface) and isinstance(single1.structure, CuboidalRegion)):
-        return MixedPair2D3DtestShell(single2, single1, geometrycontainer, domains)
+        return pair_testShell_if_allowed(MixedPair2D3DtestShell, single2, single1, geometrycontainer, domains)
+        # (same as above with other particle order)
     elif (isinstance(single1.structure, PlanarSurface) and isinstance(single2.structure, DiskSurface)):
-        return MixedPair2DStatictestShell(single1, single2, geometrycontainer, domains)
+        return pair_testShell_if_allowed(MixedPair2DStatictestShell, single1, single2, geometrycontainer, domains)
     elif (isinstance(single2.structure, PlanarSurface) and isinstance(single1.structure, DiskSurface)):
-        return MixedPair2DStatictestShell(single2, single1, geometrycontainer, domains)
+        return pair_testShell_if_allowed(MixedPair2DStatictestShell, single2, single1, geometrycontainer, domains)
+        # (same as above with other particle order)
     elif (isinstance(single1.structure, CylindricalSurface) and isinstance(single2.structure, DiskSurface)):
-        return MixedPair1DStatictestShell(single1, single2, geometrycontainer, domains)
+        return pair_testShell_if_allowed(MixedPair1DStatictestShell, single1, single2, geometrycontainer, domains)
     elif (isinstance(single2.structure, CylindricalSurface) and isinstance(single1.structure, DiskSurface)):
-        return MixedPair1DStatictestShell(single2, single1, geometrycontainer, domains)
+        return pair_testShell_if_allowed(MixedPair1DStatictestShell, single2, single1, geometrycontainer, domains)
+        # (same as above with other particle order)
     else:
         # another mixed pair was supposed to be formed -> unsupported
-        raise testShellError('(MixedPair). combination of structures not supported')
+        raise testShellError('(MixedPair). Combination of structures not supported')
 
 def create_default_pair(domain_id, shell_id, testShell, reaction_rules):
     # Either SphericalPair, PlanarSurfacePair, or CylindricalSurfacePair.
@@ -269,13 +382,14 @@ class EGFRDSimulator(ParticleSimulatorBase):
                                                 # Make sure that DEFAULT_STEP_SIZE_FACTOR < MULTI_SHELL_FACTOR, or else the 
                                                 # reaction volume sticks out of the multi. 
 
-        self.BD_ONLY_FLAG = False               # Will force the algorithm into Multi-creation, i.e. always to use BD
-                                                # Take care: This is for testing only! Keep this 'False' for normal sims!
-
         self.BD_DT_HARDCORE_MIN = +1e-9         # This is to define a hardcore lower bound for the timestep that will be
                                                 # dynamically determined by the new BD scheme. It will prevent the algorithm
                                                 # to calculate ridiculously small timesteps, but will break detail balance.
                                                 # Take care: This is for testing only! Keep this at a negative value for normal sims!
+	if reset:
+      		self.BD_ONLY_FLAG = False       # Will force the algorithm into Multi-creation, i.e. always to use BD
+                                        	# Take care: This is for testing only! Keep this 'False' for normal sims!
+						# (However, we want to retain user-set values if the __init__ is not a reset)
 
         self.REMOVE_OVERLAPS = True             # Ignore overlaps, only warn when they happen and move particles apart
         self.max_overlap_error = 0.0            # This remembers the largest relative error produced by removing overlaps
@@ -320,6 +434,14 @@ class EGFRDSimulator(ParticleSimulatorBase):
         else:
             return self.scheduler.top[1].time
 
+    # Some alias methods for the one above
+    def get_next_event_time(self):        
+        return self.get_next_time()        
+    def next_time(self):
+        return self.get_next_time()
+    def next_event_time(self):
+        return self.get_next_time()
+
     #####################################################
     #### METHODS FOR GENERAL SIMULATOR FUNCTIONALITY ####
     #####################################################
@@ -332,7 +454,9 @@ class EGFRDSimulator(ParticleSimulatorBase):
         run before starting the "real experiment".
         """ #~ MW
         self.t = 0.0        
-        self.dt = 0.0        
+        self.dt = 0.0
+	self.t0 = self.t # Saves the starting time before the first event was fired
+			 # Can be reset when loading a state via load_state()
         self.step_counter = 0
         self.single_steps = {EventType.SINGLE_ESCAPE:0,
                              EventType.SINGLE_REACTION:0,
@@ -340,6 +464,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
                              'MAKE_NEW_DOMAIN':0}
         self.interaction_steps = {EventType.IV_INTERACTION:0,
                                   EventType.IV_ESCAPE:0,
+                                  EventType.SINGLE_ESCAPE:0,
                                   EventType.BURST:0}
         self.pair_steps = {EventType.SINGLE_REACTION:0,
                            EventType.IV_REACTION:0,
@@ -363,6 +488,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
         self.reaction_events = 0
         self.last_event = None
         self.last_reaction = None
+
+	self.t0 = 0.0
 
         self.is_dirty = True            # simulator needs to be re-initialized
 
@@ -434,10 +561,10 @@ class EGFRDSimulator(ParticleSimulatorBase):
             return                              # FIXME: is this accurate? Probably use feq from utils.py
 
         if t >= self.scheduler.top[1].time:     # Can't schedule a stop later than the next event time
-            raise RuntimeError('Stop time >= next event time.')
+            raise RuntimeError('stop: stop time (%g) >= next event time (%g).' % (t, self.next_time()))
 
         if t < self.t:
-            raise RuntimeError('Stop time < current time.')
+            raise RuntimeError('stop: stop time (%g) < current time (%g).' % (t, self.t))
 
         self.t = t
 
@@ -493,25 +620,27 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
         if __debug__:
             if self.scheduler.size == 0:
-                raise RuntimeError('No Events in scheduler.')
+                raise RuntimeError('step: no Events in scheduler.')
         
         # 1. Get the next event from the scheduler
         #
+        log.info('step: getting next event from scheduler')
         id, event = self.scheduler.pop()
         domain = self.domains[event.data]
         if event.time == numpy.inf:
             self.t, self.last_event = self.MAX_TIME_STEP, event
         else:
             self.t, self.last_event = event.time, event
-        
-        if __debug__:
-            domain_counts = self.count_domains()
-            log.info('\n\n%d: t=%s dt=%e (next_time=%s)\t' %
-                     (self.step_counter, self.t,
-                      self.dt, self.scheduler.top[1].time if self.scheduler.size > 0 else 0) + 
-                     'Singles: %d, Pairs: %d, Multis: %d\n' % domain_counts + 
-                     'event=#%d reactions=%d rejectedmoves=%d' %
-                     (id, self.reaction_events, self.rejected_moves))
+
+        # Retained from earlier, but currently switched off
+        #if __debug__:
+        #    domain_counts = self.count_domains()
+        #    log.info('\n\n%d: t=%s dt=%e (next_time=%s)\t' %
+        #             (self.step_counter, self.t,
+        #             self.dt, self.scheduler.top[1].time if self.scheduler.size > 0 else 0) + 
+        #             'Singles: %d, Pairs: %d, Multis: %d\n' % domain_counts + 
+        #             'event=#%d reactions=%d rejectedmoves=%d' %
+        #             (id, self.reaction_events, self.rejected_moves))
 
         # 2. Use the correct method to process (fire) the shell that produced the event
         #
@@ -519,6 +648,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
         # different classes of shells (see bottom egfrd.py) 
         # event.data holds the object (Single, Pair, Multi) that is associated with the next event.
         # e.g. "if class is Single, then process_single_event" ~ MW
+        log.info('step: dispatching to appropriate event handler')
         for klass, f in self.dispatch:
 
             if isinstance(domain, klass):
@@ -529,23 +659,36 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
         if __debug__:
             if self.scheduler.size == 0:
-                raise RuntimeError('Zero events left.')
+                raise RuntimeError('step: zero events left.')
 
         # 3. Adjust the simulation time
         #
         next_time = self.scheduler.top[1].time
-        log.info('next_time=%s' % next_time)
+        log.info('step: next_time=%s' % next_time)
         self.dt = next_time - self.t
 
+        # Print some info
+        # Make sure this comes after the new event has been created, 
+        # otherwise we risk a SEGFAULT here at low particle numbers,
+        # because self.scheduler.top[1] may not exist!
+        if __debug__:
+            domain_counts = self.count_domains()
+            log.info('\n\n%d: t=%s dt=%e (next_time=%s)\t' %
+                     (self.step_counter, self.t,
+                      self.dt, self.scheduler.top[1].time) + 
+                     'Singles: %d, Pairs: %d, Multis: %d\n' % domain_counts + 
+                     'event=#%d reactions=%d rejectedmoves=%d' %
+                     (id, self.reaction_events, self.rejected_moves))
+                     
         # assert if not too many successive dt=0 steps occur.
         if __debug__:
             if self.dt < 1e-10: # We consider 0.1 nanoseconds a zero-step
 
-                # log.warning('dt = %e = %.10e-%.10e = zero step, working in s.t >> dt~0 Python limit.' % (self.dt, next_time, self.t))
+                log.warning('dt = %e = %.10e-%.10e = zero step, working in s.t >> dt~0 Python limit.' % (self.dt, next_time, self.t))
                 self.zero_steps += 1
 
                 if self.zero_steps >= max(self.scheduler.size * 3, self.MAX_NUM_DT0_STEPS): 
-                    raise RuntimeError('too many successive dt=zero steps -> Simulator stalled?'
+                    raise RuntimeError('step: too many successive dt=zero steps --> Simulator stalled???'
                                        'dt= %.10e-%.10e' % (next_time, self.t))
                 
             else:
@@ -642,7 +785,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
     # We assume here that the testShell was successfully created.
 
         assert isinstance(testShell, PlanarSurfaceTransitionSingletestShell) or \
-               isinstance(testShell, CylindricalSurfacePlanarSurfaceInteractionSingletestShell)
+               isinstance(testShell, CylindricalSurfacePlanarSurfaceInteractiontestShell)
                # TODO should be generalized
 
         # 1. generate identifiers for the domain and shell. event_id is generated by
@@ -1225,14 +1368,21 @@ class EGFRDSimulator(ParticleSimulatorBase):
                         product_pos_list.append(vector)
 
                 elif isinstance(reactant_structure, DiskSurface):
-                    # The particle unbinds perpendicularly to disk unit vector (i.e. like on cylinder)
-                    vector_length = (product_radius + reactant_structure.shape.radius) * MINIMAL_SEPARATION_FACTOR
-                    for _ in range(self.dissociation_retry_moves):
-                        unit_vector3D = random_unit_vector()
-                        unit_vector2D = normalize(unit_vector3D - 
-                                        (reactant_structure.shape.unit_z * numpy.dot(unit_vector3D, reactant_structure.shape.unit_z)))
-                        vector = reactant_pos + vector_length * unit_vector2D
-                        product_pos_list.append(vector)
+                    # Initially check whether the DiskSurface dissociates the particles in radial direction (default setting)
+                    if reactant_structure.dissociates_radially():
+                      
+                      # The particle unbinds perpendicularly to disk unit vector (i.e. like on cylinder)
+                      vector_length = (product_radius + reactant_structure.shape.radius) * MINIMAL_SEPARATION_FACTOR
+                      for _ in range(self.dissociation_retry_moves):
+                          unit_vector3D = random_unit_vector()
+                          unit_vector2D = normalize(unit_vector3D - 
+                                          (reactant_structure.shape.unit_z * numpy.dot(unit_vector3D, reactant_structure.shape.unit_z)))
+                          vector = reactant_pos + vector_length * unit_vector2D
+                          product_pos_list.append(vector)
+                          
+                    else:
+                      # The particle stays where it is
+                      product_pos_list.append(reactant_pos)
 
                 else:
                     # cannot decay from 3D to other structure
@@ -1313,7 +1463,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
                     log.warn('Reactant structure is default structure, but products do not end up in bulk. Something seems wrong!')
 
                 # Figure out which product stays in the surface and which one goes to the bulk or parent structure
-                # Note that A is a particle in the surface and B is in the 3D
+                # Note that A is a particle staying in the surface of origin (of the reactant) and B goes to the "higher" structure
                 if product2_structure_type_id == def_sid or product2_structure_type_id == parent_sid:
                     # product2 goes to bulk or parent structure and is now particleB (product1 is particleA and is on the surface)
                     product1_structure_id = reactant_structure_id # TODO after the displacement the structure can change!
@@ -1419,7 +1569,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
                             Ns = Ns + 1
                             if Ns > self.MAX_NUM_DT0_STEPS:   # To avoid an infinite loop we need some kind of break condition
                                                               # We take the same looping limit as for dt=0 steps because this is a similar situation
-                                raise RuntimeError('Too many resampling attempts in fire_single on PlanarSurface with two products: Ns = %s > %s' \
+                                raise RuntimeError('fire_single_reaction: too many resampling attempts in reaction on PlanarSurface with two products: Ns = %s > %s' \
                                                   % (Ns, self.MAX_NUM_DT0_STEPS) )
                                                   # TODO This should not necessarily raise RuntimeError but just a warning;
                                                   # this is for TESTING only; replace by something better
@@ -1451,21 +1601,37 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
                     # productA always must stay on the disk, in the position of the reactant
                     newposA = reactant_pos
+                    
+                    # Check whether the DiskSurface dissociates the particles in radial direction (default setting)
+                    if reactant_structure.dissociates_radially():
 
-                    # Create the position of the particle that goes into the bulk (productB)
-                    # This is the same as for the single reaction of a completely dissociating disk-bound particle (see above)
-                    vector_length = (productB_radius + max(productA_radius, reactant_structure.shape.radius)) * MINIMAL_SEPARATION_FACTOR
-                    for _ in range(self.dissociation_retry_moves):
-                        unit_vector3D = random_unit_vector()
-                        unit_vector2D = normalize(unit_vector3D - 
-                                        (reactant_structure.shape.unit_z * numpy.dot(unit_vector3D, reactant_structure.shape.unit_z)))
-                        newposB = reactant_pos + vector_length * unit_vector2D                    
+                      # Create the position of the particle that goes into the bulk (productB)
+                      # This is the same as for the single reaction of a completely dissociating disk-bound particle (see above)
+                      vector_length = (productB_radius + max(productA_radius, reactant_structure.shape.radius)) * MINIMAL_SEPARATION_FACTOR
+                      for _ in range(self.dissociation_retry_moves):
+                          unit_vector3D = random_unit_vector()
+                          unit_vector2D = normalize(unit_vector3D - 
+                                          (reactant_structure.shape.unit_z * numpy.dot(unit_vector3D, reactant_structure.shape.unit_z)))
+                          newposB = reactant_pos + vector_length * unit_vector2D                    
 
-                        product_pos_list.append(conditional_swap(newposA, newposB))
+                          product_pos_list.append(conditional_swap(newposA, newposB))
+                          
+                    else:
+                      # The particle does not dissociate into the bulk but moves back onto the parent cylinder
+                      # and is placed adjacent (touching) next to particle A
+                      vector_length = (productB_radius + productA_radius) * MINIMAL_SEPARATION_FACTOR
+                      for _ in range(self.dissociation_retry_moves):
+                          # Determine a random dissociation direction
+                          unit_vector1D =  random_sign() * reactant_structure.shape.unit_z
+                          newposB = reactant_pos + vector_length * unit_vector1D
+                          # TODO We may have to carry out additional checks for free space here first, 
+                          # but in principle the code below should handle it correctly as in all other cases
+
+                          product_pos_list.append(conditional_swap(newposA, newposB))                      
 
                 else:
                     # cannot decay from 3D to other structure
-                    raise RuntimeError('fire_single_reaction: Can not decay from 3D to other structure')
+                    raise RuntimeError('fire_single_reaction: can not decay from 3D to other structure')
 
 
             # 1.5 Get new positions and structure_ids of particles
@@ -1923,8 +2089,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
         pair_interaction_partners = sorted(pair_interaction_partners, key=lambda domain_overlap: domain_overlap[1])
 
-        # For each particles/particle or particle/surface pair, check if a pair or interaction can be
-        # made. Note that we check the closest one first and only check if the object are within the horizon
+        # For each particles/particle or particle/surface pair, check if a pair or interaction can be made
+        # Note that we check the closest one first and only check if the object are within the horizon
         domain = None
         for obj, hor_overlap in pair_interaction_partners:
 
@@ -2000,11 +2166,16 @@ class EGFRDSimulator(ParticleSimulatorBase):
                     log.debug('Overlap partner = %s' % str(multi_partners[0][0]))
 
             # If the closest partner is within the multi horizon we do Multi, otherwise Single
-            if closest_overlap > 0.0 and not self.BD_ONLY_FLAG : 
+            # Here we also check whether the uses force-deactivated the construction of this particular
+            # Single type, or wants to run the simulator in BD mode only anyhow
+            if  closest_overlap > 0.0 and not self.BD_ONLY_FLAG:
                 try:
-                    # Just make a normal NonInteractionSingle
-                    self.update_single(single)
-                    bin_domain = single
+                    if allowed_to_make[single.testShell.__class__]:                    
+                        # Just make a normal NonInteractionSingle
+                        self.update_single(single)
+                        bin_domain = single                        
+                    else:
+                        raise testShellError('Creation of domain type deactivated.')
 
                 except Exception as e:
                     # If in rare cases the single update fails, make at least a Multi and warn
@@ -2085,13 +2256,12 @@ class EGFRDSimulator(ParticleSimulatorBase):
         # The method only works for NonInteractionSingles
         assert isinstance(single, NonInteractionSingle)
 
-        singlepos = single.pid_particle_pair[1].position    # TODO get the position as an argument
-
+        single_pos = single.pid_particle_pair[1].position    # TODO get the position as an argument
 
         # Create a new updated shell
         # If this does not work for some reason an exception is risen;
         # then make_new_domain() will make a Multi as a default fallback
-        new_shell = single.create_updated_shell(singlepos)
+        new_shell = single.create_updated_shell(single_pos)
         assert new_shell, 'Method single.create_updated_shell() returned None.'
 
         # Replace shell in domain and geometrycontainer.
@@ -2101,7 +2271,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
         single.shell_id_shell_pair = shell_id_shell_pair
         self.geometrycontainer.move_shell(shell_id_shell_pair)
         if __debug__:
-            log.info('        *Updated single: single: %s, new_shell = %s' % \
+            log.info('        * Updated single: single: %s, new_shell = %s' % \
                      (single, str(new_shell)))
 
         single.dt, single.event_type = single.determine_next_event()
@@ -2231,8 +2401,12 @@ class EGFRDSimulator(ParticleSimulatorBase):
                 zero_singles_b = []   # no bursting takes place, ignore list remains unchanged
                 # Update statistics
                 if single.event_type == EventType.SINGLE_ESCAPE or\
+                   single.event_type == EventType.IV_ESCAPE or\
                    single.event_type == EventType.BURST:
-                    self.single_steps[single.event_type] += 1
+                      if isinstance(single, InteractionSingle):
+                          self.interaction_steps[single.event_type] += 1
+                      else:
+                          self.single_steps[single.event_type] += 1
                 elif __debug__:
                     log.warning('Omitting to count a single event with unforeseen event type (%s).' % single.event_type)
                     
@@ -2617,7 +2791,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
         except testShellError as e:
             testShell = None
             if __debug__:
-                log.debug('%s not formed %s' % \
+                log.debug('%s not formed: %s' % \
                           ('Interaction(%s, %s)' % (single.pid_particle_pair[0], target_structure),
                           str(e) ))
 
@@ -2627,7 +2801,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
             # make the domain
             interaction = self.create_interaction(testShell)
             if __debug__:
-                log.info('        *Created: %s' % (interaction))
+                log.info('        * Created: %s' % (interaction))
+                log.info('        * Total interaction rate: k_tot = %g' % interaction.interaction_ktot)
 
             # get the next event time
             interaction.dt, interaction.event_type, = interaction.determine_next_event()
@@ -2666,7 +2841,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
         except testShellError as e:
             testShell = None
             if __debug__:
-                log.debug('%s not formed %s' % \
+                log.debug('%s not formed: %s' % \
                           ('Transition(%s, %s)' % (single.pid_particle_pair[0], target_structure),
                           str(e) ))
 
@@ -2676,7 +2851,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
             # make the domain
             transition = self.create_transition(testShell)
             if __debug__:
-                log.info('        *Created: %s' % (transition))
+                log.info('        * Created: %s' % (transition))
 
             # get the next event time
             transition.dt, transition.event_type, = transition.determine_next_event()
@@ -2718,7 +2893,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
         except testShellError as e:
             testShell = None
             if __debug__:
-                log.debug('%s not formed %s' % \
+                log.debug('%s not formed: %s' % \
                           ('Pair(%s, %s)' % (single1.pid_particle_pair[0], single2.pid_particle_pair[0]),
                           str(e) ))
 
@@ -2727,7 +2902,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
         if testShell:
             pair = self.create_pair(testShell)
             if __debug__:
-                log.info('        *Created: %s' % (pair))
+                log.info('        * Created: %s' % (pair))
 
             pair.dt, pair.event_type, pair.reactingsingle = pair.determine_next_event(pair.r0)
             if __debug__:
@@ -2961,7 +3136,7 @@ class EGFRDSimulator(ParticleSimulatorBase):
     def obj_distance_array(self, pos, domains):
         dists = numpy.array([self.domain_distance(pos, domain) for domain in domains])
         return dists
-            
+        
 
     ####################
     #### STATISTICS ####
@@ -2988,6 +3163,8 @@ class EGFRDSimulator(ParticleSimulatorBase):
 
         report = '''
 t = %g
+t0 = %g
+sim. time: %g
 \tNonmulti: %g\tMulti: %g
 steps: %d 
 updates: %d
@@ -3002,7 +3179,10 @@ rejected moves:      %d
 overlap remover was: %s
 max. overlap error:  %g
 ''' \
-            % (self.t, self.nonmulti_time, self.multi_time,
+            % (self.t, 
+	       self.t0,
+	       self.t - self.t0,
+	       self.nonmulti_time, self.multi_time,
                self.step_counter, total_steps,
                single_steps,
                (100.0*single_steps) / total_steps,
@@ -3113,19 +3293,23 @@ max. overlap error:  %g
             associated = []
 
         elif isinstance(domain, DiskSurfaceSingle):
-            # Particles bound to DiskSurfaces ignore all rods for now.
-            ignores = [s.id for s in self.world.structures if isinstance(s, CylindricalSurface)] # TODO Only ignore closest cylinder
+            # Particles bound to DiskSurfaces ignore all rods and other disks for now.
+            ignores_cyl = [s.id for s in self.world.structures if isinstance(s, CylindricalSurface)] # TODO Only ignore closest cylinder
+            ignores_dsk = [s.id for s in self.world.structures if isinstance(s, DiskSurface)] # TODO Only ignore closest disks
+            ignores = ignores_cyl + ignores_dsk
             associated = [domain.structure.id, domain.structure.structure_id] # the latter is the ID of the parent structure
 
         elif isinstance(domain, CylindricalSurfacePlanarSurfaceIntermediateSingle) or isinstance(domain, MixedPair1DStatic) \
           or isinstance(domain, PlanarSurfaceDiskSurfaceInteraction):
-            # Ignore the planar surface and sub-disk that holds/will hold the particle, and the neighboring cylinder
+            # Ignore the planar surface and sub-disk that holds/will hold the particle, and the neighboring cylinder PLUS its disks
             # Note that the plane is the parent structure of the disk, which in both cases is the target structure
-            ignores = [s.id for s in self.world.structures if isinstance(s, CylindricalSurface)] # TODO Only ignore closest cylinder
+            ignores_cyl = [s.id for s in self.world.structures if isinstance(s, CylindricalSurface)] # TODO Only ignore closest cylinder
+            ignores_dsk = [s.id for s in self.world.structures if isinstance(s, DiskSurface)] # TODO Only ignore closest disks
+            ignores = ignores_cyl + ignores_dsk
             associated = [domain.origin_structure.id, domain.target_structure.id, domain.target_structure.structure_id]
                                                                                   # the latter is the ID of the parent structure
 
-        elif isinstance(domain, CylindricalSurfaceInteraction) or isinstance(domain, CylindricalSurfacePlanarSurfaceInteractionSingle):
+        elif isinstance(domain, CylindricalSurfaceInteraction) or isinstance(domain, CylindricalSurfacePlanarSurfaceInteraction):
             # Ignore surface of the particle and interaction surface and all DiskSurfaces for now.
             ignores = [s.id for s in self.world.structures if isinstance(s, DiskSurface)] # TODO Only ignore closest disk
             associated = [domain.origin_structure.id, domain.target_structure.id]
@@ -3178,7 +3362,7 @@ max. overlap error:  %g
                             log.warn('%s (%s) overlaps with %s by %s.' % \
                                       (str(domain), str(shell), str(surface), FORMAT_DOUBLE % overlap) )
                 assert overlap >= -1.0*overlap_tolerance, \
-                    'Overlap out of overlap_tolerance = %s.' % str(overlap_tolerance)
+                    'Overlap (%s) out of overlap_tolerance (%s).' % (str(overlap), str(overlap_tolerance))
                     
 
             ### Check that shells DO overlap with associated surfaces.
@@ -3415,7 +3599,7 @@ max. overlap error:  %g
                     assert (abs(domain.last_time + domain.dt - event.time) <= TIME_TOLERANCE * event.time)
                     break
             else:
-                raise RuntimeError('Event for domain_id %s could not be found in scheduler' % str(domain_id) )
+                raise RuntimeError('check_event_stoichiometry: event for domain_id %s could not be found in scheduler' % str(domain_id) )
 
             # make sure that we had not already found it earlier
             assert domain_id not in already_in_scheduler
@@ -3433,7 +3617,7 @@ max. overlap error:  %g
             domain_population += domain.multiplicity
 
         if world_population != domain_population:
-            raise RuntimeError('population %d != domain_population %d' %
+            raise RuntimeError('check_event_stoichiometry: population %d != domain_population %d' %
                                (world_population, domain_population))
 
         # If control bounds are defined, check whether all particles are within
@@ -3505,7 +3689,7 @@ max. overlap error:  %g
                 for sid in diff:
                     print shell_map.get(sid, None)
 
-                raise RuntimeError('number of shells are inconsistent '
+                raise RuntimeError('check_shell_matrix: number of shells are inconsistent '
                                    '(%d != %d; %s) - %s' %
                                    (len(shell_ids), domain.num_shells, 
                                     domain.domain_id, diff))
@@ -3513,7 +3697,7 @@ max. overlap error:  %g
         # check that total number of shells in domains==total number of shells in shell container
         matrix_population = self.geometrycontainer.get_total_num_shells()
         if shell_population != matrix_population:
-            raise RuntimeError('num shells (%d) != matrix population (%d)' %
+            raise RuntimeError('check_shell_matrix: num shells (%d) != matrix population (%d)' %
                                (shell_population, matrix_population))
         # Since the number of shells in the domains is equal to the number of shells in the
         # geometrycontainer this now also means that all the shells in the geometrycontainer are
@@ -3578,15 +3762,15 @@ max. overlap error:  %g
         # check that all the event_id in the scheduler are also stored in a domain
         for id, event in self.scheduler:
             if id not in event_ids:
-                raise RuntimeError('Event %s in EventScheduler has no domain in self.domains' %
+                raise RuntimeError('check_domains: event %s in event scheduler has no domain in self.domains' %
                                    event)
             else:
                 event_ids.remove(id)
 
         # self.domains always include a None  --> this can change in future
         if event_ids:
-            raise RuntimeError('following domains in self.domains are not in '
-                               'Event Scheduler: %s' % str(tuple(event_ids)))
+            raise RuntimeError('check_domains: following domains in self.domains are not in '
+                               'event scheduler: %s' % str(tuple(event_ids)))
 
     def check_pair_pos(self, pair, pos1, pos2, com, radius):
         particle1 = pair.pid_particle_pair1[1]
@@ -3614,7 +3798,7 @@ max. overlap error:  %g
         d1 = self.world.distance(old_com, pos1) + particle1.radius
         d2 = self.world.distance(old_com, pos2) + particle2.radius
         if d1 > radius or d2 > radius:
-            raise RuntimeError('New particle(s) out of protective sphere. ' 
+            raise RuntimeError('check_pair_pos: new particle(s) out of protective sphere. ' 
                                'radius = %s, d1 = %s, d2 = %s ' %
                                (FORMAT_DOUBLE % radius, FORMAT_DOUBLE % d1,
                                 FORMAT_DOUBLE % d2))
@@ -3681,16 +3865,26 @@ max. overlap error:  %g
             if(delay > 0.0):
                     sleep(delay)
 
-            self.load_state(filename)
+            self.load_state(filename, reset_t0=False)
+	    # When reloading to continue the simulation, we
+	    # want to make sure that the recorded starting time
+	    # is not overwritten
 
 
-    def load_state(self, filename):
+    def load_state(self, filename, reset_t0=True):
         """ Load a state previously saved via save_state()
             and re-initialize the simulator with the loaded
             data.
             
             Takes the name of the save-file as an argument
             of string-type.
+
+	    If the optional parameter reset_t0 is set to 'True'
+	    the starting time of the scheduler (self.t0) will be
+	    set to the scheduler time saved in the input file.
+	    It is 'True' by default and typically only set to
+	    'False' during temporary interrupts with saving and
+	    reloading of the current state.
         """
         # Run the load function which will return a
         # new world containing the read-in model and
@@ -3711,12 +3905,15 @@ max. overlap error:  %g
         # This is to avoid divergence between the original and the
         # restarted simulation because of the limited floating point 
         # precision of Python
-        self.t = time_info[0]
+        self.t  = time_info[0]
+
+	if reset_t0:
+	        self.t0 = self.t
 
 
-    ###############################
-    #### METHODS FOR DEBUGGING ####
-    ###############################
+    #########################################
+    #### METHODS FOR DEBUGGING & TESTING ####
+    #########################################
     def dump_scheduler(self):
         """Dump scheduler information.
 
@@ -3745,9 +3942,18 @@ max. overlap error:  %g
             elif isinstance(d, Multi):
                 num_multis += 1
             else:
-                raise RuntimeError('DO NOT GET HERE')
+                raise RuntimeError('count_domains: domain has unknown type!')
 
         return (num_singles, num_pairs, num_multis)
+
+    def set_BD_only(self):
+
+        self.BD_ONLY_FLAG = True
+
+    def unset_BD_only(self):
+
+        self.BD_ONLY_FLAG = False
+
 
     dispatch = [
         (Single, process_single_event),

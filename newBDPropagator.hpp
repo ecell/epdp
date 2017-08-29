@@ -193,16 +193,23 @@ public:
         bool bounced( false );
         // Get all the particles that are in the reaction volume at the new position (and that may consequently also be in the core)
         /* Use a spherical shape with radius = particle_radius + reaction_length.
-	       We use it to check for overlaps with other particles. */
+           Note that at this point this is only a search radius, not a radius that defines volume exclusion;
+           for this, only r0 (instead of r0 + reaction_length_) is used further below.                       */
         boost::scoped_ptr<particle_id_pair_and_distance_list> overlap_particles(
                 tx_.check_overlap(particle_shape_type( new_pos, r0 + reaction_length_ ), pp.first));
         int particles_in_overlap(overlap_particles ? overlap_particles->size(): 0);
+        if(particles_in_overlap)
+            LOG_DEBUG( ("%u particles in overlap at new position.", particles_in_overlap) );
 
         //// 4.1 CHECK FOR CORE OVERLAPS WITH PARTICLES
-        /* Check if the particle at new_pos overlaps with any particle cores. */        
+        /* Check if the particle at new_pos overlaps with any particle cores. */
         int j( 0 );
         while(!bounced && j < particles_in_overlap)
             bounced = overlap_particles->at(j++).second < r0;
+                      // use only r0 as an exclusion radius here!
+        
+        if(bounced)
+            LOG_DEBUG( ("particle bounced with another particle.") );
         
         //// 4.2 CHECK FOR CORE OVERLAPS WITH STRUCTURES
         /* If the particle has not bounced with another particle check for overlap with a surface. */
@@ -214,11 +221,18 @@ public:
             boost::scoped_ptr<structure_id_pair_and_distance_list> overlap_structures_tmp(
                 tx_.check_surface_overlap(particle_shape_type( new_pos, r0 + reaction_length_ ), old_pos, new_structure_id, r0, old_struct_id));
             overlap_structures.swap(overlap_structures_tmp);
-            structures_in_overlap = (int)(overlap_structures ? overlap_structures->size(): 0);
- 
+            structures_in_overlap = (int)(overlap_structures ? overlap_structures->size(): 0);            
+            
+            if(structures_in_overlap)
+                LOG_DEBUG( ("%u structures in overlap at new position.", structures_in_overlap) );
+            
             j = 0;
             while(!bounced && j < structures_in_overlap)
                 bounced = overlap_structures->at(j++).second < r0;
+                          // use only r0 as an exclusion radius here!
+                        
+            if(bounced)
+                LOG_DEBUG( ("particle bounced with structure.") );
         }
          
         /*** 5. TREAT BOUNCING => CHECK FOR POTENTIAL REACTIONS / INTERACTIONS ***/
@@ -238,20 +252,22 @@ public:
             boost::scoped_ptr<particle_id_pair_and_distance_list> overlap_particles_after_bounce( 
                     tx_.check_overlap( particle_shape_type( old_pos, r0 + reaction_length_ ), pp.first) );
             overlap_particles.swap( overlap_particles_after_bounce );     // FIXME is there no better way?
-            // NOTE that it is asserted that the particle overlap criterium for the particle with other particles
-            // and surfaces is False!
-            particles_in_overlap = overlap_particles ? overlap_particles->size(): 0; 
-            LOG_DEBUG( ("particles_in_overlap = %g", particles_in_overlap) ); // TESTING
+            // NOTE that it is asserted that the particle overlap criterium for the particle with 
+            // other particles and surfaces is False!
+            particles_in_overlap = (int)(overlap_particles ? overlap_particles->size(): 0); 
+            LOG_DEBUG( ("now %u particles in overlap at old position", particles_in_overlap) );
             
             // re-get the reaction partners (structures), now on old position.
             boost::scoped_ptr<structure_id_pair_and_distance_list> overlap_structures_after_bounce( 
                     tx_.check_surface_overlap( particle_shape_type( old_pos, r0 + reaction_length_ ), old_pos, old_struct_id, r0) );
             overlap_structures.swap( overlap_structures_after_bounce );   // FIXME is there no better way?
-            // NOTE that it is asserted that the particle overlap criterium for the particle with other particles
-            // and surfaces is False!
+            // NOTE that it is asserted that the particle overlap criterium for the particle with
+            // other particles and surfaces is False!
             structures_in_overlap = (int)(overlap_structures ? overlap_structures->size(): 0);
-            LOG_DEBUG( ("structures_in_overlap = %g", structures_in_overlap) ); // TESTING
+            LOG_DEBUG( ("now %u structures in overlap at old position", structures_in_overlap) );
         }
+        // NOTE that overlap_structures and overlap_particles also have been defined properly above when bounced = false;
+        // in that case, there were no core overlaps, but possibly still overlaps within the reaction volume
         
 
         /*** 6. REACTIONS & INTERACTIONS ***/
@@ -329,7 +345,7 @@ public:
                 }
                 else
                 {
-                    LOG_DEBUG( ("particle attempted an interaction with the non-interactive surface %s.", 
+                    LOG_DEBUG( ("particle attempted an interaction with surface %s; interaction not accepted.", 
                                 boost::lexical_cast<std::string>(overlap_struct.first.first).c_str()) );
                 }
             }
@@ -401,7 +417,7 @@ public:
             }
             else                
             {
-                LOG_DEBUG(("particle attempted a reaction with particle %s and failed.", 
+                LOG_DEBUG(("particle attempted a reaction with particle %s; reaction not accepted.", 
                     boost::lexical_cast<std::string>(overlap_particle.first.first).c_str()));
             }
             
