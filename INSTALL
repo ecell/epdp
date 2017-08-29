@@ -48,7 +48,9 @@ Building this package
 has been tested on:
 Ubuntu 14.04 LTS
 Ubuntu 10.04 LTS
-Debian 7.7.0
+Debian 7.7
+Debian 7.9
+Debian 7.11
 Fedora 20.1
 CentOS 7.0.14.06
 

@@ -1,24 +1,28 @@
 
-:author: Koichi Takahashi
+:author: Thomas R. Sokolowski, Koichi Takahashi
 
 
-E-Cell Particle Dynamics Prototype
+=== 1D-2D-3D eGFRD Prototype ===
 
+originally based on the E-Cell Particle Dynamics Prototype
+
+Copyright (C) 2009-2017 AMOLF
 Copyright (C) 2008-2010 RIKEN
-Copyright (C) 2009-2010 AMOLF
 Copyright (C) 2005-2008 The Molecular Sciences Institute
 
 
 About this package
 ========================
 
-This package is tentatively named E-Cell Particle Dynamics Prototype
-(EPDP).  It currently implements the enhanced Greens Function Reaction
-Dynamics (eGFRD) algorithm and the reaction Brownian Dynamics (BD) simulation
-algorithm.  Implementation of the original version of GFRD will
-possibly be added in future.  The code is implemented with the hope
-that it will eventually be part of the E-Cell System Version 4
-multi-algorithm, multi-space simulation platform.
+This package is tentatively named "1D-2D-3D eGFRD Prototype", and was
+originally forked from RIKEN's E-Cell Particle Dynamics Prototype (EPDP).
+It currently implements the enhanced Greens Function Reaction Dynamics 
+(eGFRD) algorithm working in all dimensions, the Reaction Brownian 
+Dynamics (RBD) simulation algorithm, and another BD simulator based on 
+the Rection Volume Method (rvm-BD). Implementation of the original 
+version of GFRD will possibly be added in future. The code was designed
+and implemented with the hope that it will eventually be part of the 
+E-Cell System Version 4 multi-algorithm, multi-space simulation platform.
 
 The purpose of this prototype code written in mixed Python and C++ is
 to establish a solid and practical implementation of the algorithms,
@@ -26,21 +30,31 @@ and to extend it into a form that is suitable for large-scale
 biochemical and cell simulations.
 
 The eGFRD algorithm first appeared and be used in a paper by
-Takahashi, Tanase-Nicola and ten Wolde [1], and will be described more
-in detail in a forthcoming paper[2].
+Takahashi, Tanase-Nicola and ten Wolde [1]. A detailed introduction 
+to eGFRD, and in particular a description of the extensions to lower 
+dimensions is found in the PhD Thesis of Sokolowski [2]. Review [3]
+also contains a good introduction into the current eGFRD version.
+All new features will be described in detail in a forthcoming paper [4]. 
 
-The reaction Brownian Dynamics algorithm is described in a paper by
-Morrelli and ten Wolde[3].
+The Reaction Brownian Dynamics algorithm is described in a paper by
+Morrelli and ten Wolde [5]; the Reaction Volume Method and rvm-BD
+are described in detail in the Master's Thesis of Paijmans[6], and 
+also briefly in [2-4].
 
 
 Authors
 ========================
 
 (alphabetical order)
+
+Laurens Bossen
 Kazunari Kaizu
 Moriyoshi Koizumi
-Thomase Miedema
+Thomas Miedema
+Joris Paijmans
+Thomas R. Sokolowski
 Koichi Takahashi
+Martijn Wehrens
 
 
 License
@@ -62,34 +76,60 @@ History of the Code
 Koichi Takahashi initially stated development of the code in 2005 to
 implement his prototype of Greens Function Reaction Dynamics
 simulation method invented by Jeroen van Zon and Pieter Rein ten Wolde
-in AMOLF, Amsterdam[4].  He gave a brief invited talk about
+in AMOLF, Amsterdam [7].  He gave a brief invited talk about
 performance evaluation and applicability of the method to yeast
 pheromon response pathway (the Alpha pathway) using the prototype in
-the Third Annual Alpha Project Research Symposium (June 16-27, 2005, at UC
-Berkeley Art Museum).
+the Third Annual Alpha Project Research Symposium (June 16-27, 2005, at 
+UC Berkeley Art Museum).
 
-Later, in December 2006, ten Wolde, Sorin Tanase-Nicola, and Takahashi
-introduced the concept called first-passage processes[5][6] to Greens
+Later, in December 2006, ten Wolde, Tanase-Nicola, and Takahashi
+introduced the concept called first-passage processes [8,9] to Greens
 Function Reaction Dynamics by putting protective domains around
 particles to further boost the performance and accuracy of the method.
 The new method was named eGFRD (enhanced Greens Function Reaction
-Dynamics).
+Dynamics). By 2010, it was implemented for simulating particle-based
+reaction-diffusion systems in 3D, and fully integrated with a BD
+fallback system; the framework was applied to study details of
+enzymatic reactions in the MAPK push-pull networks [1].
+
+Starting from 2009, Sokolowski, Bossen, Miedema and ten Wolde began
+to derive the Green's functions and implementing the new domains
+needed for extending eGFRD to lower dimensions. Later Paijmans and
+Wehrens joined these efforts. Since extension of RBD to lower dimensions 
+turned out to be difficult, Paijmans and ten Wolde devised rvm-BD, a new
+BD simulation method that preserves detailed balance, based on the
+Reaction Volume Method (described in more detail in [6, 2-4]).
+
+All extensions to lower dimensions were assembled together by Bossen 
+and Sokolowski in 2012-2013. In 2013, Sokolowski finally created a
+first working prototype comprising all new features mentioned above.
+In the following years, this prototype was tested and improved, and
+some further new features, such as the option of transiting particles
+between cylinders and planes, were integrated. The prototype code
+then was used to simulate an idealized model of Pom1 gradient formation,
+as described in [4].
 
 
 Plans
 =========================
 
-Some features planned to be added are; surfaces, interactions between
-membrane proteins and proteins in solution, optimistic discrete-event
-scheduling for massive parallelization, connections to non-spatial 
-simulation methods such as ODE and Gillespie methods.
+Some features planned to be added are:
+- outsourcing further core routines from Python to C++
+- optimistic discrete-event scheduling for massive parallelization 
+- connections to non-spatial simulation methods such as ODE and Gillespie methods
+- more efficient visualizers / visualization interfaces
 
+
+References
+=========================
 
 [1] K. Takahashi, S. Tanase-Nicola and P.R. ten Wolde, PNAS doi:10.1073/pnas.0906885107 (2010).
-[2] K. Takahashi, S. Tanase-Nicola and P.R. ten Wolde, in preparation. 
-[3] M.J. Morelli and P.R. ten Wolde, J. Chem. Phys. 7;129(5):054112 (2008).
-[4] van Zon and ten Wolde, Phys. Rev. Lett. 94 (2005).
-[5] T. Opplestrup, V.V. Bulatov, G.H. Gilmer, M.H. Kalos, and B. Sadigh, Phys. Rev. Lett. 97 (2006).
-[6] M.H. Kalos, D. Levesque and L. Verlet, Phys. Rev. A 9 (1974).
-
-
+[2] T.R. Sokolowski, "A Computational Study of Robust Formation of Spatial Protein Patterns", 
+    PhD Thesis, VU Amsteram, ISBN: 978-90-77209-72-1 (2013).
+[3] T.R. Sokolowski and P.R. ten Wolde, arXiv:170508669 [q-bio:MN] (2017).
+[4] T.R. Sokolowski et al., in preparation (2017).
+[5] M.J. Morelli and P.R. ten Wolde, J. Chem. Phys. 7;129(5):054112 (2008).
+[6] J. Paijmans, Master's Thesis, University of Amsterdam (2012).
+[7] van Zon and ten Wolde, Phys. Rev. Lett. 94 (2005).
+[8] T. Opplestrup, V.V. Bulatov, G.H. Gilmer, M.H. Kalos, and B. Sadigh, Phys. Rev. Lett. 97 (2006).
+[9] M.H. Kalos, D. Levesque and L. Verlet, Phys. Rev. A 9 (1974).
