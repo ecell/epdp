@@ -2,7 +2,7 @@
 :author: Thomas R. Sokolowski, Koichi Takahashi
 
 
-=== eGFRD 2 Prototype ===
+=== eGFRD2 Prototype ===
 
 originally based on the E-Cell Particle Dynamics Prototype
 
@@ -14,7 +14,7 @@ Copyright (C) 2005-2008 The Molecular Sciences Institute
 About this package
 ========================
 
-This package is tentatively named "eGFRD 2 Prototype", and was 
+This package is tentatively named "eGFRD2 Prototype", and was 
 originally forked from RIKEN's E-Cell Particle Dynamics Prototype (EPDP).
 It currently implements the enhanced Greens Function Reaction Dynamics 
 (eGFRD) algorithm working in all dimensions, the Reaction Brownian 
@@ -35,7 +35,8 @@ Takahashi, Tanase-Nicola and ten Wolde [1]. A detailed introduction
 to eGFRD, and in particular a description of the extensions to lower 
 dimensions is found in the PhD Thesis of Sokolowski [2]. Review [3]
 also contains a good introduction into the current eGFRD version.
-Moreover, eGFRD 2 will be described in detail in a forthcoming paper [4]. 
+Moreover, eGFRD2 is described in detail in a forthcoming paper, 
+currently available as a preprint on arXiv [4].
 
 The Reaction Brownian Dynamics algorithm is described in a paper by
 Morrelli and ten Wolde [5]; the Reaction Volume Method and rvm-BD
@@ -126,8 +127,8 @@ References
 [1] K. Takahashi, S. Tanase-Nicola and P.R. ten Wolde, PNAS doi:10.1073/pnas.0906885107 (2010).
 [2] T.R. Sokolowski, "A Computational Study of Robust Formation of Spatial Protein Patterns", 
     PhD Thesis, VU Amsteram, ISBN: 978-90-77209-72-1 (2013).
-[3] T.R. Sokolowski and P.R. ten Wolde, arXiv:170508669 [q-bio:MN] (2017).
-[4] T.R. Sokolowski et al., in preparation (2017).
+[3] T.R. Sokolowski and P.R. ten Wolde, arXiv:1705.08669 [q-bio.MN] (2017).
+[4] T.R. Sokolowski et al., arXiv:1708.09364 [q-bio.MN] (2017).
 [5] M.J. Morelli and P.R. ten Wolde, J. Chem. Phys. 7;129(5):054112 (2008).
 [6] J. Paijmans, Master's Thesis, University of Amsterdam (2012).
 [7] van Zon and ten Wolde, Phys. Rev. Lett. 94 (2005).
