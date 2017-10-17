@@ -3,6 +3,7 @@
 #endif /* HAVE_CONFIG_H */
 
 #include <algorithm>
+#include <boost/detail/workaround.hpp>
 #include <boost/type_traits/remove_pointer.hpp>
 #include <boost/lexical_cast.hpp>
 
