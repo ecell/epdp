@@ -60,17 +60,20 @@ class TheImperialRoyalVisualizerForEGFRD:
     
   """
   def __init__(self, eGFRDsim, particle_color_dict={}, structure_color_dict={}, \
-                        capture=False, capture_dir='./tirvie_frames', particle_radius_factor=1, cyl_radius_factor=1):
+                        capture=False, capture_dir='./tirvie_frames', particle_radius_factor=1, cyl_radius_factor=1, \
+                        view_center=[0, 0, 0] ):
 
     self.sim = eGFRDsim
     self.world_size = self.get_world_size()
     
     self.objects = []
 
-    self.scene_width  = 1000
-    self.scene_height = 1000
+    self.scene_width  = 1600
+    self.scene_height = 900
     self.window_title = "TIRViE -- The Imperial-Royal Visualizer for eGFRD"
     self.window_id    = '' # set later by self.get_window_id(), once a scene has been created
+
+    self.view_center  = view_center # the point at which the camera will always look; [0,0,0] by default
     
     self.SCENE_BACKGROUND_COLOR = v.color.white
     
@@ -261,7 +264,7 @@ class TheImperialRoyalVisualizerForEGFRD:
     except:
       print "No scene existing yet, creating now."
     
-    self.scene = v.display(width = self.scene_width, height = self.scene_height, title = self.window_title)
+    self.scene = v.display(width = self.scene_width, height = self.scene_height, title = self.window_title, center = self.view_center)
     self.scene.background = self.SCENE_BACKGROUND_COLOR
     self.scene.select()
     
@@ -1102,11 +1105,13 @@ class TIRViE(TheImperialRoyalVisualizerForEGFRD):
     This is just an alias for 'TheImperialRoyalVisualizerForEGFRD'
   
   """
-  def __init__(self, eGFRDsim, particle_color_dict={}, structure_color_dict={}, capture=False, capture_dir='./tirvie_frames', particle_radius_factor=1, cyl_radius_factor=1):
+  def __init__(self, eGFRDsim, particle_color_dict={}, structure_color_dict={}, capture=False, capture_dir='./tirvie_frames', \
+                     particle_radius_factor=1, cyl_radius_factor=1, view_center=[0, 0, 0] ):
 
     TheImperialRoyalVisualizerForEGFRD.__init__(self, eGFRDsim=eGFRDsim, \
                                                       particle_color_dict=particle_color_dict, structure_color_dict=structure_color_dict, \
                                                       capture=capture, capture_dir=capture_dir, \
-                                                      particle_radius_factor=particle_radius_factor, cyl_radius_factor=cyl_radius_factor)
+                                                      particle_radius_factor=particle_radius_factor, cyl_radius_factor=cyl_radius_factor, \
+                                                      view_center=view_center)
                                                       
     
